@@ -33,8 +33,6 @@ jobs:
       - uses: actions/checkout@v3.3.0
       - name: Generate Firmware Project
         run: |
-          pwd
-          ls -la
           slc generate \
               --with="${{ matrix.with }}" \
               --project-file=/gecko_sdk/protocol/zigbee/app/ncp/sample-app/ncp-uart-hw/ncp-uart-hw.slcp \
@@ -49,13 +47,13 @@ jobs:
       - name: Patch Firmware
         run: |
           cd ${{ matrix.firmware }}
-          patch -p1 < ../${{ matrix.patchpath }}/*.patch
+          patch -p1 < ${{ matrix.patchpath }}/*.patch
 
       - name: Build Firmware
         run: |
           cd ${{ matrix.firmware }}
-          make -f ncp-uart-hw.Makefile
+          make -f ncp-uart-hw.Makefile release
       - uses: actions/upload-artifact@v3
         with:
           name: ezsp-firmware
-          path: /build/${{ matrix.firmware }}
+          path: ${{ matrix.firmware }}
