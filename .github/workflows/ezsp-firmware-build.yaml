@@ -4,6 +4,15 @@ on:
   push:
     branches:
       - main
+    paths:
+      - .github/workflows/ezsp-firmware-build.yaml
+  workflow_run:
+    workflows:
+      - "Silicon Labs build container image"
+    branches:
+      - main
+    types:
+      - completed
 
 jobs:
   ezsp-firmware-build:
