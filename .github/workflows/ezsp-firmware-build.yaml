@@ -18,10 +18,12 @@ jobs:
   ezsp-firmware-build:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/nabucasa/silabs-firmware-builder
+      image: ghcr.io/nabucasa/silabs-firmware-builder:${{ matrix.sdk_version }}
       options: --user root
     strategy:
       matrix:
+        sdk_version:
+          - 4.1.4
         include:
           - firmware: ncp-uart-hw-yellow
             with: MGM210PA32JIA,simple_led:board_activity
