@@ -31,6 +31,8 @@ jobs:
             patchpath: "EmberZNet/SkyConnect"
     steps:
       - uses: actions/checkout@v3.3.0
+      - name: Adjust permission
+        run: chown builder .
       - name: Generate Firmware Project
         shell: su --shell=/bin/bash builder {0}
         run: |
