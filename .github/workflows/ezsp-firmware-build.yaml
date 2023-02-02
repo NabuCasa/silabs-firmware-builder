@@ -46,7 +46,12 @@ jobs:
                 "
       - name: Patch Firmware
         run: |
+          pwd
+          ls -la
           cd ${{ matrix.firmware }}
+          pwd
+          ls -la
+          ls -la "../${{ matrix.patchpath }}"
           patch -p1 < ../${{ matrix.patchpath }}/*.patch
 
       - name: Build Firmware
