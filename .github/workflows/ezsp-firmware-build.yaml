@@ -47,7 +47,7 @@ jobs:
       - name: Patch Firmware
         run: |
           cd ${{ matrix.firmware }}
-          patch -p1 < ${{ matrix.patchpath }}/*.patch
+          patch -p1 < ../${{ matrix.patchpath }}/*.patch
 
       - name: Build Firmware
         run: |
