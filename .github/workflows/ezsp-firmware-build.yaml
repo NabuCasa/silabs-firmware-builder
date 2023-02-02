@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/nabucasa/silabs-firmware-builder
+      options: --user root
     strategy:
       matrix:
         include:
