@@ -1,0 +1,27 @@
+From 254abe857b7ade936fdde9c9bf0481f9d2489049 Mon Sep 17 00:00:00 2001
+Message-Id: <254abe857b7ade936fdde9c9bf0481f9d2489049.1675331135.git.stefan@agner.ch>
+From: Stefan Agner <stefan@agner.ch>
+Date: Thu, 2 Feb 2023 10:44:57 +0100
+Subject: [PATCH] config: use SkyConnect specific UUID as Application Product
+ ID
+
+---
+ config/app_properties_config.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/config/app_properties_config.h b/config/app_properties_config.h
+index 6a6b976..af5ece7 100644
+--- a/config/app_properties_config.h
++++ b/config/app_properties_config.h
+@@ -58,7 +58,7 @@
+ #define SL_APPLICATION_CAPABILITIES            0
+ 
+ //Product ID of the device for which the application is built
+-#define SL_APPLICATION_PRODUCT_ID             { 0 }
++#define SL_APPLICATION_PRODUCT_ID             { 0xe9, 0x92, 0x67, 0x94, 0xbb, 0x2c, 0x4e, 0xc8, 0x9f, 0x36, 0xd9, 0xc6, 0x79, 0x4a, 0x81, 0xfb }
+ 
+ // </h>
+ 
+-- 
+2.39.1
+

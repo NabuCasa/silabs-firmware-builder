@@ -1,0 +1,53 @@
+From 769a0b5cfbaf0d9beb26606b1692c81e7327dc9a Mon Sep 17 00:00:00 2001
+Message-Id: <769a0b5cfbaf0d9beb26606b1692c81e7327dc9a.1675331061.git.stefan@agner.ch>
+From: Stefan Agner <stefan@agner.ch>
+Date: Thu, 2 Feb 2023 10:41:24 +0100
+Subject: [PATCH] config: configure usart vcom for SkyConnect
+
+---
+ config/sl_iostream_usart_vcom_config.h | 25 ++++++++++++++-----------
+ 1 file changed, 14 insertions(+), 11 deletions(-)
+
+diff --git a/config/sl_iostream_usart_vcom_config.h b/config/sl_iostream_usart_vcom_config.h
+index 330844c..a58a1bb 100644
+--- a/config/sl_iostream_usart_vcom_config.h
++++ b/config/sl_iostream_usart_vcom_config.h
+@@ -84,21 +84,24 @@
+ // <<< sl:start pin_tool >>>
+ // <usart signal=TX,RX,(CTS),(RTS)> SL_IOSTREAM_USART_VCOM
+ // $[USART_SL_IOSTREAM_USART_VCOM]
+-#warning "IO Stream USART peripheral not configured"
+-// #define SL_IOSTREAM_USART_VCOM_PERIPHERAL      USART0
+-// #define SL_IOSTREAM_USART_VCOM_PERIPHERAL_NO   0
++#define SL_IOSTREAM_USART_VCOM_PERIPHERAL        USART0
++#define SL_IOSTREAM_USART_VCOM_PERIPHERAL_NO     0
+ 
+-// #define SL_IOSTREAM_USART_VCOM_TX_PORT         gpioPortC
+-// #define SL_IOSTREAM_USART_VCOM_TX_PIN          11
++// USART0 TX on PA06
++#define SL_IOSTREAM_USART_VCOM_TX_PORT           gpioPortA
++#define SL_IOSTREAM_USART_VCOM_TX_PIN            6
+ 
+-// #define SL_IOSTREAM_USART_VCOM_RX_PORT         gpioPortC
+-// #define SL_IOSTREAM_USART_VCOM_RX_PIN          10
++// USART0 RX on PA05
++#define SL_IOSTREAM_USART_VCOM_RX_PORT           gpioPortA
++#define SL_IOSTREAM_USART_VCOM_RX_PIN            5
+ 
+-// #define SL_IOSTREAM_USART_VCOM_CTS_PORT        gpioPortA
+-// #define SL_IOSTREAM_USART_VCOM_CTS_PIN         12
++// USART0 CTS on PB01
++#define SL_IOSTREAM_USART_VCOM_CTS_PORT          gpioPortB
++#define SL_IOSTREAM_USART_VCOM_CTS_PIN           1
+ 
+-// #define SL_IOSTREAM_USART_VCOM_RTS_PORT        gpioPortC
+-// #define SL_IOSTREAM_USART_VCOM_RTS_PIN         8
++// USART0 RTS on PB00
++#define SL_IOSTREAM_USART_VCOM_RTS_PORT          gpioPortB
++#define SL_IOSTREAM_USART_VCOM_RTS_PIN           0
+ // [USART_SL_IOSTREAM_USART_VCOM]$
+ // <<< sl:end pin_tool >>>
+ 
+-- 
+2.39.1
+

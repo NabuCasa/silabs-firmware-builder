@@ -19,21 +19,40 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/nabucasa/silabs-firmware-builder
+    strategy:
+      matrix:
+        include:
+          - firmware: ncp-uart-hw-yellow
+            with: MGM210PA32JIA,simple_led:board_activity
+            patchpath: "EmberZNet/Yellow"
+          - firmware: ncp-uart-hw-skyconnect
+            with: EFR32MG21A020F512IM32
+            patchpath: "EmberZNet/SkyConnect"
     steps:
+      - uses: actions/checkout@v3.3.0
       - name: Generate Firmware Project
         run: |
           slc generate \
-              --with="MGM210PA32JIA" \
+              --with="${{ matrix.with }}" \
               --project-file=/gecko_sdk/protocol/zigbee/app/ncp/sample-app/ncp-uart-hw/ncp-uart-hw.slcp \
-              --export-destination=ncp-uart-hw \
-              --copy-proj-sources --new-project --force
+              --export-destination=${{ matrix.firmware }} \
+              --copy-proj-sources --new-project --force \
+              --configuration=" \
+                SL_IOSTREAM_USART_VCOM_RX_BUFFER_SIZE:64, \
+                EMBER_APS_UNICAST_MESSAGE_COUNT:20, \
+                EMBER_NEIGHBOR_TABLE_SIZE:26, \
+                EMBER_SOURCE_ROUTE_TABLE_SIZE:200, \
+                "
+      - name: Patch Firmware
+        run: |
+          cd ${{ matrix.firmware }}
+          patch -p1 < ../${{ matrix.patchpath }}/*.patch
+
       - name: Build Firmware
         run: |
-          cd ncp-uart-hw
-          pwd
-          ls -la
-          #make -f ncp-uart-hw.Makefile
+          cd ${{ matrix.firmware }}
+          make -f ncp-uart-hw.Makefile
       - uses: actions/upload-artifact@v3
         with:
           name: ezsp-firmware
-          path: /build/ncp-uart-hw
+          path: /build/${{ matrix.firmware }}
