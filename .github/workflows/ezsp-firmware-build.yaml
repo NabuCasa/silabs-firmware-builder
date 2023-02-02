@@ -22,15 +22,15 @@ jobs:
       options: --user root
     strategy:
       matrix:
-        sdk_version:
-          - 4.1.4
         include:
           - firmware: ncp-uart-hw-yellow
             with: MGM210PA32JIA,simple_led:board_activity
             patchpath: "EmberZNet/Yellow"
+            sdk_version: "4.1.4"
           - firmware: ncp-uart-hw-skyconnect
             with: EFR32MG21A020F512IM32
             patchpath: "EmberZNet/SkyConnect"
+            sdk_version: "4.1.4"
     steps:
       - uses: actions/checkout@v3.3.0
       - name: Adjust permission
