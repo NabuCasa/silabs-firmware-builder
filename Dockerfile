@@ -50,6 +50,18 @@ RUN \
     git clone --depth 1 -b ${GECKO_SDK_VERSION} \
        https://github.com/SiliconLabs/gecko_sdk.git
 
+WORKDIR /build
+
+ARG USERNAME=builder
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+
+# Create the user
+RUN groupadd --gid $USER_GID $USERNAME \
+    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME
+ 
+USER $USERNAME
+
 RUN \
     slc configuration \
            --sdk="/gecko_sdk/" \
@@ -57,4 +69,3 @@ RUN \
     && slc configuration \
            --gcc-toolchain="/opt/gcc-arm-none-eabi-${GCC_ARM_VERSION}/"
 
-WORKDIR /build
