@@ -26,7 +26,7 @@ jobs:
         with:
           context: .
           file: Dockerfile
-          tags: ghcr.io/${{ github.repository_owner }}/silabs-firmware-builder
+          tags: ghcr.io/nabucasa/silabs-firmware-builder
           push: true
 
 
