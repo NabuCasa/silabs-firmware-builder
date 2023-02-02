@@ -32,6 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3.3.0
       - name: Generate Firmware Project
+        shell: su --shell=/bin/bash builder {0}
         run: |
           slc generate \
               --with="${{ matrix.with }}" \
@@ -45,6 +46,7 @@ jobs:
                 EMBER_SOURCE_ROUTE_TABLE_SIZE:200, \
                 "
       - name: Patch Firmware
+        shell: su --shell=/bin/bash builder {0}
         run: |
           cd ${{ matrix.firmware }}
           for patch in "../${{ matrix.patchpath }}"/*.patch
@@ -54,10 +56,11 @@ jobs:
           done
 
       - name: Build Firmware
+        shell: su --shell=/bin/bash builder {0}
         run: |
           cd ${{ matrix.firmware }}
           make -f ncp-uart-hw.Makefile release
       - uses: actions/upload-artifact@v3
         with:
-          name: ezsp-firmware
+          name: ${{ matrix.firmware }}
           path: ${{ matrix.firmware }}
