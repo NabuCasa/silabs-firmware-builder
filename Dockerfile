@@ -8,6 +8,7 @@ RUN \
        bzip2 \
        curl \
        git \
+       git-lfs \
        jq \
        libgl1 \
        make \
