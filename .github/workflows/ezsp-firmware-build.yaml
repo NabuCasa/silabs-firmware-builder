@@ -21,6 +21,8 @@ jobs:
       - name: Build Firmware
         run: |
           cd ncp-uart-hw
+          pwd
+          ls -la
           #make -f ncp-uart-hw.Makefile
       - uses: actions/upload-artifact@v3
         with:
