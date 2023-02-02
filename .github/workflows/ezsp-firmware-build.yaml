@@ -1,0 +1,28 @@
+name: EmberZNet Zigbee firmware build
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  ezsp-firmware-build:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/nabucasa/silabs-firmware-builder
+    steps:
+      - name: Generate Firmware Project
+        run: |
+          slc generate \
+              --with="MGM210PA32JIA" \
+              --project-file=/gecko_sdk/protocol/zigbee/app/ncp/sample-app/ncp-uart-hw/ncp-uart-hw.slcp \
+              --export-destination=ncp-uart-hw \
+              --copy-proj-sources --new-project --force
+      - name: Build Firmware
+        run: |
+          cd ncp-uart-hw
+          #make -f ncp-uart-hw.Makefile
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ezsp-firmware
+          path: /build/ncp-uart-hw
