@@ -12,6 +12,7 @@ RUN \
        libgl1 \
        make \
        openjdk-11-jre-headless \
+       patch \
        python3 \
        unzip
 
