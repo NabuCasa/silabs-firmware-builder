@@ -67,8 +67,9 @@ jobs:
       - name: Build Firmware
         run: |
           cd ${{ matrix.firmware }}
-          make -f ncp-uart-hw.Makefile release \
-               C_FLAGS="-DEMBER_ADDRESS_TABLE_SIZE=16 -DEMBER_MULTICAST_TABLE_SIZE=16"
+          EXTRA_C_DEFS="'-DEMBER_ADDRESS_TABLE_SIZE=16' '-DEMBER_MULTICAST_TABLE_SIZE=16'"
+          sed -i "s/^C_DEFS\s*=.*$/C_DEFS = ${EXTRA_C_DEFS}/" ncp-uart-hw.Makefile
+          make -f ncp-uart-hw.Makefile release
       - name: Add Firmware Metadata
         run: |
           cd ${{ matrix.firmware }}
