@@ -67,7 +67,8 @@ jobs:
       - name: Build Firmware
         run: |
           cd ${{ matrix.firmware }}
-          make -f ncp-uart-hw.Makefile release
+          make -f ncp-uart-hw.Makefile release \
+               C_FLAGS="-DEMBER_ADDRESS_TABLE_SIZE=16 -DEMBER_MULTICAST_TABLE_SIZE=16"
       - name: Add Firmware Metadata
         run: |
           cd ${{ matrix.firmware }}
