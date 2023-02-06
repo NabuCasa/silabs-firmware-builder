@@ -3,7 +3,13 @@ name: Silicon Labs firmware build
 on:
   workflow_call:
     inputs:
-      firmware:
+      firmware_name:
+        required: true
+        type: string
+      project_file:
+        required: true
+        type: string
+      project_name:
         required: true
         type: string
       device:
@@ -24,8 +30,12 @@ on:
       sdk_version:
         required: true
         type: string
-      ezsp_version:
+      metadata_fw_type:
         required: true
+        type: string
+      metadata_extra:
+        required: false
+        default: "null"
         type: string
 
 jobs:
@@ -46,13 +56,13 @@ jobs:
         run: |
           slc generate \
               --with="${{ inputs.device }},${{ inputs.components }}" \
-              --project-file=/gecko_sdk/protocol/zigbee/app/ncp/sample-app/ncp-uart-hw/ncp-uart-hw.slcp \
-              --export-destination=${{ inputs.firmware }} \
+              --project-file="${{ inputs.project_file }}" \
+              --export-destination=${{ inputs.firmware_name }} \
               --copy-proj-sources --new-project --force \
               --configuration="${{ inputs.configuration }}"
       - name: Patch Firmware
         run: |
-          cd ${{ inputs.firmware }}
+          cd ${{ inputs.firmware_name }}
           for patch in "../${{ inputs.patchpath }}"/*.patch
           do
               echo "Applying ${patch}"
@@ -61,29 +71,28 @@ jobs:
 
       - name: Build Firmware
         run: |
-          cd ${{ inputs.firmware }}
-          sed -i "s/^C_DEFS\s*=.*$/C_DEFS = ${{ inputs.extra_c_defs }}/" ncp-uart-hw.Makefile
-          make -f ncp-uart-hw.Makefile release
+          cd ${{ inputs.firmware_name }}
+          sed -i "s/^C_DEFS\s*=.*$/C_DEFS = ${{ inputs.extra_c_defs }}/" "${{ inputs.project_name }}.Makefile"
+          make -f ${{ inputs.project_name }}.Makefile release
       - name: Add Firmware Metadata
         run: |
-          cd ${{ inputs.firmware }}
+          cd ${{ inputs.firmware_name }}
           jq --null-input \
              --arg sdk_version "${{ inputs.sdk_version }}" \
-             --arg ezsp_version "${{ inputs.ezsp_version }}" \
+             --argjson metadata_extra '${{ inputs.metadata_extra }}' \
              '{
                 "metadata_version": 1,
                 "sdk_version": $sdk_version,
-                "ezsp_version": $ezsp_version,
-                "fw_type": "ncp-uart-hw"
-              }'
+                "fw_type": "${{ inputs.metadata_fw_type }}"
+              } + $metadata_extra' >  version.json
       - name: Generate gbl Firmware
         run: |
-          cd ${{ inputs.firmware }}
-          commander gbl create build/release/ncp-uart-hw.gbl \
-                    --app build/release/ncp-uart-hw.out \
-                    --device ${{ inputs.device }}
+          cd ${{ inputs.firmware_name }}
+          commander gbl create build/release/${{ inputs.project_name }}.gbl \
+                    --app build/release/${{ inputs.project_name }}.out \
+                    --device ${{ inputs.device }} --metadata version.json
 
       - uses: actions/upload-artifact@v3
         with:
-          name: ${{ inputs.firmware }}
-          path: ${{ inputs.firmware }}
+          name: ${{ inputs.firmware_name }}
+          path: ${{ inputs.firmware_name }}

@@ -19,17 +19,19 @@ jobs:
     strategy:
       matrix:
         include:
-          - firmware: ncp-uart-hw-yellow
+          - firmware_name: ncp-uart-hw-yellow
             device: MGM210PA32JIA
             components: simple_led:board_activity
             configuration:
             patchpath: "EmberZNet/Yellow"
-          - firmware: ncp-uart-hw-skyconnect
+          - firmware_name: ncp-uart-hw-skyconnect
             device: EFR32MG21A020F512IM32
             patchpath: "EmberZNet/SkyConnect"
     uses: ./.github/workflows/silabs-firmware-build.yaml
     with:
-      firmware: ${{ matrix.firmware }}
+      firmware_name: ${{ matrix.firmware_name }}
+      project_file: "/gecko_sdk/protocol/zigbee/app/ncp/sample-app/ncp-uart-hw/ncp-uart-hw.slcp"
+      project_name: "ncp-uart-hw"
       device: ${{ matrix.device }}
       components: ${{ matrix.components }}
       configuration:  |
@@ -40,4 +42,5 @@ jobs:
       patchpath: ${{ matrix.patchpath }}
       extra_c_defs: "'-DEMBER_ADDRESS_TABLE_SIZE=16' '-DEMBER_MULTICAST_TABLE_SIZE=16'"
       sdk_version: "4.1.4"
-      ezsp_version: "7.1.4.0"
+      metadata_fw_type: "ncp-uart-hw"
+      metadata_extra: "{ \"ezsp_version\": \"7.1.4.0\" }"
