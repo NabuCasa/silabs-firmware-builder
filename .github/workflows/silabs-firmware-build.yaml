@@ -1,0 +1,89 @@
+name: Silicon Labs firmware build
+
+on:
+  workflow_call:
+    inputs:
+      firmware:
+        required: true
+        type: string
+      device:
+        required: true
+        type: string
+      with:
+        required: false
+        type: string
+      patchpath:
+        required: true
+        type: string
+      sdk_version:
+        required: true
+        type: string
+      ezsp_version:
+        required: true
+        type: string
+
+jobs:
+  firmware-build:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/nabucasa/silabs-firmware-builder:${{ inputs.sdk_version }}
+      options: --user root
+    defaults:
+      run:
+        shell: su --shell=/bin/bash builder {0}
+    steps:
+      - uses: actions/checkout@v3.3.0
+      - name: Adjust permission
+        shell: bash
+        run: chown builder .
+      - name: Generate Firmware Project
+        run: |
+          slc generate \
+              --with="${{ inputs.device }},${{ inputs.with }}" \
+              --project-file=/gecko_sdk/protocol/zigbee/app/ncp/sample-app/ncp-uart-hw/ncp-uart-hw.slcp \
+              --export-destination=${{ inputs.firmware }} \
+              --copy-proj-sources --new-project --force \
+              --configuration=" \
+                SL_IOSTREAM_USART_VCOM_RX_BUFFER_SIZE:64, \
+                EMBER_APS_UNICAST_MESSAGE_COUNT:20, \
+                EMBER_NEIGHBOR_TABLE_SIZE:26, \
+                EMBER_SOURCE_ROUTE_TABLE_SIZE:200, \
+                "
+      - name: Patch Firmware
+        run: |
+          cd ${{ inputs.firmware }}
+          for patch in "../${{ inputs.patchpath }}"/*.patch
+          do
+              echo "Applying ${patch}"
+              patch -p1 < $patch
+          done
+
+      - name: Build Firmware
+        run: |
+          cd ${{ inputs.firmware }}
+          EXTRA_C_DEFS="'-DEMBER_ADDRESS_TABLE_SIZE=16' '-DEMBER_MULTICAST_TABLE_SIZE=16'"
+          sed -i "s/^C_DEFS\s*=.*$/C_DEFS = ${EXTRA_C_DEFS}/" ncp-uart-hw.Makefile
+          make -f ncp-uart-hw.Makefile release
+      - name: Add Firmware Metadata
+        run: |
+          cd ${{ inputs.firmware }}
+          jq --null-input \
+             --arg sdk_version "${{ inputs.sdk_version }}" \
+             --arg ezsp_version "${{ inputs.ezsp_version }}" \
+             '{
+                "metadata_version": 1,
+                "sdk_version": $sdk_version,
+                "ezsp_version": $ezsp_version,
+                "fw_type": "ncp-uart-hw"
+              }'
+      - name: Generate gbl Firmware
+        run: |
+          cd ${{ inputs.firmware }}
+          commander gbl create build/release/ncp-uart-hw.gbl \
+                    --app build/release/ncp-uart-hw.out \
+                    --device ${{ inputs.device }}
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ inputs.firmware }}
+          path: ${{ inputs.firmware }}

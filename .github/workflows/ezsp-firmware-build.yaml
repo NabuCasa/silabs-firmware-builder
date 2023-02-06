@@ -16,10 +16,6 @@ on:
 
 jobs:
   ezsp-firmware-build:
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/nabucasa/silabs-firmware-builder:${{ matrix.sdk_version }}
-      options: --user root
     strategy:
       matrix:
         include:
@@ -34,62 +30,11 @@ jobs:
             patchpath: "EmberZNet/SkyConnect"
             sdk_version: "4.1.4"
             ezsp_version: "7.1.4.0"
-    defaults:
-      run:
-        shell: su --shell=/bin/bash builder {0}
-    steps:
-      - uses: actions/checkout@v3.3.0
-      - name: Adjust permission
-        shell: bash
-        run: chown builder .
-      - name: Generate Firmware Project
-        run: |
-          slc generate \
-              --with="${{ matrix.device }},${{ matrix.with }}" \
-              --project-file=/gecko_sdk/protocol/zigbee/app/ncp/sample-app/ncp-uart-hw/ncp-uart-hw.slcp \
-              --export-destination=${{ matrix.firmware }} \
-              --copy-proj-sources --new-project --force \
-              --configuration=" \
-                SL_IOSTREAM_USART_VCOM_RX_BUFFER_SIZE:64, \
-                EMBER_APS_UNICAST_MESSAGE_COUNT:20, \
-                EMBER_NEIGHBOR_TABLE_SIZE:26, \
-                EMBER_SOURCE_ROUTE_TABLE_SIZE:200, \
-                "
-      - name: Patch Firmware
-        run: |
-          cd ${{ matrix.firmware }}
-          for patch in "../${{ matrix.patchpath }}"/*.patch
-          do
-              echo "Applying ${patch}"
-              patch -p1 < $patch
-          done
-
-      - name: Build Firmware
-        run: |
-          cd ${{ matrix.firmware }}
-          EXTRA_C_DEFS="'-DEMBER_ADDRESS_TABLE_SIZE=16' '-DEMBER_MULTICAST_TABLE_SIZE=16'"
-          sed -i "s/^C_DEFS\s*=.*$/C_DEFS = ${EXTRA_C_DEFS}/" ncp-uart-hw.Makefile
-          make -f ncp-uart-hw.Makefile release
-      - name: Add Firmware Metadata
-        run: |
-          cd ${{ matrix.firmware }}
-          jq --null-input \
-             --arg sdk_version "${{ matrix.sdk_version }}" \
-             --arg ezsp_version "${{ matrix.ezsp_version }}" \
-             '{
-                "metadata_version": 1,
-                "sdk_version": $sdk_version,
-                "ezsp_version": $ezsp_version,
-                "fw_type": "ncp-uart-hw"
-              }'
-      - name: Generate gbl Firmware
-        run: |
-          cd ${{ matrix.firmware }}
-          commander gbl create build/release/ncp-uart-hw.gbl \
-                    --app build/release/ncp-uart-hw.out \
-                    --device ${{ matrix.device }}
-
-      - uses: actions/upload-artifact@v3
-        with:
-          name: ${{ matrix.firmware }}
-          path: ${{ matrix.firmware }}
+    uses: ./.github/workflows/silabs-firmware-build.yaml
+    with:
+      firmware: ${{ matrix.firmware }}
+      device: ${{ matrix.device }}
+      with: ${{ matrix.with }}
+      patchpath: ${{ matrix.patchpath }}
+      sdk_version: ${{ matrix.sdk_version }}
+      ezsp_version: ${{ matrix.ezsp_version }}
