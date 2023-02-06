@@ -9,11 +9,17 @@ on:
       device:
         required: true
         type: string
-      with:
+      components:
+        required: false
+        type: string
+      configuration:
         required: false
         type: string
       patchpath:
         required: true
+        type: string
+      extra_c_defs:
+        required: false
         type: string
       sdk_version:
         required: true
@@ -39,16 +45,11 @@ jobs:
       - name: Generate Firmware Project
         run: |
           slc generate \
-              --with="${{ inputs.device }},${{ inputs.with }}" \
+              --with="${{ inputs.device }},${{ inputs.components }}" \
               --project-file=/gecko_sdk/protocol/zigbee/app/ncp/sample-app/ncp-uart-hw/ncp-uart-hw.slcp \
               --export-destination=${{ inputs.firmware }} \
               --copy-proj-sources --new-project --force \
-              --configuration=" \
-                SL_IOSTREAM_USART_VCOM_RX_BUFFER_SIZE:64, \
-                EMBER_APS_UNICAST_MESSAGE_COUNT:20, \
-                EMBER_NEIGHBOR_TABLE_SIZE:26, \
-                EMBER_SOURCE_ROUTE_TABLE_SIZE:200, \
-                "
+              --configuration="${{ inputs.configuration }}"
       - name: Patch Firmware
         run: |
           cd ${{ inputs.firmware }}
@@ -61,8 +62,7 @@ jobs:
       - name: Build Firmware
         run: |
           cd ${{ inputs.firmware }}
-          EXTRA_C_DEFS="'-DEMBER_ADDRESS_TABLE_SIZE=16' '-DEMBER_MULTICAST_TABLE_SIZE=16'"
-          sed -i "s/^C_DEFS\s*=.*$/C_DEFS = ${EXTRA_C_DEFS}/" ncp-uart-hw.Makefile
+          sed -i "s/^C_DEFS\s*=.*$/C_DEFS = ${{ inputs.extra_c_defs }}/" ncp-uart-hw.Makefile
           make -f ncp-uart-hw.Makefile release
       - name: Add Firmware Metadata
         run: |
