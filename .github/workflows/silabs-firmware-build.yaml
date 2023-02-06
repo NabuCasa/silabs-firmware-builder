@@ -22,7 +22,7 @@ on:
         required: false
         type: string
       patchpath:
-        required: true
+        required: false
         type: string
       extra_c_defs:
         required: false
@@ -61,6 +61,7 @@ jobs:
               --copy-proj-sources --new-project --force \
               --configuration="${{ inputs.configuration }}"
       - name: Patch Firmware
+        if: "${{ inputs.patchpath != '' }}"
         run: |
           cd ${{ inputs.firmware_name }}
           for patch in "../${{ inputs.patchpath }}"/*.patch

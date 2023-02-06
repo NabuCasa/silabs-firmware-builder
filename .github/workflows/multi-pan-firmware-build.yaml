@@ -1,0 +1,36 @@
+name: RCP Multi-PAN firmware build
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/ezsp-firmware-build.yaml
+  workflow_run:
+    workflows:
+      - "Silicon Labs build container image"
+    branches:
+      - main
+    types:
+      - completed
+
+jobs:
+  rcp-multi-pan-firmware-build:
+    strategy:
+      matrix:
+        include:
+          - firmware_name: rcp-uart-802154-yellow
+            device: MGM210PA32JIA
+            components: simple_led:board_activity
+            configuration:
+          - firmware_name: rcp-uart-802154-skyconnect
+            device: EFR32MG21A020F512IM32
+    uses: ./.github/workflows/silabs-firmware-build.yaml
+    with:
+      firmware_name: ${{ matrix.firmware_name }}
+      project_file: "/gecko_sdk/protocol/openthread/sample-apps/ot-ncp/rcp-uart-802154.slcp"
+      project_name: "rcp-uart-802154"
+      device: ${{ matrix.device }}
+      components: ${{ matrix.components }}
+      sdk_version: "4.1.4"
+      metadata_fw_type: "rcp-uart-802154"
