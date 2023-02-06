@@ -22,9 +22,10 @@ jobs:
           - firmware_name: rcp-uart-802154-yellow
             device: MGM210PA32JIA
             components: simple_led:board_activity
-            configuration:
+            patchpath: "RCPMultiPAN/Yellow"
           - firmware_name: rcp-uart-802154-skyconnect
             device: EFR32MG21A020F512IM32
+            patchpath: "RCPMultiPAN/SkyConnect"
     uses: ./.github/workflows/silabs-firmware-build.yaml
     with:
       firmware_name: ${{ matrix.firmware_name }}
@@ -32,5 +33,6 @@ jobs:
       project_name: "rcp-uart-802154"
       device: ${{ matrix.device }}
       components: ${{ matrix.components }}
+      patchpath: ${{ matrix.patchpath }}
       sdk_version: "4.1.4"
       metadata_fw_type: "rcp-uart-802154"
