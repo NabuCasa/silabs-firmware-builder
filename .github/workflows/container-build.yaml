@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         sdk_version:
-          - 4.1.4
+          - 4.2.1
     steps:
       - uses: actions/checkout@v3.3.0
       - name: Log in to the GitHub container registry

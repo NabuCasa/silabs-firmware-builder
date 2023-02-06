@@ -35,5 +35,5 @@ jobs:
       device: ${{ matrix.device }}
       components: ${{ matrix.components }}
       patchpath: ${{ matrix.patchpath }}
-      sdk_version: "4.1.4"
+      sdk_version: "4.2.1"
       metadata_fw_type: "rcp-uart-802154"
