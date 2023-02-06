@@ -94,6 +94,7 @@ jobs:
                     --device ${{ inputs.device }} --metadata version.json
 
       - uses: actions/upload-artifact@v3
+        if: success() || failure()
         with:
           name: ${{ inputs.firmware_name }}
           path: ${{ inputs.firmware_name }}
