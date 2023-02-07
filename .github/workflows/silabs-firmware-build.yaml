@@ -1,4 +1,4 @@
-name: Silicon Labs firmware build
+name: Single firmware build
 
 on:
   workflow_call:
@@ -40,6 +40,7 @@ on:
 
 jobs:
   firmware-build:
+    name: Build firmware
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/nabucasa/silabs-firmware-builder:${{ inputs.sdk_version }}
