@@ -12,7 +12,7 @@ on:
       - '*'
 
 env:
-  sdk_version: 4.2.0
+  sdk_version: 4.2.1
 
 jobs:
   build-container:
@@ -67,9 +67,9 @@ jobs:
         EMBER_SOURCE_ROUTE_TABLE_SIZE:200,
       patchpath: ${{ matrix.patchpath }}
       extra_c_defs: "'-DEMBER_ADDRESS_TABLE_SIZE=16' '-DEMBER_MULTICAST_TABLE_SIZE=16'"
-      sdk_version: 4.2.0
+      sdk_version: 4.2.1
       metadata_fw_type: "ncp-uart-hw"
-      metadata_extra: "{ \"ezsp_version\": \"7.2.0.0\" }"
+      metadata_extra: "{ \"ezsp_version\": \"7.2.1.0\" }"
 
   rcp-multi-pan-firmware-build:
     name: RCP Multi-PAN
@@ -93,5 +93,5 @@ jobs:
       device: ${{ matrix.device }}
       components: ${{ matrix.components }}
       patchpath: ${{ matrix.patchpath }}
-      sdk_version: 4.2.0
+      sdk_version: 4.2.1
       metadata_fw_type: "rcp-uart-802154"
