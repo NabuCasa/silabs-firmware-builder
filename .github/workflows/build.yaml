@@ -69,7 +69,7 @@ jobs:
       extra_c_defs: "'-DEMBER_ADDRESS_TABLE_SIZE=16' '-DEMBER_MULTICAST_TABLE_SIZE=16'"
       sdk_version: 4.1.4
       metadata_fw_type: "ncp-uart-hw"
-      metadata_extra: "{ \"ezsp_version\": \"7.2.1.0\" }"
+      metadata_extra: "{ \"ezsp_version\": \"7.1.4.0\" }"
 
   rcp-multi-pan-firmware-build:
     name: RCP Multi-PAN
