@@ -8,6 +8,8 @@ on:
       - .github/workflows/silabs-firmware-build.yaml
     branches:
       - main
+    tags:
+      - '*'
 
 env:
   sdk_version: 4.1.4
