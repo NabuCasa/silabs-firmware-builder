@@ -32,6 +32,8 @@ jobs:
           context: .
           file: Dockerfile
           tags: ghcr.io/nabucasa/silabs-firmware-builder:${{ env.sdk_version }}
+          cache-from: ghcr.io/nabucasa/silabs-firmware-builder:cache-${{ env.sdk_version }}
+          cache-to: ghcr.io/nabucasa/silabs-firmware-builder:cache-${{ env.sdk_version }}
           push: true
           build-args:
             "GECKO_SDK_VERSION=v${{ env.sdk_version }}"
