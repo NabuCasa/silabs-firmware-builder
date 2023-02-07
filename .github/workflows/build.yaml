@@ -79,10 +79,11 @@ jobs:
         include:
           - target: yellow
             device: MGM210PA32JIA
-            components: simple_led:board_activity
+            components: simple_led:board_activity,cpc_security_secondary_none
             patchpath: "RCPMultiPAN/Yellow"
           - target: skyconnect
             device: EFR32MG21A020F512IM32
+            components: cpc_security_secondary_none
             patchpath: "RCPMultiPAN/SkyConnect"
     uses: ./.github/workflows/silabs-firmware-build.yaml
     with:
