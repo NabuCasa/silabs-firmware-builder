@@ -44,17 +44,16 @@ jobs:
     strategy:
       matrix:
         include:
-          - firmware_name: ncp-uart-hw-yellow
+          - target: yellow
             device: MGM210PA32JIA
             components: simple_led:board_activity
-            configuration:
             patchpath: "EmberZNet/Yellow"
-          - firmware_name: ncp-uart-hw-skyconnect
+          - target: skyconnect
             device: EFR32MG21A020F512IM32
             patchpath: "EmberZNet/SkyConnect"
     uses: ./.github/workflows/silabs-firmware-build.yaml
     with:
-      firmware_name: ${{ matrix.firmware_name }}
+      firmware_name: ncp-uart-hw-${{ matrix.target }}
       project_file: "/gecko_sdk/protocol/zigbee/app/ncp/sample-app/ncp-uart-hw/ncp-uart-hw.slcp"
       project_name: "ncp-uart-hw"
       device: ${{ matrix.device }}
@@ -66,7 +65,7 @@ jobs:
         EMBER_SOURCE_ROUTE_TABLE_SIZE:200,
       patchpath: ${{ matrix.patchpath }}
       extra_c_defs: "'-DEMBER_ADDRESS_TABLE_SIZE=16' '-DEMBER_MULTICAST_TABLE_SIZE=16'"
-      sdk_version: ${{ env.sdk_version }}
+      sdk_version: 4.1.4
       metadata_fw_type: "ncp-uart-hw"
       metadata_extra: "{ \"ezsp_version\": \"7.2.1.0\" }"
 
@@ -76,20 +75,20 @@ jobs:
     strategy:
       matrix:
         include:
-          - firmware_name: rcp-uart-802154-yellow
+          - target: yellow
             device: MGM210PA32JIA
             components: simple_led:board_activity
             patchpath: "RCPMultiPAN/Yellow"
-          - firmware_name: rcp-uart-802154-skyconnect
+          - target: skyconnect
             device: EFR32MG21A020F512IM32
             patchpath: "RCPMultiPAN/SkyConnect"
     uses: ./.github/workflows/silabs-firmware-build.yaml
     with:
-      firmware_name: ${{ matrix.firmware_name }}
+      firmware_name: rcp-uart-802154-${{ matrix.target }}
       project_file: "/gecko_sdk/protocol/openthread/sample-apps/ot-ncp/rcp-uart-802154.slcp"
       project_name: "rcp-uart-802154"
       device: ${{ matrix.device }}
       components: ${{ matrix.components }}
       patchpath: ${{ matrix.patchpath }}
-      sdk_version: ${{ env.sdk_version }}
+      sdk_version: 4.1.4
       metadata_fw_type: "rcp-uart-802154"
