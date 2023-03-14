@@ -1,0 +1,44 @@
+diff --git a/config/sl_rail_util_pti_config.h b/config/sl_rail_util_pti_config.h
+index 3ae9d80..945361c 100644
+--- a/config/sl_rail_util_pti_config.h
++++ b/config/sl_rail_util_pti_config.h
+@@ -42,7 +42,7 @@
+ // <RAIL_PTI_MODE_SPI=> SPI
+ // <RAIL_PTI_MODE_DISABLED=> Disabled
+ // <i> Default: RAIL_PTI_MODE_UART
+-#define SL_RAIL_UTIL_PTI_MODE           RAIL_PTI_MODE_DISABLED
++#define SL_RAIL_UTIL_PTI_MODE           RAIL_PTI_MODE_UART
+ 
+ // <o SL_RAIL_UTIL_PTI_BAUD_RATE_HZ> PTI Baud Rate (Hertz)
+ // <147800-20000000:1>
+@@ -55,23 +55,16 @@
+ // <<< sl:start pin_tool >>>
+ // <pti signal=DOUT,(DFRAME),(DCLK)> SL_RAIL_UTIL_PTI
+ // $[PTI_SL_RAIL_UTIL_PTI]
+-#warning "RAIL PTI peripheral not configured"
+-#define SL_RAIL_UTIL_PTI_PERIPHERAL         PTI
++#define SL_RAIL_UTIL_PTI_PERIPHERAL              PTI
+ 
+-// SL_RAIL_UTIL_PTI_DOUT_* needed for UART_ONEWIRE and UART and SPI modes
+-// #define SL_RAIL_UTIL_PTI_DOUT_PORT         gpioPortB
+-// #define SL_RAIL_UTIL_PTI_DOUT_PIN          12
+-// #define SL_RAIL_UTIL_PTI_DOUT_LOC          6
++// PTI DOUT on PC04
++#define SL_RAIL_UTIL_PTI_DOUT_PORT               gpioPortC
++#define SL_RAIL_UTIL_PTI_DOUT_PIN                4
+ 
+-// SL_RAIL_UTIL_PTI_DFRAME_* needed for UART and SPI modes only
+-// #define SL_RAIL_UTIL_PTI_DFRAME_PORT       gpioPortB
+-// #define SL_RAIL_UTIL_PTI_DFRAME_PIN        13
+-// #define SL_RAIL_UTIL_PTI_DFRAME_LOC        6
++// PTI DFRAME on PC05
++#define SL_RAIL_UTIL_PTI_DFRAME_PORT             gpioPortC
++#define SL_RAIL_UTIL_PTI_DFRAME_PIN              5
+ 
+-// SL_RAIL_UTIL_PTI_DCLK_* needed for SPI mode only
+-// #define SL_RAIL_UTIL_PTI_DCLK_PORT         gpioPortA
+-// #define SL_RAIL_UTIL_PTI_DCLK_PIN          0
+-// #define SL_RAIL_UTIL_PTI_DCLK_LOC          0
+ // [PTI_SL_RAIL_UTIL_PTI]$
+ 
+ // <<< sl:end pin_tool >>>

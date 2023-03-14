@@ -1,7 +1,7 @@
 diff --git a/config/sl_rail_util_rf_path_config.h b/config/sl_rail_util_rf_path_config.h
 index f3ea835..ca5be91 100644
---- a/20230314_MGM21_2022_ncp-uart/config/sl_rail_util_rf_path_config.h
-+++ b/20230314_MGM21_2022_ncp-uart/config/sl_rail_util_rf_path_config.h
+--- a/config/sl_rail_util_rf_path_config.h
++++ b/config/sl_rail_util_rf_path_config.h
 @@ -40,7 +40,7 @@
  // <RAIL_ANTENNA_0=> Path 0
  // <RAIL_ANTENNA_1=> Path 1
@@ -9,5 +9,5 @@ index f3ea835..ca5be91 100644
 -#define SL_RAIL_UTIL_RF_PATH_INT_RF_PATH_MODE  RAIL_ANTENNA_0
 +#define SL_RAIL_UTIL_RF_PATH_INT_RF_PATH_MODE  RAIL_ANTENNA_1
  // </h>
-
+ 
  // <<< end of configuration section >>>
