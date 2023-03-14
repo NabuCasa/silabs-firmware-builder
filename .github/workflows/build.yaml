@@ -47,9 +47,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - target: tubeszb-mgm21-2021
+          - target: tubeszb-mgm21-2022
             device: MGM210PA32JIA
-            patchpath: "EmberZNet/TubesZB_MGM21_2021"
+            patchpath: "EmberZNet/TubesZB_MGM21_2022"
     uses: ./.github/workflows/silabs-firmware-build.yaml
     with:
       firmware_name: ncp-uart-hw-${{ matrix.target }}
