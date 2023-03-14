@@ -46,7 +46,7 @@ jobs:
     name: Build firmware
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/nabucasa/silabs-firmware-builder:${{ inputs.sdk_version }}
+      image: ghcr.io/tube0013/silabs-firmware-builder:${{ inputs.sdk_version }}
       options: --user root
     defaults:
       run:
