@@ -10,6 +10,7 @@ on:
       - main
     tags:
       - '*'
+  workflow_dispatch:
 
 env:
   sdk_version: 4.2.2
@@ -33,9 +34,9 @@ jobs:
         with:
           context: .
           file: Dockerfile
-          tags: ghcr.io/nabucasa/silabs-firmware-builder:${{ env.sdk_version }}
-          cache-from: ghcr.io/nabucasa/silabs-firmware-builder:cache-${{ env.sdk_version }}
-          cache-to: ghcr.io/nabucasa/silabs-firmware-builder:cache-${{ env.sdk_version }}
+          tags: ghcr.io/tube0013/silabs-firmware-builder:${{ env.sdk_version }}
+          cache-from: ghcr.io/tube0013/silabs-firmware-builder:cache-${{ env.sdk_version }}
+          cache-to: ghcr.io/tube0013/silabs-firmware-builder:cache-${{ env.sdk_version }}
           push: true
           build-args:
             "GECKO_SDK_VERSION=v${{ env.sdk_version }}"
@@ -53,6 +54,18 @@ jobs:
           - target: skyconnect
             device: EFR32MG21A020F512IM32
             patchpath: "EmberZNet/SkyConnect"
+          - target: tubeszb-mgm12-2021
+            device: MGM12P32F1024GE
+            patchpath: "EmberZNet/TubesZB_MGM12_2021"
+          - target: tubeszb-mgm12-2022
+            device: MGM12P32F1024GE
+            patchpath: "EmberZNet/TubesZB_MGM12_2022"
+          - target: tubeszb-mgm21-2021
+            device: MGM210PA32JIA
+            patchpath: "EmberZNet/TubesZB_MGM21_2021"
+          - target: tubeszb-mgm21-2022
+            device: MGM210PA32JIA
+            patchpath: "EmberZNet/TubesZB_MGM21_2022"
     uses: ./.github/workflows/silabs-firmware-build.yaml
     with:
       firmware_name: ncp-uart-hw-${{ matrix.target }}
