@@ -1,7 +1,7 @@
-diff --git a/20230314_MGM12_2021_ncp-uart/config/sl_iostream_usart_vcom_config.h b/20230314_MGM12_2021_ncp-uart/config/sl_iostream_usart_vcom_config.h
+diff --git a/config/sl_iostream_usart_vcom_config.h b/config/sl_iostream_usart_vcom_config.h
 index ab31b22..718076d 100644
---- a/20230314_MGM12_2021_ncp-uart/config/sl_iostream_usart_vcom_config.h
-+++ b/20230314_MGM12_2021_ncp-uart/config/sl_iostream_usart_vcom_config.h
+--- a/config/sl_iostream_usart_vcom_config.h
++++ b/config/sl_iostream_usart_vcom_config.h
 @@ -61,11 +61,11 @@
  // <usartHwFlowControlCtsAndRts=> CTS/RTS
  // <uartFlowControlSoftware=> Software Flow control (XON/XOFF)

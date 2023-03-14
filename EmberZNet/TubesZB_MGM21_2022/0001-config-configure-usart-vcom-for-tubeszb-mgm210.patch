@@ -1,15 +1,7 @@
-diff --git a/.gitignore b/.gitignore
-index 9bea433..98e318e 100644
---- a/.gitignore
-+++ b/.gitignore
-@@ -1,2 +1,3 @@
- 
- .DS_Store
-+0001-config-configure-RF-Path-Mode-for-tubeszb-mgm210.patch
-diff --git a/20230314_MGM21_2022_ncp-uart/config/sl_iostream_usart_vcom_config.h b/20230314_MGM21_2022_ncp-uart/config/sl_iostream_usart_vcom_config.h
+diff --git aconfig/sl_iostream_usart_vcom_config.h bconfig/sl_iostream_usart_vcom_config.h
 index 7053d4f..d1fa6e8 100644
---- a/20230314_MGM21_2022_ncp-uart/config/sl_iostream_usart_vcom_config.h
-+++ b/20230314_MGM21_2022_ncp-uart/config/sl_iostream_usart_vcom_config.h
+--- aconfig/sl_iostream_usart_vcom_config.h
++++ bconfig/sl_iostream_usart_vcom_config.h
 @@ -61,11 +61,11 @@
  // <usartHwFlowControlCtsAndRts=> CTS/RTS
  // <uartFlowControlSoftware=> Software Flow control (XON/XOFF)
