@@ -1,3 +1,22 @@
+diff --git a/config/pin_config.h b/config/pin_config.h
+index 434ca53..5f193e9 100644
+--- a/config/pin_config.h
++++ b/config/pin_config.h
+@@ -75,6 +75,14 @@
+ // [TIMER3]$
+
+ // $[USART0]
++// USART0 RX on PA05
++#define USART0_RX_PORT                           gpioPortA
++#define USART0_RX_PIN                            5
++
++// USART0 TX on PA04
++#define USART0_TX_PORT                           gpioPortA
++#define USART0_TX_PIN                            4
++
+ // [USART0]$
+
+ // $[USART1]
 diff --git a/config/sl_iostream_usart_vcom_config.h b/config/sl_iostream_usart_vcom_config.h
 index 7053d4f..1489721 100644
 --- a/config/sl_iostream_usart_vcom_config.h
@@ -8,12 +27,12 @@ index 7053d4f..1489721 100644
  // <i> Default: usartHwFlowControlNone
 -#define SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE     usartHwFlowControlCtsAndRts
 +#define SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE     usartHwFlowControlNone
- 
+
  // <o SL_IOSTREAM_USART_VCOM_RX_BUFFER_SIZE> Receive buffer size
  // <i> Default: 32
 -#define SL_IOSTREAM_USART_VCOM_RX_BUFFER_SIZE    32
 +#define SL_IOSTREAM_USART_VCOM_RX_BUFFER_SIZE    64
- 
+
  // <q SL_IOSTREAM_USART_VCOM_CONVERT_BY_DEFAULT_LF_TO_CRLF> Convert \n to \r\n
  // <i> It can be changed at runtime using the C API.
 @@ -84,21 +84,17 @@
@@ -25,19 +44,19 @@ index 7053d4f..1489721 100644
 -// #define SL_IOSTREAM_USART_VCOM_PERIPHERAL_NO   0
 +#define SL_IOSTREAM_USART_VCOM_PERIPHERAL        USART0
 +#define SL_IOSTREAM_USART_VCOM_PERIPHERAL_NO     0
- 
+
 -// #define SL_IOSTREAM_USART_VCOM_TX_PORT         gpioPortC
 -// #define SL_IOSTREAM_USART_VCOM_TX_PIN          11
 +// USART0 TX on PA04
 +#define SL_IOSTREAM_USART_VCOM_TX_PORT           gpioPortA
 +#define SL_IOSTREAM_USART_VCOM_TX_PIN            4
- 
+
 -// #define SL_IOSTREAM_USART_VCOM_RX_PORT         gpioPortC
 -// #define SL_IOSTREAM_USART_VCOM_RX_PIN          10
 +// USART0 RX on PA05
 +#define SL_IOSTREAM_USART_VCOM_RX_PORT           gpioPortA
 +#define SL_IOSTREAM_USART_VCOM_RX_PIN            5
- 
+
 -// #define SL_IOSTREAM_USART_VCOM_CTS_PORT        gpioPortA
 -// #define SL_IOSTREAM_USART_VCOM_CTS_PIN         12
 -
@@ -45,4 +64,30 @@ index 7053d4f..1489721 100644
 -// #define SL_IOSTREAM_USART_VCOM_RTS_PIN         8
  // [USART_SL_IOSTREAM_USART_VCOM]$
  // <<< sl:end pin_tool >>>
- 
+
+diff --git a/config/sl_rail_util_pti_config.h b/config/sl_rail_util_pti_config.h
+index 9f7ac0e..66cf53e 100644
+--- a/config/sl_rail_util_pti_config.h
++++ b/config/sl_rail_util_pti_config.h
+@@ -55,8 +55,6 @@
+ // <<< sl:start pin_tool >>>
+ // <pti signal=DOUT,(DFRAME),(DCLK)> SL_RAIL_UTIL_PTI
+ // $[PTI_SL_RAIL_UTIL_PTI]
+-#define SL_RAIL_UTIL_PTI_PERIPHERAL              PTI
+-
+ // [PTI_SL_RAIL_UTIL_PTI]$
+
+ // <<< sl:end pin_tool >>>
+diff --git a/config/sl_rail_util_rf_path_config.h b/config/sl_rail_util_rf_path_config.h
+index f3ea835..ca5be91 100644
+--- a/config/sl_rail_util_rf_path_config.h
++++ b/config/sl_rail_util_rf_path_config.h
+@@ -40,7 +40,7 @@
+ // <RAIL_ANTENNA_0=> Path 0
+ // <RAIL_ANTENNA_1=> Path 1
+ // <i> Default: RAIL_ANTENNA_1
+-#define SL_RAIL_UTIL_RF_PATH_INT_RF_PATH_MODE  RAIL_ANTENNA_0
++#define SL_RAIL_UTIL_RF_PATH_INT_RF_PATH_MODE  RAIL_ANTENNA_1
+ // </h>
+
+ // <<< end of configuration section >>>
