@@ -104,7 +104,7 @@ jobs:
         include:
           - target: yellow
             device: MGM210PA32JIA
-            components: bootloader_interface
+            components: simple_led:board_activity,bootloader_interface
             patchpath: "OpenThreadRCP/Yellow"
           - target: skyconnect
             device: EFR32MG21A020F512IM32
