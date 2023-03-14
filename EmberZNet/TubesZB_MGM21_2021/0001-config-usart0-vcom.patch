@@ -1,22 +1,8 @@
 diff --git a/config/sl_iostream_usart_vcom_config.h b/config/sl_iostream_usart_vcom_config.h
-index ab31b22..119edd5 100644
+index 0684f46..bf18dd9 100644
 --- a/config/sl_iostream_usart_vcom_config.h
 +++ b/config/sl_iostream_usart_vcom_config.h
-@@ -61,11 +61,11 @@
- // <usartHwFlowControlCtsAndRts=> CTS/RTS
- // <uartFlowControlSoftware=> Software Flow control (XON/XOFF)
- // <i> Default: usartHwFlowControlNone
--#define SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE     usartHwFlowControlCtsAndRts
-+#define SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE     usartHwFlowControlNone
- 
- // <o SL_IOSTREAM_USART_VCOM_RX_BUFFER_SIZE> Receive buffer size
- // <i> Default: 32
--#define SL_IOSTREAM_USART_VCOM_RX_BUFFER_SIZE    32
-+#define SL_IOSTREAM_USART_VCOM_RX_BUFFER_SIZE    64
- 
- // <q SL_IOSTREAM_USART_VCOM_CONVERT_BY_DEFAULT_LF_TO_CRLF> Convert \n to \r\n
- // <i> It can be changed at runtime using the C API.
-@@ -84,25 +84,19 @@
+@@ -84,21 +84,17 @@
  // <<< sl:start pin_tool >>>
  // <usart signal=TX,RX,(CTS),(RTS)> SL_IOSTREAM_USART_VCOM
  // $[USART_SL_IOSTREAM_USART_VCOM]
@@ -28,27 +14,21 @@ index ab31b22..119edd5 100644
  
 -// #define SL_IOSTREAM_USART_VCOM_TX_PORT         gpioPortC
 -// #define SL_IOSTREAM_USART_VCOM_TX_PIN          11
--// #define SL_IOSTREAM_USART_VCOM_TX_LOC          2
-+// USART0 TX on PA1
++// USART0 TX on PA05
 +#define SL_IOSTREAM_USART_VCOM_TX_PORT           gpioPortA
-+#define SL_IOSTREAM_USART_VCOM_TX_PIN            1
-+#define SL_IOSTREAM_USART_VCOM_TX_LOC            1
++#define SL_IOSTREAM_USART_VCOM_TX_PIN            5
  
 -// #define SL_IOSTREAM_USART_VCOM_RX_PORT         gpioPortC
 -// #define SL_IOSTREAM_USART_VCOM_RX_PIN          10
--// #define SL_IOSTREAM_USART_VCOM_RX_LOC          2
-+// USART0 RX on PA0
++// USART0 RX on PA06
 +#define SL_IOSTREAM_USART_VCOM_RX_PORT           gpioPortA
-+#define SL_IOSTREAM_USART_VCOM_RX_PIN            0
-+#define SL_IOSTREAM_USART_VCOM_RX_LOC            31
++#define SL_IOSTREAM_USART_VCOM_RX_PIN            6
  
 -// #define SL_IOSTREAM_USART_VCOM_CTS_PORT        gpioPortA
 -// #define SL_IOSTREAM_USART_VCOM_CTS_PIN         12
--// #define SL_IOSTREAM_USART_VCOM_CTS_LOC         2
 -
 -// #define SL_IOSTREAM_USART_VCOM_RTS_PORT        gpioPortC
 -// #define SL_IOSTREAM_USART_VCOM_RTS_PIN         8
--// #define SL_IOSTREAM_USART_VCOM_RTS_LOC         2
  // [USART_SL_IOSTREAM_USART_VCOM]$
  // <<< sl:end pin_tool >>>
  
