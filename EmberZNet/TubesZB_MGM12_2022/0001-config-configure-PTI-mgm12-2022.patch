@@ -1,0 +1,30 @@
+diff --git a/config/sl_rail_util_pti_config.h b/config/sl_rail_util_pti_config.h
+index 9f7ac0e..34d1a06 100644
+--- a/config/sl_rail_util_pti_config.h
++++ b/config/sl_rail_util_pti_config.h
+@@ -42,7 +42,7 @@
+ // <RAIL_PTI_MODE_SPI=> SPI
+ // <RAIL_PTI_MODE_DISABLED=> Disabled
+ // <i> Default: RAIL_PTI_MODE_UART
+-#define SL_RAIL_UTIL_PTI_MODE           RAIL_PTI_MODE_DISABLED
++#define SL_RAIL_UTIL_PTI_MODE           RAIL_PTI_MODE_UART
+ 
+ // <o SL_RAIL_UTIL_PTI_BAUD_RATE_HZ> PTI Baud Rate (Hertz)
+ // <147800-20000000:1>
+@@ -57,6 +57,16 @@
+ // $[PTI_SL_RAIL_UTIL_PTI]
+ #define SL_RAIL_UTIL_PTI_PERIPHERAL              PTI
+ 
++// PTI DOUT on PB11
++#define SL_RAIL_UTIL_PTI_DOUT_PORT               gpioPortB
++#define SL_RAIL_UTIL_PTI_DOUT_PIN                11
++#define SL_RAIL_UTIL_PTI_DOUT_LOC                5
++
++// PTI DFRAME on PB13
++#define SL_RAIL_UTIL_PTI_DFRAME_PORT             gpioPortB
++#define SL_RAIL_UTIL_PTI_DFRAME_PIN              13
++#define SL_RAIL_UTIL_PTI_DFRAME_LOC              6
++
+ // [PTI_SL_RAIL_UTIL_PTI]$
+ 
+ // <<< sl:end pin_tool >>>
