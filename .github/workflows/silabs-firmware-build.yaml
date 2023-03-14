@@ -78,7 +78,7 @@ jobs:
         if: "${{ inputs.sdkpatchpath != '' }}"
         run: |
           cd ${{ inputs.firmware_name }}/gecko_sdk_${{ inputs.sdk_version }}
-          for patch in "../${{ inputs.sdkpatchpath }}"/*.patch
+          for patch in "../../${{ inputs.sdkpatchpath }}"/*.patch
           do
               echo "Applying ${patch}"
               patch -p1 < $patch
