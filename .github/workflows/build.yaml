@@ -95,3 +95,29 @@ jobs:
       patchpath: ${{ matrix.patchpath }}
       sdk_version: 4.2.2
       metadata_fw_type: "rcp-uart-802154"
+
+  ot-rcp-firmware-build:
+    name: OpenThread RCP
+    needs: build-container
+    strategy:
+      matrix:
+        include:
+          - target: yellow
+            device: MGM210PA32JIA
+            components: bootloader_interface
+            patchpath: "OpenThreadRCP/Yellow"
+          - target: skyconnect
+            device: EFR32MG21A020F512IM32
+            components: bootloader_interface
+            patchpath: "OpenThreadRCP/SkyConnect"
+    uses: ./.github/workflows/silabs-firmware-build.yaml
+    with:
+      firmware_name: ot-rcp-${{ matrix.target }}
+      project_file: "/gecko_sdk/protocol/openthread/sample-apps/ot-ncp/ot-rcp.slcp"
+      project_name: "ot-rcp"
+      device: ${{ matrix.device }}
+      components: ${{ matrix.components }}
+      patchpath: ${{ matrix.patchpath }}
+      sdkpatchpath: "OpenThreadRCP/GeckoSDK"
+      sdk_version: 4.2.2
+      metadata_fw_type: "ot-rcp"

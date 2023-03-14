@@ -1,0 +1,40 @@
+From c23162d967e211ecdb1835d88c11aa0e87b31acc Mon Sep 17 00:00:00 2001
+Message-Id: <c23162d967e211ecdb1835d88c11aa0e87b31acc.1678797714.git.stefan@agner.ch>
+In-Reply-To: <05cfb71f684cf20e48c51eefaf301cce035f0c64.1678797714.git.stefan@agner.ch>
+References: <05cfb71f684cf20e48c51eefaf301cce035f0c64.1678797714.git.stefan@agner.ch>
+From: Stefan Agner <stefan@agner.ch>
+Date: Thu, 2 Feb 2023 11:09:02 +0100
+Subject: [PATCH] config: add board activity LED pin config
+
+---
+ config/sl_simple_led_board_activity_config.h | 7 +++----
+ 1 file changed, 3 insertions(+), 4 deletions(-)
+
+diff --git a/config/sl_simple_led_board_activity_config.h b/config/sl_simple_led_board_activity_config.h
+index ba9de29..ec0714d 100644
+--- a/config/sl_simple_led_board_activity_config.h
++++ b/config/sl_simple_led_board_activity_config.h
+@@ -25,7 +25,7 @@
+ // <SL_SIMPLE_LED_POLARITY_ACTIVE_LOW=> Active low
+ // <SL_SIMPLE_LED_POLARITY_ACTIVE_HIGH=> Active high
+ // <i> Default: SL_SIMPLE_LED_POLARITY_ACTIVE_HIGH
+-#define SL_SIMPLE_LED_BOARD_ACTIVITY_POLARITY SL_SIMPLE_LED_POLARITY_ACTIVE_HIGH
++#define SL_SIMPLE_LED_BOARD_ACTIVITY_POLARITY SL_SIMPLE_LED_POLARITY_ACTIVE_LOW
+ // </h> end led configuration
+ 
+ // <<< end of configuration section >>>
+@@ -34,9 +34,8 @@
+ 
+ // <gpio> SL_SIMPLE_LED_BOARD_ACTIVITY
+ // $[GPIO_SL_SIMPLE_LED_BOARD_ACTIVITY]
+-#warning "Simple LED Driver GPIO pin not configured"
+-// #define SL_SIMPLE_LED_BOARD_ACTIVITY_PORT            gpioPortA
+-// #define SL_SIMPLE_LED_BOARD_ACTIVITY_PIN             1
++#define SL_SIMPLE_LED_BOARD_ACTIVITY_PORT        gpioPortB
++#define SL_SIMPLE_LED_BOARD_ACTIVITY_PIN         1
+ // [GPIO_SL_SIMPLE_LED_BOARD_ACTIVITY]$
+ 
+ // <<< sl:end pin_tool >>>
+-- 
+2.39.2
+
