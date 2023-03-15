@@ -83,14 +83,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - target: tubeszb-mgm12-2021
-            device: MGM12P32F1024GE
-            components: cpc_security_secondary_none
-            patchpath: "RCPMultiPAN/TubesZB_MGM12_2021"
-          - target: tubeszb-mgm12-2022
-            device: MGM12P32F1024GE
-            components: cpc_security_secondary_none
-            patchpath: "RCPMultiPAN/TubesZB_MGM12_2022"
           - target: tubeszb-mgm21-2021
             device: MGM210PA32JIA
             components: cpc_security_secondary_none
@@ -116,14 +108,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - target: tubeszb-mgm12-2021
-            device: MGM12P32F1024GE
-            components: bootloader_interface
-            patchpath: "OpenThreadRCP/TubesZB_MGM12_2021"
-          - target: tubeszb-mgm12-2022
-            device: MGM12P32F1024GE
-            components: bootloader_interface
-            patchpath: "OpenThreadRCP/TubesZB_MGM12_2022"
           - target: tubeszb-mgm21-2021
             device: MGM210PA32JIA
             components: bootloader_interfacez
