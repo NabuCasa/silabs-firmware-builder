@@ -110,7 +110,7 @@ jobs:
         include:
           - target: tubeszb-mgm21-2021
             device: MGM210PA32JIA
-            components: bootloader_interfacez
+            components: bootloader_interface
             patchpath: "OpenThreadRCP/TubesZB_MGM21_2021"
           - target: tubeszb-mgm21-2022
             device: MGM210PA32JIA
