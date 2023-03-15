@@ -1,0 +1,13 @@
+diff --git a/config/sl_cpc_drv_secondary_uart_usart_vcom_config.h b/config/sl_cpc_drv_secondary_uart_usart_vcom_config.h
+index 52cf2a8..a15bbf8 100644
+--- a/config/sl_cpc_drv_secondary_uart_usart_vcom_config.h
++++ b/config/sl_cpc_drv_secondary_uart_usart_vcom_config.h
+@@ -50,7 +50,7 @@
+ // <usartHwFlowControlNone=> None
+ // <usartHwFlowControlCtsAndRts=> CTS/RTS
+ // <i> Default: usartHwFlowControlCtsAndRts
+-#define SL_CPC_DRV_UART_VCOM_FLOW_CONTROL_TYPE usartHwFlowControlCtsAndRts
++#define SL_CPC_DRV_UART_VCOM_FLOW_CONTROL_TYPE usartHwFlowControlNone
+ // </h>
+ 
+ // <<< end of configuration section >>>

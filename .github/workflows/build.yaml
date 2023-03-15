@@ -83,14 +83,22 @@ jobs:
     strategy:
       matrix:
         include:
-          - target: yellow
-            device: MGM210PA32JIA
-            components: simple_led:board_activity,cpc_security_secondary_none
-            patchpath: "RCPMultiPAN/Yellow"
-          - target: skyconnect
-            device: EFR32MG21A020F512IM32
+          - target: tubeszb-mgm12-2021
+            device: MGM12P32F1024GE
             components: cpc_security_secondary_none
-            patchpath: "RCPMultiPAN/SkyConnect"
+            patchpath: "RCPMultiPAN/TubesZB_MGM12_2021"
+          - target: tubeszb-mgm12-2022
+            device: MGM12P32F1024GE
+            components: cpc_security_secondary_none
+            patchpath: "RCPMultiPAN/TubesZB_MGM12_2022"
+          - target: tubeszb-mgm21-2021
+            device: MGM210PA32JIA
+            components: cpc_security_secondary_none
+            patchpath: "RCPMultiPAN/TubesZB_MGM21_2021"
+          - target: tubeszb-mgm21-2022
+            device: MGM210PA32JIA
+            components: cpc_security_secondary_none
+            patchpath: "RCPMultiPAN/TubesZB_MGM21_2022"
     uses: ./.github/workflows/silabs-firmware-build.yaml
     with:
       firmware_name: rcp-uart-802154-${{ matrix.target }}
@@ -108,14 +116,22 @@ jobs:
     strategy:
       matrix:
         include:
-          - target: yellow
-            device: MGM210PA32JIA
-            components: simple_led:board_activity,bootloader_interface
-            patchpath: "OpenThreadRCP/Yellow"
-          - target: skyconnect
-            device: EFR32MG21A020F512IM32
+          - target: tubeszb-mgm12-2021
+            device: MGM12P32F1024GE
             components: bootloader_interface
-            patchpath: "OpenThreadRCP/SkyConnect"
+            patchpath: "OpenThreadRCP/TubesZB_MGM12_2021"
+          - target: tubeszb-mgm12-2022
+            device: MGM12P32F1024GE
+            components: bootloader_interface
+            patchpath: "OpenThreadRCP/TubesZB_MGM12_2022"
+          - target: tubeszb-mgm21-2021
+            device: MGM210PA32JIA
+            components: bootloader_interfacez
+            patchpath: "OpenThreadRCP/TubesZB_MGM21_2021"
+          - target: tubeszb-mgm21-2022
+            device: MGM210PA32JIA
+            components: bootloader_interface
+            patchpath: "OpenThreadRCP/TubesZB_MGM21_2022"
     uses: ./.github/workflows/silabs-firmware-build.yaml
     with:
       firmware_name: ot-rcp-${{ matrix.target }}
