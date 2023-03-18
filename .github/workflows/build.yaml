@@ -69,6 +69,7 @@ jobs:
       configuration:  |
         SL_IOSTREAM_USART_VCOM_RX_BUFFER_SIZE:64,
         EMBER_APS_UNICAST_MESSAGE_COUNT:20,
+        EMBER_BROADCAST_TABLE_SIZE:30,
         EMBER_NEIGHBOR_TABLE_SIZE:26,
         EMBER_SOURCE_ROUTE_TABLE_SIZE:200,
       patchpath: ${{ matrix.patchpath }}
