@@ -58,6 +58,7 @@ jobs:
             patchpath: "EmberZNet/TubesZB_MGM21_2021"
           - target: tubeszb-mgm21-2022
             device: MGM210PA32JIA
+            components: simple_led:board_activity
             patchpath: "EmberZNet/TubesZB_MGM21_2022"
     uses: ./.github/workflows/silabs-firmware-build.yaml
     with:

@@ -1,0 +1,16 @@
+diff --git a/EmberZNet/20230314_MGM21_2022_ncp-uart/config/sl_simple_led_board_activity_config.h b/EmberZNet/20230314_MGM21_2022_ncp-uart/config/sl_simple_led_board_activity_config.h
+index ba9de29..3121d6a 100644
+--- a/EmberZNet/20230314_MGM21_2022_ncp-uart/config/sl_simple_led_board_activity_config.h
++++ b/EmberZNet/20230314_MGM21_2022_ncp-uart/config/sl_simple_led_board_activity_config.h
+@@ -34,9 +34,8 @@
+ 
+ // <gpio> SL_SIMPLE_LED_BOARD_ACTIVITY
+ // $[GPIO_SL_SIMPLE_LED_BOARD_ACTIVITY]
+-#warning "Simple LED Driver GPIO pin not configured"
+-// #define SL_SIMPLE_LED_BOARD_ACTIVITY_PORT            gpioPortA
+-// #define SL_SIMPLE_LED_BOARD_ACTIVITY_PIN             1
++#define SL_SIMPLE_LED_BOARD_ACTIVITY_PORT        gpioPortD
++#define SL_SIMPLE_LED_BOARD_ACTIVITY_PIN         0
+ // [GPIO_SL_SIMPLE_LED_BOARD_ACTIVITY]$
+ 
+ // <<< sl:end pin_tool >>>
