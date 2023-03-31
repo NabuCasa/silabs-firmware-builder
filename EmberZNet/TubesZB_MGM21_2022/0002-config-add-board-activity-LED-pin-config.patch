@@ -1,7 +1,16 @@
 diff --git a/config/sl_simple_led_board_activity_config.h b/config/sl_simple_led_board_activity_config.h
-index ba9de29..3121d6a 100644
+index ba9de29..d86582b 100644
 --- a/config/sl_simple_led_board_activity_config.h
 +++ b/config/sl_simple_led_board_activity_config.h
+@@ -25,7 +25,7 @@
+ // <SL_SIMPLE_LED_POLARITY_ACTIVE_LOW=> Active low
+ // <SL_SIMPLE_LED_POLARITY_ACTIVE_HIGH=> Active high
+ // <i> Default: SL_SIMPLE_LED_POLARITY_ACTIVE_HIGH
+-#define SL_SIMPLE_LED_BOARD_ACTIVITY_POLARITY SL_SIMPLE_LED_POLARITY_ACTIVE_HIGH
++#define SL_SIMPLE_LED_BOARD_ACTIVITY_POLARITY SL_SIMPLE_LED_POLARITY_ACTIVE_LOW
+ // </h> end led configuration
+ 
+ // <<< end of configuration section >>>
 @@ -34,9 +34,8 @@
  
  // <gpio> SL_SIMPLE_LED_BOARD_ACTIVITY
