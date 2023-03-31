@@ -1,7 +1,7 @@
-diff --git a/EmberZNet/20230314_MGM21_2022_ncp-uart/config/sl_simple_led_board_activity_config.h b/EmberZNet/20230314_MGM21_2022_ncp-uart/config/sl_simple_led_board_activity_config.h
+diff --git a/config/sl_simple_led_board_activity_config.h b/config/sl_simple_led_board_activity_config.h
 index ba9de29..3121d6a 100644
---- a/EmberZNet/20230314_MGM21_2022_ncp-uart/config/sl_simple_led_board_activity_config.h
-+++ b/EmberZNet/20230314_MGM21_2022_ncp-uart/config/sl_simple_led_board_activity_config.h
+--- a/config/sl_simple_led_board_activity_config.h
++++ b/config/sl_simple_led_board_activity_config.h
 @@ -34,9 +34,8 @@
  
  // <gpio> SL_SIMPLE_LED_BOARD_ACTIVITY
