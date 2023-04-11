@@ -61,8 +61,8 @@ jobs:
             patchpath: "EmberZNet/TubesZB_MGM21_2021"
           - target: tubeszb-mgm21-2022
             device: MGM210PA32JIA
-            components: zigbee_mfglib
-            components: simple_led:board_activity
+            components: simple_led:board_activity,
+              zigbee_mfglib
             patchpath: "EmberZNet/TubesZB_MGM21_2022"
           - target: tubeszb-mgm24-2023
             device: MGM240PA32VNN
