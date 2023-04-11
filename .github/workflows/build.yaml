@@ -62,7 +62,7 @@ jobs:
             patchpath: "EmberZNet/TubesZB_MGM21_2022"
           - target: tubeszb-mgm24-2023
             device: MGM240PA32VNN
-            patch_path: "EmberZNet/TubesZB_MGM24_2023"
+            patchpath: "EmberZNet/TubesZB_MGM24_2023"
     uses: ./.github/workflows/silabs-firmware-build.yaml
     with:
       firmware_name: ncp-uart-hw-${{ matrix.target }}
