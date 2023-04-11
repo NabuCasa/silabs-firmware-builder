@@ -1,5 +1,5 @@
 diff --git a/config/sl_iostream_usart_vcom_config.h b/config/sl_iostream_usart_vcom_config.h
-index 7053d4f..d1fa6e8 100644
+index 7053d4f..7a0d112 100644
 --- a/config/sl_iostream_usart_vcom_config.h
 +++ b/config/sl_iostream_usart_vcom_config.h
 @@ -61,11 +61,11 @@
@@ -7,7 +7,7 @@ index 7053d4f..d1fa6e8 100644
  // <uartFlowControlSoftware=> Software Flow control (XON/XOFF)
  // <i> Default: usartHwFlowControlNone
 -#define SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE     usartHwFlowControlCtsAndRts
-+#define SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE     usartHwFlowControlNone
++#define SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE     uartFlowControlSoftware
  
  // <o SL_IOSTREAM_USART_VCOM_RX_BUFFER_SIZE> Receive buffer size
  // <i> Default: 32
