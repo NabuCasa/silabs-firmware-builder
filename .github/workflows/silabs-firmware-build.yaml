@@ -64,6 +64,15 @@ jobs:
               --export-destination=${{ inputs.firmware_name }} \
               --copy-proj-sources --copy-sdk-sources --new-project --force \
               --configuration="${{ inputs.configuration }}"
+
+      - name: Set Baudrate
+        env:
+          baudrate: ${{ fromJSON(inputs.metadata_extra).baudrate }}
+        run: |
+          cd ${{ inputs.firmware_name }}
+          sed -Ei "s/^(\s*#define SL_\S+_VCOM_BAUDRATE\s+)[0-9]+/\\1$baudrate/" \
+              config/sl_*usart_vcom_config.h
+
       - name: Patch Firmware
         if: "${{ inputs.patchpath != '' }}"
         run: |
