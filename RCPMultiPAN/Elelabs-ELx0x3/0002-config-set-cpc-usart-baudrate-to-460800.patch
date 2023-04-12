@@ -1,0 +1,11 @@
+--- sl_cpc_drv_secondary_uart_usart_vcom_config.h	2023-04-12 09:03:35.591439514 +0200
++++ sl_cpc_drv_secondary_uart_usart_vcom_config.h	2023-04-12 09:07:20.273016952 +0200
+@@ -45,13 +45,13 @@
+ 
+ // <o SL_CPC_DRV_UART_VCOM_BAUDRATE> UART Baudrate
+ // <i> Default: 115200
+-#define SL_CPC_DRV_UART_VCOM_BAUDRATE              115200
++#define SL_CPC_DRV_UART_VCOM_BAUDRATE              460800
+ 
+ // <o SL_CPC_DRV_UART_VCOM_FLOW_CONTROL_TYPE> Flow control
+ // <usartHwFlowControlNone=> None

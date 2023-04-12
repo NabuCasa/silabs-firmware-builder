@@ -1,0 +1,48 @@
+--- sl_cpc_drv_secondary_uart_usart_vcom_config.h	2023-04-12 09:03:35.591439514 +0200
++++ sl_cpc_drv_secondary_uart_usart_vcom_config.h	2023-04-12 09:05:42.178039314 +0200
+@@ -51,7 +51,7 @@
+ // <usartHwFlowControlNone=> None
+ // <usartHwFlowControlCtsAndRts=> CTS/RTS
+ // <i> Default: usartHwFlowControlCtsAndRts
+-#define SL_CPC_DRV_UART_VCOM_FLOW_CONTROL_TYPE usartHwFlowControlCtsAndRts
++#define SL_CPC_DRV_UART_VCOM_FLOW_CONTROL_TYPE usartHwFlowControlNone
+ // </h>
+ 
+ // <<< end of configuration section >>>
+@@ -63,24 +63,24 @@
+ #define SL_CPC_DRV_UART_VCOM_PERIPHERAL_NO              0
+ 
+ // USART TX
+-#define SL_CPC_DRV_UART_VCOM_TX_PORT                    gpioPortD
+-#define SL_CPC_DRV_UART_VCOM_TX_PIN                     13
+-#define SL_CPC_DRV_UART_VCOM_TX_LOC                     22
++#define SL_CPC_DRV_UART_VCOM_TX_PORT                    gpioPortA
++#define SL_CPC_DRV_UART_VCOM_TX_PIN                     0
++#define SL_CPC_DRV_UART_VCOM_TX_LOC                     0
+ 
+ // USART RX
+-#define SL_CPC_DRV_UART_VCOM_RX_PORT                    gpioPortD
+-#define SL_CPC_DRV_UART_VCOM_RX_PIN                     14
+-#define SL_CPC_DRV_UART_VCOM_RX_LOC                     20
++#define SL_CPC_DRV_UART_VCOM_RX_PORT                    gpioPortA
++#define SL_CPC_DRV_UART_VCOM_RX_PIN                     1
++#define SL_CPC_DRV_UART_VCOM_RX_LOC                     0
+ 
+ // USART CTS
+-#define SL_CPC_DRV_UART_VCOM_CTS_PORT                    gpioPortD
+-#define SL_CPC_DRV_UART_VCOM_CTS_PIN                     15
+-#define SL_CPC_DRV_UART_VCOM_CTS_LOC                     20
++// #define SL_CPC_DRV_UART_VCOM_CTS_PORT                    gpioPortD
++// #define SL_CPC_DRV_UART_VCOM_CTS_PIN                     15
++// #define SL_CPC_DRV_UART_VCOM_CTS_LOC                     20
+ 
+ // USART RTS
+-#define SL_CPC_DRV_UART_VCOM_RTS_PORT                    gpioPortD
+-#define SL_CPC_DRV_UART_VCOM_RTS_PIN                     16
+-#define SL_CPC_DRV_UART_VCOM_RTS_LOC                     20
++// #define SL_CPC_DRV_UART_VCOM_RTS_PORT                    gpioPortD
++// #define SL_CPC_DRV_UART_VCOM_RTS_PIN                     16
++// #define SL_CPC_DRV_UART_VCOM_RTS_LOC                     20
+ 
+ // [USART_SL_CPC_DRV_UART_VCOM]$
+ // <<< sl:end pin_tool >>>
