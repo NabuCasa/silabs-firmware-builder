@@ -12,6 +12,9 @@ on:
       project_name:
         required: true
         type: string
+      baudrate:
+        required: true
+        type: number
       device:
         required: true
         type: string
@@ -66,11 +69,9 @@ jobs:
               --configuration="${{ inputs.configuration }}"
 
       - name: Set Baudrate
-        env:
-          baudrate: ${{ fromJSON(inputs.metadata_extra).baudrate }}
         run: |
           cd ${{ inputs.firmware_name }}
-          sed -Ei "s/^(\s*#define SL_\S+_VCOM_BAUDRATE\s+)[0-9]+/\\1$baudrate/" \
+          sed -Ei "s/^(\s*#define SL_\S+_VCOM_BAUDRATE\s+)[0-9]+/\\1${{ inputs.baudrate }}/" \
               config/sl_*usart_vcom_config.h
 
       - name: Patch Firmware
@@ -102,13 +103,13 @@ jobs:
         run: |
           cd ${{ inputs.firmware_name }}
           jq --null-input \
-             --arg sdk_version "${{ inputs.sdk_version }}" \
-             --argjson metadata_extra '${{ inputs.metadata_extra }}' \
              '{
                 "metadata_version": 1,
-                "sdk_version": $sdk_version,
-                "fw_type": "${{ inputs.metadata_fw_type }}"
-              } + $metadata_extra' >  version.json
+                "sdk_version": "${{ inputs.sdk_version }}",
+                "fw_type": "${{ inputs.metadata_fw_type }}",
+                "baudrate": "${{ inputs.baudrate }}"
+              } + ${{ inputs.metadata_extra }}' >  version.json
+
       - name: Generate gbl Firmware
         run: |
           cd ${{ inputs.firmware_name }}
