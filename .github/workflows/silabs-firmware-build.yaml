@@ -107,7 +107,7 @@ jobs:
                 "metadata_version": 1,
                 "sdk_version": "${{ inputs.sdk_version }}",
                 "fw_type": "${{ inputs.metadata_fw_type }}",
-                "baudrate": "${{ inputs.baudrate }}"
+                "baudrate": ${{ inputs.baudrate }}
               } + ${{ inputs.metadata_extra }}' >  version.json
 
       - name: Generate gbl Firmware
