@@ -97,7 +97,7 @@ jobs:
       - name: Patch Makefile
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          meta_datetime=$(git log -1 --format="%cd" --date=format:"%b %-d %Y %H:%M:%S")
+          LC_TIME=C meta_datetime=$(git log -1 --format="%cd" --date=format:"%b %-d %Y %H:%M:%S")
           cd ${{ inputs.firmware_name }}
           sed -i "s/^C_DEFS\s*=.*$/C_DEFS = '-DOPENTHREAD_BUILD_DATETIME=\"$meta_datetime\"' ${{ inputs.extra_c_defs }}/" \
             "${{ inputs.project_name }}.Makefile"
