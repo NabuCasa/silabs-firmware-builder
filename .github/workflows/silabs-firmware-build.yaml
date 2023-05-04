@@ -3,10 +3,6 @@ name: Single firmware build
 on:
   workflow_call:
     inputs:
-      image_name:
-        required: false
-        type: string
-        default: "ghcr.io/${{ github.repository_owner }}/silabs-firmware-builder"
       firmware_name:
         required: true
         type: string
@@ -53,7 +49,7 @@ jobs:
     name: Build firmware
     runs-on: ubuntu-latest
     container:
-      image: ${{ inputs.image_name }}:${{ inputs.sdk_version }}
+      image: ghcr.io/nabucasa/silabs-firmware-builder:${{ inputs.sdk_version }}
       options: --user root
     defaults:
       run:
