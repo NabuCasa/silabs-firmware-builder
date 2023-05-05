@@ -6,7 +6,7 @@ on:
       image_name:
         required: false
         type: string
-        default: "ghcr.io/${{ github.repository_owner }}/silabs-firmware-builder"
+        default: "ghcr.io/${{ github.repository_owner }}/silabs-firmware-builder:${{ inputs.sdk_version }}"
       firmware_name:
         required: true
         type: string
@@ -53,7 +53,7 @@ jobs:
     name: Build firmware
     runs-on: ubuntu-latest
     container:
-      image: ${{ inputs.image_name }}:${{ inputs.sdk_version }}
+      image: ${{ inputs.image_name }}
       options: --user root
     defaults:
       run:
