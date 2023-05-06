@@ -51,23 +51,40 @@ jobs:
             device: MGM12P32F1024GE
             components: zigbee_mfglib
             patchpath: "EmberZNet/TubesZB_MGM12_2021"
+
           - target: tubeszb-mgm12-2022
             device: MGM12P32F1024GE
             components: zigbee_mfglib
             patchpath: "EmberZNet/TubesZB_MGM12_2022"
+
           - target: tubeszb-mgm21-2021
             device: MGM210PA32JIA
             components: zigbee_mfglib
             patchpath: "EmberZNet/TubesZB_MGM21_2021"
+
           - target: tubeszb-mgm21-2022
             device: MGM210PA32JIA
             components: simple_led:board_activity,
               zigbee_mfglib
             patchpath: "EmberZNet/TubesZB_MGM21_2022"
+            
+          - target: tubeszb-mgm21-2022-pcb-ant
+            device: MGM210PA32JIA
+            components: simple_led:board_activity,
+              zigbee_mfglib
+            patchpath: "EmberZNet/TubesZB_MGM21_2022_pcb_ant"
+
+          - target: tubeszb-mgm21-2023-hw-flow
+            device: MGM210PA32JIA
+            components: simple_led:board_activity,
+              zigbee_mfglib
+            patchpath: "EmberZNet/TubesZB_MGM21_2023"
+
           - target: tubeszb-mgm24-2023
             device: MGM240PA32VNN
             components: zigbee_mfglib
             patchpath: "EmberZNet/TubesZB_MGM24_2023"
+
           - target: tubeszb-mgm24-2023-hwflow
             device: MGM240PA32VNN
             components: zigbee_mfglib
