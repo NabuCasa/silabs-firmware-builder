@@ -1,7 +1,7 @@
-From 6b9ed4eda2d13d02d7fc06888b326eaf0e48b58f Mon Sep 17 00:00:00 2001
-Message-Id: <6b9ed4eda2d13d02d7fc06888b326eaf0e48b58f.1675725530.git.stefan@agner.ch>
-In-Reply-To: <2e8fcc979202408aeec61576dd9739d0407b59f2.1675725530.git.stefan@agner.ch>
-References: <2e8fcc979202408aeec61576dd9739d0407b59f2.1675725530.git.stefan@agner.ch>
+From 06ed57d1e677cef9d10cd10a3eb770f49b9e6f99 Mon Sep 17 00:00:00 2001
+Message-Id: <06ed57d1e677cef9d10cd10a3eb770f49b9e6f99.1679556106.git.stefan@agner.ch>
+In-Reply-To: <20184d2a2b267ce0ff81464d140481ce1657da74.1679556106.git.stefan@agner.ch>
+References: <20184d2a2b267ce0ff81464d140481ce1657da74.1679556106.git.stefan@agner.ch>
 From: Stefan Agner <stefan@agner.ch>
 Date: Thu, 2 Feb 2023 11:09:02 +0100
 Subject: [PATCH] config: add board activity LED pin config
@@ -36,5 +36,5 @@ index ba9de29..ec0714d 100644
  
  // <<< sl:end pin_tool >>>
 -- 
-2.39.1
+2.40.0
 

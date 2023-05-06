@@ -6,6 +6,9 @@ on:
       - Dockerfile
       - .github/workflows/build.yaml
       - .github/workflows/silabs-firmware-build.yaml
+      - EmberZNet/
+      - OpenThreadRCP/
+      - RCPMultiPAN/
     branches:
       - main
     tags:
@@ -13,7 +16,7 @@ on:
   workflow_dispatch:
 
 env:
-  sdk_version: 4.2.2
+  sdk_version: 4.2.3
 
 jobs:
   build-container:
@@ -104,9 +107,10 @@ jobs:
         EMBER_SOURCE_ROUTE_TABLE_SIZE:200,
       patchpath: ${{ matrix.patchpath }}
       extra_c_defs: "'-DEMBER_ADDRESS_TABLE_SIZE=16' '-DEMBER_MULTICAST_TABLE_SIZE=16'"
-      sdk_version: 4.2.2
+      sdk_version: 4.2.3
       metadata_fw_type: "ncp-uart-hw"
-      metadata_extra: "{ \"ezsp_version\": \"7.2.2.0\" }"
+      baudrate: 115200
+      metadata_extra: "{ \"ezsp_version\": \"7.2.3.0\" }"
 
   rcp-multi-pan-firmware-build:
     name: RCP Multi-PAN
@@ -138,8 +142,9 @@ jobs:
       device: ${{ matrix.device }}
       components: ${{ matrix.components }}
       patchpath: ${{ matrix.patchpath }}
-      sdk_version: 4.2.2
+      sdk_version: 4.2.3
       metadata_fw_type: "rcp-uart-802154"
+      baudrate: 460800
 
   ot-rcp-firmware-build:
     name: OpenThread RCP
@@ -173,6 +178,7 @@ jobs:
       patchpath: ${{ matrix.patchpath }}
       sdkpatchpath: "OpenThreadRCP/GeckoSDK"
       extra_c_defs: "'-DOPENTHREAD_CONFIG_NCP_REBOOT_BOOTLOADER_ENABLE=1'"
-      sdk_version: 4.2.2
+      sdk_version: 4.2.3
       metadata_fw_type: "ot-rcp"
-      metadata_extra: "{ \"ot_rcp_version\": \"SL-OPENTHREAD/2.2.2.0_GitHub-91fa1f455\" }"
+      baudrate: 460800
+      metadata_extra: "{ \"ot_rcp_version\": \"SL-OPENTHREAD/2.2.3.0_GitHub-91fa1f455\" }"
