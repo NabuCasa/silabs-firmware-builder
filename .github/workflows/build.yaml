@@ -16,13 +16,20 @@ on:
   workflow_dispatch:
 
 env:
-  sdk_version: 4.2.3
+  sdk_version: 4.3.0
 
 jobs:
   build-container:
     name: Create build container image
     runs-on: ubuntu-latest
+    outputs:
+      sdk_version: ${{ env.sdk_version }}
+      image_name: ghcr.io/${{ steps.lower.outputs.repository_owner }}/silabs-firmware-builder:${{ env.sdk_version }}
     steps:
+      - name: Repository owner lowercase
+        id: lower
+        run: |
+          echo "repository_owner=$(echo $GITHUB_REPOSITORY_OWNER | tr [:upper:] [:lower:])" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v3.3.0
       - name: Log in to the GitHub container registry
         uses: docker/login-action@v2.1.0
@@ -37,9 +44,9 @@ jobs:
         with:
           context: .
           file: Dockerfile
-          tags: ghcr.io/tube0013/silabs-firmware-builder:${{ env.sdk_version }}
-          cache-from: ghcr.io/tube0013/silabs-firmware-builder:cache-${{ env.sdk_version }}
-          cache-to: ghcr.io/tube0013/silabs-firmware-builder:cache-${{ env.sdk_version }}
+          tags: ghcr.io/${{ github.repository_owner }}/silabs-firmware-builder:${{ env.sdk_version }}
+          cache-from: ghcr.io/${{ github.repository_owner }}/silabs-firmware-builder:cache-${{ env.sdk_version }}
+          cache-to: ghcr.io/${{ github.repository_owner }}/silabs-firmware-builder:cache-${{ env.sdk_version }}
           push: true
           build-args:
             "GECKO_SDK_VERSION=v${{ env.sdk_version }}"
@@ -107,10 +114,10 @@ jobs:
         EMBER_SOURCE_ROUTE_TABLE_SIZE:200,
       patchpath: ${{ matrix.patchpath }}
       extra_c_defs: "'-DEMBER_ADDRESS_TABLE_SIZE=16' '-DEMBER_MULTICAST_TABLE_SIZE=16'"
-      sdk_version: 4.2.3
+      sdk_version: ${{ needs.build-container.outputs.sdk_version }}
       metadata_fw_type: "ncp-uart-hw"
       baudrate: 115200
-      metadata_extra: "{ \"ezsp_version\": \"7.2.3.0\" }"
+      metadata_extra: "{ \"ezsp_version\": \"7.3.0.0\" }"
 
   rcp-multi-pan-firmware-build:
     name: RCP Multi-PAN
@@ -142,7 +149,7 @@ jobs:
       device: ${{ matrix.device }}
       components: ${{ matrix.components }}
       patchpath: ${{ matrix.patchpath }}
-      sdk_version: 4.2.3
+      sdk_version: ${{ needs.build-container.outputs.sdk_version }}
       metadata_fw_type: "rcp-uart-802154"
       baudrate: 460800
 
@@ -178,7 +185,7 @@ jobs:
       patchpath: ${{ matrix.patchpath }}
       sdkpatchpath: "OpenThreadRCP/GeckoSDK"
       extra_c_defs: "'-DOPENTHREAD_CONFIG_NCP_REBOOT_BOOTLOADER_ENABLE=1'"
-      sdk_version: 4.2.3
+      sdk_version: ${{ needs.build-container.outputs.sdk_version }}
       metadata_fw_type: "ot-rcp"
       baudrate: 460800
       metadata_extra: "{ \"ot_rcp_version\": \"SL-OPENTHREAD/2.2.3.0_GitHub-91fa1f455\" }"
