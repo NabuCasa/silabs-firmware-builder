@@ -21,6 +21,8 @@ jobs:
   build-container:
     name: Create build container image
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
     outputs:
       sdk_version: ${{ env.sdk_version }}
       image_name: ghcr.io/${{ steps.lower.outputs.repository_owner }}/silabs-firmware-builder:${{ env.sdk_version }}
