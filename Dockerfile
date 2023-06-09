@@ -12,12 +12,13 @@ RUN \
        jq \
        libgl1 \
        make \
-       openjdk-11-jre-headless \
+       openjdk-17-jre-headless \
        patch \
        python3 \
        unzip
 
-# Install Simplicity Commander
+# Install Simplicity Commander (unfortunately no stable URL available, this
+# is known to be working with Commander_linux_x86_64_1v15p0b1306.tar.bz).
 RUN \
     curl -O https://www.silabs.com/documents/login/software/SimplicityCommander-Linux.zip \
     && unzip SimplicityCommander-Linux.zip \
@@ -45,7 +46,7 @@ RUN \
 
 ENV PATH="$PATH:/opt/gcc-arm-none-eabi-${GCC_ARM_VERSION}/bin"
 
-ARG GECKO_SDK_VERSION="v4.2.3"
+ARG GECKO_SDK_VERSION="v4.3.0"
 
 RUN \
     git clone --depth 1 -b ${GECKO_SDK_VERSION} \
