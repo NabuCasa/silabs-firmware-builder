@@ -60,10 +60,11 @@ jobs:
         include:
           - target: yellow
             device: MGM210PA32JIA
-            components: simple_led:board_activity
+            components: simple_led:board_activity,zigbee_token_interface
             patchpath: "EmberZNet/Yellow"
           - target: skyconnect
             device: EFR32MG21A020F512IM32
+            components: zigbee_token_interface
             patchpath: "EmberZNet/SkyConnect"
     uses: ./.github/workflows/silabs-firmware-build.yaml
     with:
