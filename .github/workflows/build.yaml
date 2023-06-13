@@ -61,45 +61,42 @@ jobs:
         include:
           - target: tubeszb-mgm12-2021
             device: MGM12P32F1024GE
-            components: zigbee_mfglib
+            components: zigbee_mfglib,zigbee_token_interface
             patchpath: "EmberZNet/TubesZB_MGM12_2021"
 
           - target: tubeszb-mgm12-2022
             device: MGM12P32F1024GE
-            components: zigbee_mfglib
+            components: zigbee_mfglib,zigbee_token_interface
             patchpath: "EmberZNet/TubesZB_MGM12_2022"
 
           - target: tubeszb-mgm21-2021
             device: MGM210PA32JIA
-            components: zigbee_mfglib
+            components: zigbee_mfglib,zigbee_token_interface
             patchpath: "EmberZNet/TubesZB_MGM21_2021"
 
           - target: tubeszb-mgm21-2022
             device: MGM210PA32JIA
-            components: simple_led:board_activity,
-              zigbee_mfglib
+            components: simple_led:board_activity,zigbee_mfglib,zigbee_token_interface
             patchpath: "EmberZNet/TubesZB_MGM21_2022"
             
           - target: tubeszb-mgm21-2022-pcb-ant
             device: MGM210PA32JIA
-            components: simple_led:board_activity,
-              zigbee_mfglib
+            components: simple_led:board_activity,zigbee_mfglib,zigbee_token_interface
             patchpath: "EmberZNet/TubesZB_MGM21_2022_pcb_ant"
 
           - target: tubeszb-mgm21-2023-hw-flow
             device: MGM210PA32JIA
-            components: simple_led:board_activity,
-              zigbee_mfglib
+            components: simple_led:board_activity,zigbee_mfglib,zigbee_token_interface
             patchpath: "EmberZNet/TubesZB_MGM21_2023"
 
           - target: tubeszb-mgm24-2023
             device: MGM240PA32VNN
-            components: zigbee_mfglib
+            components: zigbee_mfglib,zigbee_token_interface
             patchpath: "EmberZNet/TubesZB_MGM24_2023"
 
           - target: tubeszb-mgm24-2023-hwflow
             device: MGM240PA32VNN
-            components: zigbee_mfglib
+            components: zigbee_mfglib,zigbee_token_interface
             patchpath: "EmberZNet/TubesZB_MGM24_2023_HW_Flow"
     uses: ./.github/workflows/silabs-firmware-build.yaml
     with:
@@ -157,40 +154,40 @@ jobs:
       metadata_fw_type: "rcp-uart-802154"
       baudrate: 460800
 
-  ot-rcp-firmware-build:
-    name: OpenThread RCP
-    needs: build-container
-    strategy:
-      matrix:
-        include:
-          - target: tubeszb-mgm12-2021
-            device: MGM12P32F1024GE
-            components: bootloader_interface
-            patchpath: "OpenThreadRCP/TubesZB_MGM12_2021"
-          - target: tubeszb-mgm12-2022
-            device: MGM12P32F1024GE
-            components: bootloader_interface
-            patchpath: "OpenThreadRCP/TubesZB_MGM12_2022"
-          - target: tubeszb-mgm21-2021
-            device: MGM210PA32JIA
-            components: bootloader_interface
-            patchpath: "OpenThreadRCP/TubesZB_MGM21_2021"
-          - target: tubeszb-mgm21-2022
-            device: MGM210PA32JIA
-            components: bootloader_interface
-            patchpath: "OpenThreadRCP/TubesZB_MGM21_2022"
-    uses: ./.github/workflows/silabs-firmware-build.yaml
-    with:
-      image_name: ${{ needs.build-container.outputs.image_name }}
-      firmware_name: ot-rcp-${{ matrix.target }}
-      project_file: "/gecko_sdk/protocol/openthread/sample-apps/ot-ncp/ot-rcp.slcp"
-      project_name: "ot-rcp"
-      device: ${{ matrix.device }}
-      components: ${{ matrix.components }}
-      patchpath: ${{ matrix.patchpath }}
-      sdkpatchpath: "OpenThreadRCP/GeckoSDK"
-      extra_c_defs: "'-DOPENTHREAD_CONFIG_NCP_REBOOT_BOOTLOADER_ENABLE=1'"
-      sdk_version: ${{ needs.build-container.outputs.sdk_version }}
-      metadata_fw_type: "ot-rcp"
-      baudrate: 460800
-      metadata_extra: "{ \"ot_rcp_version\": \"SL-OPENTHREAD/2.3.0.0_GitHub-dae3ff2c5\" }"
+  # ot-rcp-firmware-build:
+  #   name: OpenThread RCP
+  #   needs: build-container
+  #   strategy:
+  #     matrix:
+  #       include:
+  #         - target: tubeszb-mgm12-2021
+  #           device: MGM12P32F1024GE
+  #           components: bootloader_interface
+  #           patchpath: "OpenThreadRCP/TubesZB_MGM12_2021"
+  #         - target: tubeszb-mgm12-2022
+  #           device: MGM12P32F1024GE
+  #           components: bootloader_interface
+  #           patchpath: "OpenThreadRCP/TubesZB_MGM12_2022"
+  #         - target: tubeszb-mgm21-2021
+  #           device: MGM210PA32JIA
+  #           components: bootloader_interface
+  #           patchpath: "OpenThreadRCP/TubesZB_MGM21_2021"
+  #         - target: tubeszb-mgm21-2022
+  #           device: MGM210PA32JIA
+  #           components: bootloader_interface
+  #           patchpath: "OpenThreadRCP/TubesZB_MGM21_2022"
+  #   uses: ./.github/workflows/silabs-firmware-build.yaml
+  #   with:
+  #     image_name: ${{ needs.build-container.outputs.image_name }}
+  #     firmware_name: ot-rcp-${{ matrix.target }}
+  #     project_file: "/gecko_sdk/protocol/openthread/sample-apps/ot-ncp/ot-rcp.slcp"
+  #     project_name: "ot-rcp"
+  #     device: ${{ matrix.device }}
+  #     components: ${{ matrix.components }}
+  #     patchpath: ${{ matrix.patchpath }}
+  #     sdkpatchpath: "OpenThreadRCP/GeckoSDK"
+  #     extra_c_defs: "'-DOPENTHREAD_CONFIG_NCP_REBOOT_BOOTLOADER_ENABLE=1'"
+  #     sdk_version: ${{ needs.build-container.outputs.sdk_version }}
+  #     metadata_fw_type: "ot-rcp"
+  #     baudrate: 460800
+  #     metadata_extra: "{ \"ot_rcp_version\": \"SL-OPENTHREAD/2.3.0.0_GitHub-dae3ff2c5\" }"
