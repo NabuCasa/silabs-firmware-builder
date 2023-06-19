@@ -1,6 +1,7 @@
 name: Silicon Labs firmware build
 
 on:
+  workflow_dispatch:
   push:
     paths:
       - Dockerfile
