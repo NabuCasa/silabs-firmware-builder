@@ -1,6 +1,7 @@
 name: Silicon Labs firmware build
 
 on:
+  pull_request: ~
   push:
     paths:
       - Dockerfile
