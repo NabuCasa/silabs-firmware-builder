@@ -98,11 +98,6 @@ jobs:
             device: MGM240PA32VNN
             components: zigbee_mfglib,zigbee_token_interface
             patchpath: "EmberZNet/TubesZB_MGM24_2023_HW_Flow"
-
-          - target: tubeszb-BM24-2023-hwflow
-            device: EFR32MG24A420F1536IM48
-            components: zigbee_mfglib,zigbee_token_interface
-            patchpath: "EmberZNet/TubesZB_BM24_2023_HW_Flow"
     uses: ./.github/workflows/silabs-firmware-build.yaml
     with:
       image_name: ${{ needs.build-container.outputs.image_name }}
