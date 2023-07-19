@@ -6,9 +6,9 @@ on:
       - Dockerfile
       - .github/workflows/build.yaml
       - .github/workflows/silabs-firmware-build.yaml
-      - EmberZNet/
-      - OpenThreadRCP/
-      - RCPMultiPAN/
+      - EmberZNet/**
+      - OpenThreadRCP/**
+      - RCPMultiPAN/**
     branches:
       - main
     tags:
