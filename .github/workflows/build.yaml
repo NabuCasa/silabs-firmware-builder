@@ -6,9 +6,9 @@ on:
       - Dockerfile
       - .github/workflows/build.yaml
       - .github/workflows/silabs-firmware-build.yaml
-      - EmberZNet/
-      - OpenThreadRCP/
-      - RCPMultiPAN/
+      - EmberZNet/**
+      - OpenThreadRCP/**
+      - RCPMultiPAN/**
     branches:
       - main
     tags:
@@ -150,7 +150,7 @@ jobs:
       device: ${{ matrix.device }}
       components: ${{ matrix.components }}
       patchpath: ${{ matrix.patchpath }}
-      sdk_version: ${{ needs.build-container.outputs.sdk_version }}
+      sdk_version: 4.2.3
       metadata_fw_type: "rcp-uart-802154"
       baudrate: 460800
 
