@@ -101,7 +101,7 @@ jobs:
 
           - target: tubeszb-BM24-2023-hwflow
             device: EFR32MG24A420F1536IM48
-            components: zigbee_mfglib,zigbee_token_interface
+            components: simple_led:board_activity,zigbee_mfglib,zigbee_token_interface
             patchpath: "EmberZNet/TubesZB_BM24_2023_HW_Flow"
     uses: ./.github/workflows/silabs-firmware-build.yaml
     with:
