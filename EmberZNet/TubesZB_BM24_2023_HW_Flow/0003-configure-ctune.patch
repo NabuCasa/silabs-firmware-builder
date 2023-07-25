@@ -1,7 +1,7 @@
 diff --git a/config/sl_device_init_hfxo_config.h b/config/sl_device_init_hfxo_config.h
 index a3cf756..1027d36 100644
---- a/EmberZNet/RF-Star_MG24_ncp-uart-hw/config/sl_device_init_hfxo_config.h
-+++ b/EmberZNet/RF-Star_MG24_ncp-uart-hw/config/sl_device_init_hfxo_config.h
+--- a/config/sl_device_init_hfxo_config.h
++++ b/config/sl_device_init_hfxo_config.h
 @@ -46,7 +46,7 @@
  
  // <o SL_DEVICE_INIT_HFXO_CTUNE> CTUNE <0-255>
