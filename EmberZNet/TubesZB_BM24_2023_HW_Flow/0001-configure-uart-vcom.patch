@@ -28,13 +28,13 @@ index 7053d4f..107bee7 100644
 -// #define SL_IOSTREAM_USART_VCOM_CTS_PIN         12
 +// USART0 CTS on PA08
 +#define SL_IOSTREAM_USART_VCOM_CTS_PORT          gpioPortA
-+#define SL_IOSTREAM_USART_VCOM_CTS_PIN           8
++#define SL_IOSTREAM_USART_VCOM_CTS_PIN           7
  
 -// #define SL_IOSTREAM_USART_VCOM_RTS_PORT        gpioPortC
 -// #define SL_IOSTREAM_USART_VCOM_RTS_PIN         8
 +// USART0 RTS on PA07
 +#define SL_IOSTREAM_USART_VCOM_RTS_PORT          gpioPortA
-+#define SL_IOSTREAM_USART_VCOM_RTS_PIN           7
++#define SL_IOSTREAM_USART_VCOM_RTS_PIN           8
  // [USART_SL_IOSTREAM_USART_VCOM]$
  // <<< sl:end pin_tool >>>
  
