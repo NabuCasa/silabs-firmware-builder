@@ -74,14 +74,14 @@ jobs:
 
       - name: Set Baudrate
         run: |
-          cd ${{ inputs.firmware_name }}
+          cd /opt/slc_cli/${{ inputs.firmware_name }}
           sed -Ei "s/^(\s*#define SL_\S+_VCOM_BAUDRATE\s+)[0-9]+/\\1${{ inputs.baudrate }}/" \
               config/sl_*usart_vcom_config.h
 
       - name: Patch Firmware
         if: "${{ inputs.patchpath != '' }}"
         run: |
-          cd ${{ inputs.firmware_name }}
+          cd /opt/slc_cli/${{ inputs.firmware_name }}
           for patch in "../${{ inputs.patchpath }}"/*.patch
           do
               echo "Applying ${patch}"
@@ -91,7 +91,7 @@ jobs:
       - name: Patch SDK
         if: "${{ inputs.sdkpatchpath != '' }}"
         run: |
-          cd ${{ inputs.firmware_name }}/gecko_sdk_${{ inputs.sdk_version }}
+          cd /opt/slc_cli/${{ inputs.firmware_name }}/gecko_sdk_${{ inputs.sdk_version }}
           for patch in "../../${{ inputs.sdkpatchpath }}"/*.patch
           do
               echo "Applying ${patch}"
@@ -102,17 +102,17 @@ jobs:
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           LC_TIME=C meta_datetime=$(git log -1 --format="%cd" --date=format:"%b %-d %Y %H:%M:%S")
-          cd ${{ inputs.firmware_name }}
+          cd /opt/slc_cli/${{ inputs.firmware_name }}
           sed -i "s/^C_DEFS\s*=.*$/C_DEFS = '-DOPENTHREAD_BUILD_DATETIME=\"$meta_datetime\"' ${{ inputs.extra_c_defs }}/" \
             "${{ inputs.project_name }}.Makefile"
 
       - name: Build Firmware
         run: |
-          cd ${{ inputs.firmware_name }}
+          cd /opt/slc_cli/${{ inputs.firmware_name }}
           make -f ${{ inputs.project_name }}.Makefile release
       - name: Add Firmware Metadata
         run: |
-          cd ${{ inputs.firmware_name }}
+          cd /opt/slc_cli/${{ inputs.firmware_name }}
           jq --null-input \
              '{
                 "metadata_version": 1,
@@ -123,7 +123,7 @@ jobs:
 
       - name: Generate gbl Firmware
         run: |
-          cd ${{ inputs.firmware_name }}
+          cd /opt/slc_cli/${{ inputs.firmware_name }}
           commander gbl create build/release/${{ inputs.project_name }}.gbl \
                     --app build/release/${{ inputs.project_name }}.out \
                     --device ${{ inputs.device }} --metadata version.json
