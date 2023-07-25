@@ -71,6 +71,7 @@ jobs:
               --export-destination="${{ inputs.firmware_name }}" \
               --copy-proj-sources --copy-sdk-sources --new-project --force \
               --configuration="${{ inputs.configuration }}"
+          pwd
 
       - name: Set Baudrate
         run: |
