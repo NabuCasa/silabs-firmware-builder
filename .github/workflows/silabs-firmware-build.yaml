@@ -68,7 +68,7 @@ jobs:
           slc generate \
               --with="${{ inputs.device }},${{ inputs.components }}" \
               --project-file="${{ inputs.project_file }}" \
-              --export-destination="/__w/silabs-firmware-builder/silabs-firmware-builder/${{ inputs.firmware_name }}" \
+              --export-destination="$PWD/${{ inputs.firmware_name }}" \
               --copy-proj-sources --copy-sdk-sources --new-project --force \
               --configuration="${{ inputs.configuration }}"
 
