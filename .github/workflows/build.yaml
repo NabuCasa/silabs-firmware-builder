@@ -116,7 +116,7 @@ jobs:
         EMBER_APS_UNICAST_MESSAGE_COUNT:20,
         EMBER_BROADCAST_TABLE_SIZE:30,
         EMBER_NEIGHBOR_TABLE_SIZE:26,
-        EMBER_SOURCE_ROUTE_TABLE_SIZE:200,
+        EMBER_SOURCE_ROUTE_TABLE_SIZE:254,
       patchpath: ${{ matrix.patchpath }}
       extra_c_defs: "'-DEMBER_ADDRESS_TABLE_SIZE=16' '-DEMBER_MULTICAST_TABLE_SIZE=16'"
       sdk_version: ${{ needs.build-container.outputs.sdk_version }}
