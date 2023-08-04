@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
 
 env:
-  sdk_version: 4.3.0
+  sdk_version: 4.3.1
 
 jobs:
   build-container:
@@ -122,7 +122,7 @@ jobs:
       sdk_version: ${{ needs.build-container.outputs.sdk_version }}
       metadata_fw_type: "ncp-uart-hw"
       baudrate: 115200
-      metadata_extra: "{ \"ezsp_version\": \"7.3.0.1\" }"
+      metadata_extra: "{ \"ezsp_version\": \"7.3.1.0\" }"
 
   rcp-multi-pan-firmware-build:
     name: RCP Multi-PAN
