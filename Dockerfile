@@ -1,4 +1,4 @@
-FROM debian:bullseye
+FROM debian:bookworm
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -12,7 +12,7 @@ RUN \
        jq \
        libgl1 \
        make \
-       openjdk-17-jre-headless \
+       default-jre-headless \
        patch \
        python3 \
        unzip
