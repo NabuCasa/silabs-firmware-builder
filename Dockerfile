@@ -50,7 +50,8 @@ ARG GECKO_SDK_VERSION="v4.3.1"
 
 RUN \
     git clone --depth 1 -b ${GECKO_SDK_VERSION} \
-       https://github.com/SiliconLabs/gecko_sdk.git
+       https://github.com/SiliconLabs/gecko_sdk.git \
+    && rm -rf gecko_sdk/.git
 
 ARG USERNAME=builder
 ARG USER_UID=1000
