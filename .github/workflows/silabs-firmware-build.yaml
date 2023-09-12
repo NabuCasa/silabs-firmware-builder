@@ -63,6 +63,11 @@ jobs:
       - name: Adjust permission
         shell: bash
         run: chown builder .
+
+      - name: Trust SDK extensions
+        run: |
+          slc signature trust --extpath "gecko_sdk_extensions"
+
       - name: Generate Firmware Project
         run: |
           slc generate \
