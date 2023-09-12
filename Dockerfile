@@ -10,14 +10,13 @@ RUN \
        git \
        git-lfs \
        jq \
+       yq \
        libgl1 \
        make \
        default-jre-headless \
        patch \
        python3 \
-       python3-pip \
-       unzip \
-    && pip install --no-cache-dir yq
+       unzip
 
 # Install Simplicity Commander (unfortunately no stable URL available, this
 # is known to be working with Commander_linux_x86_64_1v15p0b1306.tar.bz).
