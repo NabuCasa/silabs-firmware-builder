@@ -96,10 +96,16 @@ jobs:
             device: MGM210PA32JIA
             components: simple_led:board_activity,cpc_security_secondary_none
             patchpath: "RCPMultiPAN/Yellow"
+            slcp_yaml_changes: >
+              . += {"sdk_extension": [{"id": "nc_efr32_watchdog", version: "1.0.0"}]}
+              | .component += [{"from": "nc_efr32_watchdog", "id": "nc_efr32_watchdog"}]
           - target: skyconnect
             device: EFR32MG21A020F512IM32
             components: cpc_security_secondary_none
             patchpath: "RCPMultiPAN/SkyConnect"
+            slcp_yaml_changes: >
+              . += {"sdk_extension": [{"id": "nc_efr32_watchdog", version: "1.0.0"}]}
+              | .component += [{"from": "nc_efr32_watchdog", "id": "nc_efr32_watchdog"}]
     uses: ./.github/workflows/silabs-firmware-build.yaml
     with:
       image_name: ${{ needs.build-container.outputs.image_name }}
