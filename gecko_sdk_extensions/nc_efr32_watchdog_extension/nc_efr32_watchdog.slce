@@ -1,0 +1,8 @@
+id: "nc_efr32_watchdog"
+label: "EFR32 Watchdog"
+version: "1.0.0"
+sdk:
+  id: "gecko_sdk"
+  version: 4.3.1
+component_path:
+  - path: "./"
