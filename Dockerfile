@@ -15,6 +15,7 @@ RUN \
        default-jre-headless \
        patch \
        python3 \
+       python3-pip \
        unzip \
     && pip install --no-cache-dir yq
 
