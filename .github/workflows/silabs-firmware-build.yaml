@@ -47,6 +47,9 @@ on:
         required: false
         default: "null"
         type: string
+      slcp_yaml_changes:
+        required: false
+        type: string
 
 jobs:
   firmware-build:
@@ -110,6 +113,12 @@ jobs:
           cd ${{ inputs.firmware_name }}
           sed -i "s/^C_DEFS\s*=.*$/C_DEFS = '-DOPENTHREAD_BUILD_DATETIME=\"$meta_datetime\"' ${{ inputs.extra_c_defs }}/" \
             "${{ inputs.project_name }}.Makefile"
+
+      - name: Patch SLCP project file
+        if: "${{ inputs.slcp_yaml_changes != '' }}"
+        run: |
+          cd ${{ inputs.firmware_name }}
+          yq --in-place --yaml-output '${{ inputs.slcp_yaml_changes }}' "${{ inputs.project_name }}.slcp"
 
       - name: Build Firmware
         run: |

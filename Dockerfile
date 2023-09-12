@@ -15,7 +15,8 @@ RUN \
        default-jre-headless \
        patch \
        python3 \
-       unzip
+       unzip \
+    && pip install --no-cache-dir yq
 
 # Install Simplicity Commander (unfortunately no stable URL available, this
 # is known to be working with Commander_linux_x86_64_1v15p0b1306.tar.bz).
