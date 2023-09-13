@@ -17,7 +17,7 @@ config_file:
   - path: config/nc_efr32_wdog_config.h
 
 define:
-  - name: NC_EFR32_ENABLE_WATCHDOG
+  - name: SL_LEGACY_HAL_ENABLE_WATCHDOG
     value: 1
 
 source:

@@ -35,9 +35,9 @@
 
 // <h> Legacy HAL WDOG Configurations
 
-// <e NC_EFR32_DISABLE_WATCHDOG> Disable calling halInternalEnableWatchDog in base-replacement.c's halInit().
+// <e SL_LEGACY_HAL_DISABLE_WATCHDOG> Disable calling halInternalEnableWatchDog in base-replacement.c's halInit().
 // <i> Default: 0
-#define NC_EFR32_DISABLE_WATCHDOG 0
+#define SL_LEGACY_HAL_DISABLE_WATCHDOG 0
 // </e>
 
 // <o NC_EFR32_WDOGn> WDOG to use for NC_EFR32_WDOGn.

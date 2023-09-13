@@ -83,9 +83,9 @@ void halInternalEnableWatchDog(void)
 
 void halResetWatchdog(void)
 {
-#if (NC_EFR32_DISABLE_WATCHDOG == 0)
+#if (SL_LEGACY_HAL_DISABLE_WATCHDOG == 0)
   WDOGn_Feed(NC_EFR32_WDOG);
-#endif // (NC_EFR32_DISABLE_WATCHDOG == 0)
+#endif // (SL_LEGACY_HAL_DISABLE_WATCHDOG == 0)
 }
 
 /** @brief The value no longer matters.
@@ -94,17 +94,17 @@ void halInternalDisableWatchDog(uint8_t magicKey)
 {
   (void) magicKey;
 
-#if (NC_EFR32_DISABLE_WATCHDOG == 0)
+#if (SL_LEGACY_HAL_DISABLE_WATCHDOG == 0)
   WDOGn_SyncWait(DEFAULT_WDOG);
   WDOGn_Enable(NC_EFR32_WDOG, false);
-#endif // (NC_EFR32_DISABLE_WATCHDOG == 0)
+#endif // (SL_LEGACY_HAL_DISABLE_WATCHDOG == 0)
 }
 
 bool halInternalWatchDogEnabled(void)
 {
-#if (NC_EFR32_DISABLE_WATCHDOG == 0)
+#if (SL_LEGACY_HAL_DISABLE_WATCHDOG == 0)
   return WDOGn_IsEnabled(NC_EFR32_WDOG);
-#else // (NC_EFR32_DISABLE_WATCHDOG == 0)
+#else // (SL_LEGACY_HAL_DISABLE_WATCHDOG == 0)
   return false;
-#endif // (NC_EFR32_DISABLE_WATCHDOG == 0)
+#endif // (SL_LEGACY_HAL_DISABLE_WATCHDOG == 0)
 }
