@@ -67,9 +67,17 @@ jobs:
         shell: bash
         run: chown builder .
 
+      - name: Link SDK extensions
+        shell: bash
+        run: |
+          # XXX: slc-cli does not actually work when the extensions aren't in the SDK!
+          ln -s $PWD/gecko_sdk_extensions /gecko_sdk/extension
+
       - name: Trust SDK extensions
         run: |
-          slc signature trust --extension-path="$PWD/gecko_sdk_extensions"
+          for ext in /gecko_sdk/extension/*/; do
+            slc signature trust --extension-path="$ext"
+          done
 
       - name: Generate Firmware Project
         run: |
