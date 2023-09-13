@@ -25,18 +25,10 @@ static sli_cpc_timer_handle_t timer_handle;
 void nc_periodic_timer(sli_cpc_timer_handle_t *handle, void *data)
 {
   (void)data;
-  static int wdog_count = 0;
-
-  // Intentionally stop feeding the watchdog after 10 iterations, triggering a crash
-  if (++wdog_count >= 20) {
-    wdog_count = 0;
-    return;
-  }
 
   WDOGn_Feed(WDOG0);
 
   sl_status_t status;
-
   status = sli_cpc_timer_restart_timer(handle,
                                        sli_cpc_timer_ms_to_tick(1500),  // 1.5 second
                                        nc_periodic_timer,
