@@ -30,7 +30,7 @@ void nc_periodic_timer(sli_cpc_timer_handle_t *handle, void *data)
 
   sl_status_t status;
   status = sli_cpc_timer_restart_timer(handle,
-                                       sli_cpc_timer_ms_to_tick(1500),  // 1.5 second
+                                       sli_cpc_timer_ms_to_tick(1000),  // 1 second
                                        nc_periodic_timer,
                                        (void *)NULL);
 
@@ -57,7 +57,7 @@ void nc_enable_watchdog(void)
 
   WDOG_Init_TypeDef init = WDOG_INIT_DEFAULT;
   init.enable = false;
-  init.perSel = wdogPeriod_64k;  // 2 seconds
+  init.perSel = wdogPeriod_128k;  // 4 seconds
 
 #if defined(_WDOG_CTRL_CLKSEL_MASK)
   init.clkSel = wdogClkSelLFRCO;
