@@ -28,7 +28,7 @@ template_contribution:
     value: nc_efr32_watchdog
   - name: event_handler
     value:
-      event: driver_init
+      event: service_init
       include: "nc_efr32_wdog.h"
       handler: nc_enable_watchdog
-      priority: 100  # load later
+      priority: 9999  # load very very late
