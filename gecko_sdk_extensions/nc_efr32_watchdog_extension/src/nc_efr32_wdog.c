@@ -15,22 +15,37 @@
  *
  ******************************************************************************/
 
+#include "em_wdog.h"
 #include "nc_efr32_wdog.h"
+#include "sli_cpc_timer.h"
 
-/***************************************************************************//**
- * Watchdog Interrupt Handler.
- ******************************************************************************/
-#if (_SILICON_LABS_32B_SERIES >= 1)
-void NC_EFR32_WDOG_IRQHandler(void)
+static sli_cpc_timer_handle_t timer_handle;
+
+
+void nc_periodic_timer(sli_cpc_timer_handle_t *handle, void *data)
 {
-  uint32_t interrupts;
+  (void)data;
+  static int wdog_count = 0;
 
-  interrupts = WDOGn_IntGet(NC_EFR32_WDOG);
-  WDOGn_IntClear(NC_EFR32_WDOG, interrupts);
+  // Intentionally stop feeding the watchdog after 10 iterations, triggering a crash
+  if (++wdog_count >= 10) {
+    return;
+  }
+
+  WDOGn_Feed(WDOG0);
+
+  sl_status_t status;
+
+  status = sli_cpc_timer_restart_timer(handle,
+                                       sli_cpc_timer_ms_to_tick(1000),  // 1 second
+                                       nc_periodic_timer,
+                                       (void *)NULL);
+
+  EFM_ASSERT(status == SL_STATUS_OK);
 }
-#endif
 
-void halInternalEnableWatchDog(void)
+
+void nc_enable_watchdog(void)
 {
   // Enable LE interface
 #if !defined(_SILICON_LABS_32B_SERIES_2)
@@ -39,7 +54,7 @@ void halInternalEnableWatchDog(void)
 #endif
 
 #if defined(_SILICON_LABS_32B_SERIES_2) && !defined(_SILICON_LABS_32B_SERIES_2_CONFIG_1)
-  CMU_ClockEnable(NC_EFR32_WDOG_CMUCLOCK, true);
+  CMU_ClockEnable(cmuClock_WDOG0, true);
 #endif
 
   // Make sure FULL reset is used on WDOG timeout
@@ -47,64 +62,20 @@ void halInternalEnableWatchDog(void)
   RMU_ResetControl(rmuResetWdog, rmuResetModeFull);
 #endif
 
-  /* Note: WDOG_INIT_DEFAULT comes from platform/emlib/inc/em_wdog.h */
   WDOG_Init_TypeDef init = WDOG_INIT_DEFAULT;
-
-  // The default timeout of wdogPeriod_64k will trigger
-  // watchdog reset after 2 seconds (64k / 32k) and
-  // warning interrupt is triggered after 1.5 seconds (75% of timeout).
-  init.perSel = NC_EFR32_WDOG_PERIOD;
-  init.warnSel = NC_EFR32_WDOG_WARNING;
-
-  // Counter keeps running during debug halt
-  init.debugRun = NC_EFR32_WDOG_DEBUG_RUN;
+  init.enable = false;
+  init.perSel = wdogPeriod_64k;  // 2 seconds
 
 #if defined(_WDOG_CTRL_CLKSEL_MASK)
   init.clkSel = wdogClkSelLFRCO;
 #else
   // Series 2 devices select watchdog oscillator with the CMU.
-#if (NC_EFR32_WDOGn == 0)
-  CMU_CLOCK_SELECT_SET(WDOG0, LFRCO);
-#elif (NC_EFR32_WDOGn == 1)
-  CMU_CLOCK_SELECT_SET(WDOG1, LFRCO);
-#endif
+  CMU_ClockSelectSet(cmuClock_WDOG0, cmuSelect_LFRCO);
 #endif
 
-  WDOGn_Init(NC_EFR32_WDOG, &init);
+  WDOGn_Init(WDOG0, &init);
+  WDOGn_Enable(WDOG0, true);
+  WDOGn_Feed(WDOG0);
 
-  /* Enable WARN interrupt. */
-#if defined(WDOG_IF_WARN) && !defined(BOOTLOADER)
-  NVIC_ClearPendingIRQ(NC_EFR32_WDOG_IRQn);
-  WDOGn_IntClear(NC_EFR32_WDOG, WDOG_IF_WARN);
-  NVIC_EnableIRQ(NC_EFR32_WDOG_IRQn);
-  WDOGn_IntEnable(NC_EFR32_WDOG, WDOG_IEN_WARN);
-#endif
-}
-
-void halResetWatchdog(void)
-{
-#if (SL_LEGACY_HAL_DISABLE_WATCHDOG == 0)
-  WDOGn_Feed(NC_EFR32_WDOG);
-#endif // (SL_LEGACY_HAL_DISABLE_WATCHDOG == 0)
-}
-
-/** @brief The value no longer matters.
- */
-void halInternalDisableWatchDog(uint8_t magicKey)
-{
-  (void) magicKey;
-
-#if (SL_LEGACY_HAL_DISABLE_WATCHDOG == 0)
-  WDOGn_SyncWait(DEFAULT_WDOG);
-  WDOGn_Enable(NC_EFR32_WDOG, false);
-#endif // (SL_LEGACY_HAL_DISABLE_WATCHDOG == 0)
-}
-
-bool halInternalWatchDogEnabled(void)
-{
-#if (SL_LEGACY_HAL_DISABLE_WATCHDOG == 0)
-  return WDOGn_IsEnabled(NC_EFR32_WDOG);
-#else // (SL_LEGACY_HAL_DISABLE_WATCHDOG == 0)
-  return false;
-#endif // (SL_LEGACY_HAL_DISABLE_WATCHDOG == 0)
+  nc_periodic_timer(&timer_handle, NULL);
 }

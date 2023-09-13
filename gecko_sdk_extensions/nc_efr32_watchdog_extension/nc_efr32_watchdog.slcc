@@ -10,15 +10,10 @@ description: >
   NC_EFR32_WDOGn chooses which watchdog to use.  By default it's WDOG0.
 requires:
   - name: component_catalog
+  - name: emlib_wdog
+  - name: emlib_wdog
 provides:
   - name: nc_efr32_watchdog
-
-config_file:
-  - path: config/nc_efr32_wdog_config.h
-
-define:
-  - name: SL_LEGACY_HAL_ENABLE_WATCHDOG
-    value: 1
 
 source:
   - path: src/nc_efr32_wdog.c
@@ -31,3 +26,9 @@ include:
 template_contribution:
   - name: component_catalog
     value: nc_efr32_watchdog
+  - name: event_handler
+    value:
+      event: driver_init
+      include: "nc_efr32_wdog.h"
+      handler: nc_enable_watchdog
+      priority: 100  # load later
