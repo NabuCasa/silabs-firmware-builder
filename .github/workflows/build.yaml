@@ -115,6 +115,7 @@ jobs:
       device: ${{ matrix.device }}
       components: ${{ matrix.components }}
       patchpath: ${{ matrix.patchpath }}
+      slcp_yaml_changes: ${{ matrix.slcp_yaml_changes }}
       sdk_version: ${{ needs.build-container.outputs.sdk_version }}
       metadata_fw_type: "rcp-uart-802154"
       baudrate: 460800
