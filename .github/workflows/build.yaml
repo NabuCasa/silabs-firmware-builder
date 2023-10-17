@@ -15,7 +15,7 @@ on:
       - '*'
 
 env:
-  sdk_version: 4.3.1
+  sdk_version: 4.3.2
 
 jobs:
   build-container:
@@ -84,7 +84,7 @@ jobs:
       sdk_version: ${{ needs.build-container.outputs.sdk_version }}
       metadata_fw_type: "ncp-uart-hw"
       baudrate: 115200
-      metadata_extra: "{ \"ezsp_version\": \"7.3.1.0\" }"
+      metadata_extra: "{ \"ezsp_version\": \"7.3.2.0\" }"
 
   rcp-multi-pan-firmware-build:
     name: RCP Multi-PAN
@@ -141,4 +141,4 @@ jobs:
       sdk_version: ${{ needs.build-container.outputs.sdk_version }}
       metadata_fw_type: "ot-rcp"
       baudrate: 460800
-      metadata_extra: "{ \"ot_rcp_version\": \"SL-OPENTHREAD/2.3.1.0_GitHub-e6df00dd6\" }"
+      metadata_extra: "{ \"ot_rcp_version\": \"SL-OPENTHREAD/2.3.2.0_GitHub-e6df00dd6\" }"
