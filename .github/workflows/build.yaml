@@ -6,9 +6,11 @@ on:
       - Dockerfile
       - .github/workflows/build.yaml
       - .github/workflows/silabs-firmware-build.yaml
+      - .github/workflows/silabs-firmware-build-zwave.yaml
       - EmberZNet/**
       - OpenThreadRCP/**
       - RCPMultiPAN/**
+      - ZWave/**
     branches:
       - main
     tags:
@@ -142,3 +144,53 @@ jobs:
       metadata_fw_type: "ot-rcp"
       baudrate: 460800
       metadata_extra: "{ \"ot_rcp_version\": \"SL-OPENTHREAD/2.3.2.0_GitHub-e6df00dd6\" }"
+
+  zwave-firmware-build:
+    name: Z-Wave Serial API Controller
+    needs: build-container
+    strategy:
+      matrix:
+        include:
+          # Silicon Labs UZB-7 (SLUSB001A), +14 dBm, with SAW filters
+          # (???) Aeotec Z-Stick 7 / Z-Pi 7
+          - target: BRD4201A
+            device: EFR32ZG14P231F256GM32
+            components: brd4201a
+            compression: lz4
+            sign_key: /gecko_sdk/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_sign.key
+            enc_key: /gecko_sdk/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_encrypt.key
+
+          # Silicon Labs UZB-7 (SLUSB001A), +14 dBm, Z-Wave Long Range
+          - target: BRD4206A
+            device: EFR32ZG14P231F256GM32
+            components: brd4206a
+            compression: lz4
+            sign_key: /gecko_sdk/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_sign.key
+            enc_key: /gecko_sdk/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_encrypt.key
+
+          - target: BRD4207A
+            device: ZGM130S037HGN
+            components: brd4207a
+            compression: lz4
+            sign_key: /gecko_sdk/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_sign.key
+            enc_key: /gecko_sdk/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_encrypt.key
+
+    uses: ./.github/workflows/silabs-firmware-build-zwave.yaml
+    with:
+      image_name: ${{ needs.build-container.outputs.image_name }}
+      firmware_name: zwave_serial_api_controller_${{ needs.build-container.outputs.sdk_version }}_${{ matrix.target }}
+      project_file: "/gecko_sdk/protocol/z-wave/Apps/zwave_ncp_serial_api/zwave_ncp_serial_api_controller.slcp"
+      project_name: "zwave_ncp_serial_api_controller"
+      device: ${{ matrix.device }}
+      components: ${{ matrix.components }}
+      # Fix known issue 1171840 in Z-Wave SDK
+      configuration: "ZAF_CONFIG_GENERIC_TYPE:0,ZAF_CONFIG_SPECIFIC_TYPE:0"
+      # patchpath: ${{ matrix.patchpath }}
+      sdk_version: ${{ needs.build-container.outputs.sdk_version }}
+      metadata_fw_type: "zwave"
+      # There are two "series" of chips:
+      # * Series 1 devices (EFR32xG1x, ZG[M]13) require lz4 compression
+      # * Series 2 devices (EFR32xG2x) require lzma compression
+      gbl_compression: lz4
+      gbl_sign_key: "/gecko_sdk/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_sign.key"
+      gbl_enc_key: "/gecko_sdk/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_encrypt.key"
