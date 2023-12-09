@@ -6,8 +6,6 @@ category: External Components
 quality: production
 description: >
   EFR32 Watchdog.
-
-  NC_EFR32_WDOGn chooses which watchdog to use.  By default it's WDOG0.
 requires:
   - name: component_catalog
   - name: emlib_wdog
@@ -32,3 +30,9 @@ template_contribution:
       include: "nc_efr32_wdog.h"
       handler: nc_enable_watchdog
       priority: 9999  # load very very late
+  - name: event_handler
+    value:
+      event: service_process_action
+      include: "nc_efr32_wdog.h"
+      handler: nc_poke_watchdog
+      priority: 9999  # run last

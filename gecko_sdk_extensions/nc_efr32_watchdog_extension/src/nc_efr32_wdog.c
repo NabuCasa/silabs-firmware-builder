@@ -17,25 +17,24 @@
 
 #include "em_wdog.h"
 #include "nc_efr32_wdog.h"
-#include "sli_cpc_timer.h"
 
-static sli_cpc_timer_handle_t timer_handle;
+static bool feed_watchdog_on_warn_interrupt;
 
 
-void nc_periodic_timer(sli_cpc_timer_handle_t *handle, void *data)
+#if (_SILICON_LABS_32B_SERIES >= 1)
+void WDOG0_IRQHandler(void)
 {
-  (void)data;
+  uint32_t interrupts;
 
-  WDOGn_Feed(WDOG0);
+  interrupts = WDOGn_IntGet(WDOG0);
+  WDOGn_IntClear(WDOG0, interrupts);
 
-  sl_status_t status;
-  status = sli_cpc_timer_restart_timer(handle,
-                                       sli_cpc_timer_ms_to_tick(1000),  // 1 second
-                                       nc_periodic_timer,
-                                       (void *)NULL);
-
-  EFM_ASSERT(status == SL_STATUS_OK);
+  if (feed_watchdog_on_warn_interrupt) {
+    WDOGn_Feed(WDOG0);
+    feed_watchdog_on_warn_interrupt = false;
+  }
 }
+#endif
 
 
 void nc_enable_watchdog(void)
@@ -57,7 +56,8 @@ void nc_enable_watchdog(void)
 
   WDOG_Init_TypeDef init = WDOG_INIT_DEFAULT;
   init.enable = false;
-  init.perSel = wdogPeriod_128k;  // 4 seconds
+  init.perSel = wdogPeriod_256k;  // 8 seconds
+  init.warnSel = wdogWarnTime75pct;
 
 #if defined(_WDOG_CTRL_CLKSEL_MASK)
   init.clkSel = wdogClkSelLFRCO;
@@ -66,9 +66,26 @@ void nc_enable_watchdog(void)
   CMU_ClockSelectSet(cmuClock_WDOG0, cmuSelect_LFRCO);
 #endif
 
+  WDOGn_Unlock(WDOG0);
   WDOGn_Init(WDOG0, &init);
+
+  // Enable warning interrupt
+  NVIC_ClearPendingIRQ(WDOG0_IRQn);
+  WDOGn_IntClear(WDOG0, WDOG_IF_WARN);
+  NVIC_EnableIRQ(WDOG0_IRQn);
+  WDOGn_IntEnable(WDOG0, WDOG_IEN_WARN);
+
   WDOGn_Enable(WDOG0, true);
   WDOGn_Feed(WDOG0);
 
-  nc_periodic_timer(&timer_handle, NULL);
+  feed_watchdog_on_warn_interrupt = false;
+}
+
+
+void nc_poke_watchdog()
+{
+  CORE_DECLARE_IRQ_STATE;
+  CORE_ENTER_ATOMIC();
+  feed_watchdog_on_warn_interrupt = true;
+  CORE_EXIT_ATOMIC();
 }
