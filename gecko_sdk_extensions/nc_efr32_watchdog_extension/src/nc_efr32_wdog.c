@@ -56,7 +56,7 @@ void nc_enable_watchdog(void)
 
   WDOG_Init_TypeDef init = WDOG_INIT_DEFAULT;
   init.enable = false;
-  init.perSel = wdogPeriod_256k;  // 8 seconds
+  init.perSel = wdogPeriod_64k;  // 2 seconds
   init.warnSel = wdogWarnTime75pct;
 
 #if defined(_WDOG_CTRL_CLKSEL_MASK)
