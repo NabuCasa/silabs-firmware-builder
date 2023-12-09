@@ -1,0 +1,39 @@
+From e80278afbd3b594ad4dea0037c30b2bbdc3b9ff9 Mon Sep 17 00:00:00 2001
+From: puddly <32534428+puddly@users.noreply.github.com>
+Date: Fri, 8 Dec 2023 19:14:32 -0500
+Subject: [PATCH] Disable fast channel switching
+
+---
+ .../sl_rail_util_ieee802154_fast_channel_switching_config.h     | 2 +-
+ protocol/openthread/platform-abstraction/efr32/radio.c          | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/platform/radio/rail_lib/plugin/rail_util_ieee802154/config/sl_rail_util_ieee802154_fast_channel_switching_config.h b/platform/radio/rail_lib/plugin/rail_util_ieee802154/config/sl_rail_util_ieee802154_fast_channel_switching_config.h
+index a44700695..36373d7fc 100644
+--- a/platform/radio/rail_lib/plugin/rail_util_ieee802154/config/sl_rail_util_ieee802154_fast_channel_switching_config.h
++++ b/platform/radio/rail_lib/plugin/rail_util_ieee802154/config/sl_rail_util_ieee802154_fast_channel_switching_config.h
+@@ -43,7 +43,7 @@
+ // <h> IEEE802.15.4 Fast Channel Switching Configuration
+ // <q SL_RAIL_UTIL_IEEE802154_FAST_CHANNEL_SWITCHING_ENABLED> Enable fast channel switching
+ // <i> Default: 1
+-#define SL_RAIL_UTIL_IEEE802154_FAST_CHANNEL_SWITCHING_ENABLED   1
++#define SL_RAIL_UTIL_IEEE802154_FAST_CHANNEL_SWITCHING_ENABLED   0
+ // </h>
+ // <<< end of configuration section >>>
+ #endif //SL_RAIL_UITL_IEEE802154_FAST_CHANNEL_SWITCHING_CONFIG_H
+diff --git a/protocol/openthread/platform-abstraction/efr32/radio.c b/protocol/openthread/platform-abstraction/efr32/radio.c
+index 04ecef2ae..a2b899d91 100644
+--- a/protocol/openthread/platform-abstraction/efr32/radio.c
++++ b/protocol/openthread/platform-abstraction/efr32/radio.c
+@@ -321,7 +321,7 @@ static bool isMultiChannel(void)
+             {
+                 firstChannel = sChannelSwitchingCfg.channels[i];
+             }
+-            else
++            else if (firstChannel != sChannelSwitchingCfg.channels[i])
+             {
+                 return true;
+             }
+-- 
+2.43.0
+
