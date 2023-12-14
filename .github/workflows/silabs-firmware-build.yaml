@@ -139,4 +139,4 @@ jobs:
         if: success() || failure()
         with:
           name: ${{ inputs.firmware_name }}
-          path: ${{ inputs.firmware_name }}
+          path: ${{ inputs.firmware_name }}/build/release/*.*
