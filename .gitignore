@@ -1,1 +1,10 @@
 .DS_Store
+.pdm/
+.uceditor/
+GNU ARM v12.2.1*/
+autogen/
+.project
+.settings/
+.projectlinkstore
+*.project.mak
+*.Makefile
