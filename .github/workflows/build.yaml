@@ -139,7 +139,7 @@ jobs:
       components: ${{ matrix.components }}
       patchpath: ${{ matrix.patchpath }}
       sdkpatchpath: "OpenThreadRCP/GeckoSDK"
-      extra_c_defs: "'-DOPENTHREAD_CONFIG_NCP_REBOOT_BOOTLOADER_ENABLE=1'"
+      extra_c_defs: "'-DOPENTHREAD_CONFIG_PLATFORM_BOOTLOADER_MODE_ENABLE=1'"
       sdk_version: ${{ needs.build-container.outputs.sdk_version }}
       metadata_fw_type: "ot-rcp"
       baudrate: 460800
