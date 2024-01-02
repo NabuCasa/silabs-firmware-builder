@@ -5,13 +5,13 @@ Date: Tue, 7 Feb 2023 00:18:24 +0100
 Subject: [PATCH] config: configure cpc usart vcom for Yellow
 
 ---
- ...cpc_drv_secondary_uart_usart_vcom_config.h | 22 +++++++++----------
+ ...cpc_drv_uart_usart_vcom_config.h | 22 +++++++++----------
  1 file changed, 11 insertions(+), 11 deletions(-)
 
-diff --git a/config/sl_cpc_drv_secondary_uart_usart_vcom_config.h b/config/sl_cpc_drv_secondary_uart_usart_vcom_config.h
+diff --git a/config/sl_cpc_drv_uart_usart_vcom_config.h b/config/sl_cpc_drv_uart_usart_vcom_config.h
 index 66288db..e006ebc 100644
---- a/config/sl_cpc_drv_secondary_uart_usart_vcom_config.h
-+++ b/config/sl_cpc_drv_secondary_uart_usart_vcom_config.h
+--- a/config/sl_cpc_drv_uart_usart_vcom_config.h
++++ b/config/sl_cpc_drv_uart_usart_vcom_config.h
 @@ -62,21 +62,21 @@
  #define SL_CPC_DRV_UART_VCOM_PERIPHERAL                 USART0
  #define SL_CPC_DRV_UART_VCOM_PERIPHERAL_NO              0

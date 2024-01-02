@@ -5,13 +5,13 @@ Date: Tue, 7 Feb 2023 00:14:01 +0100
 Subject: [PATCH] config: configure cpc usart vcom for SkyConnect
 
 ---
- ...cpc_drv_secondary_uart_usart_vcom_config.h | 24 +++++++++----------
+ ...cpc_drv_uart_usart_vcom_config.h | 24 +++++++++----------
  1 file changed, 12 insertions(+), 12 deletions(-)
 
-diff --git a/config/sl_cpc_drv_secondary_uart_usart_vcom_config.h b/config/sl_cpc_drv_secondary_uart_usart_vcom_config.h
+diff --git a/config/sl_cpc_drv_uart_usart_vcom_config.h b/config/sl_cpc_drv_uart_usart_vcom_config.h
 index 66288db..56c21a9 100644
---- a/config/sl_cpc_drv_secondary_uart_usart_vcom_config.h
-+++ b/config/sl_cpc_drv_secondary_uart_usart_vcom_config.h
+--- a/config/sl_cpc_drv_uart_usart_vcom_config.h
++++ b/config/sl_cpc_drv_uart_usart_vcom_config.h
 @@ -62,21 +62,21 @@
  #define SL_CPC_DRV_UART_VCOM_PERIPHERAL                 USART0
  #define SL_CPC_DRV_UART_VCOM_PERIPHERAL_NO              0
