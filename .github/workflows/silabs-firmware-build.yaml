@@ -128,8 +128,15 @@ jobs:
                     --app build/release/${{ inputs.project_name }}.out \
                     --device ${{ inputs.device }} --metadata version.json
 
+      - name: Install node within container (act)
+        if: ${{ env.ACT }}
+        shell: bash
+        run: |
+            curl -fsSL https://deb.nodesource.com/nsolid_setup_deb.sh | bash -s 20
+            apt-get install -y nodejs
+
       - uses: actions/upload-artifact@v3
         if: success() || failure()
         with:
           name: ${{ inputs.firmware_name }}
-          path: ${{ inputs.firmware_name }}
+          path: ${{ inputs.firmware_name }}/build/release/*.*
