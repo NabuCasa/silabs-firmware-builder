@@ -92,6 +92,10 @@ jobs:
       - name: Patch SDK
         if: "${{ inputs.sdkpatchpath != '' }}"
         run: |
+          if [ ! -d "${{ inputs.sdkpatchpath }}" ]; then
+              exit 0
+          fi
+
           cd ${{ inputs.firmware_name }}/gecko_sdk_${{ inputs.sdk_version }}
           for patch in "../../${{ inputs.sdkpatchpath }}"/*.patch
           do
