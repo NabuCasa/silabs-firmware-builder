@@ -5,79 +5,71 @@ Subject: [PATCH] Configure UART
 
 Configure UART
 ---
- config/sl_cpc_drv_uart_usart_vcom_config.h | 54 +++++++++++++++-------
+ config/sl_uartdrv_usart_vcom_config.h | 54 +++++++++++++++-------
  1 file changed, 38 insertions(+), 16 deletions(-)
 
-diff --git a/config/sl_cpc_drv_uart_usart_vcom_config.h b/config/sl_cpc_drv_uart_usart_vcom_config.h
-index 265c262..bb0d7d5 100644
---- a/config/sl_cpc_drv_uart_usart_vcom_config.h
-+++ b/config/sl_cpc_drv_uart_usart_vcom_config.h
-@@ -29,7 +29,6 @@
-  ******************************************************************************/
- 
- // <<< Use Configuration Wizard in Context Menu >>>
--
- #ifndef SL_CPC_DRV_UART_USART_VCOM_CONFIG_H
- #define SL_CPC_DRV_UART_USART_VCOM_CONFIG_H
- 
-@@ -59,21 +58,44 @@
+diff --git a/config/sl_uartdrv_usart_vcom_config.h b/config/sl_uartdrv_usart_vcom_config.h
+index c64b243..bb58433 100644
+--- a/config/sl_uartdrv_usart_vcom_config.h
++++ b/config/sl_uartdrv_usart_vcom_config.h
+@@ -89,21 +89,44 @@
  // <<< sl:start pin_tool >>>
- // <usart signal=TX,RX,(CTS),(RTS)> SL_CPC_DRV_UART_VCOM
- // $[USART_SL_CPC_DRV_UART_VCOM]
--#warning "CPC USART peripheral not configured"
--// #define SL_CPC_DRV_UART_VCOM_PERIPHERAL                 USART0
--// #define SL_CPC_DRV_UART_VCOM_PERIPHERAL_NO              0
--//
--// #define SL_CPC_DRV_UART_VCOM_TX_PORT                    gpioPortD
--// #define SL_CPC_DRV_UART_VCOM_TX_PIN                     13
--//
--// #define SL_CPC_DRV_UART_VCOM_RX_PORT                    gpioPortD
--// #define SL_CPC_DRV_UART_VCOM_RX_PIN                     14
--//
--// #define SL_CPC_DRV_UART_VCOM_CTS_PORT                   gpioPortD
--// #define SL_CPC_DRV_UART_VCOM_CTS_PIN                    13
--//
--// #define SL_CPC_DRV_UART_VCOM_RTS_PORT                   gpioPortD
--// #define SL_CPC_DRV_UART_VCOM_RTS_PIN                    14
-+#ifndef SL_CPC_DRV_UART_VCOM_PERIPHERAL         
-+#define SL_CPC_DRV_UART_VCOM_PERIPHERAL          USART0
+ // <usart signal=TX,RX,(CTS),(RTS)> SL_UARTDRV_USART_VCOM
+ // $[USART_SL_UARTDRV_USART_VCOM]
+-#warning "UARTDRV USART peripheral not configured"
+-// #define SL_UARTDRV_USART_VCOM_PERIPHERAL        USART0
+-// #define SL_UARTDRV_USART_VCOM_PERIPHERAL_NO     0
+-
+-// #define SL_UARTDRV_USART_VCOM_TX_PORT           gpioPortA
+-// #define SL_UARTDRV_USART_VCOM_TX_PIN            0
+-
+-// #define SL_UARTDRV_USART_VCOM_RX_PORT           gpioPortA
+-// #define SL_UARTDRV_USART_VCOM_RX_PIN            1
+-
+-// #define SL_UARTDRV_USART_VCOM_CTS_PORT          gpioPortA
+-// #define SL_UARTDRV_USART_VCOM_CTS_PIN           2
+-
+-// #define SL_UARTDRV_USART_VCOM_RTS_PORT          gpioPortA
+-// #define SL_UARTDRV_USART_VCOM_RTS_PIN           3
++#ifndef SL_UARTDRV_USART_VCOM_PERIPHERAL
++#define SL_UARTDRV_USART_VCOM_PERIPHERAL         USART0
 +#endif
-+#ifndef SL_CPC_DRV_UART_VCOM_PERIPHERAL_NO      
-+#define SL_CPC_DRV_UART_VCOM_PERIPHERAL_NO       0
++#ifndef SL_UARTDRV_USART_VCOM_PERIPHERAL_NO
++#define SL_UARTDRV_USART_VCOM_PERIPHERAL_NO      0
 +#endif
 +
 +// USART0 TX on PA06
-+#ifndef SL_CPC_DRV_UART_VCOM_TX_PORT            
-+#define SL_CPC_DRV_UART_VCOM_TX_PORT             gpioPortA
++#ifndef SL_UARTDRV_USART_VCOM_TX_PORT
++#define SL_UARTDRV_USART_VCOM_TX_PORT            gpioPortA
 +#endif
-+#ifndef SL_CPC_DRV_UART_VCOM_TX_PIN             
-+#define SL_CPC_DRV_UART_VCOM_TX_PIN              6
++#ifndef SL_UARTDRV_USART_VCOM_TX_PIN
++#define SL_UARTDRV_USART_VCOM_TX_PIN             6
 +#endif
 +
 +// USART0 RX on PA05
-+#ifndef SL_CPC_DRV_UART_VCOM_RX_PORT            
-+#define SL_CPC_DRV_UART_VCOM_RX_PORT             gpioPortA
++#ifndef SL_UARTDRV_USART_VCOM_RX_PORT
++#define SL_UARTDRV_USART_VCOM_RX_PORT            gpioPortA
 +#endif
-+#ifndef SL_CPC_DRV_UART_VCOM_RX_PIN             
-+#define SL_CPC_DRV_UART_VCOM_RX_PIN              5
++#ifndef SL_UARTDRV_USART_VCOM_RX_PIN
++#define SL_UARTDRV_USART_VCOM_RX_PIN             5
 +#endif
 +
 +// USART0 CTS on PB01
-+#ifndef SL_CPC_DRV_UART_VCOM_CTS_PORT           
-+#define SL_CPC_DRV_UART_VCOM_CTS_PORT            gpioPortB
++#ifndef SL_UARTDRV_USART_VCOM_CTS_PORT
++#define SL_UARTDRV_USART_VCOM_CTS_PORT           gpioPortB
 +#endif
-+#ifndef SL_CPC_DRV_UART_VCOM_CTS_PIN            
-+#define SL_CPC_DRV_UART_VCOM_CTS_PIN             1
++#ifndef SL_UARTDRV_USART_VCOM_CTS_PIN
++#define SL_UARTDRV_USART_VCOM_CTS_PIN            1
 +#endif
 +
 +// USART0 RTS on PB00
-+#ifndef SL_CPC_DRV_UART_VCOM_RTS_PORT           
-+#define SL_CPC_DRV_UART_VCOM_RTS_PORT            gpioPortB
++#ifndef SL_UARTDRV_USART_VCOM_RTS_PORT
++#define SL_UARTDRV_USART_VCOM_RTS_PORT           gpioPortB
 +#endif
-+#ifndef SL_CPC_DRV_UART_VCOM_RTS_PIN            
-+#define SL_CPC_DRV_UART_VCOM_RTS_PIN             0
++#ifndef SL_UARTDRV_USART_VCOM_RTS_PIN
++#define SL_UARTDRV_USART_VCOM_RTS_PIN            0
 +#endif
- // [USART_SL_CPC_DRV_UART_VCOM]$
+ // [USART_SL_UARTDRV_USART_VCOM]$
  // <<< sl:end pin_tool >>>
  
 -- 
