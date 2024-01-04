@@ -10,6 +10,7 @@ RUN \
        git \
        git-lfs \
        jq \
+       yq \
        libgl1 \
        make \
        default-jre-headless \

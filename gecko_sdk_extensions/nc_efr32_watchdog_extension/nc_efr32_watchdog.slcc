@@ -1,0 +1,38 @@
+root_path: ./
+id: nc_efr32_watchdog
+label: EFR32 Watchdog
+package: ext-comp
+category: External Components
+quality: production
+description: >
+  EFR32 Watchdog.
+requires:
+  - name: component_catalog
+  - name: emlib_wdog
+  - name: emlib_wdog
+provides:
+  - name: nc_efr32_watchdog
+
+source:
+  - path: src/nc_efr32_wdog.c
+
+include:
+  - path: inc
+    file_list:
+    - path: nc_efr32_wdog.h
+
+template_contribution:
+  - name: component_catalog
+    value: nc_efr32_watchdog
+  - name: event_handler
+    value:
+      event: service_init
+      include: "nc_efr32_wdog.h"
+      handler: nc_enable_watchdog
+      priority: 9999  # load very very late
+  - name: event_handler
+    value:
+      event: service_process_action
+      include: "nc_efr32_wdog.h"
+      handler: nc_poke_watchdog
+      priority: 9999  # run last
