@@ -1,0 +1,27 @@
+name: SkyConnect Multi-PAN
+device: EFR32MG21A020F512IM32
+base_project: rcp-uart-802154
+output_project: skyconnect_rcp-uart-802154
+
+gbl:
+  dynamic: ["ezsp_version", "otbr_version"]
+
+configuration:
+  SL_RAIL_UTIL_PTI_MODE: RAIL_PTI_MODE_DISABLED
+  SL_CPC_DRV_UART_VCOM_BAUDRATE: 460800
+
+c_defines:
+  SL_CPC_DRV_UART_VCOM_PERIPHERAL: USART0
+  SL_CPC_DRV_UART_VCOM_PERIPHERAL_NO: 0
+
+  SL_CPC_DRV_UART_VCOM_TX_PORT: gpioPortA
+  SL_CPC_DRV_UART_VCOM_TX_PIN:  6
+
+  SL_CPC_DRV_UART_VCOM_RX_PORT: gpioPortA
+  SL_CPC_DRV_UART_VCOM_RX_PIN:  5
+
+  SL_CPC_DRV_UART_VCOM_CTS_PORT: gpioPortB
+  SL_CPC_DRV_UART_VCOM_CTS_PIN:  1
+
+  SL_CPC_DRV_UART_VCOM_RTS_PORT: gpioPortB
+  SL_CPC_DRV_UART_VCOM_RTS_PIN:  0
