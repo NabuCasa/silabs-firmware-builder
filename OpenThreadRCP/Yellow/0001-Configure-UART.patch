@@ -1,0 +1,77 @@
+From aca87d890c1d779add80a9a418f89e30f6d52f6d Mon Sep 17 00:00:00 2001
+From: puddly <32534428+puddly@users.noreply.github.com>
+Date: Wed, 3 Jan 2024 10:47:37 -0500
+Subject: [PATCH] Configure UART
+
+Configure UART
+---
+ config/sl_uartdrv_usart_vcom_config.h | 54 +++++++++++++++-------
+ 1 file changed, 38 insertions(+), 16 deletions(-)
+
+diff --git a/config/sl_uartdrv_usart_vcom_config.h b/config/sl_uartdrv_usart_vcom_config.h
+index c64b243..bb58433 100644
+--- a/config/sl_uartdrv_usart_vcom_config.h
++++ b/config/sl_uartdrv_usart_vcom_config.h
+@@ -89,21 +89,44 @@
+ // <<< sl:start pin_tool >>>
+ // <usart signal=TX,RX,(CTS),(RTS)> SL_UARTDRV_USART_VCOM
+ // $[USART_SL_UARTDRV_USART_VCOM]
+-#warning "UARTDRV USART peripheral not configured"
+-// #define SL_UARTDRV_USART_VCOM_PERIPHERAL        USART0
+-// #define SL_UARTDRV_USART_VCOM_PERIPHERAL_NO     0
+-
+-// #define SL_UARTDRV_USART_VCOM_TX_PORT           gpioPortA
+-// #define SL_UARTDRV_USART_VCOM_TX_PIN            0
+-
+-// #define SL_UARTDRV_USART_VCOM_RX_PORT           gpioPortA
+-// #define SL_UARTDRV_USART_VCOM_RX_PIN            1
+-
+-// #define SL_UARTDRV_USART_VCOM_CTS_PORT          gpioPortA
+-// #define SL_UARTDRV_USART_VCOM_CTS_PIN           2
+-
+-// #define SL_UARTDRV_USART_VCOM_RTS_PORT          gpioPortA
+-// #define SL_UARTDRV_USART_VCOM_RTS_PIN           3
++#ifndef SL_UARTDRV_USART_VCOM_PERIPHERAL
++#define SL_UARTDRV_USART_VCOM_PERIPHERAL         USART0
++#endif
++#ifndef SL_UARTDRV_USART_VCOM_PERIPHERAL_NO
++#define SL_UARTDRV_USART_VCOM_PERIPHERAL_NO      0
++#endif
++
++// USART0 TX on PA05
++#ifndef SL_UARTDRV_USART_VCOM_TX_PORT
++#define SL_UARTDRV_USART_VCOM_TX_PORT            gpioPortA
++#endif
++#ifndef SL_UARTDRV_USART_VCOM_TX_PIN
++#define SL_UARTDRV_USART_VCOM_TX_PIN             5
++#endif
++
++// USART0 RX on PA06
++#ifndef SL_UARTDRV_USART_VCOM_RX_PORT
++#define SL_UARTDRV_USART_VCOM_RX_PORT            gpioPortA
++#endif
++#ifndef SL_UARTDRV_USART_VCOM_RX_PIN
++#define SL_UARTDRV_USART_VCOM_RX_PIN             6
++#endif
++
++// USART0 CTS on PD02
++#ifndef SL_UARTDRV_USART_VCOM_CTS_PORT
++#define SL_UARTDRV_USART_VCOM_CTS_PORT           gpioPortD
++#endif
++#ifndef SL_UARTDRV_USART_VCOM_CTS_PIN
++#define SL_UARTDRV_USART_VCOM_CTS_PIN            2
++#endif
++
++// USART0 RTS on PC01
++#ifndef SL_UARTDRV_USART_VCOM_RTS_PORT
++#define SL_UARTDRV_USART_VCOM_RTS_PORT           gpioPortC
++#endif
++#ifndef SL_UARTDRV_USART_VCOM_RTS_PIN
++#define SL_UARTDRV_USART_VCOM_RTS_PIN            1
++#endif
+ // [USART_SL_UARTDRV_USART_VCOM]$
+ // <<< sl:end pin_tool >>>
+ 
+-- 
+2.43.0
+
