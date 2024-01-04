@@ -1,3 +1,0 @@
-fw_type: "ncp-uart-hw"
-baudrate: 115200
-dynamic: ["ezsp_version"]
