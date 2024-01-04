@@ -97,6 +97,7 @@ jobs:
           - target: yellow
             device: MGM210PA32JIA
             components: simple_led:board_activity,cpc_security_secondary_none,zigbee_mfglib
+            without_components: ot_rcp_gp_interface
             patchpath: "RCPMultiPAN/Yellow"
             slcp_yaml_changes: >
               . += {"sdk_extension": [{"id": "nc_efr32_watchdog", version: "1.0.0"}]}
@@ -104,6 +105,7 @@ jobs:
           - target: skyconnect
             device: EFR32MG21A020F512IM32
             components: cpc_security_secondary_none,zigbee_mfglib
+            without_components: ot_rcp_gp_interface
             patchpath: "RCPMultiPAN/SkyConnect"
             slcp_yaml_changes: >
               . += {"sdk_extension": [{"id": "nc_efr32_watchdog", version: "1.0.0"}]}
@@ -116,6 +118,7 @@ jobs:
       project_name: "rcp-uart-802154"
       device: ${{ matrix.device }}
       components: ${{ matrix.components }}
+      without_components: ${{ matrix.without_components }}
       patchpath: ${{ matrix.patchpath }}
       slcp_yaml_changes: ${{ matrix.slcp_yaml_changes }}
       sdk_version: ${{ needs.build-container.outputs.sdk_version }}

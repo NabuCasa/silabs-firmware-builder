@@ -25,6 +25,9 @@ on:
       components:
         required: false
         type: string
+      without_components:
+        required: false
+        type: string
       configuration:
         required: false
         type: string
@@ -83,6 +86,7 @@ jobs:
         run: |
           slc generate \
               --with="${{ inputs.device }},${{ inputs.components }}" \
+              --without="${{ inputs.without_components }}" \
               --project-file="${{ inputs.project_file }}" \
               --export-destination="$PWD/${{ inputs.firmware_name }}" \
               --copy-proj-sources --copy-sdk-sources --new-project --force \
