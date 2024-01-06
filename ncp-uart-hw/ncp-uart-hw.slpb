@@ -1,0 +1,10 @@
+---
+parameters:
+- name: "build_dir"
+constants:
+- name: "project_name"
+  value: "ncp-uart-hw"
+steps:
+- task: "usage"
+  input: "{{build_dir}}/{{project_name}}.out"
+  map: "{{build_dir}}/{{project_name}}.map"

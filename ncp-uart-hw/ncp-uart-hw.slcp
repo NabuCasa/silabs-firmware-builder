@@ -37,8 +37,8 @@ component:
 - instance: [vcom]
   id: iostream_usart
 - {id: zigbee_source_route}
-- {id: zigbee_ncp_uart_hardware}
 - {id: zigbee_zll}
+- {id: zigbee_ncp_uart_hardware}
 - {id: zigbee_pro_stack}
 - {id: zigbee_mfglib}
 - {id: token_manager}
@@ -73,4 +73,5 @@ configuration:
 ui_hints:
   highlight:
   - {path: readme.html}
+post_build: {path: ncp-uart-hw.slpb, profile: ncp-uart-hw}
 
