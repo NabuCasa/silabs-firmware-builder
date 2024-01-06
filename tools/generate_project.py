@@ -113,6 +113,10 @@ shutil.copytree(
 # Delete the original project file
 (output_project_root / base_project_slcp.name).unlink()
 
+# Delete radio-affecting config: it will be regenerated
+for filename in ["config/sl_rail_util_pa_config.h"]:
+    (output_project_root / filename).unlink()
+
 # Write the new project SLCP file
 with (output_project_root / f"{manifest['base_project']}.slcp").open("w") as f:
     yaml.dump(output_project, f)
