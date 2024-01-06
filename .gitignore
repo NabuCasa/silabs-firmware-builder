@@ -8,4 +8,4 @@ autogen/
 .projectlinkstore
 *.project.mak
 *.Makefile
-./build/
+build/
