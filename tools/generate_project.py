@@ -3,14 +3,20 @@
 
 from __future__ import annotations
 
+import os
 import re
 import sys
 import copy
 import shutil
 import logging
 import pathlib
+import subprocess
 
 from ruamel.yaml import YAML
+
+SDK = pathlib.Path("~/SimplicityStudio/SDKs/gecko_sdk/").expanduser()
+TOOLCHAIN = "/Applications/Simplicity Studio.app/Contents/Eclipse/developer/toolchains/gnu_arm/12.2.rel1_2023.7"
+POSTBUILD = pathlib.Path(__file__).parent / "create_gbl.py"
 
 
 # Matches all known chip and board names. Some varied examples:
@@ -52,7 +58,6 @@ output_project["component"] = [
     c for c in output_project["component"] if not CHIP_SPECIFIC_REGEX.match(c["id"])
 ]
 output_project["component"].append({"id": manifest["device"]})
-output_project["project_name"] = manifest["output_project"]
 
 # Add new components
 output_project["component"].extend(manifest.get("add_components", []))
@@ -85,7 +90,7 @@ for input_config, output_config in [
             output_config.append({"name": name, "value": value})
 
 # Copy the base project into the output directory
-output_project_root = output_path / manifest["output_project"]
+output_project_root = output_path / manifest["base_project"]
 output_path.mkdir(exist_ok=True)
 output_project_root.mkdir(exist_ok=True)
 
@@ -93,50 +98,96 @@ shutil.copytree(
     base_project_path,
     output_project_root,
     dirs_exist_ok=True,
-    ignore=lambda dir, contents: [".git"],
+    ignore=lambda dir, contents: [
+        # XXX: pruning `autogen` is extremely important!
+        "autogen",
+        ".git",
+        ".settings",
+        ".projectlinkstore",
+        ".project",
+        ".pdm",
+        ".cproject",
+    ],
 )
 
 # Delete the original project file
 (output_project_root / base_project_slcp.name).unlink()
 
 # Write the new project SLCP file
-with (output_project_root / "project.slcp").open("w") as f:
+with (output_project_root / f"{manifest['base_project']}.slcp").open("w") as f:
     yaml.dump(output_project, f)
 
+# Create a GBL metadata file
+with pathlib.Path(output_project_root / "gbl_metadata.yaml").open("w") as f:
+    yaml.dump(manifest["gbl"], f)
+
 # Generate a build directory
+build_dir = output_project_root
+cmake_build_root = build_dir / f"{manifest['base_project']}_cmake"
+shutil.rmtree(cmake_build_root, ignore_errors=True)
 
+subprocess.run(
+    [
+        "slc-cli",
+        "generate",
+        "--project-file",
+        (output_project_root / f"{manifest['base_project']}.slcp").resolve(),
+        "--export-destination",
+        build_dir.resolve(),
+        "--sdk",
+        SDK.resolve(),
+        "--toolchain",
+        "toolchain_gcc",
+        "--output-type",
+        "cmake",
+    ],
+    check=True,
+)
+
+# XXX: Copy the source tree into the build dir, slc-cli does not copy the generated files
 """
-# Remove the old Simplicity Studio project file
-(output_project_root / base_project_slcp.name).with_suffix(".slps").unlink()
-studio_project_file = (output_project_root / manifest["output_project"]).with_suffix(".slps")
-
-# Extra pintool data to map chip labels to their part IDs
-pintool_paths = {}
-
-for device_f in pathlib.Path("/Applications/Simplicity Studio.app/Contents/Eclipse/offline").glob("com.silabs.sdk.stack.super_*/platform/hwconf_data/pin_tool/*/*/*.device"):
-    root = ElementTree.parse(device_f)
-    device = root.find('.//device[@partId]')
-    pintool_data[device.attribute['label']] = device.attribute['partId']
-
-
-# Rewrite it
-root = ElementTree.parse(studio_project_file)
-
-for xpath, value in {
-    ".//descriptors/@name": manifest["output_project"],
-    ".//properties[@key='universalConfig.relativeWorkspacePath']/@value": f"../{manifest['output_project']}.slcw",
-    ".//properties[@key='projectCommon.boardIds']/@value": "com.silabs.board.none:0.0.0",
-    ".//properties[@key='projectCommon.partId']/@value": "mcu.arm.efr32.mg21.efr32mg21a020f512im32",
-}.items():
-    xpath, _, attribute = xpath.rpartition('/@')
-    element = root.find(xpath, namespaces={"model": "http://www.silabs.com/ss/Studio.ecore"})
-    element.set(attribute, value)
-
-# Serialize the result back to a string
-updated_xml = ElementTree.tostringZ(root, encoding='unicode')
-
-
-studio_project_f.write_text(
-    studio_project_file.read_text().replace()
+shutil.copytree(
+    base_project_path,
+    build_dir,
+    dirs_exist_ok=True,
+    ignore=lambda dir, contents: [".git"],
 )
 """
+
+cmake_build_root = build_dir / f"{manifest['base_project']}_cmake"
+cmake_config = cmake_build_root / f"{manifest['base_project']}.cmake"
+fixed_cmake = []
+
+# Fix CMake config quoting bug
+for line in cmake_config.read_text().split("\n"):
+    if ">:SHELL:" not in line and (":-imacros " in line or ":-x " in line):
+        line = '    "' + line.replace(">:", ">:SHELL:").strip() + '"'
+
+    fixed_cmake.append(line)
+
+cmake_config.write_text("\n".join(fixed_cmake))
+
+# Generate the build system
+subprocess.run(
+    [
+        "cmake",
+        "-G",
+        "Ninja",
+        "-DCMAKE_TOOLCHAIN_FILE=toolchain.cmake",
+        ".",
+    ],
+    cwd=cmake_build_root,
+    env={**os.environ, "ARM_GCC_DIR": TOOLCHAIN, "POST_BUILD_EXE": POSTBUILD},
+    check=True,
+)
+
+# Build it!
+subprocess.run(
+    [
+        "ninja",
+        # "make",
+        "-C",
+        cmake_build_root,
+    ],
+    check=True,
+)

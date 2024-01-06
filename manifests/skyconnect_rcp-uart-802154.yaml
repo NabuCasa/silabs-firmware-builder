@@ -1,10 +1,11 @@
 name: SkyConnect Multi-PAN
 device: EFR32MG21A020F512IM32
 base_project: rcp-uart-802154
-output_project: skyconnect_rcp-uart-802154
 
 gbl:
+  fw_type: rcp-uart-802154
   dynamic: ["ezsp_version", "otbr_version"]
+  baudrate: 460800
 
 configuration:
   SL_RAIL_UTIL_PTI_MODE: RAIL_PTI_MODE_DISABLED

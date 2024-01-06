@@ -109,10 +109,17 @@ def find_file_in_parent_dirs(root: pathlib.Path, filename: str) -> pathlib.Path:
         root = root.parent
 
 
-# We compute all paths based on the build artifact's location
-axf_file = pathlib.Path(sys.argv[1]).absolute()
-artifact_root = axf_file.parent
-project_name = axf_file.stem
+if "postbuild" in sys.argv:
+    # Run as a Simplicity Studio post-build step
+    project_name = pathlib.Path(sys.argv[2]).stem
+    build_dir = pathlib.Path(sys.argv[4].replace("build_dir:", "", 1))
+    out_file = build_dir / f"{project_name}.out"
+else:
+    # Run manually
+    out_file = pathlib.Path(sys.argv[1]).absolute()
+
+artifact_root = out_file.parent
+project_name = out_file.stem
 slcp_path = find_file_in_parent_dirs(
     root=artifact_root,
     filename=project_name + ".slcp",
@@ -121,15 +128,23 @@ slcp_path = find_file_in_parent_dirs(
 project_root = slcp_path.parent
 slps_path = (project_root / project_name).with_suffix(".slps")
 
-makefile_path = find_file_in_parent_dirs(
-    root=artifact_root,
-    filename=project_name + ".project.mak",
-)
+if "postbuild" in sys.argv:
+    gsdk_path = pathlib.Path(
+        pathlib.Path(build_dir / f"{project_name}.cmake")
+        .read_text()
+        .split('set(SDK_PATH "', 1)[1]
+        .split('"', 1)[0]
+    )
+else:
+    makefile_path = find_file_in_parent_dirs(
+        root=artifact_root,
+        filename=project_name + ".project.mak",
+    )
 
-# Extract the Gecko SDK path from the generated Makefile
-gsdk_path = pathlib.Path(
-    parse_simple_config(makefile_path.read_text())["BASE_SDK_PATH"]
-)
+    # Extract the Gecko SDK path from the generated Makefile
+    gsdk_path = pathlib.Path(
+        parse_simple_config(makefile_path.read_text())["BASE_SDK_PATH"]
+    )
 
 # Parse the main Simplicity Studio project config
 slcp = YAML(typ="safe").load(slcp_path.read_text())
@@ -192,9 +207,9 @@ commander_args = [
     "commander",
     "gbl",
     "create",
-    axf_file.with_suffix(".gbl"),
+    out_file.with_suffix(".gbl"),
     "--app",
-    axf_file,
+    out_file,
     "--device",
     device_part_id,
     "--metadata",
