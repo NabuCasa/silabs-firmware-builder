@@ -7,9 +7,9 @@ gbl:
   dynamic: ["ezsp_version"]
   baudrate: 115200
 
-#add_components:
-#- instance: [board_activity]
-#  id: simple_led
+add_components:
+- instance: [board_activity]
+  id: simple_led
 
 configuration:
   SL_RAIL_UTIL_PTI_MODE: RAIL_PTI_MODE_DISABLED
@@ -17,7 +17,7 @@ configuration:
   SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE: usartHwFlowControlCtsAndRts
 
 c_defines:
-  SL_IOSTREAM_USART_VCOM_PERIPHERAL: USART0
+  SL_IOSTREAM_USART_VCOM_PERIPHERAL:    USART0
   SL_IOSTREAM_USART_VCOM_PERIPHERAL_NO: 0
 
   SL_IOSTREAM_USART_VCOM_TX_PORT: gpioPortA
@@ -33,7 +33,5 @@ c_defines:
   SL_IOSTREAM_USART_VCOM_RTS_PIN:  1
 
   SL_SIMPLE_LED_BOARD_ACTIVITY_POLARITY: SL_SIMPLE_LED_POLARITY_ACTIVE_LOW
-
-pin_tool:
-  SL_SIMPLE_LED_BOARD_ACTIVITY_PORT: gpioPortB
-  SL_SIMPLE_LED_BOARD_ACTIVITY_PIN: 1
+  SL_SIMPLE_LED_BOARD_ACTIVITY_PORT:     gpioPortB
+  SL_SIMPLE_LED_BOARD_ACTIVITY_PIN:      1

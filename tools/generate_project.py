@@ -74,7 +74,7 @@ for component in manifest.get("remove_components", []):
 # Extend configuration and C defines
 for input_config, output_config in [
     (manifest.get("configuration", {}), output_project["configuration"]),
-    (manifest.get("c_defines", {}), output_project.get("define", [])),
+    (manifest.get("slcp_defines", {}), output_project.get("define", [])),
 ]:
     for name, value in input_config.items():
         # Values are always strings
@@ -148,15 +148,50 @@ subprocess.run(
     check=True,
 )
 
-# XXX: Copy the source tree into the build dir, slc-cli does not copy the generated files
-"""
-shutil.copytree(
-    base_project_path,
-    build_dir,
-    dirs_exist_ok=True,
-    ignore=lambda dir, contents: [".git"],
-)
-"""
+# Actually search for C defines within config
+unused_defines = set(manifest.get("c_defines", {}).keys())
+
+for config_root in [output_project_root / "autogen", output_project_root / "config"]:
+    for config_f in config_root.glob("*.h"):
+        config_h_lines = config_f.read_text().split("\n")
+        written_config = {}
+        new_config_h_lines = []
+
+        for index, line in enumerate(config_h_lines):
+            for define, value in manifest.get("c_defines", {}).items():
+                if f"#define {define} " not in line:
+                    continue
+
+                define_with_whitespace = line.split(f"#define {define}", 1)[1]
+                alignment = define_with_whitespace[
+                    : define_with_whitespace.index(define_with_whitespace.strip())
+                ]
+
+                prev_line = config_h_lines[index - 1]
+                if '#ifndef' in prev_line:
+                    assert re.match(r'#ifndef\s+([A-Z0-9_]+)', prev_line).group(1) == define
+
+                    # Make sure that we do not have conflicting defines provided over the command line
+                    assert not any(c["name"] == define for c in output_project["define"])
+                    new_config_h_lines[index - 1] = '#if 1'
+                elif '#warning' in prev_line:
+                    assert re.match(r'#warning ".*? not configured"', prev_line)
+                    new_config_h_lines.pop(index - 1)
+
+                new_config_h_lines.append(f"#define {define}{alignment}{value}")
+                written_config[define] = value
+                unused_defines.remove(define)
+                break
+            else:
+                new_config_h_lines.append(line)
+
+        if written_config:
+            print(f"Patching {config_f} with {written_config}")
+            config_f.write_text("\n".join(new_config_h_lines))
+
+if unused_defines:
+    print(f"Defines were unused, aborting: {unused_defines}")
+    sys.exit(1)
 
 cmake_build_root = build_dir / f"{manifest['base_project']}_cmake"
 cmake_config = cmake_build_root / f"{manifest['base_project']}.cmake"
