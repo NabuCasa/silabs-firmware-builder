@@ -249,7 +249,7 @@ def main():
 
                         # Make sure that we do not have conflicting defines provided over the command line
                         assert not any(
-                            c["name"] == define for c in output_project["define"]
+                            c["name"] == define for c in output_project.get("define", [])
                         )
                         new_config_h_lines[index - 1] = "#if 1"
                     elif "#warning" in prev_line:

@@ -43,11 +43,16 @@ def parse_c_header_defines(file_content: str) -> dict[str, str]:
         if not line.startswith("#define"):
             continue
 
-        _, key, value = line.split(None, 2)
+        _, *key_value = line.split(None, 2)
+
+        if len(key_value) == 2:
+            key, value = key_value
+        else:
+            key, value = key_value + [None]
 
         try:
             config[key] = ast.literal_eval(value)
-        except ValueError:
+        except (ValueError, SyntaxError):
             pass
 
     return config
@@ -191,6 +196,17 @@ if "ot_rcp_version" in gbl_dynamic:
     )
     metadata["ot_rcp_version"] = openthread_config_h["PACKAGE_STRING"]
 
+if "gecko_bootloader_version" in gbl_dynamic:
+    btl_config_h = parse_c_header_defines(
+        (gsdk_path / "platform/bootloader/config/btl_config.h").read_text()
+    )
+
+    metadata["gecko_bootloader_version"] = ".".join([
+        str(btl_config_h["BOOTLOADER_VERSION_MAIN_MAJOR"]),
+        str(btl_config_h["BOOTLOADER_VERSION_MAIN_MINOR"]),
+        str(btl_config_h["BOOTLOADER_VERSION_MAIN_CUSTOMER"]),
+    ])
+
 print("Generated GBL metadata:", metadata, flush=True)
 
 # Write it to a file for `commander` to read
@@ -208,7 +224,7 @@ commander_args = [
     "gbl",
     "create",
     out_file.with_suffix(".gbl"),
-    "--app",
+    ("--app" if gbl_metadata["fw_type"] != "gecko-bootloader" else "--bootloader"),
     out_file,
     "--device",
     device_part_id,
