@@ -203,6 +203,14 @@ def main():
         print("`slc` and/or `slc-cli` not found in PATH")
         sys.exit(1)
 
+    # Make sure all extensions are valid
+    for sdk_extension in base_project.get("sdk_extension", []):
+        expected_dir = args.sdk / f"extension/{sdk_extension['id']}_extension"
+
+        if not expected_dir.is_dir():
+            print(f"Referenced extension not present in SDK: {expected_dir}")
+            sys.exit(1)
+
     subprocess.run(
         [
             slc,
@@ -249,7 +257,8 @@ def main():
 
                         # Make sure that we do not have conflicting defines provided over the command line
                         assert not any(
-                            c["name"] == define for c in output_project.get("define", [])
+                            c["name"] == define
+                            for c in output_project.get("define", [])
                         )
                         new_config_h_lines[index - 1] = "#if 1"
                     elif "#warning" in prev_line:
