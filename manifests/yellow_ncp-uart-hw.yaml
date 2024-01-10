@@ -8,8 +8,8 @@ gbl:
   baudrate: 115200
 
 add_components:
-- instance: [board_activity]
-  id: simple_led
+- id: simple_led
+  instance: [board_activity]
 
 configuration:
   SL_RAIL_UTIL_PTI_MODE: RAIL_PTI_MODE_DISABLED

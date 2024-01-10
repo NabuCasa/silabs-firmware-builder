@@ -172,15 +172,16 @@ def main():
             ".project",
             ".pdm",
             ".cproject",
+            ".uceditor",
         ],
     )
 
     # Delete the original project file
     (args.build_dir / base_project_slcp.name).unlink()
 
-    # Delete radio-affecting config: it will be regenerated
-    for filename in ["config/sl_rail_util_pa_config.h"]:
-        (args.build_dir / filename).unlink()
+    # Delete RAIL config: it will be regenerated
+    for filename in (args.build_dir / "config").glob("sl_rail_*.h"):
+        filename.unlink()
 
     # Write the new project SLCP file
     with (args.build_dir / f"{manifest['base_project']}.slcp").open("w") as f:
