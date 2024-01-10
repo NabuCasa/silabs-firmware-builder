@@ -39,6 +39,7 @@ component:
 - {id: ot_ncp_cpc}
 - {id: ot_crash_handler}
 - {id: brd4179b}
+- {from: nc_efr32_watchdog, id: nc_efr32_watchdog}
 - {id: bootloader_interface}
 - {id: EFR32MG21A010F1024IM32}
 configuration:
@@ -59,5 +60,7 @@ configuration:
 ui_hints:
   highlight:
   - {path: ./README-MP-RCP.md, focus: true}
+sdk_extension:
+- {id: nc_efr32_watchdog, version: 1.0.0}
 post_build: {path: rcp-uart-802154.slpb, profile: rcp-uart-802154}
 
