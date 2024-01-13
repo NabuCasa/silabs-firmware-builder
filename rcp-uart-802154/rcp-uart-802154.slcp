@@ -57,6 +57,8 @@ configuration:
 - {name: SL_CPC_RX_BUFFER_MAX_COUNT, value: '15'}
 - {name: SL_CPC_TX_QUEUE_ITEM_MAX_COUNT, value: '15'}
 - {name: SL_CPC_USER_ENDPOINT_MAX_COUNT, value: '0'}
+define:
+- {name: OPENTHREAD_CONFIG_PLATFORM_ASSERT_MANAGEMENT, value: '1'}
 ui_hints:
   highlight:
   - {path: ./README-MP-RCP.md, focus: true}
