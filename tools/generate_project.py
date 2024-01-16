@@ -8,6 +8,7 @@ import re
 import sys
 import copy
 import shutil
+import hashlib
 import logging
 import pathlib
 import argparse
@@ -64,6 +65,33 @@ def get_sdk_default_path() -> pathlib.Path | None:
     return None
 
 
+def get_git_commit_id(repo: pathlib.Path) -> str:
+    """Get a commit hash for the current git repository."""
+
+    def git(*args: str) -> str:
+        result = subprocess.run(
+            ["git", "-C", str(repo)] + list(args),
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        return result.stdout.strip()
+
+    # Get the current commit ID
+    commit_id = git("rev-parse", "HEAD")[:8]
+
+    # Check if the repository is dirty
+    is_dirty = git("status", "--porcelain")
+
+    # If dirty, append the SHA256 hash of the git diff to the commit ID
+    if is_dirty:
+        dirty_diff = git("diff")
+        sha256_hash = hashlib.sha256(dirty_diff.encode()).hexdigest()[:8]
+        commit_id += f"-dirty-{sha256_hash}"
+
+    return commit_id
+
+
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -108,6 +136,11 @@ def main():
     )
 
     args = parser.parse_args()
+
+    # Template variables for C defines
+    value_template_env = {
+        "git_repo_hash": get_git_commit_id(repo=pathlib.Path(__file__).parent.parent),
+    }
 
     manifest = yaml.load(args.manifest.read_text())
 
@@ -239,7 +272,7 @@ def main():
             new_config_h_lines = []
 
             for index, line in enumerate(config_h_lines):
-                for define, value in manifest.get("c_defines", {}).items():
+                for define, value_template in manifest.get("c_defines", {}).items():
                     if f"#define {define} " not in line:
                         continue
 
@@ -265,7 +298,11 @@ def main():
                         assert re.match(r'#warning ".*? not configured"', prev_line)
                         new_config_h_lines.pop(index - 1)
 
-                    new_config_h_lines.append(f"#define {define}{alignment}{value}")
+                    value = str(value_template).format(**value_template_env)
+
+                    new_config_h_lines.append(
+                        f"#define {define}{alignment}{value}"
+                    )
                     written_config[define] = value
 
                     if define not in unused_defines:
