@@ -27,6 +27,9 @@
 
 #include "reset_util.h"
 
+#include "sl_gsdk_version.h"
+#include "config/internal_app_config.h"
+
 void otPlatAssertFail(const char *aFilename, int aLineNumber)
 {
 #if OPENTHREAD_CONFIG_LOG_PLATFORM && OPENTHREAD_CONFIG_LOG_LEVEL < OT_LOG_LEVEL_CRIT
@@ -37,6 +40,14 @@ void otPlatAssertFail(const char *aFilename, int aLineNumber)
 #endif
     // For debug build, use assert to generate a core dump
     assert(false);
+}
+
+const char* sl_cpc_secondary_app_version(void)
+{
+    return (
+        SL_GSDK_VERSION_STR
+        CPC_SECONDARY_APP_VERSION_SUFFIX
+    );
 }
 
 /**
