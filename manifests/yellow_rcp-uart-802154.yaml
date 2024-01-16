@@ -4,7 +4,7 @@ base_project: rcp-uart-802154
 
 gbl:
   fw_type: rcp-uart-802154
-  dynamic: ["ezsp_version", "otbr_version"]
+  dynamic: ["ezsp_version", "otbr_version", "cpc_version"]
   baudrate: 460800
 
 add_components:

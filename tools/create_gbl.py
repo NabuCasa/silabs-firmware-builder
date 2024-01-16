@@ -184,6 +184,18 @@ if "ezsp_version" in gbl_dynamic:
     )
     metadata["ezsp_version"] = zigbee_esf_props["version"][0]
 
+if "cpc_version" in gbl_dynamic:
+    sl_gsdk_version_h = parse_c_header_defines(
+        (gsdk_path / "platform/common/inc/sl_gsdk_version.h").read_text()
+    )
+    metadata["cpc_version"] = ".".join(
+        [
+            str(sl_gsdk_version_h["SL_GSDK_MAJOR_VERSION"]),
+            str(sl_gsdk_version_h["SL_GSDK_MINOR_VERSION"]),
+            str(sl_gsdk_version_h["SL_GSDK_PATCH_VERSION"]),
+        ]
+    )
+
 if "zwave_version" in gbl_dynamic:
     zwave_esf_props = parse_properties_file(
         (gsdk_path / "protocol/z-wave/esf.properties").read_text()
@@ -201,11 +213,13 @@ if "gecko_bootloader_version" in gbl_dynamic:
         (gsdk_path / "platform/bootloader/config/btl_config.h").read_text()
     )
 
-    metadata["gecko_bootloader_version"] = ".".join([
-        str(btl_config_h["BOOTLOADER_VERSION_MAIN_MAJOR"]),
-        str(btl_config_h["BOOTLOADER_VERSION_MAIN_MINOR"]),
-        str(btl_config_h["BOOTLOADER_VERSION_MAIN_CUSTOMER"]),
-    ])
+    metadata["gecko_bootloader_version"] = ".".join(
+        [
+            str(btl_config_h["BOOTLOADER_VERSION_MAIN_MAJOR"]),
+            str(btl_config_h["BOOTLOADER_VERSION_MAIN_MINOR"]),
+            str(btl_config_h["BOOTLOADER_VERSION_MAIN_CUSTOMER"]),
+        ]
+    )
 
 print("Generated GBL metadata:", metadata, flush=True)
 
