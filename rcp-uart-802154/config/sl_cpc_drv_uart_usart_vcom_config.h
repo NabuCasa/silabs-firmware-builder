@@ -44,7 +44,7 @@
 
 // <o SL_CPC_DRV_UART_VCOM_BAUDRATE> UART Baudrate
 // <i> Default: 115200
-#define SL_CPC_DRV_UART_VCOM_BAUDRATE              115200
+#define SL_CPC_DRV_UART_VCOM_BAUDRATE              460800
 
 // <o SL_CPC_DRV_UART_VCOM_FLOW_CONTROL_TYPE> Flow control
 // <usartHwFlowControlNone=> None

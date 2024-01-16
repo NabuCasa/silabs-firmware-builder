@@ -196,6 +196,16 @@ if "cpc_version" in gbl_dynamic:
         ]
     )
 
+    try:
+        internal_app_config_h = parse_c_header_defines(
+            (project_root / "config/internal_app_config.h").read_text()
+        )
+    except FileNotFoundError:
+        internal_app_config_h = {}
+    
+    if "CPC_SECONDARY_APP_VERSION_SUFFIX" in internal_app_config_h:
+        metadata["cpc_version"] += internal_app_config_h["CPC_SECONDARY_APP_VERSION_SUFFIX"]
+
 if "zwave_version" in gbl_dynamic:
     zwave_esf_props = parse_properties_file(
         (gsdk_path / "protocol/z-wave/esf.properties").read_text()
