@@ -7,6 +7,7 @@ import os
 import re
 import sys
 import copy
+import json
 import shutil
 import hashlib
 import logging
@@ -64,6 +65,19 @@ def get_sdk_default_path() -> pathlib.Path | None:
         return pathlib.Path("~/SimplicityStudio/SDKs/gecko_sdk").expanduser()
 
     return None
+
+
+def parse_override(override: str) -> tuple[str, dict | list]:
+    """Parse a config override."""
+    if "=" not in override:
+        raise argparse.ArgumentTypeError("Override must be of the form `key=json`")
+
+    key, value = override.split("=", 1)
+
+    try:
+        return key, json.loads(value)
+    except json.JSONDecodeError as exc:
+        raise argparse.ArgumentTypeError(f"Invalid JSON: {exc}")
 
 
 def get_git_commit_id(repo: pathlib.Path) -> str:
@@ -135,6 +149,15 @@ def main():
         required=False,
         help="Postbuild executable",
     )
+    parser.add_argument(
+        "--override",
+        action="append",
+        dest="overrides",
+        required=False,
+        type=parse_override,
+        default=[],
+        help="Override config key with JSON.",
+    )
 
     args = parser.parse_args()
 
@@ -144,6 +167,9 @@ def main():
     }
 
     manifest = yaml.load(args.manifest.read_text())
+
+    for key, override in args.overrides:
+        manifest[key] = override
 
     # First, load the base project
     projects_root = args.manifest.parent.parent
