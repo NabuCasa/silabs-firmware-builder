@@ -1,0 +1,3 @@
+baudrate: 460800
+dynamic: [otbr_version]
+fw_type: ot-rcp
