@@ -146,12 +146,30 @@ def main():
     project_root = slcp_path.parent
     slps_path = (project_root / project_name).with_suffix(".slps")
 
-    gsdk_path = pathlib.Path(
-        pathlib.Path(build_dir / f"{project_name}.cmake")
-        .read_text()
-        .split('set(SDK_PATH "', 1)[1]
-        .split('"', 1)[0]
-    )
+    if "cmake" in str(build_dir):
+        gsdk_path = pathlib.Path(
+            pathlib.Path(build_dir / f"{project_name}.cmake")
+            .read_text()
+            .split('set(SDK_PATH "', 1)[1]
+            .split('"', 1)[0]
+        )
+    else:
+        # Extract the Gecko SDK path from Makefile dependencies
+        event_handler_d = pathlib.Path(
+            build_dir / "autogen/sl_event_handler.d"
+        ).read_text()
+
+        gsdk_path = pathlib.Path(
+            os.path.commonpath(
+                [
+                    line
+                    for line in event_handler_d.split("\n")
+                    if line.startswith("/") and line.endswith(".h:") and "sdk" in line
+                ]
+            )
+        )
+
+        assert gsdk_path.parts[-1] == "gecko_sdk"
 
     # Parse the main Simplicity Studio project config
     slcp = YAML(typ="safe").load(slcp_path.read_text())
