@@ -162,6 +162,7 @@ def main():
 
     # Add new components
     output_project["component"].extend(manifest.get("add_components", []))
+    output_project["toolchain_settings"].extend(manifest.get("toolchain_settings", []))
 
     # Remove components
     for component in manifest.get("remove_components", []):
