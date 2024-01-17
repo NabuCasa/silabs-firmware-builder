@@ -225,7 +225,10 @@ def main():
             args.build_dir / "config/FreeRTOSConfig.h",
         ],
     ):
-        filename.unlink()
+        try:
+            filename.unlink()
+        except FileNotFoundError:
+            pass
 
     # Write the new project SLCP file
     with (args.build_dir / f"{manifest['base_project']}.slcp").open("w") as f:
