@@ -338,7 +338,7 @@
 // <GENERIC_TYPE_WALL_CONTROLLER=> Wall Controller
 // <GENERIC_TYPE_SENSOR_NOTIFICATION=> Sensor Notification
 // <i> Default: 0
-#define ZAF_CONFIG_GENERIC_TYPE  GENERIC_TYPE_STATIC_CONTROLLER
+#define ZAF_CONFIG_GENERIC_TYPE  0
 
 // <o ZAF_CONFIG_SPECIFIC_TYPE> The specific type of a device.
 // <i> The specific type of a device. A certain device type requires a specific type, e.g., the Lock device type requires the specific type to be Door Lock.
@@ -361,7 +361,7 @@
 // <SPECIFIC_TYPE_REPEATER_SLAVE=> Repeater End Device
 // <SPECIFIC_TYPE_IR_REPEATER=> Infrared Repeater
 // <i> Default: SPECIFIC_TYPE_NOT_USED
-#define ZAF_CONFIG_SPECIFIC_TYPE  SPECIFIC_TYPE_PC_CONTROLLER
+#define ZAF_CONFIG_SPECIFIC_TYPE  0
 
 // </h>
 // <h> Multi Channel Configuration

@@ -87,8 +87,8 @@ config_file:
 - {path: config/zaf_config.h}
 - {path: config/zaf_config.h}
 configuration:
-- {name: ZAF_CONFIG_GENERIC_TYPE, value: GENERIC_TYPE_STATIC_CONTROLLER}
-- {name: ZAF_CONFIG_SPECIFIC_TYPE, value: SPECIFIC_TYPE_PC_CONTROLLER}
+- {name: ZAF_CONFIG_GENERIC_TYPE, value: '0'}
+- {name: ZAF_CONFIG_SPECIFIC_TYPE, value: '0'}
 - {name: ZAF_CONFIG_PRODUCT_ID, value: '4'}
 - {name: NVM3_DEFAULT_MAX_OBJECT_SIZE, value: '1900'}
 - {name: NVM3_DEFAULT_CACHE_SIZE, value: '100'}
