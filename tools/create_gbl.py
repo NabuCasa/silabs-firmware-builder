@@ -240,7 +240,9 @@ def main():
     print("Generated GBL metadata:", metadata, flush=True)
 
     # Write it to a file for `commander` to read
-    (artifact_root / "gbl_metadata.json").write_text(json.dumps(metadata))
+    (artifact_root / "gbl_metadata.json").write_text(
+        json.dumps(metadata, sort_keys=True)
+    )
 
     # Make sure the Commander binary is included in the PATH on macOS
     if sys.platform == "darwin":
