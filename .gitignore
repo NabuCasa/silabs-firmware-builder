@@ -9,3 +9,4 @@ autogen/
 *.project.mak
 *.Makefile
 build/
+artifact/
