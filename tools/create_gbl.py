@@ -5,10 +5,10 @@ from __future__ import annotations
 
 import os
 import ast
-import pathlib
-
 import sys
 import json
+import pathlib
+import argparse
 import subprocess
 
 from ruamel.yaml import YAML
@@ -114,156 +114,166 @@ def find_file_in_parent_dirs(root: pathlib.Path, filename: str) -> pathlib.Path:
         root = root.parent
 
 
-if "postbuild" in sys.argv:
+def main():
     # Run as a Simplicity Studio post-build step
-    project_name = pathlib.Path(sys.argv[2]).stem
-    build_dir = pathlib.Path(sys.argv[4].replace("build_dir:", "", 1))
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument("command", type=str, help="Command to execute: postbuild")
+    parser.add_argument("slpb_file", type=pathlib.Path, help="Path to the .slpb file")
+    parser.add_argument(
+        "--parameter",
+        action="append",
+        type=lambda kv: kv.split(":"),
+        dest="parameters",
+        help="Parameters in the format key:value",
+    )
+
+    args = parser.parse_args()
+    args.parameters = dict(args.parameters)
+
+    project_name = args.slpb_file.stem
+    build_dir = pathlib.Path(args.parameters["build_dir"])
     out_file = build_dir / f"{project_name}.out"
-else:
-    # Run manually
-    out_file = pathlib.Path(sys.argv[1]).absolute()
 
-artifact_root = out_file.parent
-project_name = out_file.stem
-slcp_path = find_file_in_parent_dirs(
-    root=artifact_root,
-    filename=project_name + ".slcp",
-)
+    artifact_root = out_file.parent
+    project_name = out_file.stem
+    slcp_path = find_file_in_parent_dirs(
+        root=artifact_root,
+        filename=project_name + ".slcp",
+    )
 
-project_root = slcp_path.parent
-slps_path = (project_root / project_name).with_suffix(".slps")
+    project_root = slcp_path.parent
+    slps_path = (project_root / project_name).with_suffix(".slps")
 
-if "postbuild" in sys.argv:
     gsdk_path = pathlib.Path(
         pathlib.Path(build_dir / f"{project_name}.cmake")
         .read_text()
         .split('set(SDK_PATH "', 1)[1]
         .split('"', 1)[0]
     )
-else:
-    makefile_path = find_file_in_parent_dirs(
-        root=artifact_root,
-        filename=project_name + ".project.mak",
+
+    # Parse the main Simplicity Studio project config
+    slcp = YAML(typ="safe").load(slcp_path.read_text())
+
+    # Extract the chip ID from the SLPS file, `commander` needs it
+    slps_xml = ElementTree.parse(slps_path)
+    device_part_id = (
+        slps_xml.getroot()
+        .find(".//properties[@key='projectCommon.partId']")
+        .attrib["value"]
+        .split(".")[-1]
+        .upper()
+    )
+    print("Detected device part ID:", device_part_id, flush=True)
+
+    gbl_metadata = YAML(typ="safe").load(
+        (project_root / "gbl_metadata.yaml").read_text()
     )
 
-    # Extract the Gecko SDK path from the generated Makefile
-    gsdk_path = pathlib.Path(
-        parse_simple_config(makefile_path.read_text())["BASE_SDK_PATH"]
-    )
+    # Prepare the GBL metadata
+    metadata = {
+        "metadata_version": 1,
+        "sdk_version": slcp["sdk"]["version"],
+        "fw_type": gbl_metadata["fw_type"],
+        "baudrate": gbl_metadata["baudrate"],
+    }
 
-# Parse the main Simplicity Studio project config
-slcp = YAML(typ="safe").load(slcp_path.read_text())
+    # Compute the dynamic metadata
+    gbl_dynamic = gbl_metadata.get("dynamic", [])
 
-# Extract the chip ID from the SLPS file
-slps_xml = ElementTree.parse(slps_path)
-device_part_id = (
-    slps_xml.getroot()
-    .find(".//properties[@key='projectCommon.partId']")
-    .attrib["value"]
-    .split(".")[-1]
-    .upper()
-)
-print("Detected device part ID:", device_part_id, flush=True)
-
-gbl_metadata = YAML(typ="safe").load((project_root / "gbl_metadata.yaml").read_text())
-
-# Prepare the GBL metadata
-metadata = {
-    "metadata_version": 1,
-    "sdk_version": slcp["sdk"]["version"],
-    "fw_type": gbl_metadata["fw_type"],
-    "baudrate": gbl_metadata["baudrate"],
-}
-
-# Compute the dynamic metadata
-gbl_dynamic = gbl_metadata.get("dynamic", [])
-
-if "ezsp_version" in gbl_dynamic:
-    zigbee_esf_props = parse_properties_file(
-        (gsdk_path / "protocol/zigbee/esf.properties").read_text()
-    )
-    metadata["ezsp_version"] = zigbee_esf_props["version"][0]
-
-if "cpc_version" in gbl_dynamic:
-    sl_gsdk_version_h = parse_c_header_defines(
-        (gsdk_path / "platform/common/inc/sl_gsdk_version.h").read_text()
-    )
-    metadata["cpc_version"] = ".".join(
-        [
-            str(sl_gsdk_version_h["SL_GSDK_MAJOR_VERSION"]),
-            str(sl_gsdk_version_h["SL_GSDK_MINOR_VERSION"]),
-            str(sl_gsdk_version_h["SL_GSDK_PATCH_VERSION"]),
-        ]
-    )
-
-    try:
-        internal_app_config_h = parse_c_header_defines(
-            (project_root / "config/internal_app_config.h").read_text()
+    if "ezsp_version" in gbl_dynamic:
+        zigbee_esf_props = parse_properties_file(
+            (gsdk_path / "protocol/zigbee/esf.properties").read_text()
         )
-    except FileNotFoundError:
-        internal_app_config_h = {}
-    
-    if "CPC_SECONDARY_APP_VERSION_SUFFIX" in internal_app_config_h:
-        metadata["cpc_version"] += internal_app_config_h["CPC_SECONDARY_APP_VERSION_SUFFIX"]
+        metadata["ezsp_version"] = zigbee_esf_props["version"][0]
 
-if "zwave_version" in gbl_dynamic:
-    zwave_esf_props = parse_properties_file(
-        (gsdk_path / "protocol/z-wave/esf.properties").read_text()
-    )
-    metadata["zwave_version"] = zwave_esf_props["version"][0]
+    if "cpc_version" in gbl_dynamic:
+        sl_gsdk_version_h = parse_c_header_defines(
+            (gsdk_path / "platform/common/inc/sl_gsdk_version.h").read_text()
+        )
+        metadata["cpc_version"] = ".".join(
+            [
+                str(sl_gsdk_version_h["SL_GSDK_MAJOR_VERSION"]),
+                str(sl_gsdk_version_h["SL_GSDK_MINOR_VERSION"]),
+                str(sl_gsdk_version_h["SL_GSDK_PATCH_VERSION"]),
+            ]
+        )
 
-if "ot_rcp_version" in gbl_dynamic:
-    openthread_config_h = parse_c_header_defines(
-        (project_root / "config/sl_openthread_generic_config.h").read_text()
-    )
-    metadata["ot_rcp_version"] = openthread_config_h["PACKAGE_STRING"]
+        try:
+            internal_app_config_h = parse_c_header_defines(
+                (project_root / "config/internal_app_config.h").read_text()
+            )
+        except FileNotFoundError:
+            internal_app_config_h = {}
 
-if "gecko_bootloader_version" in gbl_dynamic:
-    btl_config_h = parse_c_header_defines(
-        (gsdk_path / "platform/bootloader/config/btl_config.h").read_text()
-    )
+        if "CPC_SECONDARY_APP_VERSION_SUFFIX" in internal_app_config_h:
+            metadata["cpc_version"] += internal_app_config_h[
+                "CPC_SECONDARY_APP_VERSION_SUFFIX"
+            ]
 
-    metadata["gecko_bootloader_version"] = ".".join(
-        [
-            str(btl_config_h["BOOTLOADER_VERSION_MAIN_MAJOR"]),
-            str(btl_config_h["BOOTLOADER_VERSION_MAIN_MINOR"]),
-            str(btl_config_h["BOOTLOADER_VERSION_MAIN_CUSTOMER"]),
-        ]
-    )
+    if "zwave_version" in gbl_dynamic:
+        zwave_esf_props = parse_properties_file(
+            (gsdk_path / "protocol/z-wave/esf.properties").read_text()
+        )
+        metadata["zwave_version"] = zwave_esf_props["version"][0]
 
-print("Generated GBL metadata:", metadata, flush=True)
+    if "ot_rcp_version" in gbl_dynamic:
+        openthread_config_h = parse_c_header_defines(
+            (project_root / "config/sl_openthread_generic_config.h").read_text()
+        )
+        metadata["ot_rcp_version"] = openthread_config_h["PACKAGE_STRING"]
 
-# Write it to a file for `commander` to read
-(artifact_root / "gbl_metadata.json").write_text(json.dumps(metadata))
+    if "gecko_bootloader_version" in gbl_dynamic:
+        btl_config_h = parse_c_header_defines(
+            (gsdk_path / "platform/bootloader/config/btl_config.h").read_text()
+        )
 
-# Make sure the Commander binary is included in the PATH on macOS
-if sys.platform == "darwin":
-    os.environ["PATH"] += (
-        os.pathsep
-        + "/Applications/Simplicity Studio.app/Contents/Eclipse/developer/adapter_packs/commander/Commander.app/Contents/MacOS"
-    )
+        metadata["gecko_bootloader_version"] = ".".join(
+            [
+                str(btl_config_h["BOOTLOADER_VERSION_MAIN_MAJOR"]),
+                str(btl_config_h["BOOTLOADER_VERSION_MAIN_MINOR"]),
+                str(btl_config_h["BOOTLOADER_VERSION_MAIN_CUSTOMER"]),
+            ]
+        )
 
-commander_args = [
-    "commander",
-    "gbl",
-    "create",
-    out_file.with_suffix(".gbl"),
-    ("--app" if gbl_metadata["fw_type"] != "gecko-bootloader" else "--bootloader"),
-    out_file,
-    "--device",
-    device_part_id,
-    "--metadata",
-    (artifact_root / "gbl_metadata.json"),
-]
+    print("Generated GBL metadata:", metadata, flush=True)
 
-if gbl_metadata.get("compression", None) is not None:
-    commander_args += ["--compress", gbl_metadata["compression"]]
+    # Write it to a file for `commander` to read
+    (artifact_root / "gbl_metadata.json").write_text(json.dumps(metadata))
 
-if gbl_metadata.get("sign_key", None) is not None:
-    commander_args += ["--sign", gbl_metadata["sign_key"]]
+    # Make sure the Commander binary is included in the PATH on macOS
+    if sys.platform == "darwin":
+        os.environ["PATH"] += (
+            os.pathsep
+            + "/Applications/Simplicity Studio.app/Contents/Eclipse/developer/adapter_packs/commander/Commander.app/Contents/MacOS"
+        )
 
-if gbl_metadata.get("encrypt_key", None) is not None:
-    commander_args += ["--encrypt", gbl_metadata["encrypt_key"]]
+    commander_args = [
+        "commander",
+        "gbl",
+        "create",
+        out_file.with_suffix(".gbl"),
+        ("--app" if gbl_metadata["fw_type"] != "gecko-bootloader" else "--bootloader"),
+        out_file,
+        "--device",
+        device_part_id,
+        "--metadata",
+        (artifact_root / "gbl_metadata.json"),
+    ]
 
-# Finally, generate the GBL
-subprocess.run(commander_args, check=True)
+    if gbl_metadata.get("compression", None) is not None:
+        commander_args += ["--compress", gbl_metadata["compression"]]
+
+    if gbl_metadata.get("sign_key", None) is not None:
+        commander_args += ["--sign", gbl_metadata["sign_key"]]
+
+    if gbl_metadata.get("encrypt_key", None) is not None:
+        commander_args += ["--encrypt", gbl_metadata["encrypt_key"]]
+
+    # Finally, generate the GBL
+    subprocess.run(commander_args, check=True)
+
+
+if __name__ == "__main__":
+    main()
