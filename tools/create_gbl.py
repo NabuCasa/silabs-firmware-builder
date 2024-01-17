@@ -281,10 +281,13 @@ def main():
         commander_args += ["--compress", gbl_metadata["compression"]]
 
     if gbl_metadata.get("sign_key", None) is not None:
-        commander_args += ["--sign", gbl_metadata["sign_key"]]
+        commander_args += ["--sign", gbl_metadata["sign_key"].format(SDK_DIR=gsdk_path)]
 
     if gbl_metadata.get("encrypt_key", None) is not None:
-        commander_args += ["--encrypt", gbl_metadata["encrypt_key"]]
+        commander_args += [
+            "--encrypt",
+            gbl_metadata["encrypt_key"].format(SDK_DIR=gsdk_path),
+        ]
 
     # Finally, generate the GBL
     subprocess.run(commander_args, check=True)
