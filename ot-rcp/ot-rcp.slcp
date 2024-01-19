@@ -54,4 +54,4 @@ configuration:
 ui_hints:
   highlight:
   - {path: ./README-OT-RCP.md, focus: true}
-post_build: {path: ot-rcp.slpb, profile: ot-rcp}
+

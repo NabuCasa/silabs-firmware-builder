@@ -37,5 +37,4 @@ configuration:
 ui_hints:
   highlight:
   - {path: readme.md, focus: true}
-post_build: {path: bootloader-uart-xmodem.slpb, profile: bootloader-uart-xmodem}
 

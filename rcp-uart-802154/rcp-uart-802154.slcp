@@ -42,6 +42,8 @@ component:
 - {from: nc_efr32_watchdog, id: nc_efr32_watchdog}
 - {id: bootloader_interface}
 - {id: EFR32MG21A010F1024IM32}
+define:
+- {name: OPENTHREAD_CONFIG_PLATFORM_ASSERT_MANAGEMENT, value: '1'}
 configuration:
 - {name: SL_STACK_SIZE, value: '2752'}
 - {name: SL_BOARD_ENABLE_VCOM, value: '1'}
@@ -57,12 +59,9 @@ configuration:
 - {name: SL_CPC_RX_BUFFER_MAX_COUNT, value: '15'}
 - {name: SL_CPC_TX_QUEUE_ITEM_MAX_COUNT, value: '15'}
 - {name: SL_CPC_USER_ENDPOINT_MAX_COUNT, value: '0'}
-define:
-- {name: OPENTHREAD_CONFIG_PLATFORM_ASSERT_MANAGEMENT, value: '1'}
 ui_hints:
   highlight:
   - {path: ./README-MP-RCP.md, focus: true}
 sdk_extension:
 - {id: nc_efr32_watchdog, version: 1.0.0}
-post_build: {path: rcp-uart-802154.slpb, profile: rcp-uart-802154}
 
