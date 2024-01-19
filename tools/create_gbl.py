@@ -15,24 +15,6 @@ from ruamel.yaml import YAML
 from xml.etree import ElementTree
 
 
-def parse_simple_config(file_content: str) -> dict[str, str]:
-    """
-    Parses a simple key=value file into a dictionary.
-    """
-    config = {}
-
-    for line in file_content.split("\n"):
-        line = line.strip()
-
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-
-        key, value = line.split("=", 1)
-        config[key.strip()] = value.strip()
-
-    return config
-
-
 def parse_c_header_defines(file_content: str) -> dict[str, str]:
     """
     Parses a C header file's `#define`s.
