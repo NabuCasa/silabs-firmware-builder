@@ -43,7 +43,7 @@
 // <h> IEEE802.15.4 Fast Channel Switching Configuration
 // <q SL_RAIL_UTIL_IEEE802154_FAST_CHANNEL_SWITCHING_ENABLED> Enable fast channel switching
 // <i> Default: 1
-#define SL_RAIL_UTIL_IEEE802154_FAST_CHANNEL_SWITCHING_ENABLED   1
+#define SL_RAIL_UTIL_IEEE802154_FAST_CHANNEL_SWITCHING_ENABLED   0
 // </h>
 // <<< end of configuration section >>>
 #endif //SL_RAIL_UITL_IEEE802154_FAST_CHANNEL_SWITCHING_CONFIG_H
