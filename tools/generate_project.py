@@ -8,6 +8,7 @@ import re
 import sys
 import copy
 import json
+import shlex
 import shutil
 import hashlib
 import logging
@@ -364,6 +365,19 @@ def main():
     cmake_build_root = args.build_dir / f"{manifest['base_project']}_cmake"
     cmake_config = cmake_build_root / f"{manifest['base_project']}.cmake"
     fixed_cmake = []
+
+    # Strip all compile-time absolute paths
+    fixed_cmake.append("add_compile_options(")
+
+    for src, dst in {
+        args.sdk: "/gecko_sdk",
+        args.build_dir: "/src",
+        args.toolchain: "/toolchain",
+    }.items():
+        assert '"' not in str(src.absolute())  # TODO: fix this
+        fixed_cmake.append(f'    "-ffile-prefix-map={str(src.absolute())}={dst}"')
+
+    fixed_cmake.append(")")
 
     # Fix CMake config quoting bug
     for line in cmake_config.read_text().split("\n"):
