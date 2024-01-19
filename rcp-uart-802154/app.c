@@ -30,18 +30,6 @@
 #include "sl_gsdk_version.h"
 #include "config/internal_app_config.h"
 
-void otPlatAssertFail(const char *aFilename, int aLineNumber)
-{
-#if OPENTHREAD_CONFIG_LOG_PLATFORM && OPENTHREAD_CONFIG_LOG_LEVEL < OT_LOG_LEVEL_CRIT
-    OT_UNUSED_VARIABLE(aFilename);
-    OT_UNUSED_VARIABLE(aLineNumber);
-#else
-    otLogCritPlat("assert failed at %s:%d", aFilename, aLineNumber);
-#endif
-    // For debug build, use assert to generate a core dump
-    assert(false);
-}
-
 const char* sl_cpc_secondary_app_version(void)
 {
     return (

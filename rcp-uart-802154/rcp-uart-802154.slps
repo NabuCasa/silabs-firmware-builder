@@ -9,9 +9,8 @@
     <properties key="projectCommon.boardIds" value="brd4001a:0.0.0.A01 brd4179b:0.0.0.A05"/>
     <properties key="projectCommon.kitId" value=""/>
     <properties key="projectCommon.partId" value="mcu.arm.efr32.mg21.efr32mg21a010f1024im32"/>
-    <properties key="projectCommon.toolchainId" value="com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205"/>
+    <properties key="projectCommon.toolchainId" value="com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:10.3.1.20210824"/>
     <properties key="universalConfig.projectTypeIds" value="com.silabs.ss.framework.ide.project.core.cdtMbsProjectType"/>
     <properties key="projectCommon.importModeId" value="LINK_LIBRARIES"/>
-    <properties key="universalConfig.previousSdkId" value="com.silabs.sdk.stack.super:4.4.0._-295637087"/>
   </descriptors>
 </model:MDescriptors>

@@ -32,7 +32,6 @@ component:
 - {id: cpc_security_secondary_none}
 - instance: [vcom]
   id: cpc_secondary_driver_uart_usart
-- {id: ot_rcp_gp_interface}
 - {id: rail_util_pti}
 - {id: brd4001a}
 - {id: ot_stack_rcp}
@@ -42,7 +41,7 @@ component:
 - {id: bootloader_interface}
 - {id: EFR32MG21A010F1024IM32}
 define:
-- {name: OPENTHREAD_CONFIG_PLATFORM_ASSERT_MANAGEMENT, value: '1'}
+- {name: NONCOMPLIANT_ACK_TIMING_WORKAROUND}
 configuration:
 - {name: SL_STACK_SIZE, value: '2752'}
 - {name: SL_BOARD_ENABLE_VCOM, value: '1'}

@@ -29,7 +29,6 @@
  ******************************************************************************/
 
 // <<< Use Configuration Wizard in Context Menu >>>
-
 #ifndef SL_CPC_DRV_UART_USART_VCOM_SECONDARY_CONFIG_H
 #define SL_CPC_DRV_UART_USART_VCOM_SECONDARY_CONFIG_H
 
@@ -59,25 +58,44 @@
 // <<< sl:start pin_tool >>>
 // <usart signal=TX,RX,(CTS),(RTS)> SL_CPC_DRV_UART_VCOM
 // $[USART_SL_CPC_DRV_UART_VCOM]
+#ifndef SL_CPC_DRV_UART_VCOM_PERIPHERAL         
 #define SL_CPC_DRV_UART_VCOM_PERIPHERAL          USART0
+#endif
+#ifndef SL_CPC_DRV_UART_VCOM_PERIPHERAL_NO      
 #define SL_CPC_DRV_UART_VCOM_PERIPHERAL_NO       0
+#endif
 
 // USART0 TX on PA05
+#ifndef SL_CPC_DRV_UART_VCOM_TX_PORT            
 #define SL_CPC_DRV_UART_VCOM_TX_PORT             gpioPortA
+#endif
+#ifndef SL_CPC_DRV_UART_VCOM_TX_PIN             
 #define SL_CPC_DRV_UART_VCOM_TX_PIN              5
+#endif
 
 // USART0 RX on PA06
+#ifndef SL_CPC_DRV_UART_VCOM_RX_PORT            
 #define SL_CPC_DRV_UART_VCOM_RX_PORT             gpioPortA
+#endif
+#ifndef SL_CPC_DRV_UART_VCOM_RX_PIN             
 #define SL_CPC_DRV_UART_VCOM_RX_PIN              6
+#endif
 
 // USART0 CTS on PC03
+#ifndef SL_CPC_DRV_UART_VCOM_CTS_PORT           
 #define SL_CPC_DRV_UART_VCOM_CTS_PORT            gpioPortC
+#endif
+#ifndef SL_CPC_DRV_UART_VCOM_CTS_PIN            
 #define SL_CPC_DRV_UART_VCOM_CTS_PIN             3
+#endif
 
 // USART0 RTS on PC02
+#ifndef SL_CPC_DRV_UART_VCOM_RTS_PORT           
 #define SL_CPC_DRV_UART_VCOM_RTS_PORT            gpioPortC
+#endif
+#ifndef SL_CPC_DRV_UART_VCOM_RTS_PIN            
 #define SL_CPC_DRV_UART_VCOM_RTS_PIN             2
-
+#endif
 // [USART_SL_CPC_DRV_UART_VCOM]$
 // <<< sl:end pin_tool >>>
 

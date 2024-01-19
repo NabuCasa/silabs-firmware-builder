@@ -62,11 +62,6 @@
 // <i> Enable the ECDH-ECDSA based ciphersuite modes in SSL / TLS.
 #define SL_MBEDTLS_KEY_EXCHANGE_ECDH_ECDSA_ENABLED  0
 
-// <q SL_MBEDTLS_ECP_ENABLE_COMPRESSED_CURVE_PARSING> Enable parsing of the compressed curves.
-// <i> Default: 0
-// <i> Enable parsing of the compressed curves.
-#define SL_MBEDTLS_ECP_ENABLE_COMPRESSED_CURVE_PARSING 0
-
 // </h>
 
 // <h> RSA configuration
@@ -112,7 +107,8 @@
 // the correct Mbed TLS / PSA Crypto options.
 #include "sli_mbedtls_config_transform_autogen.h"
 
-// Included for backward compatibility reasons.
-#include "mbedtls/build_info.h"
+#include "mbedtls/config_psa.h"
+
+#include "mbedtls/check_config.h"
 
 #endif // SL_MBEDTLS_CONFIG_H
