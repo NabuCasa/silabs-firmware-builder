@@ -37,7 +37,6 @@ component:
 - {id: brd4001a}
 - {id: ot_stack_rcp}
 - {id: ot_ncp_cpc}
-- {id: ot_crash_handler}
 - {id: brd4179b}
 - {from: nc_efr32_watchdog, id: nc_efr32_watchdog}
 - {id: bootloader_interface}
