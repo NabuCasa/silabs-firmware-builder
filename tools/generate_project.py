@@ -347,7 +347,14 @@ def main():
                         assert re.match(r'#warning ".*? not configured"', prev_line)
                         new_config_h_lines.pop(index - 1)
 
-                    value = str(value_template).format(**value_template_env)
+                    value_template = str(value_template)
+
+                    if value_template.startswith("template:"):
+                        value = value_template.replace("template:", "", 1).format(
+                            **value_template_env
+                        )
+                    else:
+                        value = value_template
 
                     new_config_h_lines.append(f"#define {define}{alignment}{value}")
                     written_config[define] = value
