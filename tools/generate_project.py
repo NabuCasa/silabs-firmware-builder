@@ -16,6 +16,7 @@ import pathlib
 import argparse
 import itertools
 import subprocess
+import multiprocessing
 
 from ruamel.yaml import YAML
 
@@ -129,6 +130,12 @@ def main():
         type=pathlib.Path,
         required=True,
         help="Temporary build directory",
+    )
+    parser.add_argument(
+        "--build-system",
+        choices=["cmake", "makefile"],
+        default="cmake",
+        help="Build system",
     )
     parser.add_argument(
         "--sdk",
@@ -299,7 +306,7 @@ def main():
             "--toolchain",
             "toolchain_gcc",
             "--output-type",
-            "cmake",
+            args.build_system,
         ],
         check=True,
     )
@@ -362,63 +369,99 @@ def main():
         print(f"Defines were unused, aborting: {unused_defines}")
         sys.exit(1)
 
-    cmake_build_root = args.build_dir / f"{manifest['base_project']}_cmake"
-    cmake_config = cmake_build_root / f"{manifest['base_project']}.cmake"
-    fixed_cmake = []
+    if args.build_system == "cmake":
+        cmake_build_root = args.build_dir / f"{manifest['base_project']}_cmake"
+        cmake_config = cmake_build_root / f"{manifest['base_project']}.cmake"
+        fixed_cmake = []
 
-    # Strip all compile-time absolute paths
-    fixed_cmake.append("add_compile_options(")
+        # Strip all compile-time absolute paths
+        fixed_cmake.append("add_compile_options(")
 
-    for src, dst in {
-        args.sdk: "/gecko_sdk",
-        args.build_dir: "/src",
-        args.toolchain: "/toolchain",
-    }.items():
-        assert '"' not in str(src.absolute())  # TODO: fix this
-        fixed_cmake.append(f'    "-ffile-prefix-map={str(src.absolute())}={dst}"')
+        for src, dst in {
+            args.sdk: "/gecko_sdk",
+            args.build_dir: "/src",
+            args.toolchain: "/toolchain",
+        }.items():
+            assert '"' not in str(src.absolute())  # TODO: fix this
+            fixed_cmake.append(f'    "-ffile-prefix-map={str(src.absolute())}={dst}"')
 
-    fixed_cmake.append(")")
+        fixed_cmake.append(")")
 
-    # Fix CMake config quoting bug
-    for line in cmake_config.read_text().split("\n"):
-        if ">:SHELL:" not in line and (":-imacros " in line or ":-x " in line):
-            line = '    "' + line.replace(">:", ">:SHELL:").strip() + '"'
+        # Fix CMake config quoting bug
+        for line in cmake_config.read_text().split("\n"):
+            if ">:SHELL:" not in line and (":-imacros " in line or ":-x " in line):
+                line = '    "' + line.replace(">:", ">:SHELL:").strip() + '"'
 
-        fixed_cmake.append(line)
+            fixed_cmake.append(line)
 
-    cmake_config.write_text("\n".join(fixed_cmake))
+        cmake_config.write_text("\n".join(fixed_cmake))
 
-    # Generate the build system
-    subprocess.run(
-        [
-            "cmake",
-            "-G",
-            "Ninja",
-            "-DCMAKE_TOOLCHAIN_FILE=toolchain.cmake",
-            ".",
-        ],
-        cwd=cmake_build_root,
-        env={
-            **os.environ,
-            "ARM_GCC_DIR": args.toolchain,
-            "POST_BUILD_EXE": args.postbuild,
-        },
-        check=True,
-    )
+        # Generate the build system
+        subprocess.run(
+            [
+                "cmake",
+                "-G",
+                "Ninja",
+                "-DCMAKE_TOOLCHAIN_FILE=toolchain.cmake",
+                ".",
+            ],
+            cwd=cmake_build_root,
+            env={
+                **os.environ,
+                "ARM_GCC_DIR": args.toolchain,
+                "POST_BUILD_EXE": args.postbuild,
+            },
+            check=True,
+        )
 
-    # Build it!
-    subprocess.run(
-        [
-            "ninja",
-            "-C",
-            cmake_build_root,
-        ],
-        check=True,
-    )
+        # Build it!
+        subprocess.run(
+            [
+                "ninja",
+                "-C",
+                cmake_build_root,
+            ],
+            check=True,
+        )
+
+        output_artifact = (cmake_build_root / manifest["base_project"]).with_suffix(
+            ".gbl"
+        )
+    elif args.build_system == "makefile":
+        output_artifact = (
+            args.build_dir / "build/debug" / manifest["base_project"]
+        ).with_suffix(".gbl")
+
+        # Inject a postbuild step into the makefile
+        with (args.build_dir / f"{manifest['base_project']}.Makefile").open("a") as f:
+            f.write("\n")
+            f.write("post-build:\n")
+            f.write(
+                f"\t-{args.postbuild}"
+                f' postbuild "{(args.build_dir / manifest["base_project"]).resolve()}.slpb"'
+                f' --parameter build_dir:"{output_artifact.parent.resolve()}"'
+                f' --parameter sdk_dir:"{args.sdk.resolve()}"'
+                "\n"
+            )
+            f.write(f"\t-@echo ' '")
+
+        subprocess.run(
+            [
+                "make",
+                "-C",
+                args.build_dir,
+                "-f",
+                f"{manifest['base_project']}.Makefile",
+                f"-j{multiprocessing.cpu_count()}",
+                f"ARM_GCC_DIR={args.toolchain}",
+                f"POST_BUILD_EXE={args.postbuild}",
+            ],
+            check=True,
+        )
 
     # Copy the final GBL
     shutil.copy(
-        src=(cmake_build_root / manifest["base_project"]).with_suffix(".gbl"),
+        src=output_artifact,
         dst=args.output_gbl,
     )
 
