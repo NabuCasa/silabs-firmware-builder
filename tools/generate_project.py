@@ -84,6 +84,17 @@ def parse_override(override: str) -> tuple[str, dict | list]:
         raise argparse.ArgumentTypeError(f"Invalid JSON: {exc}")
 
 
+def parse_prefixed_output(output: str) -> tuple[str, pathlib.Path]:
+    """Parse a prefixed output parameter."""
+    if ":" not in output:
+        raise argparse.ArgumentTypeError(
+            "Override must be of the form (e.g.) `gbl=output.gbl`"
+        )
+
+    prefix, _, path = output.partition(":")
+    return prefix, pathlib.Path(path)
+
+
 def get_git_commit_id(repo: pathlib.Path) -> str:
     """Get a commit hash for the current git repository."""
 
@@ -122,10 +133,12 @@ def main():
         help="Firmware build manifest",
     )
     parser.add_argument(
-        "--output-gbl",
-        type=pathlib.Path,
+        "--output",
+        action="append",
+        dest="outputs",
+        type=parse_prefixed_output,
         required=True,
-        help="Output GBL file",
+        help="Output file prefixed with its file type",
     )
     parser.add_argument(
         "--build-dir",
@@ -175,7 +188,7 @@ def main():
 
     # argparse defaults should be replaced, not extended
     if args.sdks != get_sdk_default_paths():
-        args.sdks = args.sdks[len(get_sdk_default_paths()):]
+        args.sdks = args.sdks[len(get_sdk_default_paths()) :]
 
     # Template variables for C defines
     value_template_env = {
@@ -513,11 +526,12 @@ def main():
             ".gbl"
         )
 
-    # Copy the final GBL
-    shutil.copy(
-        src=output_artifact,
-        dst=args.output_gbl,
-    )
+    # Copy the output artifacts
+    for extension, path in args.outputs:
+        shutil.copy(
+            src=output_artifact.with_suffix(f".{extension}"),
+            dst=path,
+        )
 
 
 if __name__ == "__main__":
