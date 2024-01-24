@@ -61,10 +61,12 @@ def get_toolchain_default_path() -> pathlib.Path | None:
     return None
 
 
-def get_sdk_default_path() -> pathlib.Path | None:
+def get_sdk_default_paths() -> list[pathlib.Path] | None:
     """Return the path to the SDK."""
     if sys.platform == "darwin":
-        return pathlib.Path("~/SimplicityStudio/SDKs/gecko_sdk").expanduser()
+        return list(
+            pathlib.Path("~/SimplicityStudio/SDKs").expanduser().glob("gecko_sdk*")
+        )
 
     return None
 
@@ -139,10 +141,12 @@ def main():
     )
     parser.add_argument(
         "--sdk",
+        action="append",
+        dest="sdks",
         type=ensure_folder,
-        default=get_sdk_default_path(),
-        required=get_sdk_default_path() is None,
-        help="Path to Gecko SDK",
+        default=get_sdk_default_paths(),
+        required=get_sdk_default_paths() is None,
+        help="Path to a Gecko SDK",
     )
     parser.add_argument(
         "--toolchain",
@@ -168,6 +172,10 @@ def main():
     )
 
     args = parser.parse_args()
+
+    # argparse defaults should be replaced, not extended
+    if args.sdks != get_sdk_default_paths():
+        args.sdks = args.sdks[len(get_sdk_default_paths()):]
 
     # Template variables for C defines
     value_template_env = {
@@ -285,9 +293,28 @@ def main():
         print("`slc` and/or `slc-cli` not found in PATH")
         sys.exit(1)
 
+    # Find the SDK version required by the project
+    for sdk in args.sdks:
+        try:
+            sdk_meta = yaml.load((sdk / "gecko_sdk.slcs").read_text())
+        except FileNotFoundError:
+            print(f"SDK {sdk} is not valid, skipping")
+            continue
+
+        assert base_project["sdk"]["id"] == "gecko_sdk"
+
+        print(f"SDK {sdk} has version {sdk_meta['sdk_version']}")
+
+        if base_project["sdk"]["version"] == sdk_meta["sdk_version"]:
+            print(f"Version is correct, picking {sdk}")
+            break
+    else:
+        print(f"Project SDK version {base_project['sdk']['version']} not found")
+        sys.exit(1)
+
     # Make sure all extensions are valid
     for sdk_extension in base_project.get("sdk_extension", []):
-        expected_dir = args.sdk / f"extension/{sdk_extension['id']}_extension"
+        expected_dir = sdk / f"extension/{sdk_extension['id']}_extension"
 
         if not expected_dir.is_dir():
             print(f"Referenced extension not present in SDK: {expected_dir}")
@@ -302,7 +329,7 @@ def main():
             "--export-destination",
             args.build_dir.resolve(),
             "--sdk",
-            args.sdk.resolve(),
+            sdk,
             "--toolchain",
             "toolchain_gcc",
             "--output-type",
@@ -389,7 +416,7 @@ def main():
                 f"\t-{args.postbuild}"
                 f' postbuild "{(args.build_dir / manifest["base_project"]).resolve()}.slpb"'
                 f' --parameter build_dir:"{output_artifact.parent.resolve()}"'
-                f' --parameter sdk_dir:"{args.sdk.resolve()}"'
+                f' --parameter sdk_dir:"{sdk}"'
                 "\n"
             )
             f.write(f"\t-@echo ' '")
@@ -416,7 +443,7 @@ def main():
         fixed_cmake.append("add_compile_options(")
 
         for src, dst in {
-            args.sdk: "/gecko_sdk",
+            sdk: "/gecko_sdk",
             args.build_dir: "/src",
             args.toolchain: "/toolchain",
         }.items():
@@ -448,7 +475,7 @@ def main():
                     f"    COMMAND {args.postbuild} postbuild"
                     f' "{(args.build_dir / manifest["base_project"]).resolve()}.slpb"'
                     f" --parameter build_dir:{s37_build_folder}"
-                    f' --parameter sdk_dir:"{args.sdk.resolve()}"\n'
+                    f' --parameter sdk_dir:"{sdk}"\n'
                 )
                 + s37_line,
             )
