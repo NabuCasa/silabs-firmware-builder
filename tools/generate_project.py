@@ -403,6 +403,26 @@ def main():
 
         cmake_config.write_text("\n".join(fixed_cmake))
 
+        # Insert our postbuild step
+        cmakelists_txt = cmake_build_root / "CMakeLists.txt"
+        cmakelists = cmakelists_txt.read_text()
+        s37_line = next(l for l in cmakelists.split("\n") if "-O srec" in l)
+        s37_output_file = s37_line.split(" ")[-1]
+        s37_build_folder = s37_output_file.split("/", 1)[0] + '"'
+
+        cmakelists_txt.write_text(
+            cmakelists.replace(
+                s37_line,
+                (
+                    f"    COMMAND {args.postbuild} postbuild"
+                    f' "{(args.build_dir / manifest["base_project"]).resolve()}.slpb"'
+                    f' --parameter build_dir:{s37_build_folder}'
+                    f' --parameter sdk_dir:"{args.sdk.resolve()}"\n'
+                )
+                + s37_line,
+            )
+        )
+
         # Generate the build system
         subprocess.run(
             [
