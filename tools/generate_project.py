@@ -376,7 +376,38 @@ def main():
         print(f"Defines were unused, aborting: {unused_defines}")
         sys.exit(1)
 
-    if args.build_system == "cmake":
+    if args.build_system == "makefile":
+        output_artifact = (
+            args.build_dir / "build/debug" / manifest["base_project"]
+        ).with_suffix(".gbl")
+
+        # Inject a postbuild step into the makefile
+        with (args.build_dir / f"{manifest['base_project']}.Makefile").open("a") as f:
+            f.write("\n")
+            f.write("post-build:\n")
+            f.write(
+                f"\t-{args.postbuild}"
+                f' postbuild "{(args.build_dir / manifest["base_project"]).resolve()}.slpb"'
+                f' --parameter build_dir:"{output_artifact.parent.resolve()}"'
+                f' --parameter sdk_dir:"{args.sdk.resolve()}"'
+                "\n"
+            )
+            f.write(f"\t-@echo ' '")
+
+        subprocess.run(
+            [
+                "make",
+                "-C",
+                args.build_dir,
+                "-f",
+                f"{manifest['base_project']}.Makefile",
+                f"-j{multiprocessing.cpu_count()}",
+                f"ARM_GCC_DIR={args.toolchain}",
+                f"POST_BUILD_EXE={args.postbuild}",
+            ],
+            check=True,
+        )
+    elif args.build_system == "cmake":
         cmake_build_root = args.build_dir / f"{manifest['base_project']}_cmake"
         cmake_config = cmake_build_root / f"{manifest['base_project']}.cmake"
         fixed_cmake = []
@@ -416,7 +447,7 @@ def main():
                 (
                     f"    COMMAND {args.postbuild} postbuild"
                     f' "{(args.build_dir / manifest["base_project"]).resolve()}.slpb"'
-                    f' --parameter build_dir:{s37_build_folder}'
+                    f" --parameter build_dir:{s37_build_folder}"
                     f' --parameter sdk_dir:"{args.sdk.resolve()}"\n'
                 )
                 + s37_line,
@@ -453,37 +484,6 @@ def main():
 
         output_artifact = (cmake_build_root / manifest["base_project"]).with_suffix(
             ".gbl"
-        )
-    elif args.build_system == "makefile":
-        output_artifact = (
-            args.build_dir / "build/debug" / manifest["base_project"]
-        ).with_suffix(".gbl")
-
-        # Inject a postbuild step into the makefile
-        with (args.build_dir / f"{manifest['base_project']}.Makefile").open("a") as f:
-            f.write("\n")
-            f.write("post-build:\n")
-            f.write(
-                f"\t-{args.postbuild}"
-                f' postbuild "{(args.build_dir / manifest["base_project"]).resolve()}.slpb"'
-                f' --parameter build_dir:"{output_artifact.parent.resolve()}"'
-                f' --parameter sdk_dir:"{args.sdk.resolve()}"'
-                "\n"
-            )
-            f.write(f"\t-@echo ' '")
-
-        subprocess.run(
-            [
-                "make",
-                "-C",
-                args.build_dir,
-                "-f",
-                f"{manifest['base_project']}.Makefile",
-                f"-j{multiprocessing.cpu_count()}",
-                f"ARM_GCC_DIR={args.toolchain}",
-                f"POST_BUILD_EXE={args.postbuild}",
-            ],
-            check=True,
         )
 
     # Copy the final GBL
