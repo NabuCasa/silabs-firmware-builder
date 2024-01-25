@@ -1,16 +1,11 @@
-name: Silicon Labs firmware build
+name: Build firmwares
 
 on:
   push:
     paths:
       - Dockerfile
       - .github/workflows/build.yaml
-      - .github/workflows/silabs-firmware-build.yaml
-      - .github/workflows/silabs-firmware-build-zwave.yaml
-      - EmberZNet/**
-      - OpenThreadRCP/**
-      - RCPMultiPAN/**
-      - ZWave/**
+      - manifests/**/*.yaml
     branches:
       - main
     tags:
@@ -22,20 +17,24 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       packages: write
-    outputs:
-      image_name: ghcr.io/${{ steps.lower.outputs.repository_owner }}/silabs-firmware-builder:${{ hashFiles("Dockerfile") }}
     steps:
-      - name: Repository owner lowercase
-        id: lower
-        run: |
-          echo "repository_owner=$(echo $GITHUB_REPOSITORY_OWNER | tr [:upper:] [:lower:])" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v3.3.0
+      - name: Create container name
+        id: create-container-name
+        run: |
+          repository_owner=$(echo $GITHUB_REPOSITORY_OWNER | tr [:upper:] [:lower:])
+          image_name="ghcr.io/$repository_owner/silabs-firmware-builder"
+          tag_name="${{ hashFiles('Dockerfile') }}"
+
+          echo "image_name=$image_name" >> $GITHUB_OUTPUT
+          echo "tag_name=$tag_name" >> $GITHUB_OUTPUT
+          echo "container_name=$image_name:$tag_name" >> $GITHUB_OUTPUT
       - name: Log in to the GitHub container registry
         uses: docker/login-action@v2.1.0
         with:
-            registry: ghcr.io
-            username: ${{ github.repository_owner }}
-            password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2.2.1
       - name: Build and Push
@@ -43,87 +42,95 @@ jobs:
         with:
           context: .
           file: Dockerfile
-          tags: ghcr.io/${{ steps.lower.outputs.repository_owner }}/silabs-firmware-builder:${{ hashFiles("Dockerfile") }}
-          cache-from: ghcr.io/${{ steps.lower.outputs.repository_owner }}/silabs-firmware-builder:cache-${{ hashFiles("Dockerfile") }}
-          cache-to: ghcr.io/${{ steps.lower.outputs.repository_owner }}/silabs-firmware-builder:cache-${{ hashFiles("Dockerfile") }}
+          tags: ${{ steps.create-container-name.outputs.container_name }}
+          cache-from: ${{ steps.create-container-name.outputs.image_name }}:cache-${{ steps.create-container-name.outputs.tag_name }}
+          cache-to: ${{ steps.create-container-name.outputs.image_name }}:cache-${{ steps.create-container-name.outputs.tag_name }}
           push: true
+    outputs:
+      container_name: ${{ steps.create-container-name.outputs.container_name }}
 
   list-manifests:
     name: List firmware manifests
     needs: build-container
+    runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v3.3.0
       - id: set-matrix
-        run: echo "::set-output name=matrix::$(ls manifests/**/*.yaml | jq -R -s -c 'split("\n")[:-1]')"
+        run: |
+          echo "matrix=$(find manifests -type f \( -name "*.yaml" -o -name "*.yml" \) -print | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   build-firmwares:
     name: Firmware builder
+    needs: [list-manifests, build-container]
     runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.build-container.outputs.container_name }}
+      options: --user root
     strategy:
       matrix:
         manifest: ${{ fromJson(needs.list-manifests.outputs.matrix) }}
-    container:
-      options: --user root
-    defaults:
-      run:
-        shell: su --shell=/bin/bash builder {0}
     steps:
       - uses: actions/checkout@v3.3.0
 
-      - name: Read firmware manifest
-        uses: pietrobolcato/action-read-yaml@1.0.0
+      - name: Parse firmware manifest
         id: read_manifest_yaml
-        with:
-          config: ${{ matrix.manifest }}
-
-      - name: Adjust permission
-        shell: bash
-        run: chown builder .
+        run: |
+          yq -r '
+            to_entries
+            | .[]
+            | select(.value | type == "string")
+            | .key + "=" + .value
+          ' "${{ matrix.manifest }}" >> $GITHUB_OUTPUT
 
       - name: Install SDK extensions
-        shell: bash
         run: |
           # XXX: slc-cli does not actually work when the extensions aren't in the SDK!
           for sdk in /gecko_sdk_*; do
+            slc signature trust --sdk "$sdk"
+
             ln -s $PWD/gecko_sdk_extensions "$sdk"/extension
 
             for ext in "$sdk"/extension/*/; do
-              slc signature trust --extension-path="$ext"
+              slc signature trust --sdk "$sdk" --extension-path "$ext"
             done
           done
 
       - name: Build firmware
-        shell: bash
         run: |
-          filename_with_extension="${${{ matrix.manifest }}##*/}"
+          filename_with_extension=$(basename "${{ matrix.manifest }}")
           filename="${filename_with_extension%%.*}"
 
           # Pass all SDKs as consecutive `--sdk ...` arguments
           sdk_args=""
-
           for sdk_dir in /gecko_sdk*; do
-            sdk_args="$sdk_args --sdk \"$sdk_dir\""
+            sdk_args="$sdk_args --sdk $sdk_dir"
+          done
+
+          # Pass all toolchains as consecutive `--toolchain ...` arguments
+          toolchain_args=""
+          for toolchain_dir in /opt/*arm-none-eabi*; do
+            toolchain_args="$toolchain_args --toolchain $toolchain_dir"
           done
 
           # Build it
           mkdir outputs
-          python tools/generate_project.py \
-            $sdk_args
+          python3 tools/generate_project.py \
+            $sdk_args \
+            $toolchain_args \
             --manifest "${{ matrix.manifest }}" \
             --build-dir build \
-            --build-system make \
+            --build-system makefile \
             --output "gbl:outputs/$filename.gbl" \
             --output "hex:outputs/$filename.hex" \
             --output "out:outputs/$filename.out"
 
       - name: Install node within container (act)
         if: ${{ env.ACT }}
-        shell: bash
         run: |
-            curl -fsSL https://deb.nodesource.com/nsolid_setup_deb.sh | bash -s 20
-            apt-get install -y nodejs
+          curl -fsSL https://deb.nodesource.com/nsolid_setup_deb.sh | bash -s 20
+          apt-get install -y nodejs
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3

@@ -10,3 +10,4 @@ autogen/
 *.Makefile
 build/
 artifact/
+artifacts/

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import os
 import re
+import ast
 import sys
 import copy
 import json
@@ -18,6 +19,7 @@ import itertools
 import subprocess
 import multiprocessing
 
+from xml.etree import ElementTree
 from ruamel.yaml import YAML
 
 # Matches all known chip and board names. Some varied examples:
@@ -51,24 +53,26 @@ def ensure_folder(path: str | pathlib.Path) -> pathlib.Path:
     return path
 
 
-def get_toolchain_default_path() -> pathlib.Path | None:
+def get_toolchain_default_paths() -> list[pathlib.Path]:
     """Return the path to the toolchain."""
     if sys.platform == "darwin":
-        return pathlib.Path(
-            "/Applications/Simplicity Studio.app/Contents/Eclipse/developer/toolchains/gnu_arm/12.2.rel1_2023.7"
+        return list(
+            pathlib.Path(
+                "/Applications/Simplicity Studio.app/Contents/Eclipse/developer/toolchains/gnu_arm/"
+            ).glob("*")
         )
 
-    return None
+    return []
 
 
-def get_sdk_default_paths() -> list[pathlib.Path] | None:
+def get_sdk_default_paths() -> list[pathlib.Path]:
     """Return the path to the SDK."""
     if sys.platform == "darwin":
         return list(
             pathlib.Path("~/SimplicityStudio/SDKs").expanduser().glob("gecko_sdk*")
         )
 
-    return None
+    return []
 
 
 def parse_override(override: str) -> tuple[str, dict | list]:
@@ -158,15 +162,17 @@ def main():
         dest="sdks",
         type=ensure_folder,
         default=get_sdk_default_paths(),
-        required=get_sdk_default_paths() is None,
+        required=len(get_sdk_default_paths()) == 0,
         help="Path to a Gecko SDK",
     )
     parser.add_argument(
         "--toolchain",
+        action="append",
+        dest="toolchains",
         type=ensure_folder,
-        default=get_toolchain_default_path(),
-        required=get_toolchain_default_path() is None,
-        help="Path to GCC toolchain",
+        default=get_toolchain_default_paths(),
+        required=len(get_toolchain_default_paths()) == 0,
+        help="Path to a GCC toolchain",
     )
     parser.add_argument(
         "--postbuild",
@@ -189,6 +195,9 @@ def main():
     # argparse defaults should be replaced, not extended
     if args.sdks != get_sdk_default_paths():
         args.sdks = args.sdks[len(get_sdk_default_paths()) :]
+
+    if args.toolchains != get_toolchain_default_paths():
+        args.toolchains = args.toolchains[len(get_toolchain_default_paths()) :]
 
     # Template variables for C defines
     value_template_env = {
@@ -325,6 +334,41 @@ def main():
         print(f"Project SDK version {base_project['sdk']['version']} not found")
         sys.exit(1)
 
+    # Find the toolchain required by the project
+    slps_path = (args.build_dir / manifest["base_project"]).with_suffix(".slps")
+    slps_xml = ElementTree.parse(slps_path)
+    slps_toolchain_id = (
+        slps_xml.getroot()
+        .find(".//properties[@key='projectCommon.toolchainId']")
+        .attrib["value"]
+        .split(":")[-1]
+    )
+
+    # Find the correct toolchain
+    for toolchain in args.toolchains:
+        gcc_plugin_version_h = next(
+            toolchain.glob("lib/gcc/arm-none-eabi/*/plugin/include/plugin-version.h")
+        )
+        version_info = {}
+
+        for line in gcc_plugin_version_h.read_text().split("\n"):
+            # static char basever[] = "10.3.1";
+            if line.startswith("static char") and line.endswith(";"):
+                name = line.split("[]", 1)[0].split()[-1]
+                value = ast.literal_eval(line.split(" = ", 1)[1][:-1])
+                version_info[name] = value
+
+        toolchain_id = version_info["basever"] + "." + version_info["datestamp"]
+
+        print(f"Toolchain {toolchain} has version {toolchain_id}")
+
+        if toolchain_id == slps_toolchain_id:
+            print(f"Version is correct, picking {toolchain}")
+            break
+    else:
+        print(f"Project toolchain version {slps_toolchain_id} not found")
+        sys.exit(1)
+
     # Make sure all extensions are valid
     for sdk_extension in base_project.get("sdk_extension", []):
         expected_dir = sdk / f"extension/{sdk_extension['id']}_extension"
@@ -442,7 +486,7 @@ def main():
                 "-f",
                 f"{manifest['base_project']}.Makefile",
                 f"-j{multiprocessing.cpu_count()}",
-                f"ARM_GCC_DIR={args.toolchain}",
+                f"ARM_GCC_DIR={toolchain}",
                 f"POST_BUILD_EXE={args.postbuild}",
             ],
             check=True,
@@ -458,7 +502,7 @@ def main():
         for src, dst in {
             sdk: "/gecko_sdk",
             args.build_dir: "/src",
-            args.toolchain: "/toolchain",
+            toolchain: "/toolchain",
         }.items():
             assert '"' not in str(src.absolute())  # TODO: fix this
             fixed_cmake.append(f'    "-ffile-prefix-map={str(src.absolute())}={dst}"')
@@ -506,7 +550,7 @@ def main():
             cwd=cmake_build_root,
             env={
                 **os.environ,
-                "ARM_GCC_DIR": args.toolchain,
+                "ARM_GCC_DIR": toolchain,
                 "POST_BUILD_EXE": args.postbuild,
             },
             check=True,
