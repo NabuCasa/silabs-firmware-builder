@@ -84,6 +84,10 @@ jobs:
             | .key + "=" + .value
           ' "${{ matrix.manifest }}" >> $GITHUB_OUTPUT
 
+          manifest_filename=$(basename "${{ matrix.manifest }}")
+          manifest_base="${manifest_filename%%.*}"
+          echo "manifest_base=$manifest_base" >> $GITHUB_OUTPUT
+
       - name: Install SDK extensions
         run: |
           # XXX: slc-cli does not actually work when the extensions aren't in the SDK!
@@ -99,9 +103,6 @@ jobs:
 
       - name: Build firmware
         run: |
-          filename_with_extension=$(basename "${{ matrix.manifest }}")
-          filename="${filename_with_extension%%.*}"
-
           # Pass all SDKs as consecutive `--sdk ...` arguments
           sdk_args=""
           for sdk_dir in /gecko_sdk*; do
@@ -116,6 +117,8 @@ jobs:
 
           # Build it
           mkdir outputs
+          filename="${{ steps.read_manifest_yaml.outputs['manifest_base'] }}"
+
           python3 tools/generate_project.py \
             $sdk_args \
             $toolchain_args \
@@ -135,5 +138,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ steps.read_manifest_yaml.outputs['name'] }}
+          name: ${{ steps.read_manifest_yaml.outputs['manifest_base'] }}
           path: outputs/*
