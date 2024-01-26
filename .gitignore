@@ -11,3 +11,4 @@ autogen/
 build/
 artifact/
 artifacts/
+trashed_modified_files/
