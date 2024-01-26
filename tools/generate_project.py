@@ -16,6 +16,7 @@ import logging
 import pathlib
 import argparse
 import itertools
+import contextlib
 import subprocess
 import multiprocessing
 
@@ -145,6 +146,13 @@ def main():
         help="Output file prefixed with its file type",
     )
     parser.add_argument(
+        "--no-clean-build-dir",
+        action="store_false",
+        dest="clean_build_dir",
+        default=True,
+        help="Do not clean the build directory",
+    )
+    parser.add_argument(
         "--build-dir",
         type=pathlib.Path,
         required=True,
@@ -256,6 +264,10 @@ def main():
                 output_config.append({"name": name, "value": value})
 
     # Copy the base project into the output directory
+    if args.clean_build_dir:
+        with contextlib.suppress(OSError):
+            shutil.rmtree(args.build_dir)
+
     args.build_dir.mkdir(exist_ok=True)
 
     shutil.copytree(
@@ -576,6 +588,10 @@ def main():
             src=output_artifact.with_suffix(f".{extension}"),
             dst=path,
         )
+
+    if args.clean_build_dir:
+        with contextlib.suppress(OSError):
+            shutil.rmtree(args.build_dir)
 
 
 if __name__ == "__main__":
