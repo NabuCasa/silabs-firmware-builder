@@ -1,6 +1,6 @@
 name: SkyConnect Multi-PAN
 device: EFR32MG21A020F512IM32
-base_project: rcp-uart-802154
+base_project: src/rcp-uart-802154
 
 gbl:
   fw_type: rcp-uart-802154

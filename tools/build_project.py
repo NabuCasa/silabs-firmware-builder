@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tool to create a SLCP project in a Simplicity Studio build directory."""
+"""Tool to retarget and build a SLCP project based on a manifest."""
 
 from __future__ import annotations
 

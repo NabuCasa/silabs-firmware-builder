@@ -1,6 +1,6 @@
 name: Yellow Zigbee
 device: MGM210PA32JIA
-base_project: ncp-uart-hw
+base_project: src/ncp-uart-hw
 
 gbl:
   fw_type: ncp-uart-hw
