@@ -119,7 +119,7 @@ jobs:
           mkdir outputs
           filename="${{ steps.read_manifest_yaml.outputs['manifest_base'] }}"
 
-          python3 tools/generate_project.py \
+          python3 tools/build_project.py \
             $sdk_args \
             $toolchain_args \
             --manifest "${{ matrix.manifest }}" \
