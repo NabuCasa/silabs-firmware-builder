@@ -1,0 +1,209 @@
+diff --git a/protocol/openthread/platform-abstraction/efr32/misc.c b/protocol/openthread/platform-abstraction/efr32/misc.c
+index 2ed83555c..66fc00370 100644
+--- a/protocol/openthread/platform-abstraction/efr32/misc.c
++++ b/protocol/openthread/platform-abstraction/efr32/misc.c
+@@ -36,6 +36,10 @@
+ #include "em_rmu.h"
+ #include "platform-efr32.h"
+ 
++#ifdef SL_CATALOG_GECKO_BOOTLOADER_INTERFACE_PRESENT
++#include "btl_interface.h"
++#endif // SL_CATALOG_GECKO_BOOTLOADER_INTERFACE_PRESENT
++
+ static uint32_t sResetCause;
+ 
+ void efr32MiscInit(void)
+@@ -53,6 +57,26 @@ void otPlatReset(otInstance *aInstance)
+     NVIC_SystemReset();
+ }
+ 
++void otPlatRebootBootloader(otInstance *aInstance)
++{
++    OT_UNUSED_VARIABLE(aInstance);
++
++#if defined(SL_CATALOG_GECKO_BOOTLOADER_INTERFACE_PRESENT)
++    BootloaderResetCause_t* resetCause = (BootloaderResetCause_t*) (RAM_MEM_BASE);
++    resetCause->reason = BOOTLOADER_RESET_REASON_BOOTLOAD;
++    resetCause->signature = BOOTLOADER_RESET_SIGNATURE_VALID;
++#endif
++
++#if defined(RMU_PRESENT)
++    // Clear resetcause
++    RMU->CMD = RMU_CMD_RCCLR;
++    // Trigger a software system reset
++    RMU->CTRL = (RMU->CTRL & ~_RMU_CTRL_SYSRMODE_MASK) | RMU_CTRL_SYSRMODE_EXTENDED;
++#endif
++
++    NVIC_SystemReset();
++}
++
+ otPlatResetReason otPlatGetResetReason(otInstance *aInstance)
+ {
+     OT_UNUSED_VARIABLE(aInstance);
+diff --git a/util/third_party/openthread/include/openthread/instance.h b/util/third_party/openthread/include/openthread/instance.h
+index a92a6b532..623ea566f 100644
+--- a/util/third_party/openthread/include/openthread/instance.h
++++ b/util/third_party/openthread/include/openthread/instance.h
+@@ -255,6 +255,14 @@ void otRemoveStateChangeCallback(otInstance *aInstance, otStateChangedCallback a
+  */
+ void otInstanceReset(otInstance *aInstance);
+ 
++/**
++ * This method reboots the platform into its bootloader.
++ *
++ * @param[in]  aInstance  A pointer to an OpenThread instance.
++ *
++ */
++void otInstanceRebootBootloader(otInstance *aInstance);
++
+ /**
+  * Deletes all the settings stored on non-volatile memory, and then triggers a platform reset.
+  *
+diff --git a/util/third_party/openthread/include/openthread/platform/misc.h b/util/third_party/openthread/include/openthread/platform/misc.h
+index 7fbee54b1..928ba1017 100644
+--- a/util/third_party/openthread/include/openthread/platform/misc.h
++++ b/util/third_party/openthread/include/openthread/platform/misc.h
+@@ -61,6 +61,14 @@ extern "C" {
+  */
+ void otPlatReset(otInstance *aInstance);
+ 
++/**
++ * This function reboots the platform into its bootloader, if supported.
++ *
++ * @param[in] aInstance  The OpenThread instance structure.
++ *
++ */
++void otPlatRebootBootloader(otInstance *aInstance);
++
+ /**
+  * Enumeration of possible reset reason codes.
+  *
+diff --git a/util/third_party/openthread/src/core/api/instance_api.cpp b/util/third_party/openthread/src/core/api/instance_api.cpp
+index ad2a89e16..ae2e05f44 100644
+--- a/util/third_party/openthread/src/core/api/instance_api.cpp
++++ b/util/third_party/openthread/src/core/api/instance_api.cpp
+@@ -114,6 +114,7 @@ otError otInstanceErasePersistentInfo(otInstance *aInstance) { return AsCoreType
+ #endif // OPENTHREAD_MTD || OPENTHREAD_FTD
+ 
+ #if OPENTHREAD_RADIO
++void otInstanceRebootBootloader(otInstance *aInstance) { AsCoreType(aInstance).RebootBootloader(); }
+ void otInstanceResetRadioStack(otInstance *aInstance) { AsCoreType(aInstance).ResetRadioStack(); }
+ #endif
+ 
+diff --git a/util/third_party/openthread/src/core/common/instance.cpp b/util/third_party/openthread/src/core/common/instance.cpp
+index 10d545d66..5fbdd85ed 100644
+--- a/util/third_party/openthread/src/core/common/instance.cpp
++++ b/util/third_party/openthread/src/core/common/instance.cpp
+@@ -310,12 +310,21 @@ exit:
+ void Instance::Reset(void) { otPlatReset(this); }
+ 
+ #if OPENTHREAD_RADIO
++void Instance::RebootBootloader(void)
++{
++#if OPENTHREAD_CONFIG_NCP_REBOOT_BOOTLOADER_ENABLE
++    otPlatRebootBootloader(this);
++#else
++    Reset();
++#endif
++}
++
+ void Instance::ResetRadioStack(void)
+ {
+     mRadio.Init();
+     mLinkRaw.Init();
+ }
+-#endif
++#endif // OPENTHREAD_RADIO
+ 
+ void Instance::AfterInit(void)
+ {
+diff --git a/util/third_party/openthread/src/core/common/instance.hpp b/util/third_party/openthread/src/core/common/instance.hpp
+index 0a262bab0..83047afba 100644
+--- a/util/third_party/openthread/src/core/common/instance.hpp
++++ b/util/third_party/openthread/src/core/common/instance.hpp
+@@ -236,6 +236,12 @@ public:
+     void Reset(void);
+ 
+ #if OPENTHREAD_RADIO
++    /**
++     * This method reboots the radio into its bootloader.
++     *
++     */
++    void RebootBootloader(void);
++
+     /**
+      * Resets the internal states of the radio.
+      *
+diff --git a/util/third_party/openthread/src/lib/spinel/radio_spinel.hpp b/util/third_party/openthread/src/lib/spinel/radio_spinel.hpp
+index 5068e4b79..16be814dd 100644
+--- a/util/third_party/openthread/src/lib/spinel/radio_spinel.hpp
++++ b/util/third_party/openthread/src/lib/spinel/radio_spinel.hpp
+@@ -872,7 +872,7 @@ public:
+     /**
+      * Tries to reset the co-processor.
+      *
+-     * @prarm[in] aResetType    The reset type, SPINEL_RESET_PLATFORM or SPINEL_RESET_STACK.
++     * @prarm[in] aResetType    The reset type, SPINEL_RESET_PLATFORM, SPINEL_RESET_STACK, or SPINEL_RESET_BOOTLOADER.
+      *
+      * @retval  OT_ERROR_NONE               Successfully removed item from the property.
+      * @retval  OT_ERROR_BUSY               Failed due to another operation is on going.
+diff --git a/util/third_party/openthread/src/lib/spinel/spinel.h b/util/third_party/openthread/src/lib/spinel/spinel.h
+index 9cd9b87a1..6b4e4ddf0 100644
+--- a/util/third_party/openthread/src/lib/spinel/spinel.h
++++ b/util/third_party/openthread/src/lib/spinel/spinel.h
+@@ -898,8 +898,9 @@ enum
+ 
+ enum
+ {
+-    SPINEL_RESET_PLATFORM = 1,
+-    SPINEL_RESET_STACK    = 2,
++    SPINEL_RESET_PLATFORM   = 1,
++    SPINEL_RESET_STACK      = 2,
++    SPINEL_RESET_BOOTLOADER = 3,
+ };
+ 
+ enum
+diff --git a/util/third_party/openthread/src/ncp/ncp_base.cpp b/util/third_party/openthread/src/ncp/ncp_base.cpp
+index 012ed9798..5bdb66375 100644
+--- a/util/third_party/openthread/src/ncp/ncp_base.cpp
++++ b/util/third_party/openthread/src/ncp/ncp_base.cpp
+@@ -1370,9 +1370,20 @@ otError NcpBase::CommandHandler_RESET(uint8_t aHeader)
+     else
+ #endif
+     {
+-        // Signal a platform reset. If implemented, this function
+-        // shouldn't return.
+-        otInstanceReset(mInstance);
++#if OPENTHREAD_RADIO
++        if (reset_type == SPINEL_RESET_BOOTLOADER)
++        {
++            // Reboot into the bootloader. If implemented, this function
++            // shouldn't return.
++            otInstanceRebootBootloader(mInstance);
++        }
++        else
++#endif
++        {
++            // Signal a platform reset. If implemented, this function
++            // shouldn't return.
++            otInstanceReset(mInstance);
++        }
+ 
+ #if OPENTHREAD_MTD || OPENTHREAD_FTD
+         // We only get to this point if the
+diff --git a/util/third_party/openthread/src/ncp/ncp_config.h b/util/third_party/openthread/src/ncp/ncp_config.h
+index bc54fb52a..bb11d5b33 100644
+--- a/util/third_party/openthread/src/ncp/ncp_config.h
++++ b/util/third_party/openthread/src/ncp/ncp_config.h
+@@ -189,4 +189,11 @@
+ #define OPENTHREAD_ENABLE_NCP_VENDOR_HOOK 0
+ #endif
+ 
++/**
++ * @def OPENTHREAD_CONFIG_NCP_REBOOT_BOOTLOADER_ENABLE
++ */
++#ifndef OPENTHREAD_CONFIG_NCP_REBOOT_BOOTLOADER_ENABLE
++#define OPENTHREAD_CONFIG_NCP_REBOOT_BOOTLOADER_ENABLE 0
++#endif
++
+ #endif // CONFIG_NCP_H_

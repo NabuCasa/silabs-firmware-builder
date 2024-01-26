@@ -36,6 +36,10 @@
 #include "em_rmu.h"
 #include "platform-efr32.h"
 
+#ifdef SL_CATALOG_GECKO_BOOTLOADER_INTERFACE_PRESENT
+#include "btl_interface.h"
+#endif // SL_CATALOG_GECKO_BOOTLOADER_INTERFACE_PRESENT
+
 static uint32_t sResetCause;
 
 void efr32MiscInit(void)
@@ -50,6 +54,26 @@ void efr32MiscInit(void)
 void otPlatReset(otInstance *aInstance)
 {
     OT_UNUSED_VARIABLE(aInstance);
+    NVIC_SystemReset();
+}
+
+void otPlatRebootBootloader(otInstance *aInstance)
+{
+    OT_UNUSED_VARIABLE(aInstance);
+
+#if defined(SL_CATALOG_GECKO_BOOTLOADER_INTERFACE_PRESENT)
+    BootloaderResetCause_t* resetCause = (BootloaderResetCause_t*) (RAM_MEM_BASE);
+    resetCause->reason = BOOTLOADER_RESET_REASON_BOOTLOAD;
+    resetCause->signature = BOOTLOADER_RESET_SIGNATURE_VALID;
+#endif
+
+#if defined(RMU_PRESENT)
+    // Clear resetcause
+    RMU->CMD = RMU_CMD_RCCLR;
+    // Trigger a software system reset
+    RMU->CTRL = (RMU->CTRL & ~_RMU_CTRL_SYSRMODE_MASK) | RMU_CTRL_SYSRMODE_EXTENDED;
+#endif
+
     NVIC_SystemReset();
 }
 

@@ -114,6 +114,7 @@ otError otInstanceErasePersistentInfo(otInstance *aInstance) { return AsCoreType
 #endif // OPENTHREAD_MTD || OPENTHREAD_FTD
 
 #if OPENTHREAD_RADIO
+void otInstanceRebootBootloader(otInstance *aInstance) { AsCoreType(aInstance).RebootBootloader(); }
 void otInstanceResetRadioStack(otInstance *aInstance) { AsCoreType(aInstance).ResetRadioStack(); }
 #endif
 

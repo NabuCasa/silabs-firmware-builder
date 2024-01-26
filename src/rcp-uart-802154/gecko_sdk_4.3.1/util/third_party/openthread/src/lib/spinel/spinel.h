@@ -898,8 +898,9 @@ enum
 
 enum
 {
-    SPINEL_RESET_PLATFORM = 1,
-    SPINEL_RESET_STACK    = 2,
+    SPINEL_RESET_PLATFORM   = 1,
+    SPINEL_RESET_STACK      = 2,
+    SPINEL_RESET_BOOTLOADER = 3,
 };
 
 enum

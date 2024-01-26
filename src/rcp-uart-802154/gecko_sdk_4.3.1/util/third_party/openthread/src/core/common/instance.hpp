@@ -237,6 +237,12 @@ public:
 
 #if OPENTHREAD_RADIO
     /**
+     * This method reboots the radio into its bootloader.
+     *
+     */
+    void RebootBootloader(void);
+
+    /**
      * Resets the internal states of the radio.
      *
      */

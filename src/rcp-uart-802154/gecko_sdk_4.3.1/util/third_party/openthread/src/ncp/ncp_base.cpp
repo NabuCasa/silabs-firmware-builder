@@ -1370,9 +1370,20 @@ otError NcpBase::CommandHandler_RESET(uint8_t aHeader)
     else
 #endif
     {
-        // Signal a platform reset. If implemented, this function
-        // shouldn't return.
-        otInstanceReset(mInstance);
+#if OPENTHREAD_RADIO
+        if (reset_type == SPINEL_RESET_BOOTLOADER)
+        {
+            // Reboot into the bootloader. If implemented, this function
+            // shouldn't return.
+            otInstanceRebootBootloader(mInstance);
+        }
+        else
+#endif
+        {
+            // Signal a platform reset. If implemented, this function
+            // shouldn't return.
+            otInstanceReset(mInstance);
+        }
 
 #if OPENTHREAD_MTD || OPENTHREAD_FTD
         // We only get to this point if the

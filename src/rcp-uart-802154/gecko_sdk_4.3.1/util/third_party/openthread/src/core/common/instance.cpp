@@ -310,12 +310,21 @@ exit:
 void Instance::Reset(void) { otPlatReset(this); }
 
 #if OPENTHREAD_RADIO
+void Instance::RebootBootloader(void)
+{
+#if OPENTHREAD_CONFIG_NCP_REBOOT_BOOTLOADER_ENABLE
+    otPlatRebootBootloader(this);
+#else
+    Reset();
+#endif
+}
+
 void Instance::ResetRadioStack(void)
 {
     mRadio.Init();
     mLinkRaw.Init();
 }
-#endif
+#endif // OPENTHREAD_RADIO
 
 void Instance::AfterInit(void)
 {

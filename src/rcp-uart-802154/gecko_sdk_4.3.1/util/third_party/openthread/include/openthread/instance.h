@@ -256,6 +256,14 @@ void otRemoveStateChangeCallback(otInstance *aInstance, otStateChangedCallback a
 void otInstanceReset(otInstance *aInstance);
 
 /**
+ * This method reboots the platform into its bootloader.
+ *
+ * @param[in]  aInstance  A pointer to an OpenThread instance.
+ *
+ */
+void otInstanceRebootBootloader(otInstance *aInstance);
+
+/**
  * Deletes all the settings stored on non-volatile memory, and then triggers a platform reset.
  *
  * @param[in]  aInstance  A pointer to an OpenThread instance.
