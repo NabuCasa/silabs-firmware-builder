@@ -223,6 +223,7 @@ def main():
     assert base_project_path.is_relative_to(projects_root)
     (base_project_slcp,) = base_project_path.glob("*.slcp")
     base_project = yaml.load(base_project_slcp.read_text())
+    base_project_name = base_project_path.stem
 
     output_project = copy.deepcopy(base_project)
 
@@ -308,7 +309,7 @@ def main():
             pass
 
     # Write the new project SLCP file
-    with (args.build_dir / f"{manifest['base_project']}.slcp").open("w") as f:
+    with (args.build_dir / f"{base_project_name}.slcp").open("w") as f:
         yaml.dump(output_project, f)
 
     # Create a GBL metadata file
@@ -317,7 +318,7 @@ def main():
 
     # Generate a build directory
     args.build_dir = args.build_dir
-    cmake_build_root = args.build_dir / f"{manifest['base_project']}_cmake"
+    cmake_build_root = args.build_dir / f"{base_project_name}_cmake"
     shutil.rmtree(cmake_build_root, ignore_errors=True)
 
     # On macOS `slc` doesn't execute properly
@@ -347,7 +348,7 @@ def main():
         sys.exit(1)
 
     # Find the toolchain required by the project
-    slps_path = (args.build_dir / manifest["base_project"]).with_suffix(".slps")
+    slps_path = (args.build_dir / base_project_name).with_suffix(".slps")
     slps_xml = ElementTree.parse(slps_path)
     slps_toolchain_id = (
         slps_xml.getroot()
@@ -394,7 +395,7 @@ def main():
             slc,
             "generate",
             "--project-file",
-            (args.build_dir / f"{manifest['base_project']}.slcp").resolve(),
+            (args.build_dir / f"{base_project_name}.slcp").resolve(),
             "--export-destination",
             args.build_dir.resolve(),
             "--sdk",
@@ -474,16 +475,16 @@ def main():
 
     if args.build_system == "makefile":
         output_artifact = (
-            args.build_dir / "build/debug" / manifest["base_project"]
+            args.build_dir / "build/debug" / base_project_name
         ).with_suffix(".gbl")
 
         # Inject a postbuild step into the makefile
-        with (args.build_dir / f"{manifest['base_project']}.Makefile").open("a") as f:
+        with (args.build_dir / f"{base_project_name}.Makefile").open("a") as f:
             f.write("\n")
             f.write("post-build:\n")
             f.write(
                 f"\t-{args.postbuild}"
-                f' postbuild "{(args.build_dir / manifest["base_project"]).resolve()}.slpb"'
+                f' postbuild "{(args.build_dir / base_project_name).resolve()}.slpb"'
                 f' --parameter build_dir:"{output_artifact.parent.resolve()}"'
                 f' --parameter sdk_dir:"{sdk}"'
                 "\n"
@@ -496,7 +497,7 @@ def main():
                 "-C",
                 args.build_dir,
                 "-f",
-                f"{manifest['base_project']}.Makefile",
+                f"{base_project_name}.Makefile",
                 f"-j{multiprocessing.cpu_count()}",
                 f"ARM_GCC_DIR={toolchain}",
                 f"POST_BUILD_EXE={args.postbuild}",
@@ -504,8 +505,8 @@ def main():
             check=True,
         )
     elif args.build_system == "cmake":
-        cmake_build_root = args.build_dir / f"{manifest['base_project']}_cmake"
-        cmake_config = cmake_build_root / f"{manifest['base_project']}.cmake"
+        cmake_build_root = args.build_dir / f"{base_project_name}_cmake"
+        cmake_config = cmake_build_root / f"{base_project_name}.cmake"
         fixed_cmake = []
 
         # Strip all compile-time absolute paths
@@ -542,7 +543,7 @@ def main():
                 s37_line,
                 (
                     f"    COMMAND {args.postbuild} postbuild"
-                    f' "{(args.build_dir / manifest["base_project"]).resolve()}.slpb"'
+                    f' "{(args.build_dir / base_project_name).resolve()}.slpb"'
                     f" --parameter build_dir:{s37_build_folder}"
                     f' --parameter sdk_dir:"{sdk}"\n'
                 )
@@ -578,9 +579,7 @@ def main():
             check=True,
         )
 
-        output_artifact = (cmake_build_root / manifest["base_project"]).with_suffix(
-            ".gbl"
-        )
+        output_artifact = (cmake_build_root / base_project_name).with_suffix(".gbl")
 
     # Copy the output artifacts
     for extension, path in args.outputs:
