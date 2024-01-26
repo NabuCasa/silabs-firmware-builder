@@ -1,6 +1,6 @@
 name: SkyConnect OpenThread RCP
 device: EFR32MG21A020F512IM32
-base_project: ot-rcp
+base_project: src/ot-rcp
 
 gbl:
   fw_type: ot-rcp

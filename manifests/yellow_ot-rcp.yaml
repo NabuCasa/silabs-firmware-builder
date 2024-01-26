@@ -1,6 +1,6 @@
 name: Yellow OpenThread RCP
 device: MGM210PA32JIA
-base_project: ot-rcp
+base_project: src/ot-rcp
 
 gbl:
   fw_type: ot-rcp

@@ -16,6 +16,7 @@ RUN \
        default-jre-headless \
        patch \
        python3 \
+       python3-ruamel.yaml \
        unzip \
        xz-utils
 
@@ -38,22 +39,27 @@ RUN \
 
 ENV PATH="$PATH:/opt/slc_cli"
 
-ARG GCC_ARM_VERSION="12.2.rel1"
-
-# Install ARM GCC embedded toolchain
+# GCC Embedded Toolchain 12.2.rel1 (for Gecko SDK 4.4.0+)
 RUN \
-    curl -O https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/${GCC_ARM_VERSION}/binrel/arm-gnu-toolchain-${GCC_ARM_VERSION}-x86_64-arm-none-eabi.tar.xz \
-    && tar -C /opt -xJf arm-gnu-toolchain-${GCC_ARM_VERSION}-x86_64-arm-none-eabi.tar.xz \
-    && rm arm-gnu-toolchain-${GCC_ARM_VERSION}-x86_64-arm-none-eabi.tar.xz
+    curl -O https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-x86_64-arm-none-eabi.tar.xz \
+    && tar -C /opt -xf arm-gnu-toolchain-12.2.rel1-x86_64-arm-none-eabi.tar.xz \
+    && rm arm-gnu-toolchain-12.2.rel1-x86_64-arm-none-eabi.tar.xz
 
-ENV PATH="$PATH:/opt/arm-gnu-toolchain-${GCC_ARM_VERSION}-x86_64-arm-none-eabi/bin"
-
-ARG GECKO_SDK_VERSION="v4.4.0"
-
+# GCC Embedded Toolchain 10.3-2021.10 (for earlier Gecko SDKs)
 RUN \
-    git clone --depth 1 -b ${GECKO_SDK_VERSION} \
-       https://github.com/SiliconLabs/gecko_sdk.git \
-    && rm -rf gecko_sdk/.git
+    curl -O https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2 \
+    && tar -C /opt -xf gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2 \
+    && rm gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2
+
+# Gecko SDK 4.4.0
+RUN \
+    git clone --depth 1 -b v4.4.0 https://github.com/SiliconLabs/gecko_sdk.git gecko_sdk_4.4.0 \
+    && rm -rf gecko_sdk_4.4.0/.git
+
+# Gecko SDK 4.3.1
+RUN \
+    git clone --depth 1 -b v4.3.1 https://github.com/SiliconLabs/gecko_sdk.git gecko_sdk_4.3.1 \
+    && rm -rf gecko_sdk_4.3.1/.git
 
 ARG USERNAME=builder
 ARG USER_UID=1000
@@ -65,11 +71,3 @@ RUN groupadd --gid $USER_GID $USERNAME \
 
 USER $USERNAME
 WORKDIR /build
-
-RUN \
-    slc configuration \
-           --sdk="/gecko_sdk/" \
-    && slc signature trust --sdk "/gecko_sdk/" \
-    && slc configuration \
-           --gcc-toolchain="/opt/arm-gnu-toolchain-${GCC_ARM_VERSION}-x86_64-arm-none-eabi/"
-

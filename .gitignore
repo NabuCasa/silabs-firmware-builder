@@ -1,8 +1,7 @@
 .DS_Store
 .pdm/
 .uceditor/
-GNU ARM v12.2.1*/
-GNU ARM v10.3.1*/
+GNU ARM v*/
 autogen/
 .project
 .settings/
@@ -11,3 +10,5 @@ autogen/
 *.Makefile
 build/
 artifact/
+artifacts/
+trashed_modified_files/

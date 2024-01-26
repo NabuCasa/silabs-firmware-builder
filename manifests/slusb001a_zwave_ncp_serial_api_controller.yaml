@@ -1,6 +1,6 @@
 name: Silicon Labs UZB-7 (SLUSB001A), +14 dBm, with SAW filters
 device: EFR32ZG14P231F256GM32
-base_project: zwave_ncp_serial_api_controller
+base_project: src/zwave_ncp_serial_api_controller
 
 gbl:
   fw_type: z-wave

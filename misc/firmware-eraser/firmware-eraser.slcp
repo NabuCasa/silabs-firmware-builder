@@ -1,0 +1,41 @@
+# Silicon Labs Project Configuration Tools: slcp, v0, Component selection file.
+project_name: firmware-eraser
+label: firmware-eraser
+description: |
+  This example project shows an empty configuration that can be used as a starting point to add components and functionality.
+category: Example|Platform
+filter:
+- name: Device Type
+  value: [SoC]
+- name: MCU
+  value: [32-bit MCU]
+- name: Project Difficulty
+  value: [Beginner]
+package: platform
+quality: production
+readme:
+- {path: readme.md}
+source:
+- {path: app.cpp}
+- {path: main.cpp}
+include:
+- path: ''
+  file_list:
+  - {path: app.h}
+sdk: {id: gecko_sdk, version: 4.4.0}
+toolchain_settings: []
+component:
+- {id: sl_system}
+- {id: brd4001a}
+- {id: bootloader_app_properties}
+- {id: cpp_support}
+- {id: device_init}
+- {id: brd4179b}
+- {id: bootloader_interface}
+- {id: EFR32MG21A010F1024IM32}
+define:
+- {name: DEBUG_EFM}
+ui_hints:
+  highlight:
+  - {path: readme.md, focus: true}
+

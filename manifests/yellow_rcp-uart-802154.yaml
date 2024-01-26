@@ -1,6 +1,6 @@
 name: Yellow Multi-PAN
 device: MGM210PA32JIA
-base_project: rcp-uart-802154
+base_project: src/rcp-uart-802154
 
 gbl:
   fw_type: rcp-uart-802154

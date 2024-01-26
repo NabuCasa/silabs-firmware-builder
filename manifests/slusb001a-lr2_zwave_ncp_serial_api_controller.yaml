@@ -1,6 +1,6 @@
 name: ???
 device: ZGM130S037HGN
-base_project: zwave_ncp_serial_api_controller
+base_project: src/zwave_ncp_serial_api_controller
 
 gbl:
   fw_type: z-wave
