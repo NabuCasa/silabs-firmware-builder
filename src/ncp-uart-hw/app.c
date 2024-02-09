@@ -61,7 +61,7 @@ EmberPacketAction emberAfIncomingPacketFilterCallback(EmberZigbeePacketType pack
                                                       uint8_t* size_p,
                                                       void* data)
 {
-  if ((packetType == EMBER_ZIGBEE_PACKET_TYPE_APS_COMMAND) && (*size_p >= 3)) {
+  if ((packetType == EMBER_ZIGBEE_PACKET_TYPE_APS_DATA) && (*size_p >= 3)) {
     uint8_t deliveryMode = (packetData[0] & 0b00001100) >> 2;
 
     // Ensure we automatically "join" every multicast group
