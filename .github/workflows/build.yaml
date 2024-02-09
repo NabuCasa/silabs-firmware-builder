@@ -1,23 +1,15 @@
-name: Silicon Labs firmware build
+name: Build firmwares
 
 on:
   push:
     paths:
       - Dockerfile
       - .github/workflows/build.yaml
-      - .github/workflows/silabs-firmware-build.yaml
-      - .github/workflows/silabs-firmware-build-zwave.yaml
-      - EmberZNet/**
-      - OpenThreadRCP/**
-      - RCPMultiPAN/**
-      - ZWave/**
+      - manifests/**/*.yaml
     branches:
       - main
     tags:
       - '*'
-
-env:
-  sdk_version: 4.4.0
 
 jobs:
   build-container:
@@ -25,21 +17,24 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       packages: write
-    outputs:
-      sdk_version: ${{ env.sdk_version }}
-      image_name: ghcr.io/${{ steps.lower.outputs.repository_owner }}/silabs-firmware-builder:${{ env.sdk_version }}
     steps:
-      - name: Repository owner lowercase
-        id: lower
-        run: |
-          echo "repository_owner=$(echo $GITHUB_REPOSITORY_OWNER | tr [:upper:] [:lower:])" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v3.3.0
+      - name: Create container name
+        id: create-container-name
+        run: |
+          repository_owner=$(echo $GITHUB_REPOSITORY_OWNER | tr [:upper:] [:lower:])
+          image_name="ghcr.io/$repository_owner/silabs-firmware-builder"
+          tag_name="${{ hashFiles('Dockerfile') }}"
+
+          echo "image_name=$image_name" >> $GITHUB_OUTPUT
+          echo "tag_name=$tag_name" >> $GITHUB_OUTPUT
+          echo "container_name=$image_name:$tag_name" >> $GITHUB_OUTPUT
       - name: Log in to the GitHub container registry
         uses: docker/login-action@v2.1.0
         with:
-            registry: ghcr.io
-            username: ${{ github.repository_owner }}
-            password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2.2.1
       - name: Build and Push
@@ -47,160 +42,101 @@ jobs:
         with:
           context: .
           file: Dockerfile
-          tags: ghcr.io/${{ steps.lower.outputs.repository_owner }}/silabs-firmware-builder:${{ env.sdk_version }}
-          cache-from: ghcr.io/${{ steps.lower.outputs.repository_owner }}/silabs-firmware-builder:cache-${{ env.sdk_version }}
-          cache-to: ghcr.io/${{ steps.lower.outputs.repository_owner }}/silabs-firmware-builder:cache-${{ env.sdk_version }}
+          tags: ${{ steps.create-container-name.outputs.container_name }}
+          cache-from: ${{ steps.create-container-name.outputs.image_name }}:cache-${{ steps.create-container-name.outputs.tag_name }}
+          cache-to: ${{ steps.create-container-name.outputs.image_name }}:cache-${{ steps.create-container-name.outputs.tag_name }}
           push: true
-          build-args:
-            "GECKO_SDK_VERSION=v${{ env.sdk_version }}"
+    outputs:
+      container_name: ${{ steps.create-container-name.outputs.container_name }}
 
-  ezsp-firmware-build:
-    name: EmberZNet NCP
+  list-manifests:
+    name: List firmware manifests
     needs: build-container
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v3.3.0
+      - id: set-matrix
+        run: |
+          echo "matrix=$(find manifests -type f \( -name "*.yaml" -o -name "*.yml" \) -print | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+
+  build-firmwares:
+    name: Firmware builder
+    needs: [list-manifests, build-container]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.build-container.outputs.container_name }}
+      options: --user root
     strategy:
       matrix:
-        include:
-          - target: yellow
-            device: MGM210PA32JIA
-            components: simple_led:board_activity,zigbee_token_interface,zigbee_mfglib
-            patchpath: "EmberZNet/Yellow"
-          - target: skyconnect
-            device: EFR32MG21A020F512IM32
-            components: zigbee_token_interface,zigbee_mfglib
-            patchpath: "EmberZNet/SkyConnect"
-    uses: ./.github/workflows/silabs-firmware-build.yaml
-    with:
-      image_name: ${{ needs.build-container.outputs.image_name }}
-      firmware_name: ncp-uart-hw-${{ matrix.target }}
-      project_file: "/gecko_sdk/protocol/zigbee/app/ncp/sample-app/ncp-uart-hw/ncp-uart-hw.slcp"
-      project_name: "ncp-uart-hw"
-      device: ${{ matrix.device }}
-      components: ${{ matrix.components }}
-      configuration:  |
-        SL_IOSTREAM_USART_VCOM_RX_BUFFER_SIZE:64,
-        EMBER_APS_UNICAST_MESSAGE_COUNT:20,
-        EMBER_NEIGHBOR_TABLE_SIZE:26,
-        EMBER_SOURCE_ROUTE_TABLE_SIZE:200,
-      patchpath: ${{ matrix.patchpath }}
-      extra_c_defs: "'-DEMBER_ADDRESS_TABLE_SIZE=16' '-DEMBER_MULTICAST_TABLE_SIZE=16'"
-      sdk_version: ${{ needs.build-container.outputs.sdk_version }}
-      metadata_fw_type: "ncp-uart-hw"
-      baudrate: 115200
-      metadata_extra: "{ \"ezsp_version\": \"7.4.0.0\" }"
+        manifest: ${{ fromJson(needs.list-manifests.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v3.3.0
 
-  rcp-multi-pan-firmware-build:
-    name: RCP Multi-PAN
-    needs: build-container
-    strategy:
-      matrix:
-        include:
-          - target: yellow
-            device: MGM210PA32JIA
-            components: simple_led:board_activity,cpc_security_secondary_none,zigbee_mfglib
-            without_components: ot_rcp_gp_interface
-            patchpath: "RCPMultiPAN/Yellow"
-            slcp_yaml_changes: >
-              . += {"sdk_extension": [{"id": "nc_efr32_watchdog", version: "1.0.0"}]}
-              | .component += [{"from": "nc_efr32_watchdog", "id": "nc_efr32_watchdog"}]
-          - target: skyconnect
-            device: EFR32MG21A020F512IM32
-            components: cpc_security_secondary_none,zigbee_mfglib
-            without_components: ot_rcp_gp_interface
-            patchpath: "RCPMultiPAN/SkyConnect"
-            slcp_yaml_changes: >
-              . += {"sdk_extension": [{"id": "nc_efr32_watchdog", version: "1.0.0"}]}
-              | .component += [{"from": "nc_efr32_watchdog", "id": "nc_efr32_watchdog"}]
-    uses: ./.github/workflows/silabs-firmware-build.yaml
-    with:
-      image_name: ${{ needs.build-container.outputs.image_name }}
-      firmware_name: rcp-uart-802154-${{ matrix.target }}
-      project_file: "/gecko_sdk/protocol/openthread/sample-apps/ot-ncp/rcp-uart-802154.slcp"
-      project_name: "rcp-uart-802154"
-      device: ${{ matrix.device }}
-      components: ${{ matrix.components }}
-      without_components: ${{ matrix.without_components }}
-      patchpath: ${{ matrix.patchpath }}
-      slcp_yaml_changes: ${{ matrix.slcp_yaml_changes }}
-      sdk_version: ${{ needs.build-container.outputs.sdk_version }}
-      metadata_fw_type: "rcp-uart-802154"
-      baudrate: 460800
+      - name: Parse firmware manifest
+        id: read_manifest_yaml
+        run: |
+          yq -r '
+            to_entries
+            | .[]
+            | select(.value | type == "string")
+            | .key + "=" + .value
+          ' "${{ matrix.manifest }}" >> $GITHUB_OUTPUT
 
-  ot-rcp-firmware-build:
-    name: OpenThread RCP
-    needs: build-container
-    strategy:
-      matrix:
-        include:
-          - target: yellow
-            device: MGM210PA32JIA
-            components: simple_led:board_activity,bootloader_interface
-            patchpath: "OpenThreadRCP/Yellow"
-          - target: skyconnect
-            device: EFR32MG21A020F512IM32
-            components: bootloader_interface
-            patchpath: "OpenThreadRCP/SkyConnect"
-    uses: ./.github/workflows/silabs-firmware-build.yaml
-    with:
-      image_name: ${{ needs.build-container.outputs.image_name }}
-      firmware_name: ot-rcp-${{ matrix.target }}
-      project_file: "/gecko_sdk/protocol/openthread/sample-apps/ot-ncp/ot-rcp.slcp"
-      project_name: "ot-rcp"
-      device: ${{ matrix.device }}
-      components: ${{ matrix.components }}
-      patchpath: ${{ matrix.patchpath }}
-      sdkpatchpath: "OpenThreadRCP/GeckoSDK"
-      extra_c_defs: "'-DOPENTHREAD_CONFIG_PLATFORM_BOOTLOADER_MODE_ENABLE=1'"
-      sdk_version: ${{ needs.build-container.outputs.sdk_version }}
-      metadata_fw_type: "ot-rcp"
-      baudrate: 460800
-      metadata_extra: "{ \"ot_rcp_version\": \"SL-OPENTHREAD/2.4.0.0_GitHub-7074a43e4\" }"
+          manifest_filename=$(basename "${{ matrix.manifest }}")
+          manifest_base="${manifest_filename%%.*}"
+          echo "manifest_base=$manifest_base" >> $GITHUB_OUTPUT
 
-  zwave-firmware-build:
-    name: Z-Wave Serial API Controller
-    needs: build-container
-    strategy:
-      matrix:
-        include:
-          # Silicon Labs UZB-7 (SLUSB001A), +14 dBm, with SAW filters
-          # (???) Aeotec Z-Stick 7 / Z-Pi 7
-          - target: BRD4201A
-            device: EFR32ZG14P231F256GM32
-            components: brd4201a
-            compression: lz4
-            sign_key: /gecko_sdk/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_sign.key
-            enc_key: /gecko_sdk/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_encrypt.key
+      - name: Install SDK extensions
+        run: |
+          # XXX: slc-cli does not actually work when the extensions aren't in the SDK!
+          for sdk in /gecko_sdk_*; do
+            slc signature trust --sdk "$sdk"
 
-          # Silicon Labs UZB-7 (SLUSB001A), +14 dBm, Z-Wave Long Range
-          - target: BRD4206A
-            device: EFR32ZG14P231F256GM32
-            components: brd4206a
-            compression: lz4
-            sign_key: /gecko_sdk/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_sign.key
-            enc_key: /gecko_sdk/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_encrypt.key
+            ln -s $PWD/gecko_sdk_extensions "$sdk"/extension
 
-          - target: BRD4207A
-            device: ZGM130S037HGN
-            components: brd4207a
-            compression: lz4
-            sign_key: /gecko_sdk/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_sign.key
-            enc_key: /gecko_sdk/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_encrypt.key
+            for ext in "$sdk"/extension/*/; do
+              slc signature trust --sdk "$sdk" --extension-path "$ext"
+            done
+          done
 
-    uses: ./.github/workflows/silabs-firmware-build-zwave.yaml
-    with:
-      image_name: ${{ needs.build-container.outputs.image_name }}
-      firmware_name: zwave_serial_api_controller_${{ needs.build-container.outputs.sdk_version }}_${{ matrix.target }}
-      project_file: "/gecko_sdk/protocol/z-wave/Apps/zwave_ncp_serial_api/zwave_ncp_serial_api_controller.slcp"
-      project_name: "zwave_ncp_serial_api_controller"
-      device: ${{ matrix.device }}
-      components: ${{ matrix.components }}
-      # Fix known issue 1171840 in Z-Wave SDK
-      configuration: "ZAF_CONFIG_GENERIC_TYPE:0,ZAF_CONFIG_SPECIFIC_TYPE:0"
-      # patchpath: ${{ matrix.patchpath }}
-      sdk_version: ${{ needs.build-container.outputs.sdk_version }}
-      metadata_fw_type: "zwave"
-      # There are two "series" of chips:
-      # * Series 1 devices (EFR32xG1x, ZG[M]13) require lz4 compression
-      # * Series 2 devices (EFR32xG2x) require lzma compression
-      gbl_compression: lz4
-      gbl_sign_key: "/gecko_sdk/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_sign.key"
-      gbl_enc_key: "/gecko_sdk/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_encrypt.key"
+      - name: Build firmware
+        run: |
+          # Pass all SDKs as consecutive `--sdk ...` arguments
+          sdk_args=""
+          for sdk_dir in /gecko_sdk*; do
+            sdk_args="$sdk_args --sdk $sdk_dir"
+          done
+
+          # Pass all toolchains as consecutive `--toolchain ...` arguments
+          toolchain_args=""
+          for toolchain_dir in /opt/*arm-none-eabi*; do
+            toolchain_args="$toolchain_args --toolchain $toolchain_dir"
+          done
+
+          # Build it
+          mkdir outputs
+          filename="${{ steps.read_manifest_yaml.outputs['manifest_base'] }}"
+
+          python3 tools/build_project.py \
+            $sdk_args \
+            $toolchain_args \
+            --manifest "${{ matrix.manifest }}" \
+            --build-dir build \
+            --build-system makefile \
+            --output "gbl:outputs/$filename.gbl" \
+            --output "hex:outputs/$filename.hex" \
+            --output "out:outputs/$filename.out"
+
+      - name: Install node within container (act)
+        if: ${{ env.ACT }}
+        run: |
+          curl -fsSL https://deb.nodesource.com/nsolid_setup_deb.sh | bash -s 20
+          apt-get install -y nodejs
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.read_manifest_yaml.outputs['manifest_base'] }}
+          path: outputs/*

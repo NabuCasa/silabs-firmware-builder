@@ -1,0 +1,6 @@
+baudrate: 115200
+dynamic: [zwave_version]
+fw_type: z-wave
+compression: lz4
+sign_key: "{SDK_DIR}/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_sign.key"
+encrypt_key: "{SDK_DIR}/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_encrypt.key"
