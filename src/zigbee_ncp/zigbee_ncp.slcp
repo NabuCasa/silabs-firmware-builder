@@ -25,6 +25,7 @@ component:
   - id: zigbee_ncp_uart_hardware
   - id: zigbee_debug_basic
   - id: zigbee_debug_extended
+  - id: zigbee_xncp
   - id: rail_util_rssi
 
 define:
@@ -56,6 +57,8 @@ configuration:
   - name: SL_PSA_ITS_SUPPORT_V2_DRIVER
     value: 0
   - name: SL_PSA_ITS_SUPPORT_V3_DRIVER
+    value: 1
+  - name: EMBER_AF_PLUGIN_PACKET_HANDOFF_ALLOW_ALL_PACKETS
     value: 1
 
 source:
