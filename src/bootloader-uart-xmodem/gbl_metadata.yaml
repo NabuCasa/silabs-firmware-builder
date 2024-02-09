@@ -1,0 +1,3 @@
+baudrate: 115200
+dynamic: [gecko_bootloader_version]
+fw_type: gecko-bootloader
