@@ -1,4 +1,4 @@
-FROM debian:bullseye
+FROM debian:bookworm
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -10,9 +10,10 @@ RUN \
        git \
        git-lfs \
        jq \
+       yq \
        libgl1 \
        make \
-       openjdk-17-jre-headless \
+       default-jre-headless \
        patch \
        python3 \
        unzip \
@@ -51,7 +52,8 @@ ARG GECKO_SDK_VERSION="v4.4.0"
 
 RUN \
     git clone --depth 1 -b ${GECKO_SDK_VERSION} \
-       https://github.com/SiliconLabs/gecko_sdk.git
+       https://github.com/SiliconLabs/gecko_sdk.git \
+    && rm -rf gecko_sdk/.git
 
 ARG USERNAME=builder
 ARG USER_UID=1000
@@ -70,4 +72,3 @@ RUN \
     && slc signature trust --sdk "/gecko_sdk/" \
     && slc configuration \
            --gcc-toolchain="/opt/arm-gnu-toolchain-${GCC_ARM_VERSION}-x86_64-arm-none-eabi/"
-
