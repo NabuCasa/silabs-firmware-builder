@@ -25,6 +25,9 @@ on:
       components:
         required: false
         type: string
+      without_components:
+        required: false
+        type: string
       configuration:
         required: false
         type: string
@@ -47,6 +50,9 @@ on:
         required: false
         default: "null"
         type: string
+      slcp_yaml_changes:
+        required: false
+        type: string
 
 jobs:
   firmware-build:
@@ -63,10 +69,24 @@ jobs:
       - name: Adjust permission
         shell: bash
         run: chown builder .
+
+      - name: Link SDK extensions
+        shell: bash
+        run: |
+          # XXX: slc-cli does not actually work when the extensions aren't in the SDK!
+          ln -s $PWD/gecko_sdk_extensions /gecko_sdk/extension
+
+      - name: Trust SDK extensions
+        run: |
+          for ext in /gecko_sdk/extension/*/; do
+            slc signature trust --extension-path="$ext"
+          done
+
       - name: Generate Firmware Project
         run: |
           slc generate \
               --with="${{ inputs.device }},${{ inputs.components }}" \
+              --without="${{ inputs.without_components }}" \
               --project-file="${{ inputs.project_file }}" \
               --export-destination="$PWD/${{ inputs.firmware_name }}" \
               --copy-proj-sources --copy-sdk-sources --new-project --force \
@@ -91,6 +111,10 @@ jobs:
       - name: Patch SDK
         if: "${{ inputs.sdkpatchpath != '' }}"
         run: |
+          if [ ! -d "${{ inputs.sdkpatchpath }}" ]; then
+              exit 0
+          fi
+
           cd ${{ inputs.firmware_name }}/gecko_sdk_${{ inputs.sdk_version }}
           for patch in "../../${{ inputs.sdkpatchpath }}"/*.patch
           do
@@ -105,6 +129,12 @@ jobs:
           cd ${{ inputs.firmware_name }}
           sed -i "s/^C_DEFS\s*=.*$/C_DEFS = '-DOPENTHREAD_BUILD_DATETIME=\"$meta_datetime\"' ${{ inputs.extra_c_defs }}/" \
             "${{ inputs.project_name }}.Makefile"
+
+      - name: Patch SLCP project file
+        if: "${{ inputs.slcp_yaml_changes != '' }}"
+        run: |
+          cd ${{ inputs.firmware_name }}
+          yq --in-place --yaml-output '${{ inputs.slcp_yaml_changes }}' "${{ inputs.project_name }}.slcp"
 
       - name: Build Firmware
         run: |
@@ -128,8 +158,15 @@ jobs:
                     --app build/release/${{ inputs.project_name }}.out \
                     --device ${{ inputs.device }} --metadata version.json
 
+      - name: Install node within container (act)
+        if: ${{ env.ACT }}
+        shell: bash
+        run: |
+            curl -fsSL https://deb.nodesource.com/nsolid_setup_deb.sh | bash -s 20
+            apt-get install -y nodejs
+
       - uses: actions/upload-artifact@v3
         if: success() || failure()
         with:
           name: ${{ inputs.firmware_name }}
-          path: ${{ inputs.firmware_name }}
+          path: ${{ inputs.firmware_name }}/build/release/*.*
