@@ -49,7 +49,7 @@ jobs:
           - target: yellow-ext
             device: MGM210PA32JIA
             components: simple_led:board_activity,zigbee_token_interface,zigbee_mfglib
-            patchpath: "EmberZNet/Yellow"
+            patchpath: "EmberZNet/Yellow-ext"
     uses: ./.github/workflows/silabs-firmware-build.yaml
     with:
       image_name: ${{ needs.build-container.outputs.image_name }}
