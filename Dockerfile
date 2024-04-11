@@ -48,7 +48,7 @@ RUN \
 
 ENV PATH="$PATH:/opt/arm-gnu-toolchain-${GCC_ARM_VERSION}-x86_64-arm-none-eabi/bin"
 
-ARG GECKO_SDK_VERSION="v4.4.1"
+ARG GECKO_SDK_VERSION="v4.4.2"
 
 RUN \
     git clone --depth 1 -b ${GECKO_SDK_VERSION} \
