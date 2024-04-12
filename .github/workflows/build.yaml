@@ -124,10 +124,8 @@ jobs:
       baudrate: 115200
       metadata_extra: "{ \"ezsp_version\": \"7.4.2.0\" }"
 
-
-
-    ezsp-firmware-build-high:
-    name: EmberZNet NCP
+  ezsp-firmware-build-high:
+    name: EmberZNet NCP High
     needs: build-container
     strategy:
       matrix:
