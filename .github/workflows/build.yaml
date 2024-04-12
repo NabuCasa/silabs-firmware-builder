@@ -127,7 +127,7 @@ jobs:
 
 
     ezsp-firmware-build-high:
-    name: EmberZNet NCP High
+    name: EmberZNet NCP
     needs: build-container
     strategy:
       matrix:
