@@ -124,6 +124,49 @@ jobs:
       baudrate: 115200
       metadata_extra: "{ \"ezsp_version\": \"7.4.2.0\" }"
 
+
+
+    ezsp-firmware-build-high:
+    name: EmberZNet NCP High
+    needs: build-container
+    strategy:
+      matrix:
+        include:
+          - target: tubeszb-mgm12-2021
+            device: MGM12P32F1024GE
+            components: zigbee_mfglib,zigbee_token_interface
+            patchpath: "EmberZNet/TubesZB_MGM12_2021"
+
+          - target: tubeszb-mgm24-2023-hwflow
+            device: MGM240PA32VNN
+            components: zigbee_mfglib,zigbee_token_interface
+            patchpath: "EmberZNet/TubesZB_MGM24_2023_HW_Flow"
+
+          - target: tubeszb-BM24-2023-hwflow
+            device: EFR32MG24A420F1536IM48
+            components: simple_led:board_activity,zigbee_mfglib,zigbee_token_interface
+            patchpath: "EmberZNet/TubesZB_BM24_2023_HW_Flow"
+    uses: ./.github/workflows/silabs-firmware-build.yaml
+    with:
+      image_name: ${{ needs.build-container.outputs.image_name }}
+      firmware_name: ncp-uart-hw-${{ matrix.target }}
+      project_file: "/gecko_sdk/protocol/zigbee/app/ncp/sample-app/ncp-uart-hw/ncp-uart-hw.slcp"
+      project_name: "ncp-uart-hw"
+      device: ${{ matrix.device }}
+      components: ${{ matrix.components }}
+      configuration:  |
+        SL_IOSTREAM_USART_VCOM_RX_BUFFER_SIZE:128,
+        EMBER_APS_UNICAST_MESSAGE_COUNT:255,
+        EMBER_BROADCAST_TABLE_SIZE:30,
+        EMBER_NEIGHBOR_TABLE_SIZE:26,
+        EMBER_SOURCE_ROUTE_TABLE_SIZE:254,
+      patchpath: ${{ matrix.patchpath }}
+      extra_c_defs: "'-DEMBER_ADDRESS_TABLE_SIZE=250' '-DEMBER_MULTICAST_TABLE_SIZE=26' 'DSL_ZIGBEE_APS_DUPLICATE_REJECTION_MAX_ENTRIES=255'"
+      sdk_version: ${{ needs.build-container.outputs.sdk_version }}
+      metadata_fw_type: "ncp-uart-hw"
+      baudrate: 115200
+      metadata_extra: "{ \"ezsp_version\": \"7.4.2.0\" }"
+
   # rcp-multi-pan-firmware-build:
   #   name: RCP Multi-PAN
   #   needs: build-container
