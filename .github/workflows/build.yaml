@@ -125,7 +125,7 @@ jobs:
       metadata_extra: "{ \"ezsp_version\": \"7.4.2.0\" }"
 
   ezsp-firmware-build-high:
-    name: EmberZNet NCP High
+    name: EmberZNet NCP Higher
     needs: build-container
     strategy:
       matrix:
