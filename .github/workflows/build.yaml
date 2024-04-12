@@ -130,17 +130,17 @@ jobs:
     strategy:
       matrix:
         include:
-          - target: tubeszb-mgm12-2021
+          - target: tubeszb-mgm12-2021-high
             device: MGM12P32F1024GE
             components: zigbee_mfglib,zigbee_token_interface
             patchpath: "EmberZNet/TubesZB_MGM12_2021"
 
-          - target: tubeszb-mgm24-2023-hwflow
+          - target: tubeszb-mgm24-2023-hwflow-high
             device: MGM240PA32VNN
             components: zigbee_mfglib,zigbee_token_interface
             patchpath: "EmberZNet/TubesZB_MGM24_2023_HW_Flow"
 
-          - target: tubeszb-BM24-2023-hwflow
+          - target: tubeszb-BM24-2023-hwflow-high
             device: EFR32MG24A420F1536IM48
             components: simple_led:board_activity,zigbee_mfglib,zigbee_token_interface
             patchpath: "EmberZNet/TubesZB_BM24_2023_HW_Flow"
