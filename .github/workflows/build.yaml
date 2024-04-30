@@ -2,14 +2,6 @@ name: Build firmwares
 
 on:
   push:
-    paths:
-      - Dockerfile
-      - .github/workflows/build.yaml
-      - manifests/**/*.yaml
-    branches:
-      - main
-    tags:
-      - '*'
 
 jobs:
   build-container:
