@@ -3,6 +3,9 @@ name: Build firmwares
 on:
   push:
 
+env:
+  REGISTRY: ghcr.io
+
 jobs:
   build-container:
     name: Create build container image
@@ -15,7 +18,7 @@ jobs:
         id: create-container-name
         run: |
           repository_owner=$(echo $GITHUB_REPOSITORY_OWNER | tr [:upper:] [:lower:])
-          image_name="ghcr.io/$repository_owner/silabs-firmware-builder"
+          image_name="${{ env.REGISTRY }}/$repository_owner/silabs-firmware-builder"
           tag_name="${{ hashFiles('Dockerfile') }}"
 
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
@@ -24,7 +27,7 @@ jobs:
       - name: Log in to the GitHub container registry
         uses: docker/login-action@v2.1.0
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Docker Buildx
