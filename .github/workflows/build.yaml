@@ -10,7 +10,7 @@ jobs:
     permissions:
       packages: write
     steps:
-      - uses: actions/checkout@v4.1
+      - uses: actions/checkout@v4.1.4
       - name: Create container name
         id: create-container-name
         run: |
@@ -48,7 +48,7 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v4.1
+      - uses: actions/checkout@v4.1.4
       - id: set-matrix
         run: |
           echo "matrix=$(find manifests -type f \( -name "*.yaml" -o -name "*.yml" \) -print | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
@@ -64,7 +64,7 @@ jobs:
       matrix:
         manifest: ${{ fromJson(needs.list-manifests.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v4.1
+      - uses: actions/checkout@v4.1.4
 
       - name: Parse firmware manifest
         id: read_manifest_yaml
