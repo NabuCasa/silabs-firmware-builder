@@ -104,10 +104,11 @@ jobs:
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
         with:
-          limit-access-to-actor: true 
+          limit-access-to-actor: true
 
       - name: Build firmware
         run: |
+          # Make a small change so that it re-runs CI?
           # Pass all SDKs as consecutive `--sdk ...` arguments
           sdk_args=""
           for sdk_dir in /gecko_sdk*; do
