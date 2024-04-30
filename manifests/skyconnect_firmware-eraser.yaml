@@ -1,0 +1,5 @@
+name: SkyConnect Firmware Eraser
+device: EFR32MG21A020F512IM32
+base_project: misc/firmware-eraser
+
+gbl: {}

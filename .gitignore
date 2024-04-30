@@ -1,1 +1,14 @@
 .DS_Store
+.pdm/
+.uceditor/
+GNU ARM v*/
+autogen/
+.project
+.settings/
+.projectlinkstore
+*.project.mak
+*.Makefile
+build/
+artifact/
+artifacts/
+trashed_modified_files/

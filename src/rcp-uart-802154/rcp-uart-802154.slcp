@@ -1,0 +1,67 @@
+# Silicon Labs Project Configuration Tools: slcp, v0, Component selection file.
+project_name: rcp-uart-802154
+label: rcp-uart-802154
+description: |
+  This multiprotocol radio co-processor (RCP) application supports running OpenThread and Zigbee stacks simultaneously on a host processor. It uses concurrent multiprotocol (CMP) / multi-PAN functionality to run the 802.15.4 networks simultaneously on the same channel. The host stacks and the RCP communicate using the Co-Processor Communication protocol (CPC), which acts as a protocol multiplexer and serial transport layer. The host applications connect to the CPC daemon, which in turn connects to the EFR via a UART link. Refer to *AN1333: Running Zigbee, OpenThread, and Bluetooth Concurrently on a Linux Host with a Multiprotocol Co-processor* for more information on running the multiprotocol RCP with different host applications.
+category: OpenThread Examples
+filter:
+- name: Capability
+  value: [Multiprotocol]
+- name: Device Type
+  value: [RCP]
+- name: Project Difficulty
+  value: [Advanced]
+- name: Wireless Technology
+  value: [Thread, Zigbee]
+package: OpenThread
+quality: production
+readme:
+- {path: README-MP-RCP.md}
+source:
+- {path: main.c}
+- {path: app.c}
+tag: [prebuilt_demo]
+include:
+- path: ''
+  file_list:
+  - {path: app.h}
+  - {path: reset_util.h}
+sdk: {id: gecko_sdk, version: 4.4.0}
+toolchain_settings: []
+component:
+- {id: cpc_security_secondary_none}
+- instance: [vcom]
+  id: cpc_secondary_driver_uart_usart
+- {id: ot_rcp_gp_interface}
+- {id: rail_util_pti}
+- {id: brd4001a}
+- {id: ot_stack_rcp}
+- {id: ot_ncp_cpc}
+- {id: ot_crash_handler}
+- {id: brd4179b}
+- {from: nc_efr32_watchdog, id: nc_efr32_watchdog}
+- {id: bootloader_interface}
+- {id: EFR32MG21A010F1024IM32}
+define:
+- {name: OPENTHREAD_CONFIG_PLATFORM_ASSERT_MANAGEMENT, value: '1'}
+configuration:
+- {name: SL_STACK_SIZE, value: '2752'}
+- {name: SL_BOARD_ENABLE_VCOM, value: '1'}
+- {name: SL_CPC_DRV_UART_VCOM_BAUDRATE, value: '460800'}
+- {name: SL_CPC_DRV_UART_VCOM_FLOW_CONTROL_TYPE, value: usartHwFlowControlCtsAndRts}
+- {name: OPENTHREAD_CONFIG_HEAP_EXTERNAL_ENABLE, value: '0'}
+- {name: OPENTHREAD_CONFIG_DIAG_ENABLE, value: '1'}
+- {name: OPENTHREAD_CONFIG_LOG_OUTPUT, value: OPENTHREAD_CONFIG_LOG_OUTPUT_NONE}
+- {name: OPENTHREAD_CONFIG_MULTIPAN_RCP_ENABLE, value: '1'}
+- {name: OPENTHREAD_CONFIG_PLATFORM_KEY_REFERENCES_ENABLE, value: '0'}
+- {name: OPENTHREAD_CONFIG_MAC_CSL_RECEIVER_ENABLE, value: '0'}
+- {name: OPENTHREAD_CONFIG_MAC_CSL_AUTO_SYNC_ENABLE, value: '0'}
+- {name: SL_CPC_RX_BUFFER_MAX_COUNT, value: '15'}
+- {name: SL_CPC_TX_QUEUE_ITEM_MAX_COUNT, value: '15'}
+- {name: SL_CPC_USER_ENDPOINT_MAX_COUNT, value: '0'}
+ui_hints:
+  highlight:
+  - {path: ./README-MP-RCP.md, focus: true}
+sdk_extension:
+- {id: nc_efr32_watchdog, version: 1.0.0}
+
