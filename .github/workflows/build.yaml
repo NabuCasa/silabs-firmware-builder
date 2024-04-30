@@ -101,6 +101,11 @@ jobs:
             done
           done
 
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
+
       - name: Build firmware
         run: |
           # Pass all SDKs as consecutive `--sdk ...` arguments
