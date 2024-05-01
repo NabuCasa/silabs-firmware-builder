@@ -26,8 +26,8 @@ jobs:
           echo "image_name=$current_image_name" >> $GITHUB_OUTPUT
     outputs:
       tag_name: ${{ steps.create-container-name.outputs.tag_name }}
-      image_name: ${{ steps.create-container-name.outputs.current_image_name }}
-      container_name: ${{ steps.create-container-name.outputs.current_image_name }}:${{ steps.create-container-name.outputs.tag_name }}
+      image_name: ${{ steps.create-container-name.outputs.image_name }}
+      container_name: ${{ steps.create-container-name.outputs.image_name }}:${{ steps.create-container-name.outputs.tag_name }}
 
   maybe-build-container:
     name: Create build container image
