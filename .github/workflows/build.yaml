@@ -1,6 +1,7 @@
 name: Build firmwares
 
 on:
+  pull_request:
   push:
     paths:
       - Dockerfile
@@ -15,23 +16,39 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  build-container:
-    name: Create build container image
-    runs-on: ubuntu-latest
-    permissions:
-      packages: write
+  get-build-container-names:
+    name: Get the possible build containers
     steps:
       - uses: actions/checkout@v4.1.4
       - name: Create container name
         id: create-container-name
         run: |
-          repository_owner=$(echo $GITHUB_REPOSITORY_OWNER | tr [:upper:] [:lower:])
-          image_name="${{ env.REGISTRY }}/$repository_owner/silabs-firmware-builder"
+          current_user=$(echo $GITHUB_REPOSITORY_OWNER | tr [:upper:] [:lower:])
+          current_repo=$(echo ${{ github.event.repository.name }} | tr [:upper:] [:lower:])
+          current_image_name="${{ env.REGISTRY }}/$current_user/$current_repo"
+
           tag_name="${{ hashFiles('Dockerfile') }}"
 
-          echo "image_name=$image_name" >> $GITHUB_OUTPUT
           echo "tag_name=$tag_name" >> $GITHUB_OUTPUT
-          echo "container_name=$image_name:$tag_name" >> $GITHUB_OUTPUT
+          echo "image_name=$current_image_name" >> $GITHUB_OUTPUT
+    outputs:
+      tag_name: ${{ steps.create-container-name.outputs.tag_name }}
+      image_name: ${{ steps.create-container-name.outputs.current_image_name }}
+      container_name: ${{ steps.create-container-name.outputs.current_image_name }}:${{ steps.create-container-name.outputs.tag_name }}
+
+  maybe-build-container:
+    name: Create build container image
+    needs: [get-build-container-names]
+    if: >-
+      (github.event_name != 'pull_request') ||
+      (github.event.pull_request.author_association == 'COLLABORATOR') ||
+      (github.event.pull_request.author_association == 'MEMBER') ||
+      (github.event.pull_request.author_association == 'OWNER')
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - uses: actions/checkout@v4.1.4
       - name: Log in to the GitHub container registry
         uses: docker/login-action@v3.1.0
         with:
@@ -45,16 +62,21 @@ jobs:
         with:
           context: .
           file: Dockerfile
-          tags: ${{ steps.create-container-name.outputs.container_name }}
-          cache-from: ${{ steps.create-container-name.outputs.image_name }}:cache-${{ steps.create-container-name.outputs.tag_name }}
-          cache-to: ${{ steps.create-container-name.outputs.image_name }}:cache-${{ steps.create-container-name.outputs.tag_name }}
+          tags: ${{ needs.get-build-container-names.outputs.container_name }}
+          cache-from: ${{ needs.get-build-container-names.outputs.image_name }}:cache-${{ needs.get-build-container-names.outputs.tag_name }}
+          cache-to: ${{ needs.get-build-container-names.outputs.image_name }}:cache-${{ needs.get-build-container-names.outputs.tag_name }}
           push: true
+
+  get-build-container:
+    name: Get the image name of the build container to use
+    needs: [maybe-build-container, get-build-container-names]
+    if: always()  # If `maybe-build-container` runs, we should run after it
+    runs-on: ubuntu-latest
     outputs:
-      container_name: ${{ steps.create-container-name.outputs.container_name }}
+      container_name: ${{ needs.get-build-container-names.outputs.container_name }}
 
   list-manifests:
     name: List firmware manifests
-    needs: build-container
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -66,10 +88,10 @@ jobs:
 
   build-firmwares:
     name: Firmware builder
-    needs: [list-manifests, build-container]
+    needs: [list-manifests, get-build-container]
     runs-on: ubuntu-latest
     container:
-      image: ${{ needs.build-container.outputs.container_name }}
+      image: ${{ needs.get-build-container.outputs.container_name }}
       options: --user root
     strategy:
       matrix:
