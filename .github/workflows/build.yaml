@@ -45,8 +45,9 @@ jobs:
       - name: Create container info
         id: create-container-info
         run: |
-          base_image=${{ steps.read-repo-info.outputs.base_image || steps.read-repo-info-pr.outputs.base_image }}
-          head_image=${{ steps.read-repo-info.outputs.head_image || steps.read-repo-info-pr.outputs.head_image }}
+          base_image="${{ steps.read-repo-info.outputs.base_image || steps.read-repo-info-pr.outputs.base_image }}"
+          head_image="${{ steps.read-repo-info.outputs.head_image || steps.read-repo-info-pr.outputs.head_image }}"
+          tag_name="${{ hashFiles('Dockerfile') }}"
 
           # Default to building a new container under the original repo
           image_name=$head_image
