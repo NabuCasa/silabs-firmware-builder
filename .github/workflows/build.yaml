@@ -1,10 +1,6 @@
 name: Build firmwares
 
 on:
-  pull_request:
-    paths-ignore:
-      - '.gitignore'
-      - 'README.md'
   push:
     paths-ignore:
       - '.gitignore'
@@ -26,22 +22,24 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Read repository information (push)
+      - name: Get current PR
+        id: get-current-pr
+        uses: 8BitJonny/gh-get-current-pr@3.0.0
+      - name: Read repository information (PR)
+        id: read-repo-info-pr
+        if: steps.get-current-pr.outputs.pr_found == 'true'
+        run: |
+          base_image=$(echo ${{ fromJSON(steps.get-current-pr.outputs.pr).base.repo.full_name }} | tr [:upper:] [:lower:]))
+          head_image=$(echo ${{ fromJSON(steps.get-current-pr.outputs.pr).head.repo.full_name }} | tr [:upper:] [:lower:]))
+          echo "base_image=$base_image" >> $GITHUB_OUTPUT
+          echo "head_image=$base_image" >> $GITHUB_OUTPUT
+      - name: Read repository information (no PR)
         id: read-repo-info
-        if: github.event_name != 'pull_request'
+        if: steps.get-current-pr.outputs.pr_found == 'false'
         run: |
           base_image=$(echo ${{ github.repository }} | tr [:upper:] [:lower:])
           echo "base_image=$base_image" >> $GITHUB_OUTPUT
           echo "head_image=$base_image" >> $GITHUB_OUTPUT
-      - name: Read repository information (pull request)
-        id: read-repo-info-pr
-        if: github.event_name == 'pull_request'
-        run: |
-          base_image=$(echo ${{ github.event.pull_request.base.repo.full_name }} | tr [:upper:] [:lower:])
-          head_image=$(echo ${{ github.event.pull_request.head.repo.full_name }} | tr [:upper:] [:lower:])
-
-          echo "base_image=$base_image" >> $GITHUB_OUTPUT
-          echo "head_image=$head_image" >> $GITHUB_OUTPUT
       - name: Create container info
         id: create-container-info
         run: |
