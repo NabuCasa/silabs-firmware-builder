@@ -2,6 +2,14 @@ name: Build firmwares
 
 on:
   push:
+    paths:
+      - Dockerfile
+      - .github/workflows/build.yaml
+      - manifests/**/*.yaml
+    branches:
+      - main
+    tags:
+      - '*'
 
 env:
   REGISTRY: ghcr.io
