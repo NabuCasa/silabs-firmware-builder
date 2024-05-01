@@ -8,35 +8,8 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  get-build-container-names:
-    name: Get the possible build containers
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4.1.4
-      - name: Create container name
-        id: create-container-name
-        run: |
-          current_user=$(echo $GITHUB_REPOSITORY_OWNER | tr [:upper:] [:lower:])
-          current_repo=$(echo ${{ github.event.repository.name }} | tr [:upper:] [:lower:])
-          current_image_name="${{ env.REGISTRY }}/$current_user/$current_repo"
-
-          tag_name="${{ hashFiles('Dockerfile') }}"
-
-          echo "tag_name=$tag_name" >> $GITHUB_OUTPUT
-          echo "image_name=$current_image_name" >> $GITHUB_OUTPUT
-    outputs:
-      tag_name: ${{ steps.create-container-name.outputs.tag_name }}
-      image_name: ${{ steps.create-container-name.outputs.image_name }}
-      container_name: ${{ steps.create-container-name.outputs.image_name }}:${{ steps.create-container-name.outputs.tag_name }}
-
-  maybe-build-container:
+  build-container:
     name: Create build container image
-    needs: [get-build-container-names]
-    if: >-
-      (github.event_name != 'pull_request') ||
-      (github.event.pull_request.author_association == 'COLLABORATOR') ||
-      (github.event.pull_request.author_association == 'MEMBER') ||
-      (github.event.pull_request.author_association == 'OWNER')
     runs-on: ubuntu-latest
     permissions:
       packages: write
@@ -48,28 +21,51 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create container name
+        id: create-container-info
+        run: |
+          base_image=$(echo ${{ github.event.pull_request.base.repo.full_name }} | tr [:upper:] [:lower:])
+          head_image=$(echo ${{ github.event.pull_request.head.repo.full_name }} | tr [:upper:] [:lower:])
+          tag_name="${{ hashFiles('Dockerfile') }}"
+
+          # Default to building a new container under the original repo
+          image_name=$head_image
+          build=true
+
+          # Check if we can use the base image (Nabu Casa)
+          if docker manifest inspect ${{ env.REGISTRY }}/$base_image:$tag_name; then
+            image_name=$base_image
+            build=false
+          fi
+
+          # Check if we can use the head image (PR)
+          if docker manifest inspect ${{ env.REGISTRY }}/$head_image:$tag_name; then
+            image_name=$head_image
+            build=false
+          fi
+
+          echo "build=$build" >> $GITHUB_OUTPUT
+          echo "tag_name=$tag_name" >> $GITHUB_OUTPUT
+          echo "image_name=$image_name" >> $GITHUB_OUTPUT
+          echo "container_name=$image_name:$tag_name" >> $GITHUB_OUTPUT
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3.3.0
+        if: steps.create-container-info.outputs.build == 'true'
       - name: Build and Push
         uses: docker/build-push-action@v5.3.0
+        if: steps.create-container-info.outputs.build == 'true'
         with:
           context: .
           file: Dockerfile
-          tags: ${{ needs.get-build-container-names.outputs.container_name }}
-          cache-from: ${{ needs.get-build-container-names.outputs.image_name }}:cache-${{ needs.get-build-container-names.outputs.tag_name }}
-          cache-to: ${{ needs.get-build-container-names.outputs.image_name }}:cache-${{ needs.get-build-container-names.outputs.tag_name }}
-          push: ${{ github.event_name == 'push' }}
-
-  get-build-container:
-    name: Get the image name of the build container to use
-    needs: [maybe-build-container, get-build-container-names]
-    if: always()  # If `maybe-build-container` runs, we should run after it
-    runs-on: ubuntu-latest
-    steps:
-      - id: noop
-        run: echo "noop"
+          tags: ${{ steps.create-container-info.outputs.tag_name }}
+          cache-from: ${{ steps.create-container-info.outputs.image_name }}:cache-${{ steps.create-container-info.outputs.tag_name }}
+          cache-to: ${{ steps.create-container-info.outputs.image_name }}:cache-${{ steps.create-container-info.outputs.tag_name }}
+          push: true
     outputs:
-      container_name: ${{ needs.get-build-container-names.outputs.container_name }}
+      tag_name: ${{ steps.create-container-info.outputs.tag_name }}
+      image_name: ${{ steps.create-container-info.outputs.image_name }}
+      container_name: ${{ steps.create-container-info.outputs.container_name }}
+
 
   list-manifests:
     name: List firmware manifests
@@ -84,10 +80,10 @@ jobs:
 
   build-firmwares:
     name: Firmware builder
-    needs: [list-manifests, get-build-container]
+    needs: [list-manifests, build-container]
     runs-on: ubuntu-latest
     container:
-      image: ${{ needs.get-build-container.outputs.container_name }}
+      image: ${{ env.REGISTRY }}/${{ needs.build-container.outputs.container_name }}
       options: --user root
     strategy:
       matrix:
