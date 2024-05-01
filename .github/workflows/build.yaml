@@ -41,7 +41,7 @@ jobs:
 
 
           req = urllib.request.Request(
-              url=f"https://api.github.com/repos/{os.environ['REPOSITORY']}",
+              url=f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}",
               headers={
                   "Authorization": "token ${{ secrets.GITHUB_TOKEN }}",
                   "Accept": "application/vnd.github.v3+json",
