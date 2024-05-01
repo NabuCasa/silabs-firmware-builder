@@ -26,12 +26,27 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Create container name
-        id: create-container-info
+      - name: Read repository information (push)
+        id: read-repo-info
+        if: github.event_name != 'pull_request'
+        run: |
+          base_image=$(echo ${{ github.repository }} | tr [:upper:] [:lower:])
+          echo "base_image=$base_image" >> $GITHUB_OUTPUT
+          echo "head_image=$base_image" >> $GITHUB_OUTPUT
+      - name: Read repository information (pull request)
+        id: read-repo-info-pr
+        if: github.event_name == 'pull_request'
         run: |
           base_image=$(echo ${{ github.event.pull_request.base.repo.full_name }} | tr [:upper:] [:lower:])
           head_image=$(echo ${{ github.event.pull_request.head.repo.full_name }} | tr [:upper:] [:lower:])
-          tag_name="${{ hashFiles('Dockerfile') }}"
+
+          echo "base_image=$base_image" >> $GITHUB_OUTPUT
+          echo "head_image=$head_image" >> $GITHUB_OUTPUT
+      - name: Create container info
+        id: create-container-info
+        run: |
+          base_image=${{ steps.read-repo-info.outputs.base_image || steps.read-repo-info-pr.outputs.base_image }}
+          head_image=${{ steps.read-repo-info.outputs.head_image || steps.read-repo-info-pr.outputs.head_image }}
 
           # Default to building a new container under the original repo
           image_name=$head_image
