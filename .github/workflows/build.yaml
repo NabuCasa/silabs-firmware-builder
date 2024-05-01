@@ -28,61 +28,31 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Create container name
         id: create-container-info
-        shell: python -u {0}
         run: |
-          import os
-          import json
-          import pathlib
-          import subprocess
-          import urllib.request
+          base_image=$(echo ${{ github.event.pull_request.base.repo.full_name }} | tr [:upper:] [:lower:])
+          head_image=$(echo ${{ github.event.pull_request.head.repo.full_name }} | tr [:upper:] [:lower:])
+          tag_name="${{ hashFiles('Dockerfile') }}"
 
-          GITHUB_OUTPUT = pathlib.Path(os.environ["GITHUB_OUTPUT"])
-          TAG_NAME = "${{ hashFiles('Dockerfile') }}"
+          # Default to building a new container under the original repo
+          image_name=$head_image
+          build=true
 
+          # Check if we can use the base image (Nabu Casa)
+          if docker manifest inspect ${{ env.REGISTRY }}/$base_image:$tag_name; then
+            image_name=$base_image
+            build=false
+          fi
 
-          req = urllib.request.Request(
-              url=f"https://api.github.com/repos/{os.environ['REPOSITORY']}",
-              headers={
-                  "Authorization": "token ${{ secrets.GITHUB_TOKEN }}",
-                  "Accept": "application/vnd.github.v3+json",
-                  "X-GitHub-Api-Version": "2022-11-28",
-              }
-          )
+          # Check if we can use the head image (PR)
+          if docker manifest inspect ${{ env.REGISTRY }}/$head_image:$tag_name; then
+            image_name=$head_image
+            build=false
+          fi
 
-          with urllib.request.urlopen(req) as response:
-              assert response.status == 200
-              data = json.loads(response.read().decode())
-
-          head_image = data["full_name"].lower()
-
-          if data["parent"]:
-              base_image = data["parent"]["full_name"].lower()
-          else:
-              base_image = head_image
-
-          image_name = head_image
-          build = True
-
-          for image in {base_image, head_image}:
-              try:
-                  subprocess.run([
-                      "docker", "manifest", "inspect",
-                      f"{os.environ['REGISTRY']}/{image}:{TAG_NAME}"
-                  ], check=True)
-              except subprocess.CalledProcessError:
-                  continue
-              else:
-                  image_name = image
-                  build = False
-                  break
-
-          with GITHUB_OUTPUT.open("a") as f:
-              f.writelines([
-                  f"build={build}\n",
-                  f"tag_name={TAG_NAME}\n",
-                  f"image_name={image_name}\n",
-                  f"container_name={os.environ['REGISTRY']}/{image_name}:{TAG_NAME}\n",
-              ])
+          echo "build=$build" >> $GITHUB_OUTPUT
+          echo "tag_name=$tag_name" >> $GITHUB_OUTPUT
+          echo "image_name=$image_name" >> $GITHUB_OUTPUT
+          echo "container_name=${{ env.REGISTRY }}/$image_name:$tag_name" >> $GITHUB_OUTPUT
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3.3.0
         if: steps.create-container-info.outputs.build == 'true'
