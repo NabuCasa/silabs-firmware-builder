@@ -72,6 +72,9 @@ jobs:
     needs: [maybe-build-container, get-build-container-names]
     if: always()  # If `maybe-build-container` runs, we should run after it
     runs-on: ubuntu-latest
+    steps:
+      - id: noop
+        run: echo "noop"
     outputs:
       container_name: ${{ needs.get-build-container-names.outputs.container_name }}
 
