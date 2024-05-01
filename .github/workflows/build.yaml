@@ -2,8 +2,13 @@ name: Build firmwares
 
 on:
   pull_request:
+    paths-ignore:
+      - '.gitignore'
+      - 'README.md'
   push:
-
+    paths-ignore:
+      - '.gitignore'
+      - 'README.md'
 env:
   REGISTRY: ghcr.io
 
