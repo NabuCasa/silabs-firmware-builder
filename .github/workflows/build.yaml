@@ -29,8 +29,8 @@ jobs:
         id: read-repo-info-pr
         if: steps.get-current-pr.outputs.pr_found == 'true'
         run: |
-          base_image=$(echo ${{ fromJSON(steps.get-current-pr.outputs.pr).base.repo.full_name }} | tr [:upper:] [:lower:]))
-          head_image=$(echo ${{ fromJSON(steps.get-current-pr.outputs.pr).head.repo.full_name }} | tr [:upper:] [:lower:]))
+          base_image=$(echo ${{ fromJSON(steps.get-current-pr.outputs.pr).base.repo.full_name }} | tr [:upper:] [:lower:])
+          head_image=$(echo ${{ fromJSON(steps.get-current-pr.outputs.pr).head.repo.full_name }} | tr [:upper:] [:lower:])
           echo "base_image=$base_image" >> $GITHUB_OUTPUT
           echo "head_image=$base_image" >> $GITHUB_OUTPUT
       - name: Read repository information (no PR)
