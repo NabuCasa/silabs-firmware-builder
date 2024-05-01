@@ -58,7 +58,7 @@ jobs:
           tags: ${{ needs.get-build-container-names.outputs.container_name }}
           cache-from: ${{ needs.get-build-container-names.outputs.image_name }}:cache-${{ needs.get-build-container-names.outputs.tag_name }}
           cache-to: ${{ needs.get-build-container-names.outputs.image_name }}:cache-${{ needs.get-build-container-names.outputs.tag_name }}
-          push: true
+          push: ${{ github.event_name == 'push' }}
 
   get-build-container:
     name: Get the image name of the build container to use
