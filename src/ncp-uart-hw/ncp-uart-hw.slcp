@@ -26,29 +26,29 @@ source:
 - {path: main.c}
 - {path: app.c}
 tag: [prebuilt_demo]
-sdk: {id: gecko_sdk, version: 4.4.0}
+sdk: {id: gecko_sdk, version: 4.4.2}
 toolchain_settings: []
 component:
-- {id: zigbee_security_link_keys}
-- {id: zigbee_gp}
-- {id: zigbee_debug_basic}
-- {id: zigbee_app_framework_common}
+- {id: EFR32MG21A010F1024IM32}
 - {id: brd4001a}
+- {id: brd4179b}
 - instance: [vcom]
   id: iostream_usart
-- {id: zigbee_source_route}
-- {id: zigbee_zll}
+- {id: iostream_vuart}
+- {id: token_manager}
+- {id: zigbee_app_framework_common}
+- {id: zigbee_debug_basic}
+- {id: zigbee_debug_extended}
+- {id: zigbee_debug_print}
+- {id: zigbee_gp}
+- {id: zigbee_mfglib}
 - {id: zigbee_ncp_uart_hardware}
 - {id: zigbee_pro_stack}
-- {id: zigbee_mfglib}
-- {id: token_manager}
-- {id: brd4179b}
 - {id: zigbee_r22_support}
-- {id: zigbee_debug_print}
+- {id: zigbee_security_link_keys}
+- {id: zigbee_source_route}
 - {id: zigbee_token_interface}
-- {id: zigbee_debug_extended}
-- {id: EFR32MG21A010F1024IM32}
-- {id: iostream_vuart}
+- {id: zigbee_zll}
 define:
 - {name: EMBER_CUSTOM_MAC_FILTER_TABLE_SIZE, value: '15'}
 configuration:
