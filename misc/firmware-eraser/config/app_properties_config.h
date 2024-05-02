@@ -58,7 +58,7 @@
 #define SL_APPLICATION_CAPABILITIES            0
 
 //Product ID of the device for which the application is built
-#define SL_APPLICATION_PRODUCT_ID             { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }
+#define SL_APPLICATION_PRODUCT_ID             { 0 }
 
 // </h>
 
