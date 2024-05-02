@@ -26,22 +26,22 @@ include:
   file_list:
   - {path: app.h}
   - {path: reset_util.h}
-sdk: {id: gecko_sdk, version: 4.4.0}
+sdk: {id: gecko_sdk, version: 4.4.2}
 toolchain_settings: []
 component:
-- {id: cpc_security_secondary_none}
+- {from: nc_efr32_watchdog, id: nc_efr32_watchdog}
+- {id: EFR32MG21A010F1024IM32}
+- {id: bootloader_interface}
+- {id: brd4001a}
+- {id: brd4179b}
 - instance: [vcom]
   id: cpc_secondary_driver_uart_usart
-- {id: ot_rcp_gp_interface}
-- {id: rail_util_pti}
-- {id: brd4001a}
-- {id: ot_stack_rcp}
-- {id: ot_ncp_cpc}
+- {id: cpc_security_secondary_none}
 - {id: ot_crash_handler}
-- {id: brd4179b}
-- {from: nc_efr32_watchdog, id: nc_efr32_watchdog}
-- {id: bootloader_interface}
-- {id: EFR32MG21A010F1024IM32}
+- {id: ot_ncp_cpc}
+- {id: ot_rcp_gp_interface}
+- {id: ot_stack_rcp}
+- {id: rail_util_pti}
 define:
 - {name: OPENTHREAD_CONFIG_PLATFORM_ASSERT_MANAGEMENT, value: '1'}
 configuration:
