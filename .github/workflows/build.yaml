@@ -41,43 +41,43 @@ jobs:
 
           # Default to building a new container under the original repo
           image_name=$head_image
-          build=true
+          build_image=true
 
           # Check if we can use the base image (Nabu Casa)
           if docker manifest inspect ${{ env.REGISTRY }}/$base_image:$tag_name; then
             image_name=$base_image
-            build=false
+            build_image=false
           fi
 
           # Check if we can use the head image (if this is a PR)
           if [[ $base_image != $head_image ]]; then
             if docker manifest inspect ${{ env.REGISTRY }}/$head_image:$tag_name; then
               image_name=$head_image
-              build=false
+              build_image=false
             fi
           fi
 
-          echo "build=$build" >> $GITHUB_OUTPUT
+          echo "build_image=$build_image" >> $GITHUB_OUTPUT
           echo "tag_name=$tag_name" >> $GITHUB_OUTPUT
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
           echo "container_name=${{ env.REGISTRY }}/$image_name:$tag_name" >> $GITHUB_OUTPUT
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3.3.0
-        if: steps.create-container-info.outputs.build == 'true'
+        if: steps.read-repo-info.outputs.build_image == 'true'
       - name: Build and Push
-        uses: docker/build-push-action@v5.3.0
-        if: steps.create-container-info.outputs.build == 'true'
+        uses: docker/build_image-push-action@v5.3.0
+        if: steps.read-repo-info.outputs.build_image == 'true'
         with:
           context: .
           file: Dockerfile
-          tags: ${{ steps.create-container-info.outputs.tag_name }}
-          cache-from: ${{ steps.create-container-info.outputs.image_name }}:cache-${{ steps.create-container-info.outputs.tag_name }}
-          cache-to: ${{ steps.create-container-info.outputs.image_name }}:cache-${{ steps.create-container-info.outputs.tag_name }}
+          tags: ${{ steps.read-repo-info.outputs.tag_name }}
+          cache-from: ${{ steps.read-repo-info.outputs.image_name }}:cache-${{ steps.read-repo-info.outputs.tag_name }}
+          cache-to: ${{ steps.read-repo-info.outputs.image_name }}:cache-${{ steps.read-repo-info.outputs.tag_name }}
           push: true
     outputs:
-      tag_name: ${{ steps.create-container-info.outputs.tag_name }}
-      image_name: ${{ steps.create-container-info.outputs.image_name }}
-      container_name: ${{ steps.create-container-info.outputs.container_name }}
+      tag_name: ${{ steps.read-repo-info.outputs.tag_name }}
+      image_name: ${{ steps.read-repo-info.outputs.image_name }}
+      container_name: ${{ steps.read-repo-info.outputs.container_name }}
 
 
   list-manifests:
