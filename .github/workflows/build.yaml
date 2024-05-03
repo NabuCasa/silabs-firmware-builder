@@ -153,7 +153,7 @@ jobs:
             --output out
 
           # Get the basename of the GBL in `outputs`
-          output_basename=$(basename -- $(basename -- $(ls -1 artifacts/*.gbl | head -n 1)) .gbl)
+          output_basename=$(basename -- $(basename -- $(ls -1 outputs/*.gbl | head -n 1)) .gbl)
           echo "output_basename=$output_basename" >> $GITHUB_OUTPUT
 
       - name: Install node within container (act)
