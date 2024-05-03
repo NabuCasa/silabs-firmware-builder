@@ -1,16 +1,14 @@
 name: Build firmwares
 
 on:
+  pull_request:
+    paths-ignore:
+      - '.gitignore'
+      - 'README.md'
   push:
-    paths:
-      - Dockerfile
-      - .github/workflows/build.yaml
-      - manifests/**/*.yaml
-    branches:
-      - main
-    tags:
-      - '*'
-
+    paths-ignore:
+      - '.gitignore'
+      - 'README.md'
 env:
   REGISTRY: ghcr.io
 
@@ -22,39 +20,73 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4.1.4
-      - name: Create container name
-        id: create-container-name
-        run: |
-          repository_owner=$(echo $GITHUB_REPOSITORY_OWNER | tr [:upper:] [:lower:])
-          image_name="${{ env.REGISTRY }}/$repository_owner/silabs-firmware-builder"
-          tag_name="${{ hashFiles('Dockerfile') }}"
-
-          echo "image_name=$image_name" >> $GITHUB_OUTPUT
-          echo "tag_name=$tag_name" >> $GITHUB_OUTPUT
-          echo "container_name=$image_name:$tag_name" >> $GITHUB_OUTPUT
       - name: Log in to the GitHub container registry
         uses: docker/login-action@v3.1.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Read repository information
+        id: read-repo-info
+        run: |
+          if [[ $GITHUB_EVENT_NAME == "pull_request" ]]; then
+            base_image=$(echo ${{ github.event.pull_request.base.repo.full_name }} | awk '{print tolower($0)}')
+            head_image=$(echo ${{ github.event.pull_request.head.repo.full_name }} | awk '{print tolower($0)}')
+          else
+            base_image=$(echo ${{ github.repository }} | awk '{print tolower($0)}')
+            head_image=$(echo ${{ github.repository }} | awk '{print tolower($0)}')
+          fi
+
+          tag_name=$(echo "${{ hashFiles('Dockerfile') }}" | cut -c-16)
+
+          # Default to building a new container under the original repo
+          image_name=$head_image
+          build_image=true
+
+          # Check if we can use the base image (Nabu Casa)
+          if docker manifest inspect ${{ env.REGISTRY }}/$base_image:$tag_name; then
+            image_name=$base_image
+            build_image=false
+          fi
+
+          # Check if we can use the head image (if this is a PR)
+          if [[ $base_image != $head_image ]]; then
+            if docker manifest inspect ${{ env.REGISTRY }}/$head_image:$tag_name; then
+              image_name=$head_image
+              build_image=false
+            fi
+          fi
+
+          if [[ $build_image == "true" && $GITHUB_EVENT_NAME == "pull_request" ]]; then
+            echo "Cannot build a new container within a PR. Please re-run this action after $head_image:$tag_name is built."
+            exit 1
+          fi
+
+          echo "build_image=$build_image" >> $GITHUB_OUTPUT
+          echo "tag_name=$tag_name" >> $GITHUB_OUTPUT
+          echo "image_name=$image_name" >> $GITHUB_OUTPUT
+          echo "container_name=${{ env.REGISTRY }}/$image_name:$tag_name" >> $GITHUB_OUTPUT
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3.3.0
+        if: steps.read-repo-info.outputs.build_image == 'true'
       - name: Build and Push
         uses: docker/build-push-action@v5.3.0
+        if: steps.read-repo-info.outputs.build_image == 'true'
         with:
           context: .
           file: Dockerfile
-          tags: ${{ steps.create-container-name.outputs.container_name }}
-          cache-from: ${{ steps.create-container-name.outputs.image_name }}:cache-${{ steps.create-container-name.outputs.tag_name }}
-          cache-to: ${{ steps.create-container-name.outputs.image_name }}:cache-${{ steps.create-container-name.outputs.tag_name }}
+          tags: ${{ env.REGISTRY }}/${{ steps.read-repo-info.outputs.image_name }}:${{ steps.read-repo-info.outputs.tag_name }}
+          cache-from: ${{ env.REGISTRY }}/${{ steps.read-repo-info.outputs.image_name }}:cache-${{ steps.read-repo-info.outputs.tag_name }}
+          cache-to: ${{ env.REGISTRY }}/${{ steps.read-repo-info.outputs.image_name }}:cache-${{ steps.read-repo-info.outputs.tag_name }}
           push: true
     outputs:
-      container_name: ${{ steps.create-container-name.outputs.container_name }}
+      tag_name: ${{ steps.read-repo-info.outputs.tag_name }}
+      image_name: ${{ steps.read-repo-info.outputs.image_name }}
+      container_name: ${{ steps.read-repo-info.outputs.container_name }}
+
 
   list-manifests:
     name: List firmware manifests
-    needs: build-container
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
