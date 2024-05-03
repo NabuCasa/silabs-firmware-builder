@@ -1,6 +1,7 @@
 name: Yellow Zigbee
 device: MGM210PA32JIA
 base_project: src/ncp-uart-hw
+filename: "{manifest_name}_{ezsp_version}"
 
 gbl:
   fw_type: ncp-uart-hw

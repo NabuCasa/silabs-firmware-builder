@@ -1,6 +1,7 @@
 name: SkyConnect Zigbee
 device: EFR32MG21A020F512IM32
 base_project: src/ncp-uart-hw
+filename: "{manifest_name}_{ezsp_version}"
 
 gbl:
   fw_type: ncp-uart-hw
