@@ -109,20 +109,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4.1.4
 
-      - name: Parse firmware manifest
-        id: read_manifest_yaml
-        run: |
-          yq -r '
-            to_entries
-            | .[]
-            | select(.value | type == "string")
-            | .key + "=" + .value
-          ' "${{ matrix.manifest }}" >> $GITHUB_OUTPUT
-
-          manifest_filename=$(basename "${{ matrix.manifest }}")
-          manifest_base="${manifest_filename%%.*}"
-          echo "manifest_base=$manifest_base" >> $GITHUB_OUTPUT
-
       - name: Install SDK extensions
         run: |
           # XXX: slc-cli does not actually work when the extensions aren't in the SDK!
@@ -137,6 +123,7 @@ jobs:
           done
 
       - name: Build firmware
+        id: build-firmware
         run: |
           # Fix `fatal: detected dubious ownership in repository at`
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
@@ -154,18 +141,20 @@ jobs:
           done
 
           # Build it
-          mkdir outputs
-          filename="${{ steps.read_manifest_yaml.outputs['manifest_base'] }}"
-
           python3 tools/build_project.py \
             $sdk_args \
             $toolchain_args \
             --manifest "${{ matrix.manifest }}" \
             --build-dir build \
             --build-system makefile \
-            --output "gbl:outputs/$filename.gbl" \
-            --output "hex:outputs/$filename.hex" \
-            --output "out:outputs/$filename.out"
+            --output-dir outputs \
+            --output gbl" \
+            --output hex" \
+            --output out"
+
+          # Get the basename of the GBL in `outputs`
+          output_basename=$(basename -- $(basename -- $(ls -1 artifacts/*.gbl | head -n 1)) .gbl)
+          echo "output_basename=$output_basename" >> $GITHUB_OUTPUT
 
       - name: Install node within container (act)
         if: ${{ env.ACT }}
@@ -176,7 +165,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4.3.3
         with:
-          name: ${{ steps.read_manifest_yaml.outputs['manifest_base'] }}
+          name: ${{ steps.build-firmware.outputs.output_basename }}
           path: outputs/*
           compression-level: 9
           if-no-files-found: error
