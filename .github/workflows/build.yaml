@@ -57,6 +57,11 @@ jobs:
             fi
           fi
 
+          if [[ $build_image == "true" && $GITHUB_EVENT_NAME == "pull_request" ]]; then
+            echo "Cannot build a new container within a PR. Please re-run this action after $head_image:$tag_name is built."
+            exit 1
+          fi
+
           echo "build_image=$build_image" >> $GITHUB_OUTPUT
           echo "tag_name=$tag_name" >> $GITHUB_OUTPUT
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
