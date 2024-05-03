@@ -15,23 +15,23 @@ package: bootloader
 quality: production
 readme:
 - {path: readme.md}
-sdk: {id: gecko_sdk, version: 4.4.0}
+sdk: {id: gecko_sdk, version: 4.4.2}
 toolchain_settings: []
 component:
-- {id: bootloader_token_management}
-- {id: bootloader_serial_driver}
-- {id: bootloader_crc}
-- {id: bootloader_aes_sha_ecdsa}
-- {id: bootloader_gpio_activation}
-- {id: bootloader_uart_xmodem}
-- {id: brd4001a}
-- {id: bootloader_xmodem_parser}
-- {id: bootloader_delay_driver}
-- {id: bootloader_debug}
-- {id: brd4179b}
-- {id: bootloader_image_parser}
-- {id: bootloader_core}
 - {id: EFR32MG21A010F1024IM32}
+- {id: bootloader_aes_sha_ecdsa}
+- {id: bootloader_core}
+- {id: bootloader_crc}
+- {id: bootloader_debug}
+- {id: bootloader_delay_driver}
+- {id: bootloader_gpio_activation}
+- {id: bootloader_image_parser}
+- {id: bootloader_serial_driver}
+- {id: bootloader_token_management}
+- {id: bootloader_uart_xmodem}
+- {id: bootloader_xmodem_parser}
+- {id: brd4001a}
+- {id: brd4179b}
 configuration:
 - {name: SL_VCOM_ENABLE, value: '1'}
 ui_hints:

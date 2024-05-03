@@ -22,17 +22,17 @@ include:
 - path: ''
   file_list:
   - {path: app.h}
-sdk: {id: gecko_sdk, version: 4.4.0}
+sdk: {id: gecko_sdk, version: 4.4.2}
 toolchain_settings: []
 component:
-- {id: sl_system}
-- {id: brd4001a}
+- {id: EFR32MG21A010F1024IM32}
 - {id: bootloader_app_properties}
+- {id: bootloader_interface}
+- {id: brd4001a}
+- {id: brd4179b}
 - {id: cpp_support}
 - {id: device_init}
-- {id: brd4179b}
-- {id: bootloader_interface}
-- {id: EFR32MG21A010F1024IM32}
+- {id: sl_system}
 define:
 - {name: DEBUG_EFM}
 ui_hints:

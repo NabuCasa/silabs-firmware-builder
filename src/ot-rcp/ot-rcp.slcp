@@ -24,18 +24,18 @@ include:
   file_list:
   - {path: app.h}
   - {path: reset_util.h}
-sdk: {id: gecko_sdk, version: 4.4.0}
+sdk: {id: gecko_sdk, version: 4.4.2}
 toolchain_settings: []
 component:
+- {id: EFR32MG21A010F1024IM32}
+- {id: bootloader_interface}
+- {id: brd4001a}
+- {id: brd4179b}
+- {id: ot_crash_handler}
+- {id: ot_stack_rcp}
 - {id: rail_util_pti}
 - instance: [vcom]
   id: uartdrv_usart
-- {id: brd4001a}
-- {id: ot_stack_rcp}
-- {id: ot_crash_handler}
-- {id: brd4179b}
-- {id: bootloader_interface}
-- {id: EFR32MG21A010F1024IM32}
 configuration:
 - {name: SL_BOARD_ENABLE_VCOM, value: '1'}
 - {name: OPENTHREAD_CONFIG_HEAP_EXTERNAL_ENABLE, value: '0'}

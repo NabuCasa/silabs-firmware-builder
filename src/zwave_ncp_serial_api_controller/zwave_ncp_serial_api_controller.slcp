@@ -50,29 +50,29 @@ include:
   - {path: utils.h}
   - {path: virtual_slave_node_info.h}
   - {path: zaf_config_security.h}
-sdk: {id: gecko_sdk, version: 4.4.0}
+sdk: {id: gecko_sdk, version: 4.4.2}
 toolchain_settings: []
 component:
-- {id: zw_api_serialapi}
-- {id: zaf_ncp}
-- {id: mpu}
+- {id: ZGM130S037HGN}
+- {id: ZW_MIGRATION_FROM_7_20}
 - {id: brd4207a}
+- {id: device_init}
+- {id: emlib_letimer}
+- {id: emlib_msc}
+- {id: emlib_timer}
+- {id: gpiointerrupt}
+- {id: mpu}
+- {id: sl_system}
+- {id: zaf_ncp}
+- {id: zw_api_controller}
+- {id: zw_api_serialapi}
+- {id: zw_api_zw}
 - {id: zw_app_timer_deep_sleep}
+- {id: zw_appshw_serialapi}
+- {id: zw_apputilities_minimal}
+- {id: zw_core}
 - {id: zw_dcdc_override}
 - {id: zw_role_type_central_static_controller}
-- {id: zw_core}
-- {id: device_init}
-- {id: zw_api_zw}
-- {id: zw_apputilities_minimal}
-- {id: gpiointerrupt}
-- {id: zw_api_controller}
-- {id: zw_appshw_serialapi}
-- {id: ZW_MIGRATION_FROM_7_20}
-- {id: sl_system}
-- {id: ZGM130S037HGN}
-- {id: emlib_msc}
-- {id: emlib_letimer}
-- {id: emlib_timer}
 other_file:
 - {path: postbuild.sh}
 define:

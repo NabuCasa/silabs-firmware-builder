@@ -29,6 +29,7 @@
  ******************************************************************************/
 
 // <<< Use Configuration Wizard in Context Menu >>>
+
 #ifndef SL_CPC_DRV_UART_USART_VCOM_CONFIG_H
 #define SL_CPC_DRV_UART_USART_VCOM_CONFIG_H
 
