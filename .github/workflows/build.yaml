@@ -37,7 +37,7 @@ jobs:
             head_image=$(echo ${{ github.repository }} | awk '{print tolower($0)}')
           fi
 
-          tag_name="${{ hashFiles('Dockerfile') }}"
+          tag_name=$(echo "${{ hashFiles('Dockerfile') }}" | cut -c-16)
 
           # Default to building a new container under the original repo
           image_name=$head_image
