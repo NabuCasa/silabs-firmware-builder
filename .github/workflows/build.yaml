@@ -148,9 +148,9 @@ jobs:
             --build-dir build \
             --build-system makefile \
             --output-dir outputs \
-            --output gbl" \
-            --output hex" \
-            --output out"
+            --output gbl \
+            --output hex \
+            --output out
 
           # Get the basename of the GBL in `outputs`
           output_basename=$(basename -- $(basename -- $(ls -1 artifacts/*.gbl | head -n 1)) .gbl)
