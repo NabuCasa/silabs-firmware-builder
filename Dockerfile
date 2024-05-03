@@ -53,13 +53,15 @@ RUN \
 
 # Gecko SDK 4.4.0
 RUN \
-    git clone --depth 1 -b v4.4.0 https://github.com/SiliconLabs/gecko_sdk.git gecko_sdk_4.4.0 \
-    && rm -rf gecko_sdk_4.4.0/.git
+    curl -o gecko_sdk_4.4.0.zip -L https://github.com/SiliconLabs/gecko_sdk/releases/download/v4.4.0/gecko-sdk.zip \
+    && unzip -d gecko_sdk_4.4.0 gecko_sdk_4.4.0.zip \
+    && rm gecko_sdk_4.4.0.zip
 
 # Gecko SDK 4.3.1
 RUN \
-    git clone --depth 1 -b v4.3.1 https://github.com/SiliconLabs/gecko_sdk.git gecko_sdk_4.3.1 \
-    && rm -rf gecko_sdk_4.3.1/.git
+    curl -o gecko_sdk_4.3.1.zip -L https://github.com/SiliconLabs/gecko_sdk/releases/download/v4.3.1/gecko-sdk.zip \
+    && unzip -d gecko_sdk_4.3.1 gecko_sdk_4.3.1.zip \
+    && rm gecko_sdk_4.3.1.zip
 
 ARG USERNAME=builder
 ARG USER_UID=1000
