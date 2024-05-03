@@ -24,7 +24,7 @@ RUN \
 # is known to be working with Commander_linux_x86_64_1v15p0b1306.tar.bz).
 RUN \
     curl -O https://www.silabs.com/documents/login/software/SimplicityCommander-Linux.zip \
-    && unzip SimplicityCommander-Linux.zip \
+    && unzip -q SimplicityCommander-Linux.zip \
     && tar -C /opt -xjf SimplicityCommander-Linux/Commander_linux_x86_64_*.tar.bz \
     && rm -r SimplicityCommander-Linux \
     && rm SimplicityCommander-Linux.zip
@@ -34,7 +34,7 @@ ENV PATH="$PATH:/opt/commander"
 # Install Silicon Labs Configurator (slc)
 RUN \
     curl -O https://www.silabs.com/documents/login/software/slc_cli_linux.zip \
-    && unzip -d /opt slc_cli_linux.zip \
+    && unzip -q -d /opt slc_cli_linux.zip \
     && rm slc_cli_linux.zip
 
 ENV PATH="$PATH:/opt/slc_cli"
@@ -54,13 +54,13 @@ RUN \
 # Gecko SDK 4.4.0
 RUN \
     curl -o gecko_sdk_4.4.0.zip -L https://github.com/SiliconLabs/gecko_sdk/releases/download/v4.4.0/gecko-sdk.zip \
-    && unzip -d gecko_sdk_4.4.0 gecko_sdk_4.4.0.zip \
+    && unzip -q -d gecko_sdk_4.4.0 gecko_sdk_4.4.0.zip \
     && rm gecko_sdk_4.4.0.zip
 
 # Gecko SDK 4.3.1
 RUN \
     curl -o gecko_sdk_4.3.1.zip -L https://github.com/SiliconLabs/gecko_sdk/releases/download/v4.3.1/gecko-sdk.zip \
-    && unzip -d gecko_sdk_4.3.1 gecko_sdk_4.3.1.zip \
+    && unzip -q -d gecko_sdk_4.3.1 gecko_sdk_4.3.1.zip \
     && rm gecko_sdk_4.3.1.zip
 
 ARG USERNAME=builder
