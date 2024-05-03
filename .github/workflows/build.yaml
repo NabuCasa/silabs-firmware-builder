@@ -19,6 +19,7 @@ jobs:
     permissions:
       packages: write
     steps:
+      - uses: actions/checkout@v4.1.4
       - name: Log in to the GitHub container registry
         uses: docker/login-action@v3.1.0
         with:
