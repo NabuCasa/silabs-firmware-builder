@@ -9,10 +9,25 @@ on:
     paths-ignore:
       - '.gitignore'
       - 'README.md'
+
 env:
   REGISTRY: ghcr.io
 
 jobs:
+  run-pre-commit:
+    name: Run pre-commit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+      - name: Install pre-commit
+        run: |
+          pip install pre-commit
+          pre-commit install
+      - name: Run pre-commit
+        run: |
+          pre-commit run --show-diff-on-failure --color=always --all-files
+
   build-container:
     name: Create build container image
     runs-on: ubuntu-latest
