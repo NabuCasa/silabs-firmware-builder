@@ -7,3 +7,10 @@ repos:
         language: system
         files: \.cproject$
         pass_filenames: true
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.3
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
