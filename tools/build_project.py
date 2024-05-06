@@ -44,6 +44,14 @@ LOGGER = logging.getLogger(__name__)
 yaml = YAML(typ="safe")
 
 
+def evaulate_f_string(f_string: str, variables: dict[str, typing.Any]) -> str:
+    """
+    Evaluates an `f`-string with the given locals.
+    """
+
+    return eval("f" + repr(f_string), variables)
+
+
 def ensure_folder(path: str | pathlib.Path) -> pathlib.Path:
     """Ensure that the path exists and is a folder."""
     path = pathlib.Path(path)
@@ -89,15 +97,21 @@ def parse_override(override: str) -> tuple[str, dict | list]:
         raise argparse.ArgumentTypeError(f"Invalid JSON: {exc}")
 
 
-def parse_prefixed_output(output: str) -> tuple[str, pathlib.Path]:
+def parse_prefixed_output(output: str) -> tuple[str, pathlib.Path | None]:
     """Parse a prefixed output parameter."""
-    if ":" not in output:
+    if ":" in output:
+        prefix, _, path = output.partition(":")
+        path = pathlib.Path(path)
+    else:
+        prefix = output
+        path = None
+
+    if prefix not in ("gbl", "hex", "out"):
         raise argparse.ArgumentTypeError(
-            "Override must be of the form (e.g.) `gbl=output.gbl`"
+            "Output format is of the form `gbl:overridden_filename.gbl` or just `gbl`"
         )
 
-    prefix, _, path = output.partition(":")
-    return prefix, pathlib.Path(path)
+    return prefix, path
 
 
 def get_git_commit_id(repo: pathlib.Path) -> str:
@@ -144,6 +158,13 @@ def main():
         type=parse_prefixed_output,
         required=True,
         help="Output file prefixed with its file type",
+    )
+    parser.add_argument(
+        "--output-dir",
+        dest="output_dir",
+        type=pathlib.Path,
+        default=pathlib.Path("."),
+        help="Output directory for artifacts, will be created if it does not exist",
     )
     parser.add_argument(
         "--no-clean-build-dir",
@@ -207,11 +228,6 @@ def main():
     if args.toolchains != get_toolchain_default_paths():
         args.toolchains = args.toolchains[len(get_toolchain_default_paths()) :]
 
-    # Template variables for C defines
-    value_template_env = {
-        "git_repo_hash": get_git_commit_id(repo=pathlib.Path(__file__).parent.parent),
-    }
-
     manifest = yaml.load(args.manifest.read_text())
 
     for key, override in args.overrides:
@@ -263,6 +279,12 @@ def main():
             else:
                 # Otherwise, append it
                 output_config.append({"name": name, "value": value})
+
+    # Template variables for C defines
+    value_template_env = {
+        "git_repo_hash": get_git_commit_id(repo=pathlib.Path(__file__).parent.parent),
+        "manifest_name": args.manifest.stem,
+    }
 
     # Copy the base project into the output directory
     if args.clean_build_dir:
@@ -581,11 +603,25 @@ def main():
 
         output_artifact = (cmake_build_root / base_project_name).with_suffix(".gbl")
 
+    # Read the metadata extracted from the source and build trees
+    extracted_gbl_metadata = json.loads(
+        (output_artifact.parent / "gbl_metadata.json").read_text()
+    )
+    base_filename = evaulate_f_string(
+        manifest.get("filename", "{manifest_name}"),
+        {**value_template_env, **extracted_gbl_metadata},
+    )
+
+    args.output_dir.mkdir(exist_ok=True)
+
     # Copy the output artifacts
-    for extension, path in args.outputs:
+    for extension, output_path in args.outputs:
+        if output_path is None:
+            output_path = f"{base_filename}.{extension}"
+
         shutil.copy(
             src=output_artifact.with_suffix(f".{extension}"),
-            dst=path,
+            dst=args.output_dir / output_path,
         )
 
     if args.clean_build_dir:

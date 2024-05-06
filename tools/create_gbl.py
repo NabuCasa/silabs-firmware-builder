@@ -158,88 +158,86 @@ def main():
         (project_root / "gbl_metadata.yaml").read_text()
     )
 
-    # Only create GBL metadata JSON if there is something to create
-    if "fw_type" in gbl_metadata or "baudrate" in gbl_metadata:
-        # Prepare the GBL metadata
-        metadata = {
-            "metadata_version": 1,
-            "sdk_version": slcp["sdk"]["version"],
-            "fw_type": gbl_metadata["fw_type"],
-            "baudrate": gbl_metadata["baudrate"],
-        }
+    # Prepare the GBL metadata
+    metadata = {
+        "metadata_version": 1,
+        "sdk_version": slcp["sdk"]["version"],
+        "fw_type": gbl_metadata.get("fw_type"),
+        "baudrate": gbl_metadata.get("baudrate"),
+    }
 
-        # Compute the dynamic metadata
-        gbl_dynamic = gbl_metadata.get("dynamic", [])
+    # Compute the dynamic metadata
+    gbl_dynamic = gbl_metadata.get("dynamic", [])
 
-        if "ezsp_version" in gbl_dynamic:
-            gbl_dynamic.remove("ezsp_version")
-            zigbee_esf_props = parse_properties_file(
-                (gsdk_path / "protocol/zigbee/esf.properties").read_text()
-            )
-            metadata["ezsp_version"] = zigbee_esf_props["version"][0]
-
-        if "cpc_version" in gbl_dynamic:
-            gbl_dynamic.remove("cpc_version")
-            sl_gsdk_version_h = parse_c_header_defines(
-                (gsdk_path / "platform/common/inc/sl_gsdk_version.h").read_text()
-            )
-            metadata["cpc_version"] = ".".join(
-                [
-                    str(sl_gsdk_version_h["SL_GSDK_MAJOR_VERSION"]),
-                    str(sl_gsdk_version_h["SL_GSDK_MINOR_VERSION"]),
-                    str(sl_gsdk_version_h["SL_GSDK_PATCH_VERSION"]),
-                ]
-            )
-
-            try:
-                internal_app_config_h = parse_c_header_defines(
-                    (project_root / "config/internal_app_config.h").read_text()
-                )
-            except FileNotFoundError:
-                internal_app_config_h = {}
-
-            if "CPC_SECONDARY_APP_VERSION_SUFFIX" in internal_app_config_h:
-                metadata["cpc_version"] += internal_app_config_h[
-                    "CPC_SECONDARY_APP_VERSION_SUFFIX"
-                ]
-
-        if "zwave_version" in gbl_dynamic:
-            gbl_dynamic.remove("zwave_version")
-            zwave_esf_props = parse_properties_file(
-                (gsdk_path / "protocol/z-wave/esf.properties").read_text()
-            )
-            metadata["zwave_version"] = zwave_esf_props["version"][0]
-
-        if "ot_rcp_version" in gbl_dynamic:
-            gbl_dynamic.remove("ot_rcp_version")
-            openthread_config_h = parse_c_header_defines(
-                (project_root / "config/sl_openthread_generic_config.h").read_text()
-            )
-            metadata["ot_rcp_version"] = openthread_config_h["PACKAGE_STRING"]
-
-        if "gecko_bootloader_version" in gbl_dynamic:
-            gbl_dynamic.remove("gecko_bootloader_version")
-            btl_config_h = parse_c_header_defines(
-                (gsdk_path / "platform/bootloader/config/btl_config.h").read_text()
-            )
-
-            metadata["gecko_bootloader_version"] = ".".join(
-                [
-                    str(btl_config_h["BOOTLOADER_VERSION_MAIN_MAJOR"]),
-                    str(btl_config_h["BOOTLOADER_VERSION_MAIN_MINOR"]),
-                    str(btl_config_h["BOOTLOADER_VERSION_MAIN_CUSTOMER"]),
-                ]
-            )
-
-        if gbl_dynamic:
-            raise ValueError(f"Unknown dynamic metadata: {gbl_dynamic}")
-
-        print("Generated GBL metadata:", metadata, flush=True)
-
-        # Write it to a file for `commander` to read
-        (artifact_root / "gbl_metadata.json").write_text(
-            json.dumps(metadata, sort_keys=True)
+    if "ezsp_version" in gbl_dynamic:
+        gbl_dynamic.remove("ezsp_version")
+        zigbee_esf_props = parse_properties_file(
+            (gsdk_path / "protocol/zigbee/esf.properties").read_text()
         )
+        metadata["ezsp_version"] = zigbee_esf_props["version"][0]
+
+    if "cpc_version" in gbl_dynamic:
+        gbl_dynamic.remove("cpc_version")
+        sl_gsdk_version_h = parse_c_header_defines(
+            (gsdk_path / "platform/common/inc/sl_gsdk_version.h").read_text()
+        )
+        metadata["cpc_version"] = ".".join(
+            [
+                str(sl_gsdk_version_h["SL_GSDK_MAJOR_VERSION"]),
+                str(sl_gsdk_version_h["SL_GSDK_MINOR_VERSION"]),
+                str(sl_gsdk_version_h["SL_GSDK_PATCH_VERSION"]),
+            ]
+        )
+
+        try:
+            internal_app_config_h = parse_c_header_defines(
+                (project_root / "config/internal_app_config.h").read_text()
+            )
+        except FileNotFoundError:
+            internal_app_config_h = {}
+
+        if "CPC_SECONDARY_APP_VERSION_SUFFIX" in internal_app_config_h:
+            metadata["cpc_version"] += internal_app_config_h[
+                "CPC_SECONDARY_APP_VERSION_SUFFIX"
+            ]
+
+    if "zwave_version" in gbl_dynamic:
+        gbl_dynamic.remove("zwave_version")
+        zwave_esf_props = parse_properties_file(
+            (gsdk_path / "protocol/z-wave/esf.properties").read_text()
+        )
+        metadata["zwave_version"] = zwave_esf_props["version"][0]
+
+    if "ot_rcp_version" in gbl_dynamic:
+        gbl_dynamic.remove("ot_rcp_version")
+        openthread_config_h = parse_c_header_defines(
+            (project_root / "config/sl_openthread_generic_config.h").read_text()
+        )
+        metadata["ot_rcp_version"] = openthread_config_h["PACKAGE_STRING"]
+
+    if "gecko_bootloader_version" in gbl_dynamic:
+        gbl_dynamic.remove("gecko_bootloader_version")
+        btl_config_h = parse_c_header_defines(
+            (gsdk_path / "platform/bootloader/config/btl_config.h").read_text()
+        )
+
+        metadata["gecko_bootloader_version"] = ".".join(
+            [
+                str(btl_config_h["BOOTLOADER_VERSION_MAIN_MAJOR"]),
+                str(btl_config_h["BOOTLOADER_VERSION_MAIN_MINOR"]),
+                str(btl_config_h["BOOTLOADER_VERSION_MAIN_CUSTOMER"]),
+            ]
+        )
+
+    if gbl_dynamic:
+        raise ValueError(f"Unknown dynamic metadata: {gbl_dynamic}")
+
+    print("Generated GBL metadata:", metadata, flush=True)
+
+    # Write it to a file for `commander` to read
+    (artifact_root / "gbl_metadata.json").write_text(
+        json.dumps(metadata, sort_keys=True)
+    )
 
     # Make sure the Commander binary is included in the PATH on macOS
     if sys.platform == "darwin":
