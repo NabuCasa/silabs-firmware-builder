@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ET
 
 def json_dumps_compact(obj: dict | list) -> str:
     """Compactly dump JSON into a string."""
-    return json.dumps(copied_files, separators=(",", ":"), indent=None)
+    return json.dumps(obj, separators=(",", ":"), indent=None)
 
 
 cproject_path = pathlib.Path(sys.argv[1])
@@ -37,13 +37,13 @@ for storage_module in tree.findall(".//storageModule"):
         for state in project_built_in_state:
             if "resolvedOptionsStr" in state:
                 resolved_options = json.loads(state["resolvedOptionsStr"])
-                resolved_options.sort(key=lambda o: (o["optionId"]))
+                resolved_options.sort(key=lambda o: o["optionId"])
 
                 state["resolvedOptionsStr"] = json_dumps_compact(resolved_options)
 
-        storage_module.attrib[
-            "cppBuildConfig.projectBuiltInState"
-        ] = json_dumps_compact(project_built_in_state)
+        storage_module.attrib["cppBuildConfig.projectBuiltInState"] = (
+            json_dumps_compact(project_built_in_state)
+        )
 
 # Normalize self-closing tag spacing
 xml_text = ET.tostring(tree, encoding="unicode", xml_declaration=False)

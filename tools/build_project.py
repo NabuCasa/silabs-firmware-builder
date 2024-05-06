@@ -9,7 +9,6 @@ import ast
 import sys
 import copy
 import json
-import shlex
 import shutil
 import hashlib
 import logging
@@ -489,7 +488,7 @@ def main():
                 f' --parameter sdk_dir:"{sdk}"'
                 "\n"
             )
-            f.write(f"\t-@echo ' '")
+            f.write("\t-@echo ' '")
 
         subprocess.run(
             [
@@ -534,7 +533,7 @@ def main():
         # Insert our postbuild step
         cmakelists_txt = cmake_build_root / "CMakeLists.txt"
         cmakelists = cmakelists_txt.read_text()
-        s37_line = next(l for l in cmakelists.split("\n") if "-O srec" in l)
+        s37_line = next(line for line in cmakelists.split("\n") if "-O srec" in line)
         s37_output_file = s37_line.split(" ")[-1]
         s37_build_folder = s37_output_file.split("/", 1)[0] + '"'
 
