@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: normalize-cproject
+        name: Normalize Eclipse .cproject files
+        entry: python tools/cproject_normalizer.py
+        language: system
+        files: \.cproject$
+        pass_filenames: true
