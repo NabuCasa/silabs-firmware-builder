@@ -3,7 +3,7 @@ repos:
     hooks:
       - id: normalize-cproject
         name: Normalize Eclipse .cproject files
-        entry: python tools/cproject_normalizer.py
+        entry: python tools/normalize_cproject.py
         language: system
         files: \.cproject$
         pass_filenames: true
