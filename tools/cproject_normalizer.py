@@ -24,8 +24,23 @@ for storage_module in tree.findall(".//storageModule"):
             storage_module.attrib["cppBuildConfig.projectBuiltInState"]
         )
 
-match = re.search(r'(<\?.*\?>)', cproject[:200], flags=re.DOTALL)
+        for state in project_built_in_state:
+            if "resolvedOptionsStr" in state:
+                resolved_options = json.loads(state["resolvedOptionsStr"])
+                resolved_options.sort(key=lambda o: (o["optionId"]))
+
+                state["resolvedOptionsStr"] = json.dumps(
+                    resolved_options, separators=(",", ":"), indent=None
+                )
+
+        storage_module.attrib["cppBuildConfig.projectBuiltInState"] = json.dumps(
+            project_built_in_state, separators=(",", ":"), indent=None
+        )
+
+match = re.search(r"(<\?.*\?>)", cproject[:200], flags=re.DOTALL)
 processing_instructions = match.group(0)
 
-xml_data = ET.tostring(tree, encoding="unicode", xml_declaration=False).replace(" />", "/>")
-cproject_path.write_text(processing_instructions + xml_data)
+xml_text = ET.tostring(tree, encoding="unicode", xml_declaration=False)
+xml_text = xml_text.replace(" />", "/>")
+
+cproject_path.write_text(processing_instructions + xml_text)
