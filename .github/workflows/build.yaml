@@ -9,9 +9,6 @@ on:
     paths-ignore:
       - '.gitignore'
       - 'README.md'
-  release:
-    types:
-      - published
 
 env:
   REGISTRY: ghcr.io
@@ -183,25 +180,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4.3.3
         with:
-          name: firmware-build-${{ steps.build-firmware.outputs.output_basename }}
+          name: ${{ steps.build-firmware.outputs.output_basename }}
           path: outputs/*
           compression-level: 9
           if-no-files-found: error
-
-  release-assets:
-    name: Upload release assets
-    needs: [build-firmwares]
-    runs-on: ubuntu-latest
-    if: github.event_name == 'release'
-    steps:
-      - name: Download all workflow artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-          merge-multiple: true
-          pattern: firmware-build-*
-
-      - name: Upload artifacts
-        uses: softprops/action-gh-release@v1
-        with:
-          files: artifacts/*
