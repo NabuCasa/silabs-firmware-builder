@@ -9,6 +9,9 @@ on:
     paths-ignore:
       - '.gitignore'
       - 'README.md'
+  release:
+    types:
+      - published
 
 env:
   REGISTRY: ghcr.io
