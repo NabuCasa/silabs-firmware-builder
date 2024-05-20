@@ -103,6 +103,11 @@ jobs:
             device: EFR32MG24A420F1536IM48
             components: simple_led:board_activity,zigbee_mfglib,zigbee_token_interface
             patchpath: "EmberZNet/TubesZB_BM24_2023_HW_Flow"
+            
+          - target: tubeszb-MGMPB-hwflow-high
+            device: MGM240PB32VNN3
+            components: simple_led:board_activity,zigbee_mfglib,zigbee_token_interface
+            patchpath: "EmberZNet/TubesZB_MGMPB"
     uses: ./.github/workflows/silabs-firmware-build.yaml
     with:
       image_name: ${{ needs.build-container.outputs.image_name }}
@@ -144,6 +149,12 @@ jobs:
             device: EFR32MG24A420F1536IM48
             components: simple_led:board_activity,zigbee_mfglib,zigbee_token_interface
             patchpath: "EmberZNet/TubesZB_BM24_2023_HW_Flow"
+
+          - target: tubeszb-MGMPB-hwflow-high
+            device: MGM240PB32VNN3
+            components: simple_led:board_activity,zigbee_mfglib,zigbee_token_interface
+            patchpath: "EmberZNet/TubesZB_MGMPB"
+            
     uses: ./.github/workflows/silabs-firmware-build.yaml
     with:
       image_name: ${{ needs.build-container.outputs.image_name }}
