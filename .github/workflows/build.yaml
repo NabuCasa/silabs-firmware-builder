@@ -151,7 +151,7 @@ jobs:
             patchpath: "EmberZNet/TubesZB_BM24_2023_HW_Flow"
 
           - target: tubeszb-MGMPB-hwflow-high
-            device: MGM240PB32VNN3
+            device: MGM240PB32VNN
             components: simple_led:board_activity,zigbee_mfglib,zigbee_token_interface
             patchpath: "EmberZNet/TubesZB_MGMPB"
             
