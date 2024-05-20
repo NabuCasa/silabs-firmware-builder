@@ -106,7 +106,7 @@ jobs:
 
           - target: tubeszb-MGMPB-hwflow-high
             device: MGM240PB32VNN
-            components: simple_led:board_activity,zigbee_mfglib,zigbee_token_interface
+            components: zigbee_mfglib,zigbee_token_interface
             patchpath: "EmberZNet/TubesZB_MGM24PB"
     uses: ./.github/workflows/silabs-firmware-build.yaml
     with:
@@ -152,7 +152,7 @@ jobs:
 
           - target: tubeszb-MGMPB-hwflow-high
             device: MGM240PB32VNN
-            components: simple_led:board_activity,zigbee_mfglib,zigbee_token_interface
+            components: zigbee_mfglib,zigbee_token_interface
             patchpath: "EmberZNet/TubesZB_MGM24PB"
             
     uses: ./.github/workflows/silabs-firmware-build.yaml
