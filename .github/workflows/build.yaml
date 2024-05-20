@@ -103,6 +103,11 @@ jobs:
             device: EFR32MG24A420F1536IM48
             components: simple_led:board_activity,zigbee_mfglib,zigbee_token_interface
             patchpath: "EmberZNet/TubesZB_BM24_2023_HW_Flow"
+
+          - target: tubeszb-MGMPB-hwflow-high
+            device: MGM240PB32VNN
+            components: zigbee_mfglib,zigbee_token_interface
+            patchpath: "EmberZNet/TubesZB_MGM24PB"
     uses: ./.github/workflows/silabs-firmware-build.yaml
     with:
       image_name: ${{ needs.build-container.outputs.image_name }}
@@ -119,6 +124,55 @@ jobs:
         EMBER_SOURCE_ROUTE_TABLE_SIZE:254,
       patchpath: ${{ matrix.patchpath }}
       extra_c_defs: "'-DEMBER_ADDRESS_TABLE_SIZE=16' '-DEMBER_MULTICAST_TABLE_SIZE=16'"
+      sdk_version: ${{ needs.build-container.outputs.sdk_version }}
+      metadata_fw_type: "ncp-uart-hw"
+      baudrate: 115200
+      metadata_extra: "{ \"ezsp_version\": \"7.4.2.0\" }"
+
+  ezsp-firmware-build-high:
+    name: EmberZNet NCP Higher
+    needs: build-container
+    strategy:
+      matrix:
+        include:
+          - target: tubeszb-mgm12-2021-high
+            device: MGM12P32F1024GE
+            components: zigbee_mfglib,zigbee_token_interface
+            patchpath: "EmberZNet/TubesZB_MGM12_2021"
+
+          - target: tubeszb-mgm24-2023-hwflow-high
+            device: MGM240PA32VNN
+            components: zigbee_mfglib,zigbee_token_interface
+            patchpath: "EmberZNet/TubesZB_MGM24_2023_HW_Flow"
+
+          - target: tubeszb-BM24-2023-hwflow-high
+            device: EFR32MG24A420F1536IM48
+            components: simple_led:board_activity,zigbee_mfglib,zigbee_token_interface
+            patchpath: "EmberZNet/TubesZB_BM24_2023_HW_Flow"
+
+          - target: tubeszb-MGMPB-hwflow-high
+            device: MGM240PB32VNN
+            components: zigbee_mfglib,zigbee_token_interface
+            patchpath: "EmberZNet/TubesZB_MGM24PB"
+            
+    uses: ./.github/workflows/silabs-firmware-build.yaml
+    with:
+      image_name: ${{ needs.build-container.outputs.image_name }}
+      firmware_name: ncp-uart-hw-${{ matrix.target }}
+      project_file: "/gecko_sdk/protocol/zigbee/app/ncp/sample-app/ncp-uart-hw/ncp-uart-hw.slcp"
+      project_name: "ncp-uart-hw"
+      device: ${{ matrix.device }}
+      components: ${{ matrix.components }}
+      configuration:  |
+        SL_IOSTREAM_USART_VCOM_RX_BUFFER_SIZE:128,
+        EMBER_APS_UNICAST_MESSAGE_COUNT:255,
+        EMBER_BROADCAST_TABLE_SIZE:30,
+        EMBER_MAX_END_DEVICE_CHILDREN:64,
+        EMBER_NEIGHBOR_TABLE_SIZE:26,
+        EMBER_SOURCE_ROUTE_TABLE_SIZE:254,
+        SL_ZIGBEE_APS_DUPLICATE_REJECTION_MAX_ENTRIES:255,
+      patchpath: ${{ matrix.patchpath }}
+      extra_c_defs: "'-DEMBER_ADDRESS_TABLE_SIZE=250' '-DEMBER_MULTICAST_TABLE_SIZE=26' '-DEMBER_CONFIG_ROUTE_TABLE_SIZE=254'"
       sdk_version: ${{ needs.build-container.outputs.sdk_version }}
       metadata_fw_type: "ncp-uart-hw"
       baudrate: 115200
