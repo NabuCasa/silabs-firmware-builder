@@ -65,6 +65,13 @@ source:
   - path: main.c
   - path: app.c
 
+template_contribution:
+- name: zigbee_stack_callback
+  priority: -9999
+  value:
+    callback_type: override_append_source_route
+    function_name: nc_zigbee_override_append_source_route
+
 filter:
   - name: Wireless Technology
     value: [Zigbee]

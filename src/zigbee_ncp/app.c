@@ -24,12 +24,20 @@
 
 
 typedef enum {
-  XNCP_CMD_GET_SUPPORTED_FEATURES = 0x00,
+  XNCP_CMD_GET_SUPPORTED_FEATURES = 0x0000,
+  XNCP_CMD_SET_SOURCE_ROUTE = 0x0001
 } CUSTOM_EZSP_CMD;
 
 
 #define FEATURE_MEMBER_OF_ALL_GROUPS (0b00000000000000000000000000000001)
-#define SUPPORTED_FEATURES (FEATURE_MEMBER_OF_ALL_GROUPS)
+#define FEATURE_MANUAL_SOURCE_ROUTE  (0b00000000000000000000000000000010)
+#define SUPPORTED_FEATURES ( \
+      FEATURE_MEMBER_OF_ALL_GROUPS \
+    | FEATURE_MANUAL_SOURCE_ROUTE \
+)
+
+#define MAX_EPHEMERAL_SOURCE_ROUTES  (20)
+uint16_t manual_source_routes[MAX_EPHEMERAL_SOURCE_ROUTES][1 + EMBER_MAX_SOURCE_ROUTE_RELAY_COUNT + 1];
 
 
 //----------------------
@@ -49,6 +57,11 @@ void emberAfRadioNeedsCalibratingCallback(void)
  */
 void emberAfMainInitCallback(void)
 {
+  for (uint8_t i = 0; i < MAX_EPHEMERAL_SOURCE_ROUTES; i++) {
+    for (uint8_t j = 0; j < EMBER_MAX_SOURCE_ROUTE_RELAY_COUNT; j++) {
+      manual_source_routes[i][j] = EMBER_NULL_NODE_ID;
+    }
+  }
 }
 
 /** @brief Packet filter callback
@@ -79,17 +92,61 @@ EmberPacketAction emberAfIncomingPacketFilterCallback(EmberZigbeePacketType pack
 }
 
 
+void nc_zigbee_override_append_source_route(EmberNodeId destination,
+                                            EmberMessageBuffer *header,
+                                            bool *consumed)
+{
+  uint8_t index = 0xFF;
+
+  for (uint8_t i = 0; i < MAX_EPHEMERAL_SOURCE_ROUTES; i++) {
+    if (manual_source_routes[i][0] == destination) {
+      index = i;
+      break;
+    }
+  }
+
+  if (index == 0xFF) {
+    *consumed = false;
+    return;
+  }
+
+  uint16_t *routes = &manual_source_routes[index][1];
+
+  uint8_t relay_count = 0;
+  uint8_t relay_index = 0;
+
+  while (routes[relay_count] != EMBER_NULL_NODE_ID) {
+    relay_count++;
+  }
+
+  *consumed = true;
+  emberAppendToLinkedBuffers(*header, &relay_count, 1);
+  emberAppendToLinkedBuffers(*header, &relay_index, 1);
+
+  //emberExtendLinkedBuffer(*header, relay_count * 2);
+  //memcpy(2 + emberMessageBufferContents(*header), routes, relay_count * 2);
+
+  for (uint8_t i = 0; i < relay_count; i++) {
+    emberAppendToLinkedBuffers(*header, &routes[i], 2);
+  }
+
+  return;
+}
+
+
 EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
                                                          uint8_t *messagePayload,
                                                          uint8_t *replyPayloadLength,
                                                          uint8_t *replyPayload) {
   *replyPayloadLength = 0;
 
-  if (messageLength < 1) {
+  if (messageLength < 2) {
     return EMBER_BAD_ARGUMENT;
   }
 
-  switch (messagePayload[0]) {
+  uint16_t command_id = (messagePayload[0] << 0) | (messagePayload[1] << 8);
+
+  switch (command_id) {
     case XNCP_CMD_GET_SUPPORTED_FEATURES:
       *replyPayloadLength += 4;
       replyPayload[0] = (uint8_t)((SUPPORTED_FEATURES >>  0) & 0xFF);
@@ -97,6 +154,44 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       replyPayload[2] = (uint8_t)((SUPPORTED_FEATURES >> 16) & 0xFF);
       replyPayload[3] = (uint8_t)((SUPPORTED_FEATURES >> 24) & 0xFF);
       break;
+
+    case XNCP_CMD_SET_SOURCE_ROUTE:
+      if ((messageLength < 4) || (messageLength % 2 != 0)) {
+        return EMBER_BAD_ARGUMENT;
+      }
+
+      uint8_t num_relays = (messageLength - 4) / 2;
+
+      if (num_relays > EMBER_MAX_SOURCE_ROUTE_RELAY_COUNT + 1) {
+        return EMBER_BAD_ARGUMENT;
+      }
+
+      // If we don't find a better index, pick one at random
+      uint8_t insertion_index = emberGetPseudoRandomNumber() % MAX_EPHEMERAL_SOURCE_ROUTES;
+      uint16_t node_id = (messagePayload[2] << 0) | (messagePayload[3] << 8);
+
+      for (uint8_t i = 0; i < MAX_EPHEMERAL_SOURCE_ROUTES; i++) {
+        uint16_t current_node_id = manual_source_routes[i][0];
+
+        if (current_node_id == EMBER_NULL_NODE_ID) {
+          insertion_index = i;
+        } else if (current_node_id == node_id) {
+          insertion_index = i;
+          break;
+        }
+      }
+
+      manual_source_routes[insertion_index][0] = node_id;
+      manual_source_routes[insertion_index][1 + num_relays] = EMBER_NULL_NODE_ID;
+
+      for (uint8_t i = 0; i < num_relays; i++) {
+        manual_source_routes[insertion_index][1 + i] = (
+            (messagePayload[4 + i * 2 + 0] << 0)
+          | (messagePayload[4 + i * 2 + 1] << 8)
+        );
+      }
+      break;
+
     default:
       return EMBER_BAD_ARGUMENT;
   }
