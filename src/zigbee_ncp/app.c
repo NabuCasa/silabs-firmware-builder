@@ -36,9 +36,16 @@ typedef enum {
     | FEATURE_MANUAL_SOURCE_ROUTE \
 )
 
-#define MAX_EPHEMERAL_SOURCE_ROUTES  (20)
-uint16_t manual_source_routes[MAX_EPHEMERAL_SOURCE_ROUTES][1 + EMBER_MAX_SOURCE_ROUTE_RELAY_COUNT + 1];
+#define MAX_MANUAL_SOURCE_ROUTES  (20)
 
+typedef struct ManualSourceRoute {
+  bool active;
+  uint16_t destination;
+  uint8_t num_relays;
+  uint16_t relays[EMBER_MAX_SOURCE_ROUTE_RELAY_COUNT];
+} ManualSourceRoute;
+
+ManualSourceRoute manual_source_routes[MAX_MANUAL_SOURCE_ROUTES];
 
 //----------------------
 // Implemented Callbacks
@@ -57,10 +64,8 @@ void emberAfRadioNeedsCalibratingCallback(void)
  */
 void emberAfMainInitCallback(void)
 {
-  for (uint8_t i = 0; i < MAX_EPHEMERAL_SOURCE_ROUTES; i++) {
-    for (uint8_t j = 0; j < EMBER_MAX_SOURCE_ROUTE_RELAY_COUNT; j++) {
-      manual_source_routes[i][j] = EMBER_NULL_NODE_ID;
-    }
+  for (uint8_t i = 0; i < MAX_MANUAL_SOURCE_ROUTES; i++) {
+    manual_source_routes[i].active = false;
   }
 }
 
@@ -98,8 +103,8 @@ void nc_zigbee_override_append_source_route(EmberNodeId destination,
 {
   uint8_t index = 0xFF;
 
-  for (uint8_t i = 0; i < MAX_EPHEMERAL_SOURCE_ROUTES; i++) {
-    if (manual_source_routes[i][0] == destination) {
+  for (uint8_t i = 0; i < MAX_MANUAL_SOURCE_ROUTES; i++) {
+    if (manual_source_routes[i].active && (manual_source_routes[i].destination == destination)) {
       index = i;
       break;
     }
@@ -110,24 +115,18 @@ void nc_zigbee_override_append_source_route(EmberNodeId destination,
     return;
   }
 
-  uint16_t *routes = &manual_source_routes[index][1];
+  ManualSourceRoute *route = &manual_source_routes[index];
 
-  uint8_t relay_count = 0;
   uint8_t relay_index = 0;
 
-  while (routes[relay_count] != EMBER_NULL_NODE_ID) {
-    relay_count++;
-  }
-
   *consumed = true;
-  emberAppendToLinkedBuffers(*header, &relay_count, 1);
+  route->active = false;  // Disable the route after a single use
+
+  emberAppendToLinkedBuffers(*header, &route->num_relays, 1);
   emberAppendToLinkedBuffers(*header, &relay_index, 1);
 
-  //emberExtendLinkedBuffer(*header, relay_count * 2);
-  //memcpy(2 + emberMessageBufferContents(*header), routes, relay_count * 2);
-
-  for (uint8_t i = 0; i < relay_count; i++) {
-    emberAppendToLinkedBuffers(*header, &routes[i], 2);
+  for (uint8_t i = 0; i < route->num_relays; i++) {
+    emberAppendToLinkedBuffers(*header, (uint8_t*)&route->relays[i], 2);
   }
 
   return;
@@ -166,30 +165,32 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
         return EMBER_BAD_ARGUMENT;
       }
 
-      // If we don't find a better index, pick one at random
-      uint8_t insertion_index = emberGetPseudoRandomNumber() % MAX_EPHEMERAL_SOURCE_ROUTES;
+      // If we don't find a better index, pick one at random to replace
+      uint8_t insertion_index = emberGetPseudoRandomNumber() % MAX_MANUAL_SOURCE_ROUTES;
       uint16_t node_id = (messagePayload[2] << 0) | (messagePayload[3] << 8);
 
-      for (uint8_t i = 0; i < MAX_EPHEMERAL_SOURCE_ROUTES; i++) {
-        uint16_t current_node_id = manual_source_routes[i][0];
+      for (uint8_t i = 0; i < MAX_MANUAL_SOURCE_ROUTES; i++) {
+        ManualSourceRoute *route = &manual_source_routes[i];
 
-        if (current_node_id == EMBER_NULL_NODE_ID) {
+        if (route->active == false) {
           insertion_index = i;
-        } else if (current_node_id == node_id) {
+        } else if (route->destination == node_id) {
           insertion_index = i;
           break;
         }
       }
 
-      manual_source_routes[insertion_index][0] = node_id;
-      manual_source_routes[insertion_index][1 + num_relays] = EMBER_NULL_NODE_ID;
+      ManualSourceRoute *route = &manual_source_routes[insertion_index];
 
       for (uint8_t i = 0; i < num_relays; i++) {
-        manual_source_routes[insertion_index][1 + i] = (
-            (messagePayload[4 + i * 2 + 0] << 0)
-          | (messagePayload[4 + i * 2 + 1] << 8)
-        );
+        uint16_t relay = (messagePayload[4 + i * 2 + 0] << 0) | (messagePayload[4 + i * 2 + 1] << 8);
+        route->relays[i] = relay;
       }
+
+      route->destination = node_id;
+      route->num_relays = num_relays;
+      route->active = true;
+
       break;
 
     default:
