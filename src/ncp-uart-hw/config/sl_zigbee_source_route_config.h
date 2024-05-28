@@ -21,7 +21,7 @@
 // <o EMBER_SOURCE_ROUTE_TABLE_SIZE> Source route table Size (SoC or NCP) <2-255>
 // <i> Default: 7
 // <i> The size of the source route table for storing source routes on the SOC or NCP.
-#define EMBER_SOURCE_ROUTE_TABLE_SIZE   7
+#define EMBER_SOURCE_ROUTE_TABLE_SIZE   200
 
 // <o EMBER_MAX_SOURCE_ROUTE_RELAY_COUNT> Max source route relay counts <11-40>
 // <i> Default: 11
