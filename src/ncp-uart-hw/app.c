@@ -205,8 +205,9 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
         break;
       }
 
-      *replyPayloadLength += strlen(XNCP_BOARD_NAME_OVERRIDE);
-      memcpy(replyPayload, XNCP_BOARD_NAME_OVERRIDE, *replyPayloadLength);
+      uint8_t length = strlen(XNCP_BOARD_NAME_OVERRIDE);
+      *replyPayloadLength += length;
+      memcpy(replyPayload, XNCP_BOARD_NAME_OVERRIDE, length);
       break;
 
     case XNCP_CMD_GET_MANUF_NAME_OVERRIDE:
@@ -214,8 +215,9 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
         break;
       }
 
-      *replyPayloadLength += strlen(XNCP_MANUF_NAME_OVERRIDE);
-      memcpy(replyPayload, XNCP_MANUF_NAME_OVERRIDE, *replyPayloadLength);
+      uint8_t length = strlen(XNCP_MANUF_NAME_OVERRIDE);
+      *replyPayloadLength += length;
+      memcpy(replyPayload, XNCP_MANUF_NAME_OVERRIDE, length);
       break;
 
     default:
