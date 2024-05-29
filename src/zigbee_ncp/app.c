@@ -19,9 +19,11 @@
 #include "ember.h"
 #include "ember-types.h"
 #include "ezsp-enum.h"
+#include "random.h"
 
 #include "stack/include/message.h"
 
+#define BUILD_UINT16(low, high)  (((uint16_t)(low) << 0) | ((uint16_t)(high) << 8))
 
 typedef enum {
   XNCP_CMD_GET_SUPPORTED_FEATURES = 0x0000,
@@ -36,7 +38,8 @@ typedef enum {
     | FEATURE_MANUAL_SOURCE_ROUTE \
 )
 
-#define MAX_MANUAL_SOURCE_ROUTES  (20)
+// Table entries are ephemeral and are expected to be populated before a request is sent
+#define MANUAL_SOURCE_ROUTE_TABLE_SIZE  (20)
 
 typedef struct ManualSourceRoute {
   bool active;
@@ -45,7 +48,7 @@ typedef struct ManualSourceRoute {
   uint16_t relays[EMBER_MAX_SOURCE_ROUTE_RELAY_COUNT];
 } ManualSourceRoute;
 
-ManualSourceRoute manual_source_routes[MAX_MANUAL_SOURCE_ROUTES];
+ManualSourceRoute manual_source_routes[MANUAL_SOURCE_ROUTE_TABLE_SIZE];
 
 //----------------------
 // Implemented Callbacks
@@ -64,7 +67,7 @@ void emberAfRadioNeedsCalibratingCallback(void)
  */
 void emberAfMainInitCallback(void)
 {
-  for (uint8_t i = 0; i < MAX_MANUAL_SOURCE_ROUTES; i++) {
+  for (uint8_t i = 0; i < MANUAL_SOURCE_ROUTE_TABLE_SIZE; i++) {
     manual_source_routes[i].active = false;
   }
 }
@@ -88,7 +91,7 @@ EmberPacketAction emberAfIncomingPacketFilterCallback(EmberZigbeePacketType pack
       EmberMulticastTableEntry *tableEntry = &(sl_zigbee_get_multicast_table()[0]);
 
       tableEntry->endpoint = 1;
-      tableEntry->multicastId = (packetData[2] >> 8) | (packetData[1] >> 0);
+      tableEntry->multicastId = BUILD_UINT16(packetData[1], packetData[2]);
       tableEntry->networkIndex = 0;
     }
   }
@@ -103,7 +106,7 @@ void nc_zigbee_override_append_source_route(EmberNodeId destination,
 {
   uint8_t index = 0xFF;
 
-  for (uint8_t i = 0; i < MAX_MANUAL_SOURCE_ROUTES; i++) {
+  for (uint8_t i = 0; i < MANUAL_SOURCE_ROUTE_TABLE_SIZE; i++) {
     if (manual_source_routes[i].active && (manual_source_routes[i].destination == destination)) {
       index = i;
       break;
@@ -121,6 +124,8 @@ void nc_zigbee_override_append_source_route(EmberNodeId destination,
 
   *consumed = true;
   route->active = false;  // Disable the route after a single use
+
+  emberExtendLinkedBuffer(*header, 1 + 1 + 2 * route->num_relays);
 
   emberAppendToLinkedBuffers(*header, &route->num_relays, 1);
   emberAppendToLinkedBuffers(*header, &relay_index, 1);
@@ -143,7 +148,7 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
     return EMBER_BAD_ARGUMENT;
   }
 
-  uint16_t command_id = (messagePayload[0] << 0) | (messagePayload[1] << 8);
+  uint16_t command_id = BUILD_UINT16(messagePayload[0], messagePayload[1]);
 
   switch (command_id) {
     case XNCP_CMD_GET_SUPPORTED_FEATURES:
@@ -166,10 +171,10 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       }
 
       // If we don't find a better index, pick one at random to replace
-      uint8_t insertion_index = emberGetPseudoRandomNumber() % MAX_MANUAL_SOURCE_ROUTES;
-      uint16_t node_id = (messagePayload[2] << 0) | (messagePayload[3] << 8);
+      uint8_t insertion_index = emberGetPseudoRandomNumber() % MANUAL_SOURCE_ROUTE_TABLE_SIZE;
+      uint16_t node_id = BUILD_UINT16(messagePayload[2], messagePayload[3]);
 
-      for (uint8_t i = 0; i < MAX_MANUAL_SOURCE_ROUTES; i++) {
+      for (uint8_t i = 0; i < MANUAL_SOURCE_ROUTE_TABLE_SIZE; i++) {
         ManualSourceRoute *route = &manual_source_routes[i];
 
         if (route->active == false) {
@@ -183,7 +188,7 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       ManualSourceRoute *route = &manual_source_routes[insertion_index];
 
       for (uint8_t i = 0; i < num_relays; i++) {
-        uint16_t relay = (messagePayload[4 + i * 2 + 0] << 0) | (messagePayload[4 + i * 2 + 1] << 8);
+        uint16_t relay = BUILD_UINT16(messagePayload[4 + 2 * i + 0], messagePayload[4 + 2 * i + 1]);
         route->relays[i] = relay;
       }
 
