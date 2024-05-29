@@ -30,13 +30,11 @@
 typedef enum {
   XNCP_CMD_GET_SUPPORTED_FEATURES_REQ = 0x0000,
   XNCP_CMD_SET_SOURCE_ROUTE_REQ       = 0x0001,
-  XNCP_CMD_GET_BOARD_NAME_REQ         = 0x0002,
-  XNCP_CMD_GET_MANUF_NAME_REQ         = 0x0003,
+  XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_REQ = 0x0002,
 
   XNCP_CMD_GET_SUPPORTED_FEATURES_RSP = XNCP_CMD_GET_SUPPORTED_FEATURES_REQ | 0x8000,
   XNCP_CMD_SET_SOURCE_ROUTE_RSP       = XNCP_CMD_SET_SOURCE_ROUTE_REQ       | 0x8000,
-  XNCP_CMD_GET_BOARD_NAME_RSP         = XNCP_CMD_GET_BOARD_NAME_REQ         | 0x8000,
-  XNCP_CMD_GET_MANUF_NAME_RSP         = XNCP_CMD_GET_MANUF_NAME_REQ         | 0x8000,
+  XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_RSP = XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_REQ | 0x8000,
 
   XNCP_CMD_UNKNOWN = 0xFFFF
 } XNCP_COMMAND;
@@ -44,11 +42,11 @@ typedef enum {
 
 #define FEATURE_MEMBER_OF_ALL_GROUPS  (0b00000000000000000000000000000001)
 #define FEATURE_MANUAL_SOURCE_ROUTE   (0b00000000000000000000000000000010)
-#define FEATURE_BOARD_MANUF  (0b00000000000000000000000000000100)
+#define FEATURE_MFG_TOKEN_OVERRIDES   (0b00000000000000000000000000000100)
 #define SUPPORTED_FEATURES ( \
       FEATURE_MEMBER_OF_ALL_GROUPS \
     | FEATURE_MANUAL_SOURCE_ROUTE \
-    | FEATURE_BOARD_MANUF \
+    | FEATURE_MFG_TOKEN_OVERRIDES \
 )
 
 
@@ -151,22 +149,28 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
                                                          uint8_t *messagePayload,
                                                          uint8_t *replyPayloadLength,
                                                          uint8_t *replyPayload) {
-  *replyPayloadLength = 0;
-
-  uint8_t rsp_status = EMBER_ERR_FATAL;
-  uint16_t req_command_id = XNCP_CMD_UNKNOWN;
+  uint8_t rsp_status = EMBER_SUCCESS;
   uint16_t rsp_command_id = XNCP_CMD_UNKNOWN;
 
-  if (messageLength >= 3) {
-    rsp_status = EMBER_SUCCESS;
-    req_command_id = BUILD_UINT16(messagePayload[0], messagePayload[1]);
+  if (messageLength < 3) {
+    rsp_status = EMBER_BAD_ARGUMENT;
 
-    uint8_t req_status = messagePayload[2];
-    (void)req_status;
-
-    messagePayload += 3;
+    replyPayload[0] = (uint8_t)((rsp_command_id >> 0) & 0xFF);
+    replyPayload[1] = (uint8_t)((rsp_command_id >> 8) & 0xFF);
+    replyPayload[2] = rsp_status;
+    return EMBER_SUCCESS;
   }
 
+  uint16_t req_command_id = BUILD_UINT16(messagePayload[0], messagePayload[1]);
+  uint8_t req_status = messagePayload[2];
+  (void)req_status;
+
+  // Strip the packet header to simplify command parsing below
+  messagePayload += 3;
+  messageLength -= 3;
+
+  // Leave space for the reply packet header
+  *replyPayloadLength = 0;
   *replyPayloadLength += 2;  // Space for the response command ID
   *replyPayloadLength += 1;  // Space for the status
 
@@ -186,12 +190,12 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       rsp_command_id = XNCP_CMD_SET_SOURCE_ROUTE_RSP;
       rsp_status = EMBER_SUCCESS;
 
-      if ((messageLength < 4) || (messageLength % 2 != 0)) {
+      if (messageLength % 2 != 0) {
         rsp_status = EMBER_BAD_ARGUMENT;
         break;
       }
 
-      uint8_t num_relays = (messageLength - 4) / 2;
+      uint8_t num_relays = messageLength / 2;
 
       if (num_relays > EMBER_MAX_SOURCE_ROUTE_RELAY_COUNT + 1) {
         rsp_status = EMBER_BAD_ARGUMENT;
@@ -200,7 +204,7 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
 
       // If we don't find a better index, pick one at random to replace
       uint8_t insertion_index = emberGetPseudoRandomNumber() % XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE;
-      uint16_t node_id = BUILD_UINT16(messagePayload[2], messagePayload[3]);
+      uint16_t node_id = BUILD_UINT16(messagePayload[0], messagePayload[1]);
 
       for (uint8_t i = 0; i < XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE; i++) {
         ManualSourceRoute *route = &manual_source_routes[i];
@@ -216,7 +220,7 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       ManualSourceRoute *route = &manual_source_routes[insertion_index];
 
       for (uint8_t i = 0; i < num_relays; i++) {
-        uint16_t relay = BUILD_UINT16(messagePayload[4 + 2 * i + 0], messagePayload[4 + 2 * i + 1]);
+        uint16_t relay = BUILD_UINT16(messagePayload[2 + 2 * i + 0], messagePayload[2 + 2 * i + 1]);
         route->relays[i] = relay;
       }
 
@@ -227,23 +231,39 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       break;
     }
 
-    case XNCP_CMD_GET_BOARD_NAME_REQ: {
-      rsp_command_id = XNCP_CMD_GET_BOARD_NAME_RSP;
+    case XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_REQ: {
+      rsp_command_id = XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_RSP;
       rsp_status = EMBER_SUCCESS;
 
-      uint8_t name_length = strlen(XNCP_BOARD_NAME);
-      *replyPayloadLength += name_length;
-      memcpy(replyPayload, XNCP_BOARD_NAME, name_length);
-      break;
-    }
+      if (messageLength != 1) {
+        rsp_status = EMBER_BAD_ARGUMENT;
+        break;
+      }
 
-    case XNCP_CMD_GET_MANUF_NAME_REQ: {
-      rsp_command_id = XNCP_CMD_GET_MANUF_NAME_RSP;
-      rsp_status = EMBER_SUCCESS;
+      uint8_t token_id = messagePayload[0];
+      char *override_value;
 
-      uint8_t name_length = strlen(XNCP_MANUF_NAME);
-      *replyPayloadLength += name_length;
-      memcpy(replyPayload, XNCP_MANUF_NAME, name_length);
+      switch (token_id) {
+        case EZSP_MFG_STRING: {
+          override_value = XNCP_MFG_MANUF_NAME;
+          break;
+        }
+
+        case EZSP_MFG_BOARD_NAME: {
+          override_value = XNCP_MFG_BOARD_NAME;
+          break;
+        }
+
+        default: {
+          rsp_status = EMBER_NOT_FOUND;
+          override_value = "";
+          break;
+        }
+      }
+
+      uint8_t value_length = strlen(override_value);
+      memcpy(replyPayload + *replyPayloadLength, override_value, value_length);
+      *replyPayloadLength += value_length;
       break;
     }
 
