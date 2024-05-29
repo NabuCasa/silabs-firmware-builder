@@ -28,11 +28,18 @@
 #define BUILD_UINT16(low, high)  (((uint16_t)(low) << 0) | ((uint16_t)(high) << 8))
 
 typedef enum {
-  XNCP_CMD_GET_SUPPORTED_FEATURES = 0x0000,
-  XNCP_CMD_SET_SOURCE_ROUTE = 0x0001,
-  XNCP_CMD_GET_BOARD_NAME = 0x0002,
-  XNCP_CMD_GET_MANUF_NAME = 0x0003
-} CUSTOM_EZSP_CMD;
+  XNCP_CMD_GET_SUPPORTED_FEATURES_REQ = 0x0000,
+  XNCP_CMD_SET_SOURCE_ROUTE_REQ       = 0x0001,
+  XNCP_CMD_GET_BOARD_NAME_REQ         = 0x0002,
+  XNCP_CMD_GET_MANUF_NAME_REQ         = 0x0003,
+
+  XNCP_CMD_GET_SUPPORTED_FEATURES_RSP = XNCP_CMD_GET_SUPPORTED_FEATURES_REQ | 0x8000,
+  XNCP_CMD_SET_SOURCE_ROUTE_RSP       = XNCP_CMD_SET_SOURCE_ROUTE_REQ       | 0x8000,
+  XNCP_CMD_GET_BOARD_NAME_RSP         = XNCP_CMD_GET_BOARD_NAME_REQ         | 0x8000,
+  XNCP_CMD_GET_MANUF_NAME_RSP         = XNCP_CMD_GET_MANUF_NAME_REQ         | 0x8000,
+
+  XNCP_CMD_UNKNOWN = 0xFFFF
+} XNCP_COMMAND;
 
 
 #define FEATURE_MEMBER_OF_ALL_GROUPS  (0b00000000000000000000000000000001)
@@ -146,30 +153,48 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
                                                          uint8_t *replyPayload) {
   *replyPayloadLength = 0;
 
-  if (messageLength < 2) {
-    return EMBER_BAD_ARGUMENT;
+  uint8_t rsp_status = EMBER_ERR_FATAL;
+  uint16_t req_command_id = XNCP_CMD_UNKNOWN;
+  uint16_t rsp_command_id = XNCP_CMD_UNKNOWN;
+
+  if (messageLength >= 3) {
+    rsp_status = EMBER_SUCCESS;
+    req_command_id = BUILD_UINT16(messagePayload[0], messagePayload[1]);
+
+    uint8_t req_status = messagePayload[2];
+    (void)req_status;
+
+    messagePayload += 3;
   }
 
-  uint16_t command_id = BUILD_UINT16(messagePayload[0], messagePayload[1]);
+  *replyPayloadLength += 2;  // Space for the response command ID
+  *replyPayloadLength += 1;  // Space for the status
 
-  switch (command_id) {
-    case XNCP_CMD_GET_SUPPORTED_FEATURES:
-      *replyPayloadLength += 4;
-      replyPayload[0] = (uint8_t)((SUPPORTED_FEATURES >>  0) & 0xFF);
-      replyPayload[1] = (uint8_t)((SUPPORTED_FEATURES >>  8) & 0xFF);
-      replyPayload[2] = (uint8_t)((SUPPORTED_FEATURES >> 16) & 0xFF);
-      replyPayload[3] = (uint8_t)((SUPPORTED_FEATURES >> 24) & 0xFF);
+  switch (req_command_id) {
+    case XNCP_CMD_GET_SUPPORTED_FEATURES_REQ:
+      rsp_command_id = XNCP_CMD_GET_SUPPORTED_FEATURES_RSP;
+      rsp_status = EMBER_SUCCESS;
+
+      replyPayload[(*replyPayloadLength)++] = (uint8_t)((SUPPORTED_FEATURES >>  0) & 0xFF);
+      replyPayload[(*replyPayloadLength)++] = (uint8_t)((SUPPORTED_FEATURES >>  8) & 0xFF);
+      replyPayload[(*replyPayloadLength)++] = (uint8_t)((SUPPORTED_FEATURES >> 16) & 0xFF);
+      replyPayload[(*replyPayloadLength)++] = (uint8_t)((SUPPORTED_FEATURES >> 24) & 0xFF);
       break;
 
-    case XNCP_CMD_SET_SOURCE_ROUTE:
+    case XNCP_CMD_SET_SOURCE_ROUTE_REQ:
+      rsp_command_id = XNCP_CMD_SET_SOURCE_ROUTE_RSP;
+      rsp_status = EMBER_SUCCESS;
+
       if ((messageLength < 4) || (messageLength % 2 != 0)) {
-        return EMBER_BAD_ARGUMENT;
+        rsp_status = EMBER_BAD_ARGUMENT;
+        break;
       }
 
       uint8_t num_relays = (messageLength - 4) / 2;
 
       if (num_relays > EMBER_MAX_SOURCE_ROUTE_RELAY_COUNT + 1) {
-        return EMBER_BAD_ARGUMENT;
+        rsp_status = EMBER_BAD_ARGUMENT;
+        break;
       }
 
       // If we don't find a better index, pick one at random to replace
@@ -200,21 +225,32 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
 
       break;
 
-    case XNCP_CMD_GET_BOARD_NAME:
-      uint8_t length = strlen(XNCP_BOARD_NAME);
-      *replyPayloadLength += length;
-      memcpy(replyPayload, XNCP_BOARD_NAME, length);
+    case XNCP_CMD_GET_BOARD_NAME_REQ:
+      rsp_command_id = XNCP_CMD_GET_BOARD_NAME_RSP;
+      rsp_status = EMBER_SUCCESS;
+
+      uint8_t name_length = strlen(XNCP_BOARD_NAME);
+      *replyPayloadLength += name_length;
+      memcpy(replyPayload, XNCP_BOARD_NAME, name_length);
       break;
 
-    case XNCP_CMD_GET_MANUF_NAME:
-      uint8_t length = strlen(XNCP_MANUF_NAME);
-      *replyPayloadLength += length;
-      memcpy(replyPayload, XNCP_MANUF_NAME, length);
+    case XNCP_CMD_GET_MANUF_NAME_REQ:
+      rsp_command_id = XNCP_CMD_GET_MANUF_NAME_RSP;
+      rsp_status = EMBER_SUCCESS;
+
+      uint8_t name_length = strlen(XNCP_MANUF_NAME);
+      *replyPayloadLength += name_length;
+      memcpy(replyPayload, XNCP_MANUF_NAME, name_length);
       break;
 
     default:
-      return EMBER_BAD_ARGUMENT;
+      rsp_status = EMBER_NOT_FOUND;
+      break;
   }
+
+  replyPayload[0] = (uint8_t)((rsp_command_id >> 0) & 0xFF);
+  replyPayload[1] = (uint8_t)((rsp_command_id >> 8) & 0xFF);
+  replyPayload[2] = rsp_status;
 
   return EMBER_SUCCESS;
 }
