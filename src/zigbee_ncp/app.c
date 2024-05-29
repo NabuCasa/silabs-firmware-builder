@@ -29,15 +29,19 @@
 
 typedef enum {
   XNCP_CMD_GET_SUPPORTED_FEATURES = 0x0000,
-  XNCP_CMD_SET_SOURCE_ROUTE = 0x0001
+  XNCP_CMD_SET_SOURCE_ROUTE = 0x0001,
+  XNCP_CMD_GET_BOARD_NAME_OVERRIDE = 0x0002,
+  XNCP_CMD_GET_MANUF_NAME_OVERRIDE = 0x0003
 } CUSTOM_EZSP_CMD;
 
 
-#define FEATURE_MEMBER_OF_ALL_GROUPS (0b00000000000000000000000000000001)
-#define FEATURE_MANUAL_SOURCE_ROUTE  (0b00000000000000000000000000000010)
+#define FEATURE_MEMBER_OF_ALL_GROUPS  (0b00000000000000000000000000000001)
+#define FEATURE_MANUAL_SOURCE_ROUTE   (0b00000000000000000000000000000010)
+#define FEATURE_BOARD_MANUF_OVERRIDE  (0b00000000000000000000000000000100)
 #define SUPPORTED_FEATURES ( \
       FEATURE_MEMBER_OF_ALL_GROUPS \
     | FEATURE_MANUAL_SOURCE_ROUTE \
+    | FEATURE_BOARD_MANUF_OVERRIDE \
 )
 
 
@@ -194,6 +198,24 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       route->num_relays = num_relays;
       route->active = true;
 
+      break;
+
+    case XNCP_CMD_GET_BOARD_NAME_OVERRIDE:
+      if (!XNCP_BOARD_MANUF_OVERRIDE_ENABLED) {
+        break;
+      }
+
+      *replyPayloadLength += strlen(XNCP_BOARD_NAME_OVERRIDE);
+      memcpy(replyPayload, XNCP_BOARD_NAME_OVERRIDE, *replyPayloadLength);
+      break;
+
+    case XNCP_CMD_GET_MANUF_NAME_OVERRIDE:
+      if (!XNCP_BOARD_MANUF_OVERRIDE_ENABLED) {
+        break;
+      }
+
+      *replyPayloadLength += strlen(XNCP_MANUF_NAME_OVERRIDE);
+      memcpy(replyPayload, XNCP_MANUF_NAME_OVERRIDE, *replyPayloadLength);
       break;
 
     default:
