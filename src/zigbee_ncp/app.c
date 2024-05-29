@@ -125,8 +125,6 @@ void nc_zigbee_override_append_source_route(EmberNodeId destination,
   *consumed = true;
   route->active = false;  // Disable the route after a single use
 
-  emberExtendLinkedBuffer(*header, 1 + 1 + 2 * route->num_relays);
-
   emberAppendToLinkedBuffers(*header, &route->num_relays, 1);
   emberAppendToLinkedBuffers(*header, &relay_index, 1);
 
