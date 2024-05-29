@@ -23,6 +23,8 @@
 
 #include "stack/include/message.h"
 
+#include "config/xncp_config.h"
+
 #define BUILD_UINT16(low, high)  (((uint16_t)(low) << 0) | ((uint16_t)(high) << 8))
 
 typedef enum {
@@ -38,8 +40,6 @@ typedef enum {
     | FEATURE_MANUAL_SOURCE_ROUTE \
 )
 
-// Table entries are ephemeral and are expected to be populated before a request is sent
-#define MANUAL_SOURCE_ROUTE_TABLE_SIZE  (20)
 
 typedef struct ManualSourceRoute {
   bool active;
