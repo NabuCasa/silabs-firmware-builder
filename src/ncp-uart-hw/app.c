@@ -171,7 +171,7 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
   *replyPayloadLength += 1;  // Space for the status
 
   switch (req_command_id) {
-    case XNCP_CMD_GET_SUPPORTED_FEATURES_REQ:
+    case XNCP_CMD_GET_SUPPORTED_FEATURES_REQ: {
       rsp_command_id = XNCP_CMD_GET_SUPPORTED_FEATURES_RSP;
       rsp_status = EMBER_SUCCESS;
 
@@ -180,8 +180,9 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       replyPayload[(*replyPayloadLength)++] = (uint8_t)((SUPPORTED_FEATURES >> 16) & 0xFF);
       replyPayload[(*replyPayloadLength)++] = (uint8_t)((SUPPORTED_FEATURES >> 24) & 0xFF);
       break;
+    }
 
-    case XNCP_CMD_SET_SOURCE_ROUTE_REQ:
+    case XNCP_CMD_SET_SOURCE_ROUTE_REQ: {
       rsp_command_id = XNCP_CMD_SET_SOURCE_ROUTE_RSP;
       rsp_status = EMBER_SUCCESS;
 
@@ -224,8 +225,9 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       route->active = true;
 
       break;
+    }
 
-    case XNCP_CMD_GET_BOARD_NAME_REQ:
+    case XNCP_CMD_GET_BOARD_NAME_REQ: {
       rsp_command_id = XNCP_CMD_GET_BOARD_NAME_RSP;
       rsp_status = EMBER_SUCCESS;
 
@@ -233,8 +235,9 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       *replyPayloadLength += name_length;
       memcpy(replyPayload, XNCP_BOARD_NAME, name_length);
       break;
+    }
 
-    case XNCP_CMD_GET_MANUF_NAME_REQ:
+    case XNCP_CMD_GET_MANUF_NAME_REQ: {
       rsp_command_id = XNCP_CMD_GET_MANUF_NAME_RSP;
       rsp_status = EMBER_SUCCESS;
 
@@ -242,10 +245,12 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       *replyPayloadLength += name_length;
       memcpy(replyPayload, XNCP_MANUF_NAME, name_length);
       break;
+    }
 
-    default:
+    default: {
       rsp_status = EMBER_NOT_FOUND;
       break;
+    }
   }
 
   replyPayload[0] = (uint8_t)((rsp_command_id >> 0) & 0xFF);
