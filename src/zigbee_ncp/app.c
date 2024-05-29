@@ -201,20 +201,12 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       break;
 
     case XNCP_CMD_GET_BOARD_NAME_OVERRIDE:
-      if (!XNCP_BOARD_MANUF_OVERRIDE_ENABLED) {
-        break;
-      }
-
       uint8_t length = strlen(XNCP_BOARD_NAME_OVERRIDE);
       *replyPayloadLength += length;
       memcpy(replyPayload, XNCP_BOARD_NAME_OVERRIDE, length);
       break;
 
     case XNCP_CMD_GET_MANUF_NAME_OVERRIDE:
-      if (!XNCP_BOARD_MANUF_OVERRIDE_ENABLED) {
-        break;
-      }
-
       uint8_t length = strlen(XNCP_MANUF_NAME_OVERRIDE);
       *replyPayloadLength += length;
       memcpy(replyPayload, XNCP_MANUF_NAME_OVERRIDE, length);
