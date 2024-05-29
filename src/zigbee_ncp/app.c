@@ -30,18 +30,18 @@
 typedef enum {
   XNCP_CMD_GET_SUPPORTED_FEATURES = 0x0000,
   XNCP_CMD_SET_SOURCE_ROUTE = 0x0001,
-  XNCP_CMD_GET_BOARD_NAME_OVERRIDE = 0x0002,
-  XNCP_CMD_GET_MANUF_NAME_OVERRIDE = 0x0003
+  XNCP_CMD_GET_BOARD_NAME = 0x0002,
+  XNCP_CMD_GET_MANUF_NAME = 0x0003
 } CUSTOM_EZSP_CMD;
 
 
 #define FEATURE_MEMBER_OF_ALL_GROUPS  (0b00000000000000000000000000000001)
 #define FEATURE_MANUAL_SOURCE_ROUTE   (0b00000000000000000000000000000010)
-#define FEATURE_BOARD_MANUF_OVERRIDE  (0b00000000000000000000000000000100)
+#define FEATURE_BOARD_MANUF  (0b00000000000000000000000000000100)
 #define SUPPORTED_FEATURES ( \
       FEATURE_MEMBER_OF_ALL_GROUPS \
     | FEATURE_MANUAL_SOURCE_ROUTE \
-    | FEATURE_BOARD_MANUF_OVERRIDE \
+    | FEATURE_BOARD_MANUF \
 )
 
 
@@ -200,16 +200,16 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
 
       break;
 
-    case XNCP_CMD_GET_BOARD_NAME_OVERRIDE:
-      uint8_t length = strlen(XNCP_BOARD_NAME_OVERRIDE);
+    case XNCP_CMD_GET_BOARD_NAME:
+      uint8_t length = strlen(XNCP_BOARD_NAME);
       *replyPayloadLength += length;
-      memcpy(replyPayload, XNCP_BOARD_NAME_OVERRIDE, length);
+      memcpy(replyPayload, XNCP_BOARD_NAME, length);
       break;
 
-    case XNCP_CMD_GET_MANUF_NAME_OVERRIDE:
-      uint8_t length = strlen(XNCP_MANUF_NAME_OVERRIDE);
+    case XNCP_CMD_GET_MANUF_NAME:
+      uint8_t length = strlen(XNCP_MANUF_NAME);
       *replyPayloadLength += length;
-      memcpy(replyPayload, XNCP_MANUF_NAME_OVERRIDE, length);
+      memcpy(replyPayload, XNCP_MANUF_NAME, length);
       break;
 
     default:
