@@ -48,7 +48,7 @@ typedef struct ManualSourceRoute {
   uint16_t relays[EMBER_MAX_SOURCE_ROUTE_RELAY_COUNT];
 } ManualSourceRoute;
 
-ManualSourceRoute manual_source_routes[MANUAL_SOURCE_ROUTE_TABLE_SIZE];
+ManualSourceRoute manual_source_routes[XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE];
 
 //----------------------
 // Implemented Callbacks
@@ -67,7 +67,7 @@ void emberAfRadioNeedsCalibratingCallback(void)
  */
 void emberAfMainInitCallback(void)
 {
-  for (uint8_t i = 0; i < MANUAL_SOURCE_ROUTE_TABLE_SIZE; i++) {
+  for (uint8_t i = 0; i < XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE; i++) {
     manual_source_routes[i].active = false;
   }
 }
@@ -106,7 +106,7 @@ void nc_zigbee_override_append_source_route(EmberNodeId destination,
 {
   uint8_t index = 0xFF;
 
-  for (uint8_t i = 0; i < MANUAL_SOURCE_ROUTE_TABLE_SIZE; i++) {
+  for (uint8_t i = 0; i < XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE; i++) {
     if (manual_source_routes[i].active && (manual_source_routes[i].destination == destination)) {
       index = i;
       break;
@@ -169,10 +169,10 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       }
 
       // If we don't find a better index, pick one at random to replace
-      uint8_t insertion_index = emberGetPseudoRandomNumber() % MANUAL_SOURCE_ROUTE_TABLE_SIZE;
+      uint8_t insertion_index = emberGetPseudoRandomNumber() % XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE;
       uint16_t node_id = BUILD_UINT16(messagePayload[2], messagePayload[3]);
 
-      for (uint8_t i = 0; i < MANUAL_SOURCE_ROUTE_TABLE_SIZE; i++) {
+      for (uint8_t i = 0; i < XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE; i++) {
         ManualSourceRoute *route = &manual_source_routes[i];
 
         if (route->active == false) {
