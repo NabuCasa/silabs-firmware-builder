@@ -190,12 +190,12 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       rsp_command_id = XNCP_CMD_SET_SOURCE_ROUTE_RSP;
       rsp_status = EMBER_SUCCESS;
 
-      if (messageLength % 2 != 0) {
+      if ((messageLength < 2) || (messageLength % 2 != 0)) {
         rsp_status = EMBER_BAD_ARGUMENT;
         break;
       }
 
-      uint8_t num_relays = messageLength / 2;
+      uint8_t num_relays = (messageLength - 2) / 2;
 
       if (num_relays > EMBER_MAX_SOURCE_ROUTE_RELAY_COUNT + 1) {
         rsp_status = EMBER_BAD_ARGUMENT;
