@@ -323,6 +323,10 @@ def main():
             args.build_dir / "config/sl_memory_config.h",
             args.build_dir / "config/sl_board_control_config.h",
             args.build_dir / "config/FreeRTOSConfig.h",
+            # Hardware-specific startup config
+            args.build_dir / "config/sl_device_init_lfxo_config.h",
+            args.build_dir / "config/sl_device_init_hfxo_config.h",
+            args.build_dir / "config/sl_device_init_dcdc_config.h",
         ],
     ):
         try:
