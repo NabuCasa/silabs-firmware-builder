@@ -13,7 +13,6 @@ add_components:
   instance: [board_activity]
 
 configuration:
-  SL_RAIL_UTIL_PTI_MODE: RAIL_PTI_MODE_DISABLED
   SL_IOSTREAM_USART_VCOM_BAUDRATE: 115200
   SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE: usartHwFlowControlCtsAndRts
 
