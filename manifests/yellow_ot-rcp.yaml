@@ -13,7 +13,6 @@ add_components:
   instance: [board_activity]
 
 configuration:
-  SL_RAIL_UTIL_PTI_MODE: RAIL_PTI_MODE_DISABLED
   SL_UARTDRV_USART_VCOM_BAUDRATE: 460800
 
 c_defines:
