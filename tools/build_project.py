@@ -533,23 +533,44 @@ def main():
         print(f"Defines were unused, aborting: {unused_defines}")
         sys.exit(1)
 
+    # Remove absolute paths from the build for reproducibility
+    extra_compiler_flags = [
+        f"-ffile-prefix-map={str(src.absolute())}={dst}"
+        for src, dst in {
+            sdk: "/gecko_sdk",
+            args.build_dir: "/src",
+            toolchain: "/toolchain",
+        }.items()
+    ]
+
     if args.build_system == "makefile":
         output_artifact = (
             args.build_dir / "build/debug" / base_project_name
         ).with_suffix(".gbl")
 
+        makefile = args.build_dir / f"{base_project_name}.Makefile"
+        makefile_contents = makefile.read_text()
+
         # Inject a postbuild step into the makefile
-        with (args.build_dir / f"{base_project_name}.Makefile").open("a") as f:
-            f.write("\n")
-            f.write("post-build:\n")
-            f.write(
-                f"\t-{args.postbuild}"
-                f' postbuild "{(args.build_dir / base_project_name).resolve()}.slpb"'
-                f' --parameter build_dir:"{output_artifact.parent.resolve()}"'
-                f' --parameter sdk_dir:"{sdk}"'
-                "\n"
+        makefile_contents += "\n"
+        makefile_contents += "post-build:\n"
+        makefile_contents += (
+            f"\t-{args.postbuild}"
+            f' postbuild "{(args.build_dir / base_project_name).resolve()}.slpb"'
+            f' --parameter build_dir:"{output_artifact.parent.resolve()}"'
+            f' --parameter sdk_dir:"{sdk}"'
+            "\n"
+        )
+        makefile_contents += "\t-@echo ' '"
+
+        for flag in ("C_FLAGS", "CXX_FLAGS"):
+            line = f"{flag:<17} = \n"
+            suffix = " ".join([f'"{m}"' for m in extra_compiler_flags]) + "\n"
+            makefile_contents = makefile_contents.replace(
+                line, f"{line.rstrip()} {suffix}\n"
             )
-            f.write("\t-@echo ' '")
+
+        makefile.write_text(makefile_contents)
 
         subprocess.run(
             [
@@ -569,16 +590,11 @@ def main():
         cmake_config = cmake_build_root / f"{base_project_name}.cmake"
         fixed_cmake = []
 
-        # Strip all compile-time absolute paths
         fixed_cmake.append("add_compile_options(")
 
-        for src, dst in {
-            sdk: "/gecko_sdk",
-            args.build_dir: "/src",
-            toolchain: "/toolchain",
-        }.items():
-            assert '"' not in str(src.absolute())  # TODO: fix this
-            fixed_cmake.append(f'    "-ffile-prefix-map={str(src.absolute())}={dst}"')
+        for flag in extra_compiler_flags:
+            assert '"' not in flag  # TODO: fix this
+            fixed_cmake.append(f'    "{flag}"')
 
         fixed_cmake.append(")")
 
