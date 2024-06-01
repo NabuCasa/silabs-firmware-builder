@@ -25,7 +25,12 @@
 
 #include "config/xncp_config.h"
 
+
 #define BUILD_UINT16(low, high)  (((uint16_t)(low) << 0) | ((uint16_t)(high) << 8))
+
+
+extern sli_zigbee_route_table_entry_t sli_zigbee_route_table[];
+extern uint8_t sli_zigbee_route_table_size;
 
 typedef enum {
   XNCP_CMD_GET_SUPPORTED_FEATURES_REQ = 0x0000,
@@ -59,6 +64,25 @@ typedef struct ManualSourceRoute {
 
 ManualSourceRoute manual_source_routes[XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE];
 
+
+ManualSourceRoute* get_manual_source_route(EmberNodeId destination)
+{
+  uint8_t index = 0xFF;
+
+  for (uint8_t i = 0; i < XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE; i++) {
+    if (manual_source_routes[i].active && (manual_source_routes[i].destination == destination)) {
+      index = i;
+      break;
+    }
+  }
+
+  if (index == 0xFF) {
+    return NULL;
+  }
+
+  return &manual_source_routes[index];
+}
+
 //----------------------
 // Implemented Callbacks
 
@@ -81,7 +105,7 @@ void emberAfMainInitCallback(void)
   }
 }
 
-/** @brief Packet filter callback
+/** @brief Incoming packet filter callback
  *
  * Filters and/or mutates incoming packets. Currently used only for wildcard multicast
  * group membership.
@@ -108,40 +132,82 @@ EmberPacketAction emberAfIncomingPacketFilterCallback(EmberZigbeePacketType pack
   return EMBER_ACCEPT_PACKET;
 }
 
-
-void nc_zigbee_override_append_source_route(EmberNodeId destination,
-                                            EmberMessageBuffer *header,
-                                            bool *consumed)
+/** @brief Outgoing packet filter callback
+ *
+ * Filters and/or mutates outgoing packets. Currently injects manual source routes.
+ */
+EmberPacketAction emberAfOutgoingPacketFilterCallback(EmberZigbeePacketType packetType,
+                                                      uint8_t* packetData,
+                                                      uint8_t* size_p,
+                                                      void* data)
 {
-  uint8_t index = 0xFF;
-
-  for (uint8_t i = 0; i < XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE; i++) {
-    if (manual_source_routes[i].active && (manual_source_routes[i].destination == destination)) {
-      index = i;
-      break;
-    }
+  // Only mutate NWK data packets
+  if (packetType != EMBER_ZIGBEE_PACKET_TYPE_NWK_DATA) {
+    return EMBER_ACCEPT_PACKET;
   }
 
-  if (index == 0xFF) {
-    *consumed = false;
-    return;
+  uint16_t frame_control = BUILD_UINT16(packetData[0], packetData[1]);
+
+  // Don't mutate multicast traffic
+  if (frame_control & 0b0000000100000000) {
+    return EMBER_ACCEPT_PACKET;
   }
 
-  ManualSourceRoute *route = &manual_source_routes[index];
+  uint16_t destination = BUILD_UINT16(packetData[2], packetData[3]);
 
-  uint8_t relay_index = 0;
-
-  *consumed = true;
-  route->active = false;  // Disable the route after a single use
-
-  emberAppendToLinkedBuffers(*header, &route->num_relays, 1);
-  emberAppendToLinkedBuffers(*header, &relay_index, 1);
-
-  for (uint8_t i = 0; i < route->num_relays; i++) {
-    emberAppendToLinkedBuffers(*header, (uint8_t*)&route->relays[i], 2);
+  // Don't mutate broadcast traffic
+  if (destination >= 0xFFFC) {
+      return EMBER_ACCEPT_PACKET;
   }
 
-  return;
+  ManualSourceRoute* source_route = get_manual_source_route(destination);
+
+  // If we do not have a source route, continue as normal
+  if (source_route == NULL) {
+    return EMBER_ACCEPT_PACKET;
+  }
+
+  // Flip the source routing bit
+  packetData[1] |= 0b00000100;
+
+  // And make room for the source route: relay_count, relay_index, list of relays
+  uint8_t bytes_to_grow = 1 + 1 + 2 * source_route->num_relays;
+  uint8_t aux_header_size = 2;
+
+  // Extended source
+  if (frame_control & 0b0001000000000000) {
+    aux_header_size += 8;
+  } else {
+    aux_header_size += 2;
+  }
+
+  // Extended destination
+  if (frame_control & 0b0000100000000000) {
+    aux_header_size += 8;
+  } else {
+    aux_header_size += 2;
+  }
+
+  // Radius and sequence
+  aux_header_size += 2;
+
+  // The source route list is after the AUX header, before the security header
+  memmove(
+    packetData + bytes_to_grow + aux_header_size,
+    packetData + aux_header_size,
+    *size_p - aux_header_size
+  );
+  *size_p += bytes_to_grow;
+
+  packetData[aux_header_size + 0] = source_route->num_relays;
+  packetData[aux_header_size + 1] = 0;  // Relay index
+
+  for (uint8_t i = 0; i < source_route->num_relays; i++) {
+    packetData[aux_header_size + 2 + 2 * i + 0] = (source_route->relays[i] >> 0) & 0xFF;
+    packetData[aux_header_size + 2 + 2 * i + 1] = (source_route->relays[i] >> 8) & 0xFF;
+  }
+
+  return EMBER_MANGLE_PACKET;
 }
 
 
@@ -227,6 +293,14 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       route->destination = node_id;
       route->num_relays = num_relays;
       route->active = true;
+
+      // Add a fake route to the routing table to skip routing to the node
+      sli_zigbee_route_table_entry_t *route_table_entry = &sli_zigbee_route_table[0];
+      route_table_entry->destination = node_id;
+      route_table_entry->nextHop = node_id;
+      route_table_entry->status = 0;  // ACTIVE=0
+      route_table_entry->cost = 0;
+      route_table_entry->networkIndex = 0;
 
       break;
     }
