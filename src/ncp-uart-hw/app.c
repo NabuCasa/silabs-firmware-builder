@@ -20,6 +20,7 @@
 #include "ember-types.h"
 #include "ezsp-enum.h"
 #include "random.h"
+#include "mac-flat-header.h"
 
 #include "stack/include/message.h"
 
@@ -27,7 +28,8 @@
 
 
 #define BUILD_UINT16(low, high)  (((uint16_t)(low) << 0) | ((uint16_t)(high) << 8))
-
+#define emberPacketHandoffIncomingHandler sli_zigbee_af_packet_handoff_incoming_callback
+#define emberPacketHandoffOutgoingHandler sli_zigbee_af_packet_handoff_outgoing_callback
 
 extern sli_zigbee_route_table_entry_t sli_zigbee_route_table[];
 extern uint8_t sli_zigbee_route_table_size;
@@ -110,39 +112,69 @@ void emberAfMainInitCallback(void)
  * Filters and/or mutates incoming packets. Currently used only for wildcard multicast
  * group membership.
  */
-EmberPacketAction emberAfIncomingPacketFilterCallback(EmberZigbeePacketType packetType,
-                                                      uint8_t* packetData,
-                                                      uint8_t* size_p,
-                                                      void* data)
+EmberPacketAction emberPacketHandoffIncomingHandler(EmberZigbeePacketType packetType,
+                                                                 EmberMessageBuffer packetBuffer,
+                                                                 uint8_t index,
+                                                                 void *data)
 {
-  if ((packetType == EMBER_ZIGBEE_PACKET_TYPE_APS_DATA) && (*size_p >= 3)) {
-    uint8_t deliveryMode = (packetData[0] & 0b00001100) >> 2;
-
-    // Ensure we automatically "join" every multicast group
-    if (deliveryMode == 0x03) {
-      // Take ownership over the first entry and continuously rewrite it
-      EmberMulticastTableEntry *tableEntry = &(sl_zigbee_get_multicast_table()[0]);
-
-      tableEntry->endpoint = 1;
-      tableEntry->multicastId = BUILD_UINT16(packetData[1], packetData[2]);
-      tableEntry->networkIndex = 0;
-    }
+  if (packetType != EMBER_ZIGBEE_PACKET_TYPE_APS_DATA) {
+    return EMBER_ACCEPT_PACKET;
   }
+
+  uint8_t* packetData = emberMessageBufferContents(packetBuffer);
+  uint16_t packetSize = emberMessageBufferLength(packetBuffer);
+
+  // Skip over the 802.15.4 header to the payload
+  uint8_t payload_offset = sl_mac_flat_field_offset(packetData, true, EMBER_PH_FIELD_MAC_PAYLOAD);
+  packetData += payload_offset;
+  packetSize -= payload_offset;
+
+  if (packetSize < 3) {
+    return EMBER_ACCEPT_PACKET;
+  }
+
+  uint8_t deliveryMode = (packetData[0] & 0b00001100) >> 2;
+
+  // Only look at multicast packets
+  if (deliveryMode != 0x03) {
+    return EMBER_ACCEPT_PACKET;
+  }
+
+  // Take ownership over the first entry and continuously rewrite it
+  EmberMulticastTableEntry *tableEntry = &(sl_zigbee_get_multicast_table()[0]);
+
+  tableEntry->endpoint = 1;
+  tableEntry->multicastId = BUILD_UINT16(packetData[1], packetData[2]);
+  tableEntry->networkIndex = 0;
 
   return EMBER_ACCEPT_PACKET;
 }
+
+#define emberPacketHandoffOutgoingHandler sli_zigbee_af_packet_handoff_outgoing_callback
 
 /** @brief Outgoing packet filter callback
  *
  * Filters and/or mutates outgoing packets. Currently injects manual source routes.
  */
-EmberPacketAction emberAfOutgoingPacketFilterCallback(EmberZigbeePacketType packetType,
-                                                      uint8_t* packetData,
-                                                      uint8_t* size_p,
-                                                      void* data)
+EmberPacketAction emberPacketHandoffOutgoingHandler(EmberZigbeePacketType packetType,
+                                                                 EmberMessageBuffer packetBuffer,
+                                                                 uint8_t index,
+                                                                 void *data)
 {
   // Only mutate NWK data packets
   if (packetType != EMBER_ZIGBEE_PACKET_TYPE_NWK_DATA) {
+    return EMBER_ACCEPT_PACKET;
+  }
+
+  uint8_t* packetData = emberMessageBufferContents(packetBuffer);
+  uint16_t packetSize = emberMessageBufferLength(packetBuffer);
+
+  // Skip over the 802.15.4 header to the payload
+  uint8_t payload_offset = sl_mac_flat_field_offset(packetData, true, EMBER_PH_FIELD_MAC_PAYLOAD);
+  packetData += payload_offset;
+  packetSize -= payload_offset;
+
+  if (packetSize < 4) {
     return EMBER_ACCEPT_PACKET;
   }
 
@@ -172,6 +204,12 @@ EmberPacketAction emberAfOutgoingPacketFilterCallback(EmberZigbeePacketType pack
 
   // And make room for the source route: relay_count, relay_index, list of relays
   uint8_t bytes_to_grow = 1 + 1 + 2 * source_route->num_relays;
+
+  // Grow and re-load the buffer, ensuring we again skip ahead to the payload
+  emberExtendLinkedBuffer(packetBuffer, bytes_to_grow);
+  packetData = emberMessageBufferContents(packetBuffer);
+  packetData += payload_offset;
+
   uint8_t aux_header_size = 2;
 
   // Extended source
@@ -191,13 +229,10 @@ EmberPacketAction emberAfOutgoingPacketFilterCallback(EmberZigbeePacketType pack
   // Radius and sequence
   aux_header_size += 2;
 
-  // The source route list is after the AUX header, before the security header
-  memmove(
-    packetData + bytes_to_grow + aux_header_size,
-    packetData + aux_header_size,
-    *size_p - aux_header_size
-  );
-  *size_p += bytes_to_grow;
+  // Shift the packet data to make room between the AUX header and the plaintext payload
+  for (uint8_t i = 0; i < packetSize - aux_header_size; i++) {
+      packetData[aux_header_size + bytes_to_grow + i] = packetData[aux_header_size + i];
+  }
 
   packetData[aux_header_size + 0] = source_route->num_relays;
   packetData[aux_header_size + 1] = 0;  // Relay index
