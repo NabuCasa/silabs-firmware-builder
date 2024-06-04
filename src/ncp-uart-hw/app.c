@@ -29,8 +29,6 @@
 
 #define BUILD_UINT16(low, high)  (((uint16_t)(low) << 0) | ((uint16_t)(high) << 8))
 
-extern sli_zigbee_route_table_entry_t sli_zigbee_route_table[];
-extern uint8_t sli_zigbee_route_table_size;
 
 typedef enum {
   XNCP_CMD_GET_SUPPORTED_FEATURES_REQ = 0x0000,
@@ -280,14 +278,6 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       route->destination = node_id;
       route->num_relays = num_relays;
       route->active = true;
-
-      // Add a fake route to the routing table to skip routing to the node
-      sli_zigbee_route_table_entry_t *route_table_entry = &sli_zigbee_route_table[0];
-      route_table_entry->destination = node_id;
-      route_table_entry->nextHop = node_id;
-      route_table_entry->status = 0;  // ACTIVE=0
-      route_table_entry->cost = 0;
-      route_table_entry->networkIndex = 0;
 
       break;
     }
