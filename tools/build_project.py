@@ -275,7 +275,7 @@ def main():
         manifest[key] = override
 
     # First, load the base project
-    projects_root = args.manifest.parent.parent
+    projects_root = pathlib.Path(__file__).parent.parent
     base_project_path = projects_root / manifest["base_project"]
     assert base_project_path.is_relative_to(projects_root)
     (base_project_slcp,) = base_project_path.glob("*.slcp")
