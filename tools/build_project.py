@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import os
 import re
 import ast
 import sys
@@ -215,7 +214,7 @@ def main():
     parser.add_argument(
         "--build-system",
         choices=["cmake", "makefile"],
-        default="cmake",
+        default="makefile",
         help="Build system",
     )
     parser.add_argument(
@@ -253,6 +252,10 @@ def main():
     )
 
     args = parser.parse_args()
+
+    if args.build_system != "makefile":
+        LOGGER.warning("Only the `makefile` build system is currently supported")
+        args.build_system = "makefile"
 
     if args.build_dir is None:
         args.build_dir = pathlib.Path(f"build/{time.time():.0f}_{args.manifest.stem}")
@@ -538,119 +541,47 @@ def main():
         }.items()
     ]
 
-    if args.build_system == "makefile":
-        output_artifact = (
-            args.build_dir / "build/debug" / base_project_name
-        ).with_suffix(".gbl")
+    output_artifact = (args.build_dir / "build/debug" / base_project_name).with_suffix(
+        ".gbl"
+    )
 
-        makefile = args.build_dir / f"{base_project_name}.Makefile"
-        makefile_contents = makefile.read_text()
+    makefile = args.build_dir / f"{base_project_name}.Makefile"
+    makefile_contents = makefile.read_text()
 
-        # Inject a postbuild step into the makefile
-        makefile_contents += "\n"
-        makefile_contents += "post-build:\n"
-        makefile_contents += (
-            f"\t-{args.postbuild}"
-            f' postbuild "{(args.build_dir / base_project_name).resolve()}.slpb"'
-            f' --parameter build_dir:"{output_artifact.parent.resolve()}"'
-            f' --parameter sdk_dir:"{sdk}"'
-            "\n"
-        )
-        makefile_contents += "\t-@echo ' '"
+    # Inject a postbuild step into the makefile
+    makefile_contents += "\n"
+    makefile_contents += "post-build:\n"
+    makefile_contents += (
+        f"\t-{args.postbuild}"
+        f' postbuild "{(args.build_dir / base_project_name).resolve()}.slpb"'
+        f' --parameter build_dir:"{output_artifact.parent.resolve()}"'
+        f' --parameter sdk_dir:"{sdk}"'
+        "\n"
+    )
+    makefile_contents += "\t-@echo ' '"
 
-        for flag in ("C_FLAGS", "CXX_FLAGS"):
-            line = f"{flag:<17} = \n"
-            suffix = " ".join([f'"{m}"' for m in extra_compiler_flags]) + "\n"
-            makefile_contents = makefile_contents.replace(
-                line, f"{line.rstrip()} {suffix}\n"
-            )
-
-        makefile.write_text(makefile_contents)
-
-        subprocess.run(
-            [
-                "make",
-                "-C",
-                args.build_dir,
-                "-f",
-                f"{base_project_name}.Makefile",
-                f"-j{multiprocessing.cpu_count()}",
-                f"ARM_GCC_DIR={toolchain}",
-                f"POST_BUILD_EXE={args.postbuild}",
-            ],
-            check=True,
-        )
-    elif args.build_system == "cmake":
-        cmake_build_root = args.build_dir / f"{base_project_name}_cmake"
-        cmake_config = cmake_build_root / f"{base_project_name}.cmake"
-        fixed_cmake = []
-
-        fixed_cmake.append("add_compile_options(")
-
-        for flag in extra_compiler_flags:
-            assert '"' not in flag  # TODO: fix this
-            fixed_cmake.append(f'    "{flag}"')
-
-        fixed_cmake.append(")")
-
-        # Fix CMake config quoting bug
-        for line in cmake_config.read_text().split("\n"):
-            if ">:SHELL:" not in line and (":-imacros " in line or ":-x " in line):
-                line = '    "' + line.replace(">:", ">:SHELL:").strip() + '"'
-
-            fixed_cmake.append(line)
-
-        cmake_config.write_text("\n".join(fixed_cmake))
-
-        # Insert our postbuild step
-        cmakelists_txt = cmake_build_root / "CMakeLists.txt"
-        cmakelists = cmakelists_txt.read_text()
-        s37_line = next(line for line in cmakelists.split("\n") if "-O srec" in line)
-        s37_output_file = s37_line.split(" ")[-1]
-        s37_build_folder = s37_output_file.split("/", 1)[0] + '"'
-
-        cmakelists_txt.write_text(
-            cmakelists.replace(
-                s37_line,
-                (
-                    f"    COMMAND {args.postbuild} postbuild"
-                    f' "{(args.build_dir / base_project_name).resolve()}.slpb"'
-                    f" --parameter build_dir:{s37_build_folder}"
-                    f' --parameter sdk_dir:"{sdk}"\n'
-                )
-                + s37_line,
-            )
+    for flag in ("C_FLAGS", "CXX_FLAGS"):
+        line = f"{flag:<17} = \n"
+        suffix = " ".join([f'"{m}"' for m in extra_compiler_flags]) + "\n"
+        makefile_contents = makefile_contents.replace(
+            line, f"{line.rstrip()} {suffix}\n"
         )
 
-        # Generate the build system
-        subprocess.run(
-            [
-                "cmake",
-                "-G",
-                "Ninja",
-                "-DCMAKE_TOOLCHAIN_FILE=toolchain.cmake",
-                ".",
-            ],
-            cwd=cmake_build_root,
-            env={
-                **os.environ,
-                "ARM_GCC_DIR": toolchain,
-                "POST_BUILD_EXE": args.postbuild,
-            },
-            check=True,
-        )
+    makefile.write_text(makefile_contents)
 
-        # Build it!
-        subprocess.run(
-            [
-                "ninja",
-                "-C",
-                cmake_build_root,
-            ],
-            check=True,
-        )
-
-        output_artifact = (cmake_build_root / base_project_name).with_suffix(".gbl")
+    subprocess.run(
+        [
+            "make",
+            "-C",
+            args.build_dir,
+            "-f",
+            f"{base_project_name}.Makefile",
+            f"-j{multiprocessing.cpu_count()}",
+            f"ARM_GCC_DIR={toolchain}",
+            f"POST_BUILD_EXE={args.postbuild}",
+        ],
+        check=True,
+    )
 
     # Read the metadata extracted from the source and build trees
     extracted_gbl_metadata = json.loads(
