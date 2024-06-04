@@ -9,6 +9,7 @@ import ast
 import sys
 import copy
 import json
+import time
 import shutil
 import typing
 import hashlib
@@ -208,8 +209,8 @@ def main():
     parser.add_argument(
         "--build-dir",
         type=pathlib.Path,
-        required=True,
-        help="Temporary build directory",
+        default=None,
+        help="Temporary build directory, generated based on the manifest by default",
     )
     parser.add_argument(
         "--build-system",
@@ -252,6 +253,11 @@ def main():
     )
 
     args = parser.parse_args()
+
+    if args.build_dir is None:
+        args.build_dir = pathlib.Path(f"build/{time.time():.0f}_{args.manifest.stem}")
+
+    print(f"Building in {args.build_dir.resolve()}")
 
     # argparse defaults should be replaced, not extended
     if args.sdks != get_sdk_default_paths():
@@ -325,7 +331,7 @@ def main():
         with contextlib.suppress(OSError):
             shutil.rmtree(args.build_dir)
 
-    args.build_dir.mkdir(exist_ok=True)
+    args.build_dir.mkdir(exist_ok=True, parents=True)
 
     shutil.copytree(
         base_project_path,
@@ -352,11 +358,10 @@ def main():
         yaml.dump(output_project, f)
 
     # Create a GBL metadata file
-    with pathlib.Path(args.build_dir / "gbl_metadata.yaml").open("w") as f:
+    with (args.build_dir / "gbl_metadata.yaml").open("w") as f:
         yaml.dump(manifest["gbl"], f)
 
     # Generate a build directory
-    args.build_dir = args.build_dir
     cmake_build_root = args.build_dir / f"{base_project_name}_cmake"
     shutil.rmtree(cmake_build_root, ignore_errors=True)
 
