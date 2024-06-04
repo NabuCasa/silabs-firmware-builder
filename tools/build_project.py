@@ -34,7 +34,11 @@ CHIP_SPECIFIC_COMPONENTS = {
     # There are only a few components whose filename doesn't match the component name
     "freertos": "freertos_kernel",
 }
+
+SLC = ["slc", "--daemon", "--daemon-timeout", "1"]
+
 LOGGER = logging.getLogger(__name__)
+
 
 yaml = YAML(typ="safe")
 
@@ -137,11 +141,18 @@ def get_git_commit_id(repo: pathlib.Path) -> str:
 
 
 def determine_chip_specific_config_filenames(
-    slcp_path: pathlib.Path, sdk: pathlib.Path, slc: str
+    slcp_path: pathlib.Path, sdk: pathlib.Path
 ) -> list[str]:
     """Determine the chip-specific config files to remove."""
     proc = subprocess.run(
-        [slc, "graph", "-p", str(slcp_path.absolute()), "--sdk", str(sdk.absolute())],
+        SLC
+        + [
+            "graph",
+            "--project-file",
+            str(slcp_path.absolute()),
+            "--sdk",
+            str(sdk.absolute()),
+        ],
         cwd=str(slcp_path.parent),
         check=True,
         text=True,
@@ -249,6 +260,13 @@ def main():
         type=parse_override,
         default=[],
         help="Override config key with JSON.",
+    )
+    parser.add_argument(
+        "--keep-slc-daemon",
+        action="store_true",
+        dest="keep_slc_daemon",
+        default=False,
+        help="Do not shut down the SLC daemon after the build",
     )
 
     args = parser.parse_args()
@@ -368,13 +386,6 @@ def main():
     cmake_build_root = args.build_dir / f"{base_project_name}_cmake"
     shutil.rmtree(cmake_build_root, ignore_errors=True)
 
-    # On macOS `slc` doesn't execute properly
-    slc = shutil.which("slc-cli") or shutil.which("slc")
-
-    if not slc:
-        LOGGER.error("`slc` and/or `slc-cli` not found in PATH")
-        sys.exit(1)
-
     # Find the SDK version required by the project
     for sdk in args.sdks:
         try:
@@ -396,7 +407,7 @@ def main():
 
     LOGGER.info("Building component graph and identifying board-specific files")
     for name in determine_chip_specific_config_filenames(
-        slcp_path=base_project_slcp, sdk=sdk, slc=slc
+        slcp_path=base_project_slcp, sdk=sdk
     ):
         try:
             (args.build_dir / f"config/{name}").unlink()
@@ -449,8 +460,8 @@ def main():
             sys.exit(1)
 
     subprocess.run(
-        [
-            slc,
+        SLC
+        + [
             "generate",
             "--project-file",
             (args.build_dir / f"{base_project_name}.slcp").resolve(),
@@ -608,6 +619,9 @@ def main():
     if args.clean_build_dir:
         with contextlib.suppress(OSError):
             shutil.rmtree(args.build_dir)
+
+    if not args.keep_slc_daemon:
+        subprocess.run(SLC + ["daemon-shutdown"], check=True)
 
 
 if __name__ == "__main__":
