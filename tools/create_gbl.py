@@ -12,7 +12,6 @@ import argparse
 import subprocess
 
 from ruamel.yaml import YAML
-from xml.etree import ElementTree
 
 
 def parse_c_header_defines(file_content: str) -> dict[str, str]:
@@ -126,7 +125,6 @@ def main():
     )
 
     project_root = slcp_path.parent
-    slps_path = (project_root / project_name).with_suffix(".slps")
 
     if "sdk_dir" in args.parameters:
         gsdk_path = pathlib.Path(args.parameters["sdk_dir"])
@@ -142,17 +140,6 @@ def main():
 
     # Parse the main Simplicity Studio project config
     slcp = YAML(typ="safe").load(slcp_path.read_text())
-
-    # Extract the chip ID from the SLPS file, `commander` needs it
-    slps_xml = ElementTree.parse(slps_path)
-    device_part_id = (
-        slps_xml.getroot()
-        .find(".//properties[@key='projectCommon.partId']")
-        .attrib["value"]
-        .split(".")[-1]
-        .upper()
-    )
-    print("Detected device part ID:", device_part_id, flush=True)
 
     gbl_metadata = YAML(typ="safe").load(
         (project_root / "gbl_metadata.yaml").read_text()
@@ -257,8 +244,6 @@ def main():
             else "--bootloader"
         ),
         out_file,
-        "--device",
-        device_part_id,
     ] + (
         [
             "--metadata",
