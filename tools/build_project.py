@@ -24,22 +24,10 @@ from ruamel.yaml import YAML
 
 # Matches all known chip and board names. Some varied examples:
 #   MGM210PB32JIA EFM32GG890F512 MGM12P22F1024GA EZR32WG330F128R69 EFR32FG14P231F256GM32
-CHIP_SPECIFIC_REGEX = re.compile(
-    r"""
-    ^
-    (?:
-        # Chips
-        (?:[a-z]+\d+){2,5}[a-z]*
-        |
-        # Boards and board-specific config
-        brd\d+[a-z](?:_.+)?
-    )
-    $
-""",
-    flags=re.IGNORECASE | re.VERBOSE,
-)
-
+CHIP_REGEX = re.compile(r"^(?:[a-z]+\d+){2,5}[a-z]*$", flags=re.IGNORECASE)
+BOARD_REGEX = re.compile(r"^brd\d+[a-z](?:_.+)?$", flags=re.IGNORECASE)
 GRAPH_COMPONENT_REGEX = re.compile(r"^(\w+)|- (\w+)", flags=re.MULTILINE)
+
 CHIP_SPECIFIC_COMPONENTS = {
     "sl_system": "sl_system",
     "sl_memory": "sl_memory",
@@ -169,7 +157,7 @@ def determine_chip_specific_config_filenames(
     slcc_paths = {slcc.stem.lower(): slcc for slcc in sdk.glob("**/*.slcc")}
 
     for component_id in all_components:
-        if CHIP_SPECIFIC_REGEX.match(component_id):
+        if CHIP_REGEX.match(component_id) or BOARD_REGEX.match(component_id):
             pass
         elif component_id in CHIP_SPECIFIC_COMPONENTS:
             component_id = CHIP_SPECIFIC_COMPONENTS[component_id]
@@ -289,7 +277,9 @@ def main():
 
     # Strip chip- and board-specific components to modify the base device type
     output_project["component"] = [
-        c for c in output_project["component"] if not CHIP_SPECIFIC_REGEX.match(c["id"])
+        c
+        for c in output_project["component"]
+        if not CHIP_REGEX.match(c["id"]) and not BOARD_REGEX.match(c["id"])
     ]
     output_project["component"].append({"id": manifest["device"]})
 
