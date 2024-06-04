@@ -579,6 +579,7 @@ def main():
             f"-j{multiprocessing.cpu_count()}",
             f"ARM_GCC_DIR={toolchain}",
             f"POST_BUILD_EXE={args.postbuild}",
+            "VERBOSE=1",
         ],
         check=True,
     )
