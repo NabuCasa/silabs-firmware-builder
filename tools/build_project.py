@@ -260,7 +260,7 @@ def main():
     if args.build_dir is None:
         args.build_dir = pathlib.Path(f"build/{time.time():.0f}_{args.manifest.stem}")
 
-    print(f"Building in {args.build_dir.resolve()}")
+    LOGGER.info("Building in %s", args.build_dir.resolve())
 
     # argparse defaults should be replaced, not extended
     if args.sdks != get_sdk_default_paths():
@@ -372,7 +372,7 @@ def main():
     slc = shutil.which("slc-cli") or shutil.which("slc")
 
     if not slc:
-        print("`slc` and/or `slc-cli` not found in PATH")
+        LOGGER.error("`slc` and/or `slc-cli` not found in PATH")
         sys.exit(1)
 
     # Find the SDK version required by the project
@@ -380,21 +380,21 @@ def main():
         try:
             sdk_meta = yaml.load((sdk / "gecko_sdk.slcs").read_text())
         except FileNotFoundError:
-            print(f"SDK {sdk} is not valid, skipping")
+            LOGGER.warning("SDK %s is not valid, skipping", sdk)
             continue
 
         assert base_project["sdk"]["id"] == "gecko_sdk"
 
-        print(f"SDK {sdk} has version {sdk_meta['sdk_version']}")
+        LOGGER.info("SDK %s has version %s", sdk, sdk_meta["sdk_version"])
 
         if base_project["sdk"]["version"] == sdk_meta["sdk_version"]:
-            print(f"Version is correct, picking {sdk}")
+            LOGGER.info("Version is correct, picking %s", sdk)
             break
     else:
-        print(f"Project SDK version {base_project['sdk']['version']} not found")
+        LOGGER.error("Project SDK version %s not found", base_project["sdk"]["version"])
         sys.exit(1)
 
-    print("Building component graph and identifying board-specific files")
+    LOGGER.info("Building component graph and identifying board-specific files")
     for name in determine_chip_specific_config_filenames(
         slcp_path=base_project_slcp, sdk=sdk, slc=slc
     ):
@@ -403,7 +403,7 @@ def main():
         except FileNotFoundError:
             pass
         else:
-            print(f"Deleted device-specific config: {name}")
+            LOGGER.info("Deleted device-specific config: %s", name)
 
     # Find the toolchain required by the project
     slps_path = (args.build_dir / base_project_name).with_suffix(".slps")
@@ -431,13 +431,13 @@ def main():
 
         toolchain_id = version_info["basever"] + "." + version_info["datestamp"]
 
-        print(f"Toolchain {toolchain} has version {toolchain_id}")
+        LOGGER.info("Toolchain %s has version %s", toolchain, toolchain_id)
 
         if toolchain_id == slps_toolchain_id:
-            print(f"Version is correct, picking {toolchain}")
+            LOGGER.info("Version is correct, picking %s", toolchain)
             break
     else:
-        print(f"Project toolchain version {slps_toolchain_id} not found")
+        LOGGER.error("Project toolchain version %s not found", slps_toolchain_id)
         sys.exit(1)
 
     # Make sure all extensions are valid
@@ -445,7 +445,7 @@ def main():
         expected_dir = sdk / f"extension/{sdk_extension['id']}_extension"
 
         if not expected_dir.is_dir():
-            print(f"Referenced extension not present in SDK: {expected_dir}")
+            LOGGER.error("Referenced extension not present in SDK: %s", expected_dir)
             sys.exit(1)
 
     subprocess.run(
@@ -515,7 +515,7 @@ def main():
                     written_config[define] = value
 
                     if define not in unused_defines:
-                        print(f"Define {define!r} used twice!")
+                        LOGGER.error("Define %r used twice!", define)
                         sys.exit(1)
 
                     unused_defines.remove(define)
@@ -524,11 +524,11 @@ def main():
                     new_config_h_lines.append(line)
 
             if written_config:
-                print(f"Patching {config_f} with {written_config}")
+                LOGGER.info("Patching %s with %s", config_f, written_config)
                 config_f.write_text("\n".join(new_config_h_lines))
 
     if unused_defines:
-        print(f"Defines were unused, aborting: {unused_defines}")
+        LOGGER.error("Defines were unused, aborting: %s", unused_defines)
         sys.exit(1)
 
     # Remove absolute paths from the build for reproducibility
@@ -610,4 +610,5 @@ def main():
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
     main()
