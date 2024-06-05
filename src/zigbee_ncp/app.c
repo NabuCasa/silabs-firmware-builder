@@ -163,21 +163,12 @@ void nc_zigbee_override_append_source_route(EmberNodeId destination,
                                             EmberMessageBuffer *header,
                                             bool *consumed)
 {
-  uint8_t index = 0xFF;
+  ManualSourceRoute *route = get_manual_source_route(destination);
 
-  for (uint8_t i = 0; i < XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE; i++) {
-    if (manual_source_routes[i].active && (manual_source_routes[i].destination == destination)) {
-      index = i;
-      break;
-    }
-  }
-
-  if (index == 0xFF) {
+  if (route == NULL) {
     *consumed = false;
     return;
   }
-
-  ManualSourceRoute *route = &manual_source_routes[index];
 
   uint8_t relay_index = 0;
 
