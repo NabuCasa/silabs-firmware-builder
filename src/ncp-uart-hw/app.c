@@ -23,6 +23,7 @@
 #include "mac-flat-header.h"
 
 #include "stack/include/message.h"
+#include "app/ncp/plugin/xncp/xncp.h"
 
 #include "config/xncp_config.h"
 
