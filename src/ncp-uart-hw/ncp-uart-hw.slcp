@@ -24,7 +24,7 @@ readme:
 - {path: readme.html}
 source:
 - {path: main.c}
-- {path: app.c}
+- {path: app.cpp}
 tag: [prebuilt_demo]
 sdk: {id: gecko_sdk, version: 4.4.3}
 toolchain_settings: []
