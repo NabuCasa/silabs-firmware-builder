@@ -13,4 +13,8 @@
 #define XNCP_MFG_MANUF_NAME  ("")
 #define XNCP_MFG_BOARD_NAME  ("")
 
+
+// Specify a build string that can be read by the host, augmenting its version info
+#define XNCP_BUILD_STRING  ("")
+
 #endif /* CONFIG_XNCP_CONFIG_H_ */
