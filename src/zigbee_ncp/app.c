@@ -33,10 +33,12 @@
 #define FEATURE_MEMBER_OF_ALL_GROUPS  (0b00000000000000000000000000000001)
 #define FEATURE_MANUAL_SOURCE_ROUTE   (0b00000000000000000000000000000010)
 #define FEATURE_MFG_TOKEN_OVERRIDES   (0b00000000000000000000000000000100)
+#define FEATURE_BUILD_STRING          (0b00000000000000000000000000001000)
 #define SUPPORTED_FEATURES ( \
       FEATURE_MEMBER_OF_ALL_GROUPS \
     | FEATURE_MANUAL_SOURCE_ROUTE \
     | FEATURE_MFG_TOKEN_OVERRIDES \
+    | FEATURE_BUILD_STRING \
 )
 
 
@@ -44,10 +46,12 @@ typedef enum {
   XNCP_CMD_GET_SUPPORTED_FEATURES_REQ = 0x0000,
   XNCP_CMD_SET_SOURCE_ROUTE_REQ       = 0x0001,
   XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_REQ = 0x0002,
+  XNCP_CMD_GET_BUILD_STRING_REQ       = 0x0003,
 
   XNCP_CMD_GET_SUPPORTED_FEATURES_RSP = XNCP_CMD_GET_SUPPORTED_FEATURES_REQ | 0x8000,
   XNCP_CMD_SET_SOURCE_ROUTE_RSP       = XNCP_CMD_SET_SOURCE_ROUTE_REQ       | 0x8000,
   XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_RSP = XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_REQ | 0x8000,
+  XNCP_CMD_GET_BUILD_STRING_RSP       = XNCP_CMD_GET_BUILD_STRING_REQ       | 0x8000,
 
   XNCP_CMD_UNKNOWN = 0xFFFF
 } XNCP_COMMAND;
@@ -304,6 +308,16 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
 
       uint8_t value_length = strlen(override_value);
       memcpy(replyPayload + *replyPayloadLength, override_value, value_length);
+      *replyPayloadLength += value_length;
+      break;
+    }
+
+    case XNCP_CMD_GET_BUILD_STRING_REQ: {
+      rsp_command_id = XNCP_CMD_GET_BUILD_STRING_RSP;
+      rsp_status = EMBER_SUCCESS;
+
+      uint8_t value_length = strlen(XNCP_BUILD_STRING);
+      memcpy(replyPayload + *replyPayloadLength, XNCP_BUILD_STRING, value_length);
       *replyPayloadLength += value_length;
       break;
     }
