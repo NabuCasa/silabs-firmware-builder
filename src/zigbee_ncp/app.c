@@ -61,6 +61,17 @@ typedef struct ManualSourceRoute {
 ManualSourceRoute manual_source_routes[XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE];
 
 
+typedef struct EnqueuedEvent {
+  bool sent;
+  uint8_t length;
+  uint8_t message[64];
+} EnqueuedEvent;
+
+
+#define NC_MAX_ENQUEUED_EVENTS (8)
+EnqueuedEvent nc_enqueued_events[NC_MAX_ENQUEUED_EVENTS];
+
+
 ManualSourceRoute* get_manual_source_route(EmberNodeId destination)
 {
   uint8_t index = 0xFF;
@@ -98,6 +109,24 @@ void emberAfMainInitCallback(void)
 {
   for (uint8_t i = 0; i < XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE; i++) {
     manual_source_routes[i].active = false;
+  }
+
+  for (uint8_t i = 0; i < NC_MAX_ENQUEUED_EVENTS; i++) {
+    nc_enqueued_events[i].sent = true;
+  }
+}
+
+void emberAfMainTickCallback(void)
+{
+  for (uint8_t i = 0; i < NC_MAX_ENQUEUED_EVENTS; i++) {
+    EnqueuedEvent *event = &nc_enqueued_events[i];
+
+    if (event->sent) {
+      continue;
+    }
+
+    emberAfPluginXncpSendCustomEzspMessage(event->length, event->message);
+    event->sent = true;
   }
 }
 
@@ -191,6 +220,106 @@ void nc_zigbee_override_append_source_route(EmberNodeId destination,
   }
 
   return;
+}
+
+void nc_enqueue_event(uint8_t length, char* message) {
+  for (uint8_t i = 0; i < NC_MAX_ENQUEUED_EVENTS; i++) {
+    EnqueuedEvent *event = &nc_enqueued_events[i];
+
+    if (!event->sent) {
+      continue;
+    }
+
+    event->sent = false;
+    event->length = length;
+    memcpy(event->message, message, length);
+    break;
+  }
+}
+
+
+void nc_incoming_message(void* first_arg, ...)                   { nc_enqueue_event(16, "incoming_message"); }
+void nc_message_sent(void* first_arg, ...)                       { nc_enqueue_event(12, "message_sent"); }
+void nc_trust_center_join(void* first_arg, ...)                  { nc_enqueue_event(17, "trust_center_join"); }
+void nc_mark_buffers(void* first_arg, ...)                       {}//{ nc_enqueue_event(12, "mark_buffers"); }
+void nc_packet_handoff_incoming(void* first_arg, ...)            { nc_enqueue_event(23, "packet_handoff_incoming"); }
+void nc_packet_handoff_outgoing(void* first_arg, ...)            { nc_enqueue_event(23, "packet_handoff_outgoing"); }
+void nc_incoming_mfg_test_message(void* first_arg, ...)          { nc_enqueue_event(25, "incoming_mfg_test_message"); }
+void nc_stack_status(void* first_arg, ...)                       { nc_enqueue_event(12, "stack_status"); }
+void nc_redirect_outgoing_message(void* first_arg, ...)          { nc_enqueue_event(25, "redirect_outgoing_message"); }
+void nc_energy_scan_result(void* first_arg, ...)                 { nc_enqueue_event(18, "energy_scan_result"); }
+void nc_network_found(void* first_arg, ...)                      { nc_enqueue_event(13, "network_found"); }
+void nc_scan_complete(void* first_arg, ...)                      { nc_enqueue_event(13, "scan_complete"); }
+void nc_unused_pan_id_found(void* first_arg, ...)                { nc_enqueue_event(19, "unused_pan_id_found"); }
+void nc_child_join(void* first_arg, ...)                         { nc_enqueue_event(10, "child_join"); }
+void nc_duty_cycle(void* first_arg, ...)                         { nc_enqueue_event(10, "duty_cycle"); }
+void nc_remote_set_binding(void* first_arg, ...)                 { nc_enqueue_event(18, "remote_set_binding"); }
+void nc_remote_delete_binding(void* first_arg, ...)              { nc_enqueue_event(21, "remote_delete_binding"); }
+void nc_poll_complete(void* first_arg, ...)                      { nc_enqueue_event(13, "poll_complete"); }
+void nc_poll(void* first_arg, ...)                               { nc_enqueue_event(4, "poll"); }
+void nc_debug(void* first_arg, ...)                              { nc_enqueue_event(5, "debug"); }
+void nc_incoming_many_to_one_route_request(void* first_arg, ...) { nc_enqueue_event(34, "incoming_many_to_one_route_request"); }
+void nc_incoming_route_error(void* first_arg, ...)               { nc_enqueue_event(20, "incoming_route_error"); }
+void nc_incoming_network_status(void* first_arg, ...)            { nc_enqueue_event(23, "incoming_network_status"); }
+void nc_incoming_route_record(void* first_arg, ...)              { nc_enqueue_event(21, "incoming_route_record"); }
+void nc_id_conflict(void* first_arg, ...)                        { nc_enqueue_event(11, "id_conflict"); }
+void nc_mac_passthrough_message(void* first_arg, ...)            { nc_enqueue_event(23, "mac_passthrough_message"); }
+void nc_stack_token_changed(void* first_arg, ...)                { nc_enqueue_event(19, "stack_token_changed"); }
+void nc_timer(void* first_arg, ...)                              { nc_enqueue_event(5, "timer"); }
+void nc_counter_rollover(void* first_arg, ...)                   { nc_enqueue_event(16, "counter_rollover"); }
+void nc_raw_transmit_complete(void* first_arg, ...)              { nc_enqueue_event(21, "raw_transmit_complete"); }
+void nc_switch_network_key(void* first_arg, ...)                 { nc_enqueue_event(18, "switch_network_key"); }
+void nc_zigbee_key_establishment(void* first_arg, ...)           { nc_enqueue_event(24, "zigbee_key_establishment"); }
+void nc_generate_cbke_keys(void* first_arg, ...)                 { nc_enqueue_event(18, "generate_cbke_keys"); }
+void nc_calculate_smacs(void* first_arg, ...)                    { nc_enqueue_event(15, "calculate_smacs"); }
+void nc_dsa_sign(void* first_arg, ...)                           { nc_enqueue_event(8, "dsa_sign"); }
+void nc_dsa_verify(void* first_arg, ...)                         { nc_enqueue_event(10, "dsa_verify"); }
+void nc_incoming_bootload_message(void* first_arg, ...)          { nc_enqueue_event(25, "incoming_bootload_message"); }
+void nc_bootload_transmit_complete(void* first_arg, ...)         { nc_enqueue_event(26, "bootload_transmit_complete"); }
+void nc_zll_network_found(void* first_arg, ...)                  { nc_enqueue_event(17, "zll_network_found"); }
+void nc_zll_scan_complete(void* first_arg, ...)                  { nc_enqueue_event(17, "zll_scan_complete"); }
+void nc_zll_address_assignment(void* first_arg, ...)             { nc_enqueue_event(22, "zll_address_assignment"); }
+void nc_zll_touch_link_target(void* first_arg, ...)              { nc_enqueue_event(21, "zll_touch_link_target"); }
+void nc_mac_filter_match_message(void* first_arg, ...)           { nc_enqueue_event(24, "mac_filter_match_message"); }
+void nc_d_gp_sent(void* first_arg, ...)                          { nc_enqueue_event(9, "d_gp_sent"); }
+void nc_pan_id_conflict(void* first_arg, ...)                    { nc_enqueue_event(15, "pan_id_conflict"); }
+void nc_orphan_notification(void* first_arg, ...)                { nc_enqueue_event(19, "orphan_notification"); }
+void nc_counter(void* first_arg, ...)                            {}//{ nc_enqueue_event(7, "counter"); }
+void nc_mac_passthrough_filter(void* first_arg, ...)             { nc_enqueue_event(22, "mac_passthrough_filter"); }
+void nc_generate_cbke_keys_handler283k1(void* first_arg, ...)    { nc_enqueue_event(31, "generate_cbke_keys_handler283k1"); }
+void nc_calculate_smacs_handler283k1(void* first_arg, ...)       { nc_enqueue_event(28, "calculate_smacs_handler283k1"); }
+void nc_gpep_incoming_message(void* first_arg, ...)              { nc_enqueue_event(21, "gpep_incoming_message"); }
+void nc_rtos_idle(void* first_arg, ...)                          { nc_enqueue_event(9, "rtos_idle"); }
+void nc_rtos_stack_wakeup_isr(void* first_arg, ...)              { nc_enqueue_event(21, "rtos_stack_wakeup_isr"); }
+void nc_radio_needs_calibrating(void* first_arg, ...)            { nc_enqueue_event(23, "radio_needs_calibrating"); }
+void nc_scan_error(void* first_arg, ...)                         { nc_enqueue_event(10, "scan_error"); }
+
+const char * COUNTER_STRINGS[] = {EMBER_COUNTER_STRINGS};
+
+void emberAfCounterCallback(
+       // Type of Counter
+       EmberCounterType type,
+       // Counter Info and value
+       EmberCounterInfo info)
+{
+  uint8_t buffer[64] = {0};
+  strcpy((char*)buffer, COUNTER_STRINGS[type]);
+  uint8_t len = strlen(buffer);
+  buffer[len++] = " ";
+
+  EmberNodeId destinationNodeId;
+
+  if (emberCounterRequiresDestinationNodeId(type) && emberCounterRequiresPhyIndex(type)) {
+    destinationNodeId = ((EmberExtraCounterInfo *) (info.otherFields))->destinationNodeId;
+  } else if (emberCounterRequiresDestinationNodeId(type)) {
+    destinationNodeId = *((EmberNodeId*)info.otherFields);
+  } else {
+    destinationNodeId = 0xFFFF;
+  }
+
+  memcpy(buffer + len, &destinationNodeId, sizeof(destinationNodeId));
+
+  nc_enqueue_event(sizeof(buffer), &buffer);
 }
 
 

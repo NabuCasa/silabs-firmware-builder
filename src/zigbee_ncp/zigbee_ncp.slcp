@@ -73,6 +73,171 @@ template_contribution:
 - name: zigbee_stack_callback
   priority: -9999
   value: {callback_type: override_append_source_route, function_name: nc_zigbee_override_append_source_route}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: incoming_message, function_name: nc_incoming_message}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: message_sent, function_name: nc_message_sent}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: trust_center_join, function_name: nc_trust_center_join}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: mark_buffers, function_name: nc_mark_buffers}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: packet_handoff_incoming, function_name: nc_packet_handoff_incoming}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: packet_handoff_outgoing, function_name: nc_packet_handoff_outgoing}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: incoming_mfg_test_message, function_name: nc_incoming_mfg_test_message}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: stack_status, function_name: nc_stack_status}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: redirect_outgoing_message, function_name: nc_redirect_outgoing_message}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: energy_scan_result, function_name: nc_energy_scan_result}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: network_found, function_name: nc_network_found}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: scan_complete, function_name: nc_scan_complete}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: unused_pan_id_found, function_name: nc_unused_pan_id_found}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: child_join, function_name: nc_child_join}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: duty_cycle, function_name: nc_duty_cycle}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: remote_set_binding, function_name: nc_remote_set_binding}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: remote_delete_binding, function_name: nc_remote_delete_binding}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: poll_complete, function_name: nc_poll_complete}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: poll, function_name: nc_poll}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: debug, function_name: nc_debug}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: incoming_many_to_one_route_request, function_name: nc_incoming_many_to_one_route_request}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: incoming_route_error, function_name: nc_incoming_route_error}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: incoming_network_status, function_name: nc_incoming_network_status}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: incoming_route_record, function_name: nc_incoming_route_record}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: id_conflict, function_name: nc_id_conflict}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: mac_passthrough_message, function_name: nc_mac_passthrough_message}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: stack_token_changed, function_name: nc_stack_token_changed}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: timer, function_name: nc_timer}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: counter_rollover, function_name: nc_counter_rollover}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: raw_transmit_complete, function_name: nc_raw_transmit_complete}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: switch_network_key, function_name: nc_switch_network_key}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: zigbee_key_establishment, function_name: nc_zigbee_key_establishment}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: generate_cbke_keys, function_name: nc_generate_cbke_keys}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: calculate_smacs, function_name: nc_calculate_smacs}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: dsa_sign, function_name: nc_dsa_sign}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: dsa_verify, function_name: nc_dsa_verify}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: incoming_bootload_message, function_name: nc_incoming_bootload_message}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: bootload_transmit_complete, function_name: nc_bootload_transmit_complete}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: zll_network_found, function_name: nc_zll_network_found}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: zll_scan_complete, function_name: nc_zll_scan_complete}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: zll_address_assignment, function_name: nc_zll_address_assignment}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: zll_touch_link_target, function_name: nc_zll_touch_link_target}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: mac_filter_match_message, function_name: nc_mac_filter_match_message}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: d_gp_sent, function_name: nc_d_gp_sent}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: pan_id_conflict, function_name: nc_pan_id_conflict}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: orphan_notification, function_name: nc_orphan_notification}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: counter, function_name: nc_counter}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: mac_passthrough_filter, function_name: nc_mac_passthrough_filter}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: generate_cbke_keys_handler283k1, function_name: nc_generate_cbke_keys_handler283k1}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: calculate_smacs_handler283k1, function_name: nc_calculate_smacs_handler283k1}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: gpep_incoming_message, function_name: nc_gpep_incoming_message}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: rtos_idle, function_name: nc_rtos_idle}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: rtos_stack_wakeup_isr, function_name: nc_rtos_stack_wakeup_isr}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: radio_needs_calibrating, function_name: nc_radio_needs_calibrating}
+- name: zigbee_stack_callback
+  priority: -9999
+  value: {callback_type: scan_error, function_name: nc_scan_error}
 
 filter:
   - name: Wireless Technology
