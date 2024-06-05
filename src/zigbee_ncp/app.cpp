@@ -15,17 +15,19 @@
  *
  ******************************************************************************/
 
-#include PLATFORM_HEADER
-#include "ember.h"
-#include "ember-types.h"
-#include "ezsp-enum.h"
-#include "random.h"
-#include "mac-flat-header.h"
+extern "C" {
+  #include PLATFORM_HEADER
+  #include "ember.h"
+  #include "ember-types.h"
+  #include "ezsp-enum.h"
+  #include "random.h"
+  #include "mac-flat-header.h"
 
-#include "stack/include/message.h"
-#include "app/ncp/plugin/xncp/xncp.h"
+  #include "stack/include/message.h"
+  #include "app/ncp/plugin/xncp/xncp.h"
 
-#include "config/xncp_config.h"
+  #include "config/xncp_config.h"
+}
 
 
 #define BUILD_UINT16(low, high)  (((uint16_t)(low) << 0) | ((uint16_t)(high) << 8))
@@ -87,6 +89,7 @@ ManualSourceRoute* get_manual_source_route(EmberNodeId destination)
  *
  * Application framework equivalent of ::emberRadioNeedsCalibratingHandler
  */
+extern "C"
 void emberAfRadioNeedsCalibratingCallback(void)
 {
   sl_mac_calibrate_current_channel();
@@ -95,6 +98,7 @@ void emberAfRadioNeedsCalibratingCallback(void)
 /** @brief Init
  * Application init function
  */
+extern "C"
 void emberAfMainInitCallback(void)
 {
   for (uint8_t i = 0; i < XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE; i++) {
@@ -107,6 +111,7 @@ void emberAfMainInitCallback(void)
  * Filters and/or mutates incoming packets. Currently used only for wildcard multicast
  * group membership.
  */
+extern "C"
 EmberPacketAction sli_zigbee_af_packet_handoff_incoming_callback(EmberZigbeePacketType packetType,
                                                                  EmberMessageBuffer packetBuffer,
                                                                  uint8_t index,
@@ -150,6 +155,7 @@ EmberPacketAction sli_zigbee_af_packet_handoff_incoming_callback(EmberZigbeePack
  *
  * Filters and/or mutates outgoing packets.
  */
+extern "C"
 EmberPacketAction sli_zigbee_af_packet_handoff_outgoing_callback(EmberZigbeePacketType packetType,
                                                                  EmberMessageBuffer packetBuffer,
                                                                  uint8_t index,
@@ -159,6 +165,7 @@ EmberPacketAction sli_zigbee_af_packet_handoff_outgoing_callback(EmberZigbeePack
 }
 
 
+extern "C"
 void nc_zigbee_override_append_source_route(EmberNodeId destination,
                                             EmberMessageBuffer *header,
                                             bool *consumed)
@@ -186,6 +193,7 @@ void nc_zigbee_override_append_source_route(EmberNodeId destination,
 }
 
 
+extern "C"
 EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
                                                          uint8_t *messagePayload,
                                                          uint8_t *replyPayloadLength,
@@ -282,7 +290,7 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       }
 
       uint8_t token_id = messagePayload[0];
-      char *override_value;
+      const char *override_value;
 
       switch (token_id) {
         case EZSP_MFG_STRING: {
