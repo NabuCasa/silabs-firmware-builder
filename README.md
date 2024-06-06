@@ -50,7 +50,12 @@ Command line building requires:
 
 > [!TIP]
 > If you have set up Simplicity Studio on macOS, everything will be automatically
-> detected with the exception of `slc-cli`. This is the only tool you need to download.
+> detected with the exception of `slc`. This is the only tool you need to download.
+
+> [!WARNING]
+> M1 users should set `JAVA_HOME=$(/usr/libexec/java_home -a x86_64)` when running the
+> build command to make sure the correct Java version is picked by slc-cli. It currently
+> is not compatible with ARM Java.
 
 `slc-cli` maintains its own SDK and extension trust store so you first must trust all
 SDK extensions for every SDK you plan to use:
