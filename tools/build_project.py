@@ -322,6 +322,7 @@ def main():
             LOGGER.warning(
                 "Component %s is not present in manifest, cannot remove", component
             )
+            sys.exit(1)
 
     # Extend configuration and C defines
     for input_config, output_config in [
