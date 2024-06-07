@@ -325,8 +325,14 @@ def main():
 
     # Extend configuration and C defines
     for input_config, output_config in [
-        (manifest.get("configuration", {}), output_project.get("configuration", [])),
-        (manifest.get("slcp_defines", {}), output_project.get("define", [])),
+        (
+            manifest.get("configuration", {}),
+            output_project.setdefault("configuration", []),
+        ),
+        (
+            manifest.get("slcp_defines", {}),
+            output_project.setdefault("define", []),
+        ),
     ]:
         for name, value in input_config.items():
             # Values are always strings
