@@ -41,6 +41,8 @@
     | FEATURE_BUILD_STRING \
 )
 
+extern sli_zigbee_route_table_entry_t sli_zigbee_route_table[];
+
 
 typedef enum {
   XNCP_CMD_GET_SUPPORTED_FEATURES_REQ = 0x0000,
@@ -178,6 +180,14 @@ void nc_zigbee_override_append_source_route(EmberNodeId destination,
 
   // Empty source routes are not permitted
   if (route->num_relays == 0) {
+    // Add a fake route to the routing table to help EmberZNet just send the packet
+    sli_zigbee_route_table_entry_t *route_table_entry = &sli_zigbee_route_table[0];
+    route_table_entry->destination = route->destination;
+    route_table_entry->nextHop = route->destination;
+    route_table_entry->status = 0;  // ACTIVE=0
+    route_table_entry->cost = 0;
+    route_table_entry->networkIndex = 0;
+
     return;
   }
 
