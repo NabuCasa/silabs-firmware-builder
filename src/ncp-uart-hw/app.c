@@ -174,16 +174,22 @@ void nc_zigbee_override_append_source_route(EmberNodeId destination,
     return;
   }
 
-  uint8_t relay_index = 0;
-
   *consumed = true;
+
+  // Empty source routes are not permitted
+  if (route->num_relays == 0) {
+    return;
+  }
+
+  uint8_t relay_index = route->num_relays - 1;
+
   route->active = false;  // Disable the route after a single use
 
   emberAppendToLinkedBuffers(*header, &route->num_relays, 1);
   emberAppendToLinkedBuffers(*header, &relay_index, 1);
 
   for (uint8_t i = 0; i < route->num_relays; i++) {
-    emberAppendToLinkedBuffers(*header, (uint8_t*)&route->relays[i], 2);
+    emberAppendToLinkedBuffers(*header, (uint8_t*)&route->relays[route->num_relays - i - 1], 2);
   }
 
   return;
