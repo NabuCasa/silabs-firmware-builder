@@ -42,6 +42,18 @@
 )
 
 extern sli_zigbee_route_table_entry_t sli_zigbee_route_table[];
+extern uint8_t sli_zigbee_route_table_size;
+
+/*
+ * Indicates whether this entry is active (0), being
+ * discovered (1), unused (3), or validating (4).
+ */
+typedef enum {
+  EMBER_ROUTE_ACTIVE = 0,
+  EMBER_ROUTE_BEING_DISCOVERED = 1,
+  EMBER_ROUTE_UNUSED = 3,
+  EMBER_ROUTE_VALIDATING = 4
+} EmberRouteStatus;
 
 
 typedef enum {
@@ -56,7 +68,7 @@ typedef enum {
   XNCP_CMD_GET_BUILD_STRING_RSP       = XNCP_CMD_GET_BUILD_STRING_REQ       | 0x8000,
 
   XNCP_CMD_UNKNOWN = 0xFFFF
-} XNCP_COMMAND;
+} XncpCommand;
 
 typedef struct ManualSourceRoute {
   bool active;
@@ -85,6 +97,34 @@ ManualSourceRoute* get_manual_source_route(EmberNodeId destination)
 
   return &manual_source_routes[index];
 }
+
+
+sli_zigbee_route_table_entry_t* find_free_routing_table_entry(EmberNodeId destination) {
+  uint8_t index = 0xFF;
+
+  sli_zigbee_route_table_entry_t *route_table_entry = NULL;
+
+  for (uint8_t i = 0; i < sli_zigbee_route_table_size; i++) {
+    route_table_entry = &sli_zigbee_route_table[i];
+
+    if (route_table_entry->destination == destination) {
+      // Perfer a route to the destination, if one exists
+      return route_table_entry;
+    } else if (route_table_entry->status == EMBER_ROUTE_UNUSED) {
+      // Otherwise, keep track of the most recent unused route
+      index = i;
+      continue;
+    }
+  }
+
+  // If we have no free route slots, we still need to insert somewhere. Pick at random.
+  if (index == 0xFF) {
+    index = emberGetPseudoRandomNumber() % sli_zigbee_route_table_size;
+  }
+
+  return &sli_zigbee_route_table[index];
+}
+
 
 //----------------------
 // Implemented Callbacks
@@ -178,13 +218,13 @@ void nc_zigbee_override_append_source_route(EmberNodeId destination,
 
   *consumed = true;
 
-  // Empty source routes are not permitted
+  // Empty source routes are invalid according to the spec
   if (route->num_relays == 0) {
     // Add a fake route to the routing table to help EmberZNet just send the packet
-    sli_zigbee_route_table_entry_t *route_table_entry = &sli_zigbee_route_table[0];
+    sli_zigbee_route_table_entry_t *route_table_entry = find_free_routing_table_entry(route->destination);
     route_table_entry->destination = route->destination;
     route_table_entry->nextHop = route->destination;
-    route_table_entry->status = 0;  // ACTIVE=0
+    route_table_entry->status = EMBER_ROUTE_ACTIVE;
     route_table_entry->cost = 0;
     route_table_entry->networkIndex = 0;
 
