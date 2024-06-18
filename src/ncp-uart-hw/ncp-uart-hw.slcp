@@ -37,7 +37,7 @@ component:
 - {id: iostream_vuart}
 - {id: memory_manager}
 - {id: token_manager}
-- {id: zigbee_app_framework_common}
+- {id: zigbee_system_common}
 - {id: zigbee_debug_basic}
 - {id: zigbee_debug_extended}
 - {id: zigbee_debug_print}
