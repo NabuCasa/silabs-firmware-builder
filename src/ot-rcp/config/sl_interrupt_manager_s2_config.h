@@ -1,9 +1,9 @@
 /***************************************************************************//**
  * @file
- * @brief DEVICE_INIT_LFXO Config
+ * @brief Interrupt Manager configuration file for series 2 devices.
  *******************************************************************************
  * # License
- * <b>Copyright 2022 Silicon Laboratories Inc. www.silabs.com</b>
+ * <b>Copyright 2023 Silicon Laboratories Inc. www.silabs.com</b>
  *******************************************************************************
  *
  * SPDX-License-Identifier: Zlib
@@ -28,39 +28,20 @@
  *
  ******************************************************************************/
 
-#ifndef SL_DEVICE_INIT_LFXO_CONFIG_H
-#define SL_DEVICE_INIT_LFXO_CONFIG_H
-
 // <<< Use Configuration Wizard in Context Menu >>>
 
-// <o SL_DEVICE_INIT_LFXO_MODE> Mode
-// <i>
-// <cmuLfxoOscMode_Crystal=> Crystal oscillator
-// <cmuLfxoOscMode_AcCoupledSine=> AC-coupled buffer
-// <cmuLfxoOscMode_External=> External digital clock
-// <i> Default: cmuLfxoOscMode_Crystal
-#define SL_DEVICE_INIT_LFXO_MODE           cmuLfxoOscMode_Crystal
+#ifndef SL_INTERRUPT_MANAGER_S2_CONFIG_H
+#define SL_INTERRUPT_MANAGER_S2_CONFIG_H
 
-// <o SL_DEVICE_INIT_LFXO_CTUNE> CTUNE <0-127>
-// <i> Default: 63
-#define SL_DEVICE_INIT_LFXO_CTUNE          79
+// <h>Interrupt Manager Configuration
 
-// <o SL_DEVICE_INIT_LFXO_PRECISION> LFXO precision in PPM <0-65535>
-// <i> Default: 50
-#define SL_DEVICE_INIT_LFXO_PRECISION      50
+// <q SL_INTERRUPT_MANAGER_S2_INTERRUPTS_IN_RAM> Put the interrupt vector table in RAM.
+// <i> Set to 1 to put the vector table in RAM.
+// <i> Default: 0
+#define SL_INTERRUPT_MANAGER_S2_INTERRUPTS_IN_RAM  0
 
-// <o SL_DEVICE_INIT_LFXO_TIMEOUT> Startup Timeout Delay
-// <i>
-// <cmuLfxoStartupDelay_2Cycles=> 2 cycles
-// <cmuLfxoStartupDelay_256Cycles=> 256 cycles
-// <cmuLfxoStartupDelay_1KCycles=> 1K cycles
-// <cmuLfxoStartupDelay_2KCycles=> 2K cycles
-// <cmuLfxoStartupDelay_4KCycles=> 4K cycles
-// <cmuLfxoStartupDelay_8KCycles=> 8K cycles
-// <cmuLfxoStartupDelay_16KCycles=> 16K cycles
-// <cmuLfxoStartupDelay_32KCycles=> 32K cycles
-// <i> Default: cmuLfxoStartupDelay_4KCycles
-#define SL_DEVICE_INIT_LFXO_TIMEOUT           cmuLfxoStartupDelay_4KCycles
+// </h>
+
+#endif /* SSL_INTERRUPT_MANAGER_S2_CONFIG_H */
+
 // <<< end of configuration section >>>
-
-#endif // SL_DEVICE_INIT_LFXO_CONFIG_H

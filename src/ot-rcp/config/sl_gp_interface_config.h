@@ -1,9 +1,9 @@
 /***************************************************************************//**
  * @file
- * @brief emlib_core Configuration
+ * @brief OpenThread Green Power configuration file.
  *******************************************************************************
  * # License
- * <b>Copyright 2019 Silicon Laboratories Inc. www.silabs.com</b>
+ * <b>Copyright 2024 Silicon Laboratories Inc. www.silabs.com</b>
  *******************************************************************************
  *
  * SPDX-License-Identifier: Zlib
@@ -28,18 +28,17 @@
  *
  ******************************************************************************/
 
-#ifndef EM_CORE_DEBUG_CONFIG_H
-#define EM_CORE_DEBUG_CONFIG_H
+//-------- <<< Use Configuration Wizard in Context Menu >>> -----------------
 
-// <<< Use Configuration Wizard in Context Menu >>>
+// <e>  Rx Offset time
+// The rx offset time for the bidirectional message.
+//
+#define GP_RX_OFFSET_IN_MICRO_SECONDS  21000
+// </e>
 
-// <h> Core Configuration
-
-// <q SL_EMLIB_CORE_ENABLE_INTERRUPT_DISABLED_TIMING> Enables measuring of interrupt disable time for debugging purposes.
-// <i> Default: 0
-#define SL_CORE_DEBUG_INTERRUPTS_MASKED_TIMING    0
-
-// </h>
-
+// <e>  TX Timeout
+// Tx timeout after which the gp outgoing packet is invalid.
+//
+#define GP_TX_MAX_TIMEOUT_IN_MICRO_SECONDS  5000000
+// </e>
 // <<< end of configuration section >>>
-#endif // EM_CORE_CONFIG_H
