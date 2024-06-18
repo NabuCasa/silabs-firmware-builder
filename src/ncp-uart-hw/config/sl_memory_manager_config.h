@@ -1,9 +1,9 @@
 /***************************************************************************//**
  * @file
- * @brief DEVICE_INIT_LFXO Config
+ * @brief Memory Heap Allocator configuration file.
  *******************************************************************************
  * # License
- * <b>Copyright 2022 Silicon Laboratories Inc. www.silabs.com</b>
+ * <b>Copyright 2024 Silicon Laboratories Inc. www.silabs.com</b>
  *******************************************************************************
  *
  * SPDX-License-Identifier: Zlib
@@ -28,39 +28,22 @@
  *
  ******************************************************************************/
 
-#ifndef SL_DEVICE_INIT_LFXO_CONFIG_H
-#define SL_DEVICE_INIT_LFXO_CONFIG_H
-
 // <<< Use Configuration Wizard in Context Menu >>>
 
-// <o SL_DEVICE_INIT_LFXO_MODE> Mode
-// <i>
-// <cmuLfxoOscMode_Crystal=> Crystal oscillator
-// <cmuLfxoOscMode_AcCoupledSine=> AC-coupled buffer
-// <cmuLfxoOscMode_External=> External digital clock
-// <i> Default: cmuLfxoOscMode_Crystal
-#define SL_DEVICE_INIT_LFXO_MODE           cmuLfxoOscMode_Crystal
+#ifndef SL_MEMORY_MANAGER_CONFIG_H
+#define SL_MEMORY_MANAGER_CONFIG_H
 
-// <o SL_DEVICE_INIT_LFXO_CTUNE> CTUNE <0-127>
-// <i> Default: 63
-#define SL_DEVICE_INIT_LFXO_CTUNE          79
+// <h> Memory Manager Configuration
 
-// <o SL_DEVICE_INIT_LFXO_PRECISION> LFXO precision in PPM <0-65535>
-// <i> Default: 50
-#define SL_DEVICE_INIT_LFXO_PRECISION      50
+// <o SL_MEMORY_MANAGER_BLOCK_ALLOCATION_MIN_SIZE> Minimum block allocation size
+// <32-128:8>
+// <i> Minimum block allocation size to avoid creating a block too small while splitting up an allocated block.
+// <i> Size expressed in bytes and can only be a multiple of 8 bytes for the proper data alignment management done by the dynamic allocator malloc() function.
+// <i> Default: 32
+#define SL_MEMORY_MANAGER_BLOCK_ALLOCATION_MIN_SIZE   (32)
 
-// <o SL_DEVICE_INIT_LFXO_TIMEOUT> Startup Timeout Delay
-// <i>
-// <cmuLfxoStartupDelay_2Cycles=> 2 cycles
-// <cmuLfxoStartupDelay_256Cycles=> 256 cycles
-// <cmuLfxoStartupDelay_1KCycles=> 1K cycles
-// <cmuLfxoStartupDelay_2KCycles=> 2K cycles
-// <cmuLfxoStartupDelay_4KCycles=> 4K cycles
-// <cmuLfxoStartupDelay_8KCycles=> 8K cycles
-// <cmuLfxoStartupDelay_16KCycles=> 16K cycles
-// <cmuLfxoStartupDelay_32KCycles=> 32K cycles
-// <i> Default: cmuLfxoStartupDelay_4KCycles
-#define SL_DEVICE_INIT_LFXO_TIMEOUT           cmuLfxoStartupDelay_4KCycles
+// </h>
+
 // <<< end of configuration section >>>
 
-#endif // SL_DEVICE_INIT_LFXO_CONFIG_H
+#endif /* SL_MEMORY_MANAGER_CONFIG_H */
