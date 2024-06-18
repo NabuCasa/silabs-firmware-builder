@@ -51,11 +51,11 @@ RUN \
     && tar -C /opt -xf gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2 \
     && rm gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2
 
-# Gecko SDK 4.4.2
+# Simplicity SDK 2024.6.0
 RUN \
-    curl -o gecko_sdk_4.4.2.zip -L https://github.com/SiliconLabs/gecko_sdk/releases/download/v4.4.2/gecko-sdk.zip \
-    && unzip -q -d gecko_sdk_4.4.2 gecko_sdk_4.4.2.zip \
-    && rm gecko_sdk_4.4.2.zip
+    curl -o simplicity_sdk_2024.6.0.zip -L https://github.com/SiliconLabs/simplicity_sdk/releases/download/v2024.6.0/sisdk-sdk.zip \
+    && unzip -q -d simplicity_sdk_2024.6.0 simplicity_sdk_2024.6.0.zip \
+    && rm simplicity_sdk_2024.6.0.zip
 
 # Gecko SDK 4.3.1
 RUN \
