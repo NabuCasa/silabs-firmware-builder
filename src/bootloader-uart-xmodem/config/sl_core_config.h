@@ -1,9 +1,9 @@
 /***************************************************************************//**
  * @file
- * @brief emlib_core Configuration
+ * @brief sl_core Configuration
  *******************************************************************************
  * # License
- * <b>Copyright 2019 Silicon Laboratories Inc. www.silabs.com</b>
+ * <b>Copyright 2023 Silicon Laboratories Inc. www.silabs.com</b>
  *******************************************************************************
  *
  * SPDX-License-Identifier: Zlib
@@ -28,18 +28,17 @@
  *
  ******************************************************************************/
 
-#ifndef EM_CORE_DEBUG_CONFIG_H
-#define EM_CORE_DEBUG_CONFIG_H
+#ifndef SL_CORE_CONFIG_H
+#define SL_CORE_CONFIG_H
 
 // <<< Use Configuration Wizard in Context Menu >>>
 
-// <h> Core Configuration
+// <h> Core Abstraction Configuration
 
-// <q SL_EMLIB_CORE_ENABLE_INTERRUPT_DISABLED_TIMING> Enables measuring of interrupt disable time for debugging purposes.
+// <q SL_CORE_DEBUG_INTERRUPTS_MASKED_TIMING> Enables measurement of interrupt masking time for debugging purposes.
 // <i> Default: 0
 #define SL_CORE_DEBUG_INTERRUPTS_MASKED_TIMING    0
-
 // </h>
 
 // <<< end of configuration section >>>
-#endif // EM_CORE_CONFIG_H
+#endif // SL_CORE_CONFIG_H
