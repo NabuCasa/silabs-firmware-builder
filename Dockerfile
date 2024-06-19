@@ -63,6 +63,12 @@ RUN \
     && unzip -q -d gecko_sdk_4.3.1 gecko_sdk_4.3.1.zip \
     && rm gecko_sdk_4.3.1.zip
 
+# Gecko SDK 4.4.2
+RUN \
+    curl -o gecko_sdk_4.4.2.zip -L https://github.com/SiliconLabs/gecko_sdk/releases/download/v4.4.2/gecko-sdk.zip \
+    && unzip -q -d gecko_sdk_4.4.2 gecko_sdk_4.4.2.zip \
+    && rm gecko_sdk_4.4.2.zip
+
 ARG USERNAME=builder
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
