@@ -124,5 +124,3 @@ configuration:
 ui_hints:
   highlight:
   - {path: README.md, focus: true}
-post_build: {path: zwave_ncp_serial_api_controller.slpb, profile: zwave_ncp_serial_api_controller}
-
