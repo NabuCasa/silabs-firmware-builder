@@ -1,9 +1,9 @@
 /***************************************************************************//**
  * @file
- * @brief emlib_core Configuration
+ * @brief HFXO Manager configuration file.
  *******************************************************************************
  * # License
- * <b>Copyright 2019 Silicon Laboratories Inc. www.silabs.com</b>
+ * <b>Copyright 2020 Silicon Laboratories Inc. www.silabs.com</b>
  *******************************************************************************
  *
  * SPDX-License-Identifier: Zlib
@@ -28,18 +28,29 @@
  *
  ******************************************************************************/
 
-#ifndef EM_CORE_DEBUG_CONFIG_H
-#define EM_CORE_DEBUG_CONFIG_H
-
 // <<< Use Configuration Wizard in Context Menu >>>
 
-// <h> Core Configuration
+#ifndef SL_HFXO_MANAGER_CONFIG_H
+#define SL_HFXO_MANAGER_CONFIG_H
 
-// <q SL_EMLIB_CORE_ENABLE_INTERRUPT_DISABLED_TIMING> Enables measuring of interrupt disable time for debugging purposes.
+// <h>HFXO Manager Configuration
+
+// <q SL_HFXO_MANAGER_CUSTOM_HFXO_IRQ_HANDLER> Enable custom IRQ handler for crystal HF oscillator.
+// <i> Enable if HFXO0_IRQHandler is needed from your application.
+// <i> The HFXO IRQ priority must not be changed as the HFXO Manager module needs it to be high priority
+// <i> and to stay enabled through atomic sections.
+// <i> The function sl_hfxo_manager_irq_handler() will have to be called from you custom handler if this is enabled.
 // <i> Default: 0
-#define SL_EMLIB_CORE_ENABLE_INTERRUPT_DISABLED_TIMING    0
+#define SL_HFXO_MANAGER_CUSTOM_HFXO_IRQ_HANDLER  0
+
+// <q SL_HFXO_MANAGER_SLEEPY_CRYSTAL_SUPPORT> Enable support for Sleepy Crystals.
+// <i> If Enabled and if HFXO fails to startup due to a sleepy crystal, HFXO Manager will retry the startup with more aggressive settings
+// <i> before falling back to the configured settings.
+// <i> Default: 0
+#define SL_HFXO_MANAGER_SLEEPY_CRYSTAL_SUPPORT  0
 
 // </h>
 
+#endif /* SL_HFXO_MANAGER_CONFIG_H */
+
 // <<< end of configuration section >>>
-#endif // EM_CORE_CONFIG_H

@@ -1,9 +1,9 @@
 /***************************************************************************//**
  * @file
- * @brief emlib_core Configuration
+ * @brief DEVICE_INIT_LFXO Config
  *******************************************************************************
  * # License
- * <b>Copyright 2019 Silicon Laboratories Inc. www.silabs.com</b>
+ * <b>Copyright 2022 Silicon Laboratories Inc. www.silabs.com</b>
  *******************************************************************************
  *
  * SPDX-License-Identifier: Zlib
@@ -28,18 +28,39 @@
  *
  ******************************************************************************/
 
-#ifndef EM_CORE_DEBUG_CONFIG_H
-#define EM_CORE_DEBUG_CONFIG_H
+#ifndef SL_DEVICE_INIT_LFXO_CONFIG_H
+#define SL_DEVICE_INIT_LFXO_CONFIG_H
 
 // <<< Use Configuration Wizard in Context Menu >>>
 
-// <h> Core Configuration
+// <o SL_DEVICE_INIT_LFXO_MODE> Mode
+// <i>
+// <cmuLfxoOscMode_Crystal=> Crystal oscillator
+// <cmuLfxoOscMode_AcCoupledSine=> AC-coupled buffer
+// <cmuLfxoOscMode_External=> External digital clock
+// <i> Default: cmuLfxoOscMode_Crystal
+#define SL_DEVICE_INIT_LFXO_MODE           cmuLfxoOscMode_Crystal
 
-// <q SL_EMLIB_CORE_ENABLE_INTERRUPT_DISABLED_TIMING> Enables measuring of interrupt disable time for debugging purposes.
-// <i> Default: 0
-#define SL_EMLIB_CORE_ENABLE_INTERRUPT_DISABLED_TIMING    0
+// <o SL_DEVICE_INIT_LFXO_CTUNE> CTUNE <0-127>
+// <i> Default: 63
+#define SL_DEVICE_INIT_LFXO_CTUNE          63
 
-// </h>
+// <o SL_DEVICE_INIT_LFXO_PRECISION> LFXO precision in PPM <0-65535>
+// <i> Default: 50
+#define SL_DEVICE_INIT_LFXO_PRECISION      50
 
+// <o SL_DEVICE_INIT_LFXO_TIMEOUT> Startup Timeout Delay
+// <i>
+// <cmuLfxoStartupDelay_2Cycles=> 2 cycles
+// <cmuLfxoStartupDelay_256Cycles=> 256 cycles
+// <cmuLfxoStartupDelay_1KCycles=> 1K cycles
+// <cmuLfxoStartupDelay_2KCycles=> 2K cycles
+// <cmuLfxoStartupDelay_4KCycles=> 4K cycles
+// <cmuLfxoStartupDelay_8KCycles=> 8K cycles
+// <cmuLfxoStartupDelay_16KCycles=> 16K cycles
+// <cmuLfxoStartupDelay_32KCycles=> 32K cycles
+// <i> Default: cmuLfxoStartupDelay_4KCycles
+#define SL_DEVICE_INIT_LFXO_TIMEOUT           cmuLfxoStartupDelay_4KCycles
 // <<< end of configuration section >>>
-#endif // EM_CORE_CONFIG_H
+
+#endif // SL_DEVICE_INIT_LFXO_CONFIG_H
