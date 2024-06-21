@@ -21,7 +21,6 @@
 #include <openthread/ncp.h>
 #include <openthread/diag.h>
 #include <openthread/tasklet.h>
-#include <openthread/logging.h>
 
 #include "openthread-system.h"
 #include "app.h"
