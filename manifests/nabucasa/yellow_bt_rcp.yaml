@@ -1,0 +1,36 @@
+name: Yellow Bluetooth
+device: MGM210PA32JIA
+base_project: src/bt_rcp
+filename: "{manifest_name}_{sdk_version}"
+
+gbl:
+  fw_type: bt_rcp
+  baudrate: 115200
+
+add_components:
+- id: simple_led
+  instance: [board_activity]
+
+configuration:
+  SL_UARTDRV_USART_VCOM_BAUDRATE: 115200
+  SL_UARTDRV_USART_VCOM_FLOW_CONTROL_TYPE: usartHwFlowControlCtsAndRts
+
+c_defines:
+  SL_UARTDRV_USART_VCOM_PERIPHERAL: USART0
+  SL_UARTDRV_USART_VCOM_PERIPHERAL_NO: 0
+
+  SL_UARTDRV_USART_VCOM_TX_PORT: gpioPortA
+  SL_UARTDRV_USART_VCOM_TX_PIN:  5
+
+  SL_UARTDRV_USART_VCOM_RX_PORT: gpioPortA
+  SL_UARTDRV_USART_VCOM_RX_PIN:  6
+
+  SL_UARTDRV_USART_VCOM_CTS_PORT: gpioPortD
+  SL_UARTDRV_USART_VCOM_CTS_PIN:  2
+
+  SL_UARTDRV_USART_VCOM_RTS_PORT: gpioPortC
+  SL_UARTDRV_USART_VCOM_RTS_PIN:  1
+
+  SL_SIMPLE_LED_BOARD_ACTIVITY_POLARITY: SL_SIMPLE_LED_POLARITY_ACTIVE_LOW
+  SL_SIMPLE_LED_BOARD_ACTIVITY_PORT:     gpioPortB
+  SL_SIMPLE_LED_BOARD_ACTIVITY_PIN:      1

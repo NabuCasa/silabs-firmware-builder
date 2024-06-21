@@ -1,0 +1,64 @@
+# Silicon Labs Project Configuration Tools: slcp, v0, Component selection file.
+project_name: bt_rcp
+label: bt_rcp
+description: |
+  Radio Co-Processor (RCP) target application. Runs the Bluetooth Controller (i.e. the Link Layer only) and provides access to it using the standard HCI (Host-Controller Interface) over a UART connection.
+category: Bluetooth Examples
+filter:
+- name: Device Type
+  value: [RCP]
+- name: Project Difficulty
+  value: [Advanced]
+- name: Wireless Technology
+  value: [Bluetooth]
+package: Bluetooth
+quality: production
+readme:
+- {path: readme.md}
+source:
+- {path: app.c}
+- {path: main.c}
+tag: ['hardware:rf:band:2400']
+include:
+- path: ''
+  file_list:
+  - {path: app.h}
+sdk: {id: gecko_sdk, version: 4.4.2}
+toolchain_settings: []
+component:
+- {id: EFR32MG21A010F1024IM32}
+- {id: bluetooth_controller}
+- {id: bluetooth_feature_connection}
+- {id: bluetooth_feature_connection_phy_update}
+- {id: bluetooth_feature_extended_advertiser}
+- {id: bluetooth_feature_extended_scanner}
+- {id: bluetooth_feature_legacy_advertiser}
+- {id: bluetooth_feature_legacy_scanner}
+- {id: bluetooth_feature_periodic_advertiser}
+- {id: bluetooth_hci_uart}
+- {id: board_control}
+- {id: bootloader_interface}
+- {id: brd4179b}
+- {id: device_init}
+- {id: sl_system}
+- instance: [vcom]
+  id: uartdrv_usart
+other_file:
+- {path: image/readme_img0.png}
+- {path: image/readme_img1.png}
+- {path: image/readme_img2.png}
+- {path: image/readme_img3.png}
+- {path: image/readme_img4.png}
+configuration:
+- {name: SL_HEAP_SIZE, value: '11000'}
+- {name: SL_BT_CONTROLLER_BUFFER_MEMORY, value: '7168'}
+- {name: SL_BT_CONFIG_USER_ADVERTISERS, value: '2'}
+- {name: SL_BOARD_ENABLE_VCOM, value: '1'}
+- {name: SL_UARTDRV_USART_VCOM_FLOW_CONTROL_TYPE, value: uartdrvFlowControlNone}
+- condition: [psa_crypto]
+  name: SL_PSA_KEY_USER_SLOT_COUNT
+  value: '0'
+ui_hints:
+  highlight:
+  - {path: readme.md, focus: true}
+
