@@ -20,7 +20,7 @@
 // <o SL_ZIGBEE_MAX_END_DEVICE_CHILDREN> Child Table Size <0-64>
 // <i> Default: 6
 // <i> The maximum number of ZigBee PRO End Devices that can be supported by a single device.
-#define SL_ZIGBEE_MAX_END_DEVICE_CHILDREN   6
+#define SL_ZIGBEE_MAX_END_DEVICE_CHILDREN   32
 
 // <h> Packet Buffer Heap Allocation
 // <o SL_ZIGBEE_PACKET_BUFFER_HEAP_SIZE > Packet Buffer Heap Size <512-16384>
@@ -82,7 +82,7 @@
 // <o SL_ZIGBEE_APS_UNICAST_MESSAGE_COUNT> APS Unicast Message Queue Size <1-255>
 // <i> Default: 10
 // <i> The maximum number of APS unicast messages that can be queued up by the stack.  A message is considered queued when sli_zigbee_stack_send_unicast() is called and is de-queued when the sli_zigbee_stack_message_sent_handler() is called.
-#define SL_ZIGBEE_APS_UNICAST_MESSAGE_COUNT   10
+#define SL_ZIGBEE_APS_UNICAST_MESSAGE_COUNT   32
 
 // <o SL_ZIGBEE_APS_DUPLICATE_REJECTION_MAX_ENTRIES> APS unicast Message Duplicate Rejection table Size <1-255>
 // <i> Default: 5
@@ -93,7 +93,7 @@
 // <o SL_ZIGBEE_BROADCAST_TABLE_SIZE> Broadcast Table Size <15-254>
 // <i> Default: 15
 // <i> The size of the broadcast table.
-#define SL_ZIGBEE_BROADCAST_TABLE_SIZE   15
+#define SL_ZIGBEE_BROADCAST_TABLE_SIZE   64
 
 // <o SL_ZIGBEE_NEIGHBOR_TABLE_SIZE> Neighbor Table Size
 // <i> Neighbor Table Size
@@ -111,7 +111,7 @@
 // <o SL_ZIGBEE_BINDING_TABLE_SIZE> Binding Table Size <1-127>
 // <i> Default: 3
 // <i> The number of entries that the binding table can hold.
-#define SL_ZIGBEE_BINDING_TABLE_SIZE   3
+#define SL_ZIGBEE_BINDING_TABLE_SIZE   32
 
 // </h>
 
