@@ -8,8 +8,6 @@ on:
       - .github/workflows/silabs-firmware-build.yaml
       - .github/workflows/silabs-firmware-build-zwave.yaml
       - EmberZNet/**
-      - OpenThreadRCP/**
-      - RCPMultiPAN/**
       - ZWave/**
     branches:
       - main
@@ -17,7 +15,7 @@ on:
       - '*'
 
 env:
-  sdk_version: 4.4.0
+  sdk_version: 4.4.3
 
 jobs:
   build-container:
@@ -60,14 +58,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - target: yellow
-            device: MGM210PA32JIA
-            components: simple_led:board_activity,zigbee_token_interface,zigbee_mfglib
-            patchpath: "EmberZNet/Yellow"
-          - target: skyconnect
+          - target: mg21ncp
             device: EFR32MG21A020F512IM32
             components: zigbee_token_interface,zigbee_mfglib
-            patchpath: "EmberZNet/SkyConnect"
+            patchpath: "EmberZNet/mg21ncp"
     uses: ./.github/workflows/silabs-firmware-build.yaml
     with:
       image_name: ${{ needs.build-container.outputs.image_name }}
@@ -87,120 +81,3 @@ jobs:
       metadata_fw_type: "ncp-uart-hw"
       baudrate: 115200
       metadata_extra: "{ \"ezsp_version\": \"7.4.0.0\" }"
-
-  rcp-multi-pan-firmware-build:
-    name: RCP Multi-PAN
-    needs: build-container
-    strategy:
-      matrix:
-        include:
-          - target: yellow
-            device: MGM210PA32JIA
-            components: simple_led:board_activity,cpc_security_secondary_none,zigbee_mfglib
-            without_components: ot_rcp_gp_interface
-            patchpath: "RCPMultiPAN/Yellow"
-            slcp_yaml_changes: >
-              . += {"sdk_extension": [{"id": "nc_efr32_watchdog", version: "1.0.0"}]}
-              | .component += [{"from": "nc_efr32_watchdog", "id": "nc_efr32_watchdog"}]
-          - target: skyconnect
-            device: EFR32MG21A020F512IM32
-            components: cpc_security_secondary_none,zigbee_mfglib
-            without_components: ot_rcp_gp_interface
-            patchpath: "RCPMultiPAN/SkyConnect"
-            slcp_yaml_changes: >
-              . += {"sdk_extension": [{"id": "nc_efr32_watchdog", version: "1.0.0"}]}
-              | .component += [{"from": "nc_efr32_watchdog", "id": "nc_efr32_watchdog"}]
-    uses: ./.github/workflows/silabs-firmware-build.yaml
-    with:
-      image_name: ${{ needs.build-container.outputs.image_name }}
-      firmware_name: rcp-uart-802154-${{ matrix.target }}
-      project_file: "/gecko_sdk/protocol/openthread/sample-apps/ot-ncp/rcp-uart-802154.slcp"
-      project_name: "rcp-uart-802154"
-      device: ${{ matrix.device }}
-      components: ${{ matrix.components }}
-      without_components: ${{ matrix.without_components }}
-      patchpath: ${{ matrix.patchpath }}
-      slcp_yaml_changes: ${{ matrix.slcp_yaml_changes }}
-      sdk_version: ${{ needs.build-container.outputs.sdk_version }}
-      metadata_fw_type: "rcp-uart-802154"
-      baudrate: 460800
-
-  ot-rcp-firmware-build:
-    name: OpenThread RCP
-    needs: build-container
-    strategy:
-      matrix:
-        include:
-          - target: yellow
-            device: MGM210PA32JIA
-            components: simple_led:board_activity,bootloader_interface
-            patchpath: "OpenThreadRCP/Yellow"
-          - target: skyconnect
-            device: EFR32MG21A020F512IM32
-            components: bootloader_interface
-            patchpath: "OpenThreadRCP/SkyConnect"
-    uses: ./.github/workflows/silabs-firmware-build.yaml
-    with:
-      image_name: ${{ needs.build-container.outputs.image_name }}
-      firmware_name: ot-rcp-${{ matrix.target }}
-      project_file: "/gecko_sdk/protocol/openthread/sample-apps/ot-ncp/ot-rcp.slcp"
-      project_name: "ot-rcp"
-      device: ${{ matrix.device }}
-      components: ${{ matrix.components }}
-      patchpath: ${{ matrix.patchpath }}
-      sdkpatchpath: "OpenThreadRCP/GeckoSDK"
-      extra_c_defs: "'-DOPENTHREAD_CONFIG_PLATFORM_BOOTLOADER_MODE_ENABLE=1'"
-      sdk_version: ${{ needs.build-container.outputs.sdk_version }}
-      metadata_fw_type: "ot-rcp"
-      baudrate: 460800
-      metadata_extra: "{ \"ot_rcp_version\": \"SL-OPENTHREAD/2.4.0.0_GitHub-7074a43e4\" }"
-
-  zwave-firmware-build:
-    name: Z-Wave Serial API Controller
-    needs: build-container
-    strategy:
-      matrix:
-        include:
-          # Silicon Labs UZB-7 (SLUSB001A), +14 dBm, with SAW filters
-          # (???) Aeotec Z-Stick 7 / Z-Pi 7
-          - target: BRD4201A
-            device: EFR32ZG14P231F256GM32
-            components: brd4201a
-            compression: lz4
-            sign_key: /gecko_sdk/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_sign.key
-            enc_key: /gecko_sdk/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_encrypt.key
-
-          # Silicon Labs UZB-7 (SLUSB001A), +14 dBm, Z-Wave Long Range
-          - target: BRD4206A
-            device: EFR32ZG14P231F256GM32
-            components: brd4206a
-            compression: lz4
-            sign_key: /gecko_sdk/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_sign.key
-            enc_key: /gecko_sdk/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_encrypt.key
-
-          - target: BRD4207A
-            device: ZGM130S037HGN
-            components: brd4207a
-            compression: lz4
-            sign_key: /gecko_sdk/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_sign.key
-            enc_key: /gecko_sdk/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_encrypt.key
-
-    uses: ./.github/workflows/silabs-firmware-build-zwave.yaml
-    with:
-      image_name: ${{ needs.build-container.outputs.image_name }}
-      firmware_name: zwave_serial_api_controller_${{ needs.build-container.outputs.sdk_version }}_${{ matrix.target }}
-      project_file: "/gecko_sdk/protocol/z-wave/Apps/zwave_ncp_serial_api/zwave_ncp_serial_api_controller.slcp"
-      project_name: "zwave_ncp_serial_api_controller"
-      device: ${{ matrix.device }}
-      components: ${{ matrix.components }}
-      # Fix known issue 1171840 in Z-Wave SDK
-      configuration: "ZAF_CONFIG_GENERIC_TYPE:0,ZAF_CONFIG_SPECIFIC_TYPE:0"
-      # patchpath: ${{ matrix.patchpath }}
-      sdk_version: ${{ needs.build-container.outputs.sdk_version }}
-      metadata_fw_type: "zwave"
-      # There are two "series" of chips:
-      # * Series 1 devices (EFR32xG1x, ZG[M]13) require lz4 compression
-      # * Series 2 devices (EFR32xG2x) require lzma compression
-      gbl_compression: lz4
-      gbl_sign_key: "/gecko_sdk/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_sign.key"
-      gbl_enc_key: "/gecko_sdk/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_encrypt.key"
