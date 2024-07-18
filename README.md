@@ -21,25 +21,14 @@ docker run --rm -it \
 
 To generate a project, use `slc generate`. To replicate/debug build issues in
 an existing GitHub action, it is often helpful to just copy the command from
-the "Generate Firmware Project" step. E.g. to build the Multiprotocol firmware
-for Yellow:
-
-```sh
-  slc generate \
-      --with="MGM210PA32JIA,simple_led:board_activity" \
-      --project-file="/gecko_sdk/protocol/openthread/sample-apps/ot-ncp/rcp-uart-802154.slcp" \
-      --export-destination=rcp-uart-802154-yellow \
-      --copy-proj-sources --new-project --force \
-      --configuration=""
-```
-
-To build the EmberZNet firmware for SkyConnect
+the "Generate Firmware Project" step. E.g. to build the NCP firmware
+for MG21:
 
 ```sh
   slc generate \
       --with="EFR32MG21A020F512IM32" \
       --project-file="/gecko_sdk/protocol/zigbee/app/ncp/sample-app/ncp-uart-hw/ncp-uart-hw.slcp" \
-      --export-destination=ncp-uart-hw-skyconnect \
+      --export-destination=ncp-uart-hw-mg21ncp \
       --copy-proj-sources --new-project --force \
       --configuration="SL_IOSTREAM_USART_VCOM_RX_BUFFER_SIZE:64,EMBER_APS_UNICAST_MESSAGE_COUNT:20,EMBER_NEIGHBOR_TABLE_SIZE:26,EMBER_SOURCE_ROUTE_TABLE_SIZE:200,"
 ```
@@ -48,8 +37,8 @@ Apply patches to the generated firmware (Note: some firmwares also need patches
 to be applied to the SDK, see GitHub Action files):
 
 ```sh
-cd ncp-uart-hw-skyconnect
-for patchfile in ../EmberZNet/SkyConnect/*.patch; do patch -p1 < $patchfile; done
+cd ncp-uart-hw-mg21ncp
+for patchfile in ../EmberZNet/mg21ncp/*.patch; do patch -p1 < $patchfile; done
 ```
 
 Then build it using commands from the "Build Firmware" step:
@@ -68,8 +57,7 @@ commits or add new commits ontop, and regenerate the patches:
 git init .
 git add .
 git commit -m "initial commit"
-git am ../EmberZNet/SkyConnect/*.patch 
+git am ../EmberZNet/mg21ncp/*.patch 
 <make change>
-git format-patch -N --output-directory=../EmberZNet/SkyConnect/ HEAD~2
+git format-patch -N --output-directory=../EmberZNet/mg21ncp/ HEAD~2
 ```
-
