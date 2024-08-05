@@ -17,9 +17,7 @@
  */
 
 // <<< Use Configuration Wizard in Context Menu >>>
-
 // <h>Button Configuration
-
 #define PB1_LABEL                   "BTN0"
 
 // <o PB1_ON_VALUE> Button1 ON value
@@ -35,7 +33,6 @@
 // <q PB1_CAN_WAKEUP_EM4> Button1 wake up from EM4
 // <d> 0
 #define PB1_CAN_WAKEUP_EM4       0
-
 
 #define PB2_LABEL                   "BTN1"
 
@@ -53,7 +50,6 @@
 // <d> 1
 #define PB2_CAN_WAKEUP_EM4       1
 
-
 #define PB3_LABEL                   "BTN2"
 
 // <o PB3_ON_VALUE> Button3 ON value
@@ -69,7 +65,6 @@
 // <q PB3_CAN_WAKEUP_EM4> Button3 wake up from EM4
 // <d> 1
 #define PB3_CAN_WAKEUP_EM4       1
-
 
 #define PB4_LABEL                   "BTN3"
 

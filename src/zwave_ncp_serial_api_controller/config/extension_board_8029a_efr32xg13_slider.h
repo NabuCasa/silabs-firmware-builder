@@ -12,9 +12,7 @@
 /*************************************************************************/
 
 // <<< Use Configuration Wizard in Context Menu >>>
-
 // <h>Slider Configuration
-
 #define SLIDER1_LABEL                       "SW1"
 
 // <o SLIDER1_ON_VALUE> Slider ON value
