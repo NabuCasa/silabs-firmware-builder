@@ -5,6 +5,22 @@
 // [CMU]$
 
 // $[LFXO]
+// LFXO LFXTAL_I on PD01
+#ifndef LFXO_LFXTAL_I_PORT                      
+#define LFXO_LFXTAL_I_PORT                       gpioPortD
+#endif
+#ifndef LFXO_LFXTAL_I_PIN                       
+#define LFXO_LFXTAL_I_PIN                        1
+#endif
+
+// LFXO LFXTAL_O on PD00
+#ifndef LFXO_LFXTAL_O_PORT                      
+#define LFXO_LFXTAL_O_PORT                       gpioPortD
+#endif
+#ifndef LFXO_LFXTAL_O_PIN                       
+#define LFXO_LFXTAL_O_PIN                        0
+#endif
+
 // [LFXO]$
 
 // $[PRS.ASYNCH0]
