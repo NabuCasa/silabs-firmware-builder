@@ -17,9 +17,7 @@
  */
 
 // <<< Use Configuration Wizard in Context Menu >>>
-
 // <h>LED Configuration
-
 // <o LED1_ON_VALUE> LED1 ON value
 // <0=> Active low
 // <1=> Active high
@@ -97,7 +95,6 @@
 // [GPIO_LED4_GPIO]$
 
 // <<< sl:end pin_tool >>>
-
 
 /*************************************************************************/
 /* Configure RGB LEDs                                                    */

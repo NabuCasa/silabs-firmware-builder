@@ -22,11 +22,11 @@ source:
 - {path: app.c}
 tag: [prebuilt_demo]
 include:
-- path: ''
+- path: .
   file_list:
   - {path: app.h}
   - {path: reset_util.h}
-sdk: {id: gecko_sdk, version: 4.4.2}
+sdk: {id: gecko_sdk, version: 4.4.3}
 toolchain_settings: []
 component:
 - {from: nc_efr32_watchdog, id: nc_efr32_watchdog}
