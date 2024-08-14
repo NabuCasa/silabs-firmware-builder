@@ -69,8 +69,193 @@
         ], 
         &quot;builtinLibraryObjectsStr&quot;: &quot;&quot;, 
         &quot;id&quot;: &quot;&quot;, 
-        &quot;builtinIncludesStr&quot;: &quot;studio:/project/config/ studio:/project/autogen/ studio:/project/ studio:/sdk/platform/Device/SiliconLabs/EFR32MG21/Include/ studio:/sdk/platform/common/inc/ studio:/sdk/hardware/board/inc/ studio:/sdk/platform/bootloader/ studio:/sdk/platform/bootloader/api/ studio:/sdk/platform/CMSIS/Core/Include/ studio:/sdk/hardware/driver/configuration_over_swo/inc/ studio:/sdk/platform/driver/debug/inc/ studio:/sdk/platform/service/device_init/inc/ studio:/sdk/platform/emdrv/dmadrv/inc/ studio:/sdk/platform/emdrv/common/inc/ studio:/sdk/platform/emlib/inc/ studio:/sdk/platform/emdrv/gpiointerrupt/inc/ studio:/sdk/platform/security/sl_component/sl_mbedtls_support/config/ studio:/sdk/platform/security/sl_component/sl_mbedtls_support/config/preset/ studio:/sdk/platform/security/sl_component/sl_mbedtls_support/inc/ studio:/sdk/util/third_party/mbedtls/include/ studio:/sdk/util/third_party/mbedtls/library/ studio:/sdk/platform/service/mpu/inc/ studio:/sdk/platform/emdrv/nvm3/inc/ studio:/sdk/protocol/openthread/src/legacy_hal/include/ studio:/sdk/platform/service/legacy_hal/inc/ studio:/sdk/util/third_party/openthread/include/ studio:/sdk/util/third_party/openthread/include/openthread/ studio:/sdk/util/third_party/openthread/src/core/ studio:/sdk/util/third_party/openthread/src/lib/ studio:/sdk/util/third_party/openthread/third_party/tcplp/ studio:/sdk/util/third_party/openthread/src/ studio:/sdk/util/third_party/openthread/src/ncp/ studio:/sdk/util/third_party/openthread/src/lib/spinel/ studio:/sdk/util/third_party/openthread/src/lib/hdlc/ studio:/sdk/util/third_party/openthread/examples/platforms/ studio:/sdk/util/third_party/openthread/examples/platforms/utils/ studio:/sdk/protocol/openthread/platform-abstraction/efr32/ studio:/sdk/protocol/openthread/platform-abstraction/include/ studio:/sdk/platform/security/sl_component/sl_psa_driver/inc/ studio:/sdk/platform/radio/rail_lib/common/ studio:/sdk/platform/radio/rail_lib/protocol/ble/ studio:/sdk/platform/radio/rail_lib/protocol/ieee802154/ studio:/sdk/platform/radio/rail_lib/protocol/wmbus/ studio:/sdk/platform/radio/rail_lib/protocol/zwave/ studio:/sdk/platform/radio/rail_lib/chip/efr32/efr32xg2x/ studio:/sdk/platform/radio/rail_lib/protocol/sidewalk/ studio:/sdk/platform/radio/rail_lib/plugin/pa-conversions/ studio:/sdk/platform/radio/rail_lib/plugin/pa-conversions/efr32xg21/ studio:/sdk/platform/radio/rail_lib/plugin/rail_util_pti/ studio:/sdk/platform/radio/rail_lib/plugin/rail_util_rf_path/ studio:/sdk/platform/radio/rail_lib/plugin/rail_util_rssi/ studio:/sdk/platform/security/sl_component/se_manager/inc/ studio:/sdk/platform/security/sl_component/se_manager/src/ studio:/sdk/util/plugin/security_manager/ studio:/sdk/util/silicon_labs/silabs_core/memory_manager/ studio:/sdk/platform/common/toolchain/inc/ studio:/sdk/platform/service/system/inc/ studio:/sdk/platform/service/sleeptimer/inc/ studio:/sdk/platform/security/sl_component/sl_protocol_crypto/src/ studio:/sdk/platform/emdrv/uartdrv/inc/ studio:/project/config/ studio:/project/autogen/ studio:/project/ studio:/sdk/platform/Device/SiliconLabs/EFR32MG21/Include/ studio:/sdk/platform/common/inc/ studio:/sdk/hardware/board/inc/ studio:/sdk/platform/bootloader/ studio:/sdk/platform/bootloader/api/ studio:/sdk/platform/CMSIS/Core/Include/ studio:/sdk/hardware/driver/configuration_over_swo/inc/ studio:/sdk/platform/driver/debug/inc/ studio:/sdk/platform/service/device_init/inc/ studio:/sdk/platform/emdrv/dmadrv/inc/ studio:/sdk/platform/emdrv/common/inc/ studio:/sdk/platform/emlib/inc/ studio:/sdk/platform/emdrv/gpiointerrupt/inc/ studio:/sdk/platform/security/sl_component/sl_mbedtls_support/config/ studio:/sdk/platform/security/sl_component/sl_mbedtls_support/config/preset/ studio:/sdk/platform/security/sl_component/sl_mbedtls_support/inc/ studio:/sdk/util/third_party/mbedtls/include/ studio:/sdk/util/third_party/mbedtls/library/ studio:/sdk/platform/service/mpu/inc/ studio:/sdk/platform/emdrv/nvm3/inc/ studio:/sdk/protocol/openthread/src/legacy_hal/include/ studio:/sdk/platform/service/legacy_hal/inc/ studio:/sdk/util/third_party/openthread/include/ studio:/sdk/util/third_party/openthread/include/openthread/ studio:/sdk/util/third_party/openthread/src/core/ studio:/sdk/util/third_party/openthread/src/lib/ studio:/sdk/util/third_party/openthread/third_party/tcplp/ studio:/sdk/util/third_party/openthread/src/ studio:/sdk/util/third_party/openthread/src/ncp/ studio:/sdk/util/third_party/openthread/src/lib/spinel/ studio:/sdk/util/third_party/openthread/src/lib/hdlc/ studio:/sdk/util/third_party/openthread/examples/platforms/ studio:/sdk/util/third_party/openthread/examples/platforms/utils/ studio:/sdk/protocol/openthread/platform-abstraction/efr32/ studio:/sdk/protocol/openthread/platform-abstraction/include/ studio:/sdk/platform/security/sl_component/sl_psa_driver/inc/ studio:/sdk/platform/radio/rail_lib/common/ studio:/sdk/platform/radio/rail_lib/protocol/ble/ studio:/sdk/platform/radio/rail_lib/protocol/ieee802154/ studio:/sdk/platform/radio/rail_lib/protocol/wmbus/ studio:/sdk/platform/radio/rail_lib/protocol/zwave/ studio:/sdk/platform/radio/rail_lib/chip/efr32/efr32xg2x/ studio:/sdk/platform/radio/rail_lib/protocol/sidewalk/ studio:/sdk/platform/radio/rail_lib/plugin/pa-conversions/ studio:/sdk/platform/radio/rail_lib/plugin/pa-conversions/efr32xg21/ studio:/sdk/platform/radio/rail_lib/plugin/rail_util_pti/ studio:/sdk/platform/radio/rail_lib/plugin/rail_util_rf_path/ studio:/sdk/platform/radio/rail_lib/plugin/rail_util_rssi/ studio:/sdk/platform/security/sl_component/se_manager/inc/ studio:/sdk/platform/security/sl_component/se_manager/src/ studio:/sdk/util/plugin/security_manager/ studio:/sdk/util/silicon_labs/silabs_core/memory_manager/ studio:/sdk/platform/common/toolchain/inc/ studio:/sdk/platform/service/system/inc/ studio:/sdk/platform/service/sleeptimer/inc/ studio:/sdk/platform/security/sl_component/sl_protocol_crypto/src/ studio:/sdk/platform/emdrv/uartdrv/inc/ studio:/project/config/ studio:/project/autogen/ studio:/project/ studio:/sdk/platform/Device/SiliconLabs/EFR32MG21/Include/ studio:/sdk/platform/common/inc/ studio:/sdk/hardware/board/inc/ studio:/sdk/platform/bootloader/ studio:/sdk/platform/bootloader/api/ studio:/sdk/platform/CMSIS/Core/Include/ studio:/sdk/hardware/driver/configuration_over_swo/inc/ studio:/sdk/platform/driver/debug/inc/ studio:/sdk/platform/service/device_init/inc/ studio:/sdk/platform/emdrv/dmadrv/inc/ studio:/sdk/platform/emdrv/common/inc/ studio:/sdk/platform/emlib/inc/ studio:/sdk/platform/emdrv/gpiointerrupt/inc/ studio:/sdk/platform/security/sl_component/sl_mbedtls_support/config/ studio:/sdk/platform/security/sl_component/sl_mbedtls_support/config/preset/ studio:/sdk/platform/security/sl_component/sl_mbedtls_support/inc/ studio:/sdk/util/third_party/mbedtls/include/ studio:/sdk/util/third_party/mbedtls/library/ studio:/sdk/platform/service/mpu/inc/ studio:/sdk/platform/emdrv/nvm3/inc/ studio:/sdk/protocol/openthread/src/legacy_hal/include/ studio:/sdk/platform/service/legacy_hal/inc/ studio:/sdk/util/third_party/openthread/include/ studio:/sdk/util/third_party/openthread/include/openthread/ studio:/sdk/util/third_party/openthread/src/core/ studio:/sdk/util/third_party/openthread/src/lib/ studio:/sdk/util/third_party/openthread/third_party/tcplp/ studio:/sdk/util/third_party/openthread/src/ studio:/sdk/util/third_party/openthread/src/ncp/ studio:/sdk/util/third_party/openthread/src/lib/spinel/ studio:/sdk/util/third_party/openthread/src/lib/hdlc/ studio:/sdk/util/third_party/openthread/examples/platforms/ studio:/sdk/util/third_party/openthread/examples/platforms/utils/ studio:/sdk/protocol/openthread/platform-abstraction/efr32/ studio:/sdk/protocol/openthread/platform-abstraction/include/ studio:/sdk/platform/security/sl_component/sl_psa_driver/inc/ studio:/sdk/platform/radio/rail_lib/common/ studio:/sdk/platform/radio/rail_lib/protocol/ble/ studio:/sdk/platform/radio/rail_lib/protocol/ieee802154/ studio:/sdk/platform/radio/rail_lib/protocol/wmbus/ studio:/sdk/platform/radio/rail_lib/protocol/zwave/ studio:/sdk/platform/radio/rail_lib/chip/efr32/efr32xg2x/ studio:/sdk/platform/radio/rail_lib/protocol/sidewalk/ studio:/sdk/platform/radio/rail_lib/plugin/pa-conversions/ studio:/sdk/platform/radio/rail_lib/plugin/pa-conversions/efr32xg21/ studio:/sdk/platform/radio/rail_lib/plugin/rail_util_pti/ studio:/sdk/platform/radio/rail_lib/plugin/rail_util_rf_path/ studio:/sdk/platform/radio/rail_lib/plugin/rail_util_rssi/ studio:/sdk/platform/security/sl_component/se_manager/inc/ studio:/sdk/platform/security/sl_component/se_manager/src/ studio:/sdk/util/plugin/security_manager/ studio:/sdk/util/silicon_labs/silabs_core/memory_manager/ studio:/sdk/platform/common/toolchain/inc/ studio:/sdk/platform/service/system/inc/ studio:/sdk/platform/service/sleeptimer/inc/ studio:/sdk/platform/security/sl_component/sl_protocol_crypto/src/ studio:/sdk/platform/emdrv/uartdrv/inc/&quot;, 
-        &quot;resolvedOptionsStr&quot;: &quot;[\n    {\n        \&quot;listValues\&quot;: [\n            \&quot;-Werror=unused-function\&quot;,
+        &quot;builtinIncludesStr&quot;: &quot;studio:/project/config/
+studio:/project/autogen/
+studio:/project/
+studio:/sdk/platform/Device/SiliconLabs/EFR32MG21/Include/
+studio:/sdk/platform/common/inc/
+studio:/sdk/hardware/board/inc/
+studio:/sdk/platform/bootloader/
+studio:/sdk/platform/bootloader/api/
+studio:/sdk/platform/CMSIS/Core/Include/
+studio:/sdk/hardware/driver/configuration_over_swo/inc/
+studio:/sdk/platform/driver/debug/inc/
+studio:/sdk/platform/service/device_init/inc/
+studio:/sdk/platform/emdrv/dmadrv/inc/
+studio:/sdk/platform/emdrv/common/inc/
+studio:/sdk/platform/emlib/inc/
+studio:/sdk/platform/emdrv/gpiointerrupt/inc/
+studio:/sdk/platform/security/sl_component/sl_mbedtls_support/config/
+studio:/sdk/platform/security/sl_component/sl_mbedtls_support/config/preset/
+studio:/sdk/platform/security/sl_component/sl_mbedtls_support/inc/
+studio:/sdk/util/third_party/mbedtls/include/
+studio:/sdk/util/third_party/mbedtls/library/
+studio:/sdk/platform/service/mpu/inc/
+studio:/sdk/platform/emdrv/nvm3/inc/
+studio:/sdk/protocol/openthread/src/legacy_hal/include/
+studio:/sdk/platform/service/legacy_hal/inc/
+studio:/sdk/util/third_party/openthread/include/
+studio:/sdk/util/third_party/openthread/include/openthread/
+studio:/sdk/util/third_party/openthread/src/core/
+studio:/sdk/util/third_party/openthread/src/lib/
+studio:/sdk/util/third_party/openthread/third_party/tcplp/
+studio:/sdk/util/third_party/openthread/src/
+studio:/sdk/util/third_party/openthread/src/ncp/
+studio:/sdk/util/third_party/openthread/src/lib/spinel/
+studio:/sdk/util/third_party/openthread/src/lib/hdlc/
+studio:/sdk/util/third_party/openthread/examples/platforms/
+studio:/sdk/util/third_party/openthread/examples/platforms/utils/
+studio:/sdk/protocol/openthread/platform-abstraction/efr32/
+studio:/sdk/protocol/openthread/platform-abstraction/include/
+studio:/sdk/platform/security/sl_component/sl_psa_driver/inc/
+studio:/sdk/platform/radio/rail_lib/common/
+studio:/sdk/platform/radio/rail_lib/protocol/ble/
+studio:/sdk/platform/radio/rail_lib/protocol/ieee802154/
+studio:/sdk/platform/radio/rail_lib/protocol/wmbus/
+studio:/sdk/platform/radio/rail_lib/protocol/zwave/
+studio:/sdk/platform/radio/rail_lib/chip/efr32/efr32xg2x/
+studio:/sdk/platform/radio/rail_lib/protocol/sidewalk/
+studio:/sdk/platform/radio/rail_lib/plugin/pa-conversions/
+studio:/sdk/platform/radio/rail_lib/plugin/pa-conversions/efr32xg21/
+studio:/sdk/platform/radio/rail_lib/plugin/rail_util_pti/
+studio:/sdk/platform/radio/rail_lib/plugin/rail_util_rf_path/
+studio:/sdk/platform/radio/rail_lib/plugin/rail_util_rssi/
+studio:/sdk/platform/security/sl_component/se_manager/inc/
+studio:/sdk/platform/security/sl_component/se_manager/src/
+studio:/sdk/util/plugin/security_manager/
+studio:/sdk/util/silicon_labs/silabs_core/memory_manager/
+studio:/sdk/platform/common/toolchain/inc/
+studio:/sdk/platform/service/system/inc/
+studio:/sdk/platform/service/sleeptimer/inc/
+studio:/sdk/platform/security/sl_component/sl_protocol_crypto/src/
+studio:/sdk/platform/emdrv/uartdrv/inc/
+studio:/project/config/
+studio:/project/autogen/
+studio:/project/
+studio:/sdk/platform/Device/SiliconLabs/EFR32MG21/Include/
+studio:/sdk/platform/common/inc/
+studio:/sdk/hardware/board/inc/
+studio:/sdk/platform/bootloader/
+studio:/sdk/platform/bootloader/api/
+studio:/sdk/platform/CMSIS/Core/Include/
+studio:/sdk/hardware/driver/configuration_over_swo/inc/
+studio:/sdk/platform/driver/debug/inc/
+studio:/sdk/platform/service/device_init/inc/
+studio:/sdk/platform/emdrv/dmadrv/inc/
+studio:/sdk/platform/emdrv/common/inc/
+studio:/sdk/platform/emlib/inc/
+studio:/sdk/platform/emdrv/gpiointerrupt/inc/
+studio:/sdk/platform/security/sl_component/sl_mbedtls_support/config/
+studio:/sdk/platform/security/sl_component/sl_mbedtls_support/config/preset/
+studio:/sdk/platform/security/sl_component/sl_mbedtls_support/inc/
+studio:/sdk/util/third_party/mbedtls/include/
+studio:/sdk/util/third_party/mbedtls/library/
+studio:/sdk/platform/service/mpu/inc/
+studio:/sdk/platform/emdrv/nvm3/inc/
+studio:/sdk/protocol/openthread/src/legacy_hal/include/
+studio:/sdk/platform/service/legacy_hal/inc/
+studio:/sdk/util/third_party/openthread/include/
+studio:/sdk/util/third_party/openthread/include/openthread/
+studio:/sdk/util/third_party/openthread/src/core/
+studio:/sdk/util/third_party/openthread/src/lib/
+studio:/sdk/util/third_party/openthread/third_party/tcplp/
+studio:/sdk/util/third_party/openthread/src/
+studio:/sdk/util/third_party/openthread/src/ncp/
+studio:/sdk/util/third_party/openthread/src/lib/spinel/
+studio:/sdk/util/third_party/openthread/src/lib/hdlc/
+studio:/sdk/util/third_party/openthread/examples/platforms/
+studio:/sdk/util/third_party/openthread/examples/platforms/utils/
+studio:/sdk/protocol/openthread/platform-abstraction/efr32/
+studio:/sdk/protocol/openthread/platform-abstraction/include/
+studio:/sdk/platform/security/sl_component/sl_psa_driver/inc/
+studio:/sdk/platform/radio/rail_lib/common/
+studio:/sdk/platform/radio/rail_lib/protocol/ble/
+studio:/sdk/platform/radio/rail_lib/protocol/ieee802154/
+studio:/sdk/platform/radio/rail_lib/protocol/wmbus/
+studio:/sdk/platform/radio/rail_lib/protocol/zwave/
+studio:/sdk/platform/radio/rail_lib/chip/efr32/efr32xg2x/
+studio:/sdk/platform/radio/rail_lib/protocol/sidewalk/
+studio:/sdk/platform/radio/rail_lib/plugin/pa-conversions/
+studio:/sdk/platform/radio/rail_lib/plugin/pa-conversions/efr32xg21/
+studio:/sdk/platform/radio/rail_lib/plugin/rail_util_pti/
+studio:/sdk/platform/radio/rail_lib/plugin/rail_util_rf_path/
+studio:/sdk/platform/radio/rail_lib/plugin/rail_util_rssi/
+studio:/sdk/platform/security/sl_component/se_manager/inc/
+studio:/sdk/platform/security/sl_component/se_manager/src/
+studio:/sdk/util/plugin/security_manager/
+studio:/sdk/util/silicon_labs/silabs_core/memory_manager/
+studio:/sdk/platform/common/toolchain/inc/
+studio:/sdk/platform/service/system/inc/
+studio:/sdk/platform/service/sleeptimer/inc/
+studio:/sdk/platform/security/sl_component/sl_protocol_crypto/src/
+studio:/sdk/platform/emdrv/uartdrv/inc/
+studio:/project/config/
+studio:/project/autogen/
+studio:/project/
+studio:/sdk/platform/Device/SiliconLabs/EFR32MG21/Include/
+studio:/sdk/platform/common/inc/
+studio:/sdk/hardware/board/inc/
+studio:/sdk/platform/bootloader/
+studio:/sdk/platform/bootloader/api/
+studio:/sdk/platform/CMSIS/Core/Include/
+studio:/sdk/hardware/driver/configuration_over_swo/inc/
+studio:/sdk/platform/driver/debug/inc/
+studio:/sdk/platform/service/device_init/inc/
+studio:/sdk/platform/emdrv/dmadrv/inc/
+studio:/sdk/platform/emdrv/common/inc/
+studio:/sdk/platform/emlib/inc/
+studio:/sdk/platform/emdrv/gpiointerrupt/inc/
+studio:/sdk/platform/security/sl_component/sl_mbedtls_support/config/
+studio:/sdk/platform/security/sl_component/sl_mbedtls_support/config/preset/
+studio:/sdk/platform/security/sl_component/sl_mbedtls_support/inc/
+studio:/sdk/util/third_party/mbedtls/include/
+studio:/sdk/util/third_party/mbedtls/library/
+studio:/sdk/platform/service/mpu/inc/
+studio:/sdk/platform/emdrv/nvm3/inc/
+studio:/sdk/protocol/openthread/src/legacy_hal/include/
+studio:/sdk/platform/service/legacy_hal/inc/
+studio:/sdk/util/third_party/openthread/include/
+studio:/sdk/util/third_party/openthread/include/openthread/
+studio:/sdk/util/third_party/openthread/src/core/
+studio:/sdk/util/third_party/openthread/src/lib/
+studio:/sdk/util/third_party/openthread/third_party/tcplp/
+studio:/sdk/util/third_party/openthread/src/
+studio:/sdk/util/third_party/openthread/src/ncp/
+studio:/sdk/util/third_party/openthread/src/lib/spinel/
+studio:/sdk/util/third_party/openthread/src/lib/hdlc/
+studio:/sdk/util/third_party/openthread/examples/platforms/
+studio:/sdk/util/third_party/openthread/examples/platforms/utils/
+studio:/sdk/protocol/openthread/platform-abstraction/efr32/
+studio:/sdk/protocol/openthread/platform-abstraction/include/
+studio:/sdk/platform/security/sl_component/sl_psa_driver/inc/
+studio:/sdk/platform/radio/rail_lib/common/
+studio:/sdk/platform/radio/rail_lib/protocol/ble/
+studio:/sdk/platform/radio/rail_lib/protocol/ieee802154/
+studio:/sdk/platform/radio/rail_lib/protocol/wmbus/
+studio:/sdk/platform/radio/rail_lib/protocol/zwave/
+studio:/sdk/platform/radio/rail_lib/chip/efr32/efr32xg2x/
+studio:/sdk/platform/radio/rail_lib/protocol/sidewalk/
+studio:/sdk/platform/radio/rail_lib/plugin/pa-conversions/
+studio:/sdk/platform/radio/rail_lib/plugin/pa-conversions/efr32xg21/
+studio:/sdk/platform/radio/rail_lib/plugin/rail_util_pti/
+studio:/sdk/platform/radio/rail_lib/plugin/rail_util_rf_path/
+studio:/sdk/platform/radio/rail_lib/plugin/rail_util_rssi/
+studio:/sdk/platform/security/sl_component/se_manager/inc/
+studio:/sdk/platform/security/sl_component/se_manager/src/
+studio:/sdk/util/plugin/security_manager/
+studio:/sdk/util/silicon_labs/silabs_core/memory_manager/
+studio:/sdk/platform/common/toolchain/inc/
+studio:/sdk/platform/service/system/inc/
+studio:/sdk/platform/service/sleeptimer/inc/
+studio:/sdk/platform/security/sl_component/sl_protocol_crypto/src/
+studio:/sdk/platform/emdrv/uartdrv/inc/&quot;, 
+        &quot;resolvedOptionsStr&quot;: &quot;[
+
+{
+
+\&quot;listValues\&quot;: [
+
+\&quot;-Werror=unused-function\&quot;,
 
 \&quot;-Werror=unused-variable\&quot;,
 
@@ -80,7 +265,9 @@
 
 \&quot;-fmessage-length=0\&quot;,
 
-\&quot;-c\&quot;\n        ],
+\&quot;-c\&quot;
+
+],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -90,7 +277,9 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {\n            \&quot;-Werror=unused-function\&quot;: \&quot;TRUE\&quot;,
+\&quot;listValuesMap\&quot;: {
+
+\&quot;-Werror=unused-function\&quot;: \&quot;TRUE\&quot;,
 
 \&quot;-Werror=unused-variable\&quot;: \&quot;TRUE\&quot;,
 
@@ -100,9 +289,19 @@
 
 \&quot;-fmessage-length=0\&quot;: \&quot;TRUE\&quot;,
 
-\&quot;-c\&quot;: \&quot;TRUE\&quot;\n        }\n    },
+\&quot;-c\&quot;: \&quot;TRUE\&quot;
 
-{\n        \&quot;listValues\&quot;: [\n            \&quot;-Wl,--no-warn-rwx-segments\&quot;\n        ],
+}
+
+},
+
+{
+
+\&quot;listValues\&quot;: [
+
+\&quot;-Wl,--no-warn-rwx-segments\&quot;
+
+],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.base\&quot;,
 
@@ -112,9 +311,19 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {\n            \&quot;-Wl,--no-warn-rwx-segments\&quot;: \&quot;TRUE\&quot;\n        }\n    },
+\&quot;listValuesMap\&quot;: {
 
-{\n        \&quot;listValues\&quot;: [\n            \&quot;-Werror=unused-function\&quot;,
+\&quot;-Wl,--no-warn-rwx-segments\&quot;: \&quot;TRUE\&quot;
+
+}
+
+},
+
+{
+
+\&quot;listValues\&quot;: [
+
+\&quot;-Werror=unused-function\&quot;,
 
 \&quot;-Werror=unused-variable\&quot;,
 
@@ -124,7 +333,9 @@
 
 \&quot;-fmessage-length=0\&quot;,
 
-\&quot;-c\&quot;\n        ],
+\&quot;-c\&quot;
+
+],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -134,7 +345,9 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {\n            \&quot;-Werror=unused-function\&quot;: \&quot;TRUE\&quot;,
+\&quot;listValuesMap\&quot;: {
+
+\&quot;-Werror=unused-function\&quot;: \&quot;TRUE\&quot;,
 
 \&quot;-Werror=unused-variable\&quot;: \&quot;TRUE\&quot;,
 
@@ -144,9 +357,19 @@
 
 \&quot;-fmessage-length=0\&quot;: \&quot;TRUE\&quot;,
 
-\&quot;-c\&quot;: \&quot;TRUE\&quot;\n        }\n    },
+\&quot;-c\&quot;: \&quot;TRUE\&quot;
 
-{\n        \&quot;listValues\&quot;: [\n            \&quot;-Wl,--no-warn-rwx-segments\&quot;\n        ],
+}
+
+},
+
+{
+
+\&quot;listValues\&quot;: [
+
+\&quot;-Wl,--no-warn-rwx-segments\&quot;
+
+],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.linker.base\&quot;,
 
@@ -156,9 +379,17 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {\n            \&quot;-Wl,--no-warn-rwx-segments\&quot;: \&quot;TRUE\&quot;\n        }\n    },
+\&quot;listValuesMap\&quot;: {
 
-{\n        \&quot;listValues\&quot;: [],
+\&quot;-Wl,--no-warn-rwx-segments\&quot;: \&quot;TRUE\&quot;
+
+}
+
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.archiver.base\&quot;,
 
@@ -168,9 +399,13 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.assembler.base\&quot;,
 
@@ -180,9 +415,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.assembler.base\&quot;,
 
@@ -192,9 +431,17 @@
 
 \&quot;value\&quot;: \&quot;floatingpoint.type.hard\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [\n            \&quot;sl_gcc_preinclude.h\&quot;\n        ],
+},
+
+{
+
+\&quot;listValues\&quot;: [
+
+\&quot;sl_gcc_preinclude.h\&quot;
+
+],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.assembler.base\&quot;,
 
@@ -204,9 +451,17 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {\n            \&quot;sl_gcc_preinclude.h\&quot;: \&quot;TRUE\&quot;\n        }\n    },
+\&quot;listValuesMap\&quot;: {
 
-{\n        \&quot;listValues\&quot;: [],
+\&quot;sl_gcc_preinclude.h\&quot;: \&quot;TRUE\&quot;
+
+}
+
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -216,9 +471,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -228,9 +487,13 @@
 
 \&quot;value\&quot;: \&quot;floatingpoint.type.hard\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -240,9 +503,13 @@
 
 \&quot;value\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.misc.dialect.c99\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -252,9 +519,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -264,9 +535,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -276,9 +551,13 @@
 
 \&quot;value\&quot;: \&quot;gnu.c.optimization.level.size\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -288,9 +567,17 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [\n            \&quot;sl_gcc_preinclude.h\&quot;\n        ],
+},
+
+{
+
+\&quot;listValues\&quot;: [
+
+\&quot;sl_gcc_preinclude.h\&quot;
+
+],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -300,9 +587,17 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {\n            \&quot;sl_gcc_preinclude.h\&quot;: \&quot;TRUE\&quot;\n        }\n    },
+\&quot;listValuesMap\&quot;: {
 
-{\n        \&quot;listValues\&quot;: [],
+\&quot;sl_gcc_preinclude.h\&quot;: \&quot;TRUE\&quot;
+
+}
+
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.base\&quot;,
 
@@ -312,9 +607,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.base\&quot;,
 
@@ -324,9 +623,13 @@
 
 \&quot;value\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.nanospec\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.base\&quot;,
 
@@ -336,9 +639,13 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.base\&quot;,
 
@@ -348,9 +655,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.base\&quot;,
 
@@ -360,9 +671,13 @@
 
 \&quot;value\&quot;: \&quot;floatingpoint.type.hard\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.base\&quot;,
 
@@ -372,9 +687,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.base\&quot;,
 
@@ -384,9 +703,13 @@
 
 \&quot;value\&quot;: \&quot;false\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.toolchain.exe\&quot;,
 
@@ -396,9 +719,13 @@
 
 \&quot;value\&quot;: \&quot;${workspace_loc:/${ProjName}/autogen/linkerfile.ld}\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.toolchain.exe\&quot;,
 
@@ -408,9 +735,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -420,9 +751,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -432,9 +767,13 @@
 
 \&quot;value\&quot;: \&quot;floatingpoint.type.hard\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -444,9 +783,13 @@
 
 \&quot;value\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.misc.dialect.cpp0x\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -456,9 +799,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -468,9 +815,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -480,9 +831,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -492,9 +847,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -504,9 +863,13 @@
 
 \&quot;value\&quot;: \&quot;gnu.cpp.compiler.optimization.level.size\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -516,9 +879,17 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [\n            \&quot;sl_gcc_preinclude.h\&quot;\n        ],
+},
+
+{
+
+\&quot;listValues\&quot;: [
+
+\&quot;sl_gcc_preinclude.h\&quot;
+
+],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -528,9 +899,17 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {\n            \&quot;sl_gcc_preinclude.h\&quot;: \&quot;TRUE\&quot;\n        }\n    },
+\&quot;listValuesMap\&quot;: {
 
-{\n        \&quot;listValues\&quot;: [],
+\&quot;sl_gcc_preinclude.h\&quot;: \&quot;TRUE\&quot;
+
+}
+
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.linker.base\&quot;,
 
@@ -540,9 +919,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.linker.base\&quot;,
 
@@ -552,9 +935,13 @@
 
 \&quot;value\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.nanospec\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.linker.base\&quot;,
 
@@ -564,9 +951,13 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.linker.base\&quot;,
 
@@ -576,9 +967,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.linker.base\&quot;,
 
@@ -588,9 +983,13 @@
 
 \&quot;value\&quot;: \&quot;floatingpoint.type.hard\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.linker.base\&quot;,
 
@@ -600,9 +999,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -612,9 +1015,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -624,9 +1031,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -636,9 +1047,13 @@
 
 \&quot;value\&quot;: \&quot;false\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -648,13 +1063,21 @@
 
 \&quot;value\&quot;: \&quot;false\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [\n            \&quot;${StudioSdkPath}/platform/radio/rail_lib/autogen/librail_release/librail_efr32xg21_gcc_release.a\&quot;,
+},
+
+{
+
+\&quot;listValues\&quot;: [
+
+\&quot;${StudioSdkPath}/platform/radio/rail_lib/autogen/librail_release/librail_efr32xg21_gcc_release.a\&quot;,
 
 \&quot;${StudioSdkPath}/protocol/openthread/libs/libsl_openthread_efr32mg2x_gcc.a\&quot;,
 
-\&quot;${StudioSdkPath}/platform/emdrv/nvm3/lib/libnvm3_CM33_gcc.a\&quot;\n        ],
+\&quot;${StudioSdkPath}/platform/emdrv/nvm3/lib/libnvm3_CM33_gcc.a\&quot;
+
+],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.base\&quot;,
 
@@ -664,13 +1087,21 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {\n            \&quot;${StudioSdkPath}/platform/radio/rail_lib/autogen/librail_release/librail_efr32xg21_gcc_release.a\&quot;: \&quot;TRUE\&quot;,
+\&quot;listValuesMap\&quot;: {
+
+\&quot;${StudioSdkPath}/platform/radio/rail_lib/autogen/librail_release/librail_efr32xg21_gcc_release.a\&quot;: \&quot;TRUE\&quot;,
 
 \&quot;${StudioSdkPath}/protocol/openthread/libs/libsl_openthread_efr32mg2x_gcc.a\&quot;: \&quot;TRUE\&quot;,
 
-\&quot;${StudioSdkPath}/platform/emdrv/nvm3/lib/libnvm3_CM33_gcc.a\&quot;: \&quot;TRUE\&quot;\n        }\n    },
+\&quot;${StudioSdkPath}/platform/emdrv/nvm3/lib/libnvm3_CM33_gcc.a\&quot;: \&quot;TRUE\&quot;
 
-{\n        \&quot;listValues\&quot;: [],
+}
+
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -680,9 +1111,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -692,9 +1127,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -704,9 +1143,13 @@
 
 \&quot;value\&quot;: \&quot;false\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -716,13 +1159,21 @@
 
 \&quot;value\&quot;: \&quot;false\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [\n            \&quot;${StudioSdkPath}/platform/radio/rail_lib/autogen/librail_release/librail_efr32xg21_gcc_release.a\&quot;,
+},
+
+{
+
+\&quot;listValues\&quot;: [
+
+\&quot;${StudioSdkPath}/platform/radio/rail_lib/autogen/librail_release/librail_efr32xg21_gcc_release.a\&quot;,
 
 \&quot;${StudioSdkPath}/protocol/openthread/libs/libsl_openthread_efr32mg2x_gcc.a\&quot;,
 
-\&quot;${StudioSdkPath}/platform/emdrv/nvm3/lib/libnvm3_CM33_gcc.a\&quot;\n        ],
+\&quot;${StudioSdkPath}/platform/emdrv/nvm3/lib/libnvm3_CM33_gcc.a\&quot;
+
+],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.linker.base\&quot;,
 
@@ -732,25 +1183,33 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {\n            \&quot;${StudioSdkPath}/platform/radio/rail_lib/autogen/librail_release/librail_efr32xg21_gcc_release.a\&quot;: \&quot;TRUE\&quot;,
+\&quot;listValuesMap\&quot;: {
+
+\&quot;${StudioSdkPath}/platform/radio/rail_lib/autogen/librail_release/librail_efr32xg21_gcc_release.a\&quot;: \&quot;TRUE\&quot;,
 
 \&quot;${StudioSdkPath}/protocol/openthread/libs/libsl_openthread_efr32mg2x_gcc.a\&quot;: \&quot;TRUE\&quot;,
 
-\&quot;${StudioSdkPath}/platform/emdrv/nvm3/lib/libnvm3_CM33_gcc.a\&quot;: \&quot;TRUE\&quot;\n        }\n    }\n]&quot;
+\&quot;${StudioSdkPath}/platform/emdrv/nvm3/lib/libnvm3_CM33_gcc.a\&quot;: \&quot;TRUE\&quot;
+
+}
+
+}
+
+]&quot;
     }
 ]" moduleId="com.silabs.ss.framework.ide.project.core.cpp" projectCommon.boardIds="brd4001a:0.0.0.A01 brd4179b:0.0.0.A05" projectCommon.buildArtifactType="EXE" projectCommon.partId="mcu.arm.efr32.mg21.efr32mg21a010f1024im32" projectCommon.referencedModules="[
     {
         &quot;builtinExcludes&quot;: [], 
         &quot;removed&quot;: false, 
         &quot;builtinSources&quot;: [], 
-        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.CommonProjectPostBuild.com.silabs.ss.framework.project.toolchain.core.default#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;         \n&lt;/project:MModule&gt;&quot;, 
+        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.CommonProjectPostBuild.com.silabs.ss.framework.project.toolchain.core.default#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;  &lt;/project:MModule&gt;&quot;, 
         &quot;builtin&quot;: true
     }, 
     {
         &quot;builtinExcludes&quot;: [], 
         &quot;removed&quot;: false, 
         &quot;builtinSources&quot;: [], 
-        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.ProjectPostBuild.com.silabs.ss.framework.project.toolchain.core.default#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;         \n&lt;/project:MModule&gt;&quot;, 
+        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.ProjectPostBuild.com.silabs.ss.framework.project.toolchain.core.default#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;  &lt;/project:MModule&gt;&quot;, 
         &quot;builtin&quot;: true
     }, 
     {
@@ -783,7 +1242,7 @@
             &quot;config/sl_uartdrv_usart_vcom_config.h&quot;, 
             &quot;config/uartdrv_config.h&quot;
         ], 
-        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.ucConfig.com.silabs.ss.framework.project.toolchain.core.default#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;         \n&lt;/project:MModule&gt;&quot;, 
+        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.ucConfig.com.silabs.ss.framework.project.toolchain.core.default#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;  &lt;/project:MModule&gt;&quot;, 
         &quot;builtin&quot;: true
     }, 
     {
@@ -807,7 +1266,7 @@
             &quot;autogen/sli_psa_builtin_config_autogen.h&quot;, 
             &quot;autogen/sli_psa_config_autogen.h&quot;
         ], 
-        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.ucTemplate.com.silabs.ss.framework.project.toolchain.core.default#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;         \n&lt;/project:MModule&gt;&quot;, 
+        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.ucTemplate.com.silabs.ss.framework.project.toolchain.core.default#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;  &lt;/project:MModule&gt;&quot;, 
         &quot;builtin&quot;: true
     }, 
     {
@@ -1779,14 +2238,14 @@
             &quot;main.c&quot;, 
             &quot;reset_util.h&quot;
         ], 
-        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.componentSetup.com.silabs.ss.framework.project.toolchain.core.default#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;         \n&lt;/project:MModule&gt;&quot;, 
+        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.componentSetup.com.silabs.ss.framework.project.toolchain.core.default#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;  &lt;/project:MModule&gt;&quot;, 
         &quot;builtin&quot;: true
     }, 
     {
         &quot;builtinExcludes&quot;: [], 
         &quot;removed&quot;: false, 
         &quot;builtinSources&quot;: [], 
-        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.defaultSettings.com.silabs.ss.framework.project.toolchain.core.default#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;         \n&lt;/project:MModule&gt;&quot;, 
+        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.defaultSettings.com.silabs.ss.framework.project.toolchain.core.default#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;  &lt;/project:MModule&gt;&quot;, 
         &quot;builtin&quot;: true
     }, 
     {
@@ -1795,7 +2254,7 @@
         &quot;builtinSources&quot;: [
             &quot;autogen/.crc_config.crc&quot;
         ], 
-        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.ucProject.com.silabs.ss.framework.project.toolchain.core.default#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;         \n&lt;/project:MModule&gt;&quot;, 
+        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.ucProject.com.silabs.ss.framework.project.toolchain.core.default#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;  &lt;/project:MModule&gt;&quot;, 
         &quot;builtin&quot;: true
     }
 ]" projectCommon.savedStockVariables="{&quot;copiedSdkLocation&quot;:&quot;gecko_sdk_4.4.3&quot;,&quot;partOpn&quot;:&quot;efr32mg21a010f1024im32&quot;}" projectCommon.sdkId="com.silabs.sdk.stack.super:4.4.3._-295637086" projectCommon.toolchainId="com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205"/>

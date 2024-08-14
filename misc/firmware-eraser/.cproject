@@ -48,14 +48,66 @@
         ], 
         &quot;builtinLibraryObjectsStr&quot;: &quot;&quot;, 
         &quot;id&quot;: &quot;&quot;, 
-        &quot;builtinIncludesStr&quot;: &quot;studio:/project/config/ studio:/project/autogen/ studio:/project/ studio:/sdk/platform/Device/SiliconLabs/EFR32MG21/Include/ studio:/sdk/hardware/board/inc/ studio:/sdk/platform/bootloader/ studio:/sdk/platform/bootloader/api/ studio:/sdk/platform/CMSIS/Core/Include/ studio:/sdk/hardware/driver/configuration_over_swo/inc/ studio:/sdk/platform/driver/debug/inc/ studio:/sdk/platform/service/device_init/inc/ studio:/sdk/platform/emlib/inc/ studio:/sdk/platform/common/inc/ studio:/sdk/platform/common/toolchain/inc/ studio:/sdk/platform/service/system/inc/ studio:/project/config/ studio:/project/autogen/ studio:/project/ studio:/sdk/platform/Device/SiliconLabs/EFR32MG21/Include/ studio:/sdk/hardware/board/inc/ studio:/sdk/platform/bootloader/ studio:/sdk/platform/bootloader/api/ studio:/sdk/platform/CMSIS/Core/Include/ studio:/sdk/hardware/driver/configuration_over_swo/inc/ studio:/sdk/platform/driver/debug/inc/ studio:/sdk/platform/service/device_init/inc/ studio:/sdk/platform/emlib/inc/ studio:/sdk/platform/common/inc/ studio:/sdk/platform/common/toolchain/inc/ studio:/sdk/platform/service/system/inc/ studio:/project/config/ studio:/project/autogen/ studio:/project/ studio:/sdk/platform/Device/SiliconLabs/EFR32MG21/Include/ studio:/sdk/hardware/board/inc/ studio:/sdk/platform/bootloader/ studio:/sdk/platform/bootloader/api/ studio:/sdk/platform/CMSIS/Core/Include/ studio:/sdk/hardware/driver/configuration_over_swo/inc/ studio:/sdk/platform/driver/debug/inc/ studio:/sdk/platform/service/device_init/inc/ studio:/sdk/platform/emlib/inc/ studio:/sdk/platform/common/inc/ studio:/sdk/platform/common/toolchain/inc/ studio:/sdk/platform/service/system/inc/&quot;, 
-        &quot;resolvedOptionsStr&quot;: &quot;[\n    {\n        \&quot;listValues\&quot;: [\n            \&quot;-mcmse\&quot;,
+        &quot;builtinIncludesStr&quot;: &quot;studio:/project/config/
+studio:/project/autogen/
+studio:/project/
+studio:/sdk/platform/Device/SiliconLabs/EFR32MG21/Include/
+studio:/sdk/hardware/board/inc/
+studio:/sdk/platform/bootloader/
+studio:/sdk/platform/bootloader/api/
+studio:/sdk/platform/CMSIS/Core/Include/
+studio:/sdk/hardware/driver/configuration_over_swo/inc/
+studio:/sdk/platform/driver/debug/inc/
+studio:/sdk/platform/service/device_init/inc/
+studio:/sdk/platform/emlib/inc/
+studio:/sdk/platform/common/inc/
+studio:/sdk/platform/common/toolchain/inc/
+studio:/sdk/platform/service/system/inc/
+studio:/project/config/
+studio:/project/autogen/
+studio:/project/
+studio:/sdk/platform/Device/SiliconLabs/EFR32MG21/Include/
+studio:/sdk/hardware/board/inc/
+studio:/sdk/platform/bootloader/
+studio:/sdk/platform/bootloader/api/
+studio:/sdk/platform/CMSIS/Core/Include/
+studio:/sdk/hardware/driver/configuration_over_swo/inc/
+studio:/sdk/platform/driver/debug/inc/
+studio:/sdk/platform/service/device_init/inc/
+studio:/sdk/platform/emlib/inc/
+studio:/sdk/platform/common/inc/
+studio:/sdk/platform/common/toolchain/inc/
+studio:/sdk/platform/service/system/inc/
+studio:/project/config/
+studio:/project/autogen/
+studio:/project/
+studio:/sdk/platform/Device/SiliconLabs/EFR32MG21/Include/
+studio:/sdk/hardware/board/inc/
+studio:/sdk/platform/bootloader/
+studio:/sdk/platform/bootloader/api/
+studio:/sdk/platform/CMSIS/Core/Include/
+studio:/sdk/hardware/driver/configuration_over_swo/inc/
+studio:/sdk/platform/driver/debug/inc/
+studio:/sdk/platform/service/device_init/inc/
+studio:/sdk/platform/emlib/inc/
+studio:/sdk/platform/common/inc/
+studio:/sdk/platform/common/toolchain/inc/
+studio:/sdk/platform/service/system/inc/&quot;, 
+        &quot;resolvedOptionsStr&quot;: &quot;[
+
+{
+
+\&quot;listValues\&quot;: [
+
+\&quot;-mcmse\&quot;,
 
 \&quot;--specs=nano.specs\&quot;,
 
 \&quot;-fmessage-length=0\&quot;,
 
-\&quot;-c\&quot;\n        ],
+\&quot;-c\&quot;
+
+],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -65,15 +117,27 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {\n            \&quot;-mcmse\&quot;: \&quot;TRUE\&quot;,
+\&quot;listValuesMap\&quot;: {
+
+\&quot;-mcmse\&quot;: \&quot;TRUE\&quot;,
 
 \&quot;--specs=nano.specs\&quot;: \&quot;TRUE\&quot;,
 
 \&quot;-fmessage-length=0\&quot;: \&quot;TRUE\&quot;,
 
-\&quot;-c\&quot;: \&quot;TRUE\&quot;\n        }\n    },
+\&quot;-c\&quot;: \&quot;TRUE\&quot;
 
-{\n        \&quot;listValues\&quot;: [\n            \&quot;-Wl,--no-warn-rwx-segments\&quot;\n        ],
+}
+
+},
+
+{
+
+\&quot;listValues\&quot;: [
+
+\&quot;-Wl,--no-warn-rwx-segments\&quot;
+
+],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.base\&quot;,
 
@@ -83,15 +147,27 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {\n            \&quot;-Wl,--no-warn-rwx-segments\&quot;: \&quot;TRUE\&quot;\n        }\n    },
+\&quot;listValuesMap\&quot;: {
 
-{\n        \&quot;listValues\&quot;: [\n            \&quot;-mcmse\&quot;,
+\&quot;-Wl,--no-warn-rwx-segments\&quot;: \&quot;TRUE\&quot;
+
+}
+
+},
+
+{
+
+\&quot;listValues\&quot;: [
+
+\&quot;-mcmse\&quot;,
 
 \&quot;--specs=nano.specs\&quot;,
 
 \&quot;-fmessage-length=0\&quot;,
 
-\&quot;-c\&quot;\n        ],
+\&quot;-c\&quot;
+
+],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -101,15 +177,27 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {\n            \&quot;-mcmse\&quot;: \&quot;TRUE\&quot;,
+\&quot;listValuesMap\&quot;: {
+
+\&quot;-mcmse\&quot;: \&quot;TRUE\&quot;,
 
 \&quot;--specs=nano.specs\&quot;: \&quot;TRUE\&quot;,
 
 \&quot;-fmessage-length=0\&quot;: \&quot;TRUE\&quot;,
 
-\&quot;-c\&quot;: \&quot;TRUE\&quot;\n        }\n    },
+\&quot;-c\&quot;: \&quot;TRUE\&quot;
 
-{\n        \&quot;listValues\&quot;: [\n            \&quot;-Wl,--no-warn-rwx-segments\&quot;\n        ],
+}
+
+},
+
+{
+
+\&quot;listValues\&quot;: [
+
+\&quot;-Wl,--no-warn-rwx-segments\&quot;
+
+],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.linker.base\&quot;,
 
@@ -119,9 +207,17 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {\n            \&quot;-Wl,--no-warn-rwx-segments\&quot;: \&quot;TRUE\&quot;\n        }\n    },
+\&quot;listValuesMap\&quot;: {
 
-{\n        \&quot;listValues\&quot;: [],
+\&quot;-Wl,--no-warn-rwx-segments\&quot;: \&quot;TRUE\&quot;
+
+}
+
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.archiver.base\&quot;,
 
@@ -131,9 +227,13 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.assembler.base\&quot;,
 
@@ -143,9 +243,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.assembler.base\&quot;,
 
@@ -155,9 +259,17 @@
 
 \&quot;value\&quot;: \&quot;floatingpoint.type.hard\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [\n            \&quot;sl_gcc_preinclude.h\&quot;\n        ],
+},
+
+{
+
+\&quot;listValues\&quot;: [
+
+\&quot;sl_gcc_preinclude.h\&quot;
+
+],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.assembler.base\&quot;,
 
@@ -167,9 +279,17 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {\n            \&quot;sl_gcc_preinclude.h\&quot;: \&quot;TRUE\&quot;\n        }\n    },
+\&quot;listValuesMap\&quot;: {
 
-{\n        \&quot;listValues\&quot;: [],
+\&quot;sl_gcc_preinclude.h\&quot;: \&quot;TRUE\&quot;
+
+}
+
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c(pp)?.compiler.base\&quot;,
 
@@ -179,9 +299,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c(pp)?.compiler.base\&quot;,
 
@@ -191,9 +315,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c(pp)?.linker.base\&quot;,
 
@@ -203,9 +331,17 @@
 
 \&quot;value\&quot;: \&quot;false\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [\n            \&quot;DEBUG\&quot;\n        ],
+},
+
+{
+
+\&quot;listValues\&quot;: [
+
+\&quot;DEBUG\&quot;
+
+],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -215,9 +351,17 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {\n            \&quot;DEBUG\&quot;: \&quot;PARENT\&quot;\n        }\n    },
+\&quot;listValuesMap\&quot;: {
 
-{\n        \&quot;listValues\&quot;: [],
+\&quot;DEBUG\&quot;: \&quot;PARENT\&quot;
+
+}
+
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -227,9 +371,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -239,9 +387,13 @@
 
 \&quot;value\&quot;: \&quot;floatingpoint.type.hard\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -251,9 +403,13 @@
 
 \&quot;value\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.misc.dialect.c99\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -263,9 +419,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -275,9 +435,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -287,9 +451,13 @@
 
 \&quot;value\&quot;: \&quot;gnu.c.optimization.level.size\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -299,9 +467,17 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [\n            \&quot;sl_gcc_preinclude.h\&quot;\n        ],
+},
+
+{
+
+\&quot;listValues\&quot;: [
+
+\&quot;sl_gcc_preinclude.h\&quot;
+
+],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -311,9 +487,17 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {\n            \&quot;sl_gcc_preinclude.h\&quot;: \&quot;TRUE\&quot;\n        }\n    },
+\&quot;listValuesMap\&quot;: {
 
-{\n        \&quot;listValues\&quot;: [],
+\&quot;sl_gcc_preinclude.h\&quot;: \&quot;TRUE\&quot;
+
+}
+
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.base\&quot;,
 
@@ -323,9 +507,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.base\&quot;,
 
@@ -335,9 +523,13 @@
 
 \&quot;value\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.nanospec\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.base\&quot;,
 
@@ -347,9 +539,13 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.base\&quot;,
 
@@ -359,9 +555,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.base\&quot;,
 
@@ -371,9 +571,13 @@
 
 \&quot;value\&quot;: \&quot;floatingpoint.type.hard\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.base\&quot;,
 
@@ -383,9 +587,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.base\&quot;,
 
@@ -395,9 +603,13 @@
 
 \&quot;value\&quot;: \&quot;false\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.toolchain.exe\&quot;,
 
@@ -407,9 +619,13 @@
 
 \&quot;value\&quot;: \&quot;${workspace_loc:/${ProjName}/autogen/linkerfile.ld}\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.toolchain.exe\&quot;,
 
@@ -419,9 +635,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -431,9 +651,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -443,9 +667,13 @@
 
 \&quot;value\&quot;: \&quot;floatingpoint.type.hard\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -455,9 +683,13 @@
 
 \&quot;value\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.misc.dialect.cpp0x\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -467,9 +699,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -479,9 +715,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -491,9 +731,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -503,9 +747,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -515,9 +763,13 @@
 
 \&quot;value\&quot;: \&quot;gnu.cpp.compiler.optimization.level.size\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler\&quot;,
 
@@ -527,9 +779,13 @@
 
 \&quot;value\&quot;: \&quot;gnu.cpp.compiler.optimization.level.none\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -539,9 +795,17 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [\n            \&quot;sl_gcc_preinclude.h\&quot;\n        ],
+},
+
+{
+
+\&quot;listValues\&quot;: [
+
+\&quot;sl_gcc_preinclude.h\&quot;
+
+],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -551,9 +815,17 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {\n            \&quot;sl_gcc_preinclude.h\&quot;: \&quot;TRUE\&quot;\n        }\n    },
+\&quot;listValuesMap\&quot;: {
 
-{\n        \&quot;listValues\&quot;: [],
+\&quot;sl_gcc_preinclude.h\&quot;: \&quot;TRUE\&quot;
+
+}
+
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.linker.base\&quot;,
 
@@ -563,9 +835,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.linker.base\&quot;,
 
@@ -575,9 +851,13 @@
 
 \&quot;value\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.nanospec\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.linker.base\&quot;,
 
@@ -587,9 +867,13 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.linker.base\&quot;,
 
@@ -599,9 +883,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.linker.base\&quot;,
 
@@ -611,9 +899,13 @@
 
 \&quot;value\&quot;: \&quot;floatingpoint.type.hard\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.linker.base\&quot;,
 
@@ -623,9 +915,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.toolchain.exe\&quot;,
 
@@ -635,9 +931,13 @@
 
 \&quot;value\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.toolchain.debug.level.default\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -647,9 +947,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -659,9 +963,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -671,9 +979,13 @@
 
 \&quot;value\&quot;: \&quot;false\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -683,9 +995,13 @@
 
 \&quot;value\&quot;: \&quot;false\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -695,9 +1011,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -707,9 +1027,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -719,9 +1043,13 @@
 
 \&quot;value\&quot;: \&quot;false\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base\&quot;,
 
@@ -731,9 +1059,13 @@
 
 \&quot;value\&quot;: \&quot;false\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;toolOption.generic.compiler.c\&quot;,
 
@@ -743,9 +1075,13 @@
 
 \&quot;value\&quot;: \&quot;false\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;toolOption.generic.compiler.c\&quot;,
 
@@ -755,9 +1091,13 @@
 
 \&quot;value\&quot;: \&quot;false\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;toolOption.generic.compiler.c\&quot;,
 
@@ -767,9 +1107,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;toolOption.generic.compiler.c\&quot;,
 
@@ -779,9 +1123,13 @@
 
 \&quot;value\&quot;: \&quot;false\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;toolOption.generic.compiler.c\&quot;,
 
@@ -791,9 +1139,13 @@
 
 \&quot;value\&quot;: \&quot;false\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;toolOption.generic.compiler.c\&quot;,
 
@@ -803,9 +1155,13 @@
 
 \&quot;value\&quot;: \&quot;false\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;toolOption.generic.compiler.c\&quot;,
 
@@ -815,9 +1171,13 @@
 
 \&quot;value\&quot;: \&quot;false\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;toolOption.generic.compiler.c\&quot;,
 
@@ -827,9 +1187,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;toolOption.generic.compiler.c\&quot;,
 
@@ -839,9 +1203,13 @@
 
 \&quot;value\&quot;: \&quot;false\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;toolOption.generic.compiler.c\&quot;,
 
@@ -851,9 +1219,13 @@
 
 \&quot;value\&quot;: \&quot;false\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;toolOption.generic.compiler.c\&quot;,
 
@@ -863,9 +1235,13 @@
 
 \&quot;value\&quot;: \&quot;false\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;toolOption.generic.compiler.c\&quot;,
 
@@ -875,21 +1251,25 @@
 
 \&quot;value\&quot;: \&quot;false\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    }\n]&quot;
+\&quot;listValuesMap\&quot;: {}
+
+}
+
+]&quot;
     }
 ]" moduleId="com.silabs.ss.framework.ide.project.core.cpp" projectCommon.boardIds="brd4001a:0.0.0.A01 brd4179b:0.0.0.A05" projectCommon.buildArtifactType="EXE" projectCommon.partId="mcu.arm.efr32.mg21.efr32mg21a010f1024im32" projectCommon.referencedModules="[
     {
         &quot;builtinExcludes&quot;: [], 
         &quot;removed&quot;: false, 
         &quot;builtinSources&quot;: [], 
-        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.CommonProjectPostBuild.com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;         \n&lt;/project:MModule&gt;&quot;, 
+        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.CommonProjectPostBuild.com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;  &lt;/project:MModule&gt;&quot;, 
         &quot;builtin&quot;: true
     }, 
     {
         &quot;builtinExcludes&quot;: [], 
         &quot;removed&quot;: false, 
         &quot;builtinSources&quot;: [], 
-        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.ProjectPostBuild.com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;         \n&lt;/project:MModule&gt;&quot;, 
+        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.ProjectPostBuild.com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;  &lt;/project:MModule&gt;&quot;, 
         &quot;builtin&quot;: true
     }, 
     {
@@ -908,7 +1288,7 @@
             &quot;config/sl_device_init_lfxo_config.h&quot;, 
             &quot;config/sl_memory_config.h&quot;
         ], 
-        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.ucConfig.com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;         \n&lt;/project:MModule&gt;&quot;, 
+        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.ucConfig.com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;  &lt;/project:MModule&gt;&quot;, 
         &quot;builtin&quot;: true
     }, 
     {
@@ -927,7 +1307,7 @@
             &quot;autogen/sl_event_handler.c&quot;, 
             &quot;autogen/sl_event_handler.h&quot;
         ], 
-        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.ucTemplate.com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;         \n&lt;/project:MModule&gt;&quot;, 
+        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.ucTemplate.com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;  &lt;/project:MModule&gt;&quot;, 
         &quot;builtin&quot;: true
     }, 
     {
@@ -1096,14 +1476,14 @@
             &quot;main.cpp&quot;, 
             &quot;readme.md&quot;
         ], 
-        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.componentSetup.com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;         \n&lt;/project:MModule&gt;&quot;, 
+        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.componentSetup.com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;  &lt;/project:MModule&gt;&quot;, 
         &quot;builtin&quot;: true
     }, 
     {
         &quot;builtinExcludes&quot;: [], 
         &quot;removed&quot;: false, 
         &quot;builtinSources&quot;: [], 
-        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.defaultSettings.com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;         \n&lt;/project:MModule&gt;&quot;, 
+        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.defaultSettings.com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;  &lt;/project:MModule&gt;&quot;, 
         &quot;builtin&quot;: true
     }, 
     {
@@ -1112,7 +1492,7 @@
         &quot;builtinSources&quot;: [
             &quot;autogen/.crc_config.crc&quot;
         ], 
-        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.ucProject.com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;         \n&lt;/project:MModule&gt;&quot;, 
+        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.ucProject.com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;  &lt;/project:MModule&gt;&quot;, 
         &quot;builtin&quot;: true
     }
 ]" projectCommon.savedStockVariables="{&quot;copiedSdkLocation&quot;:&quot;gecko_sdk_4.4.3&quot;,&quot;partOpn&quot;:&quot;efr32mg21a010f1024im32&quot;}" projectCommon.sdkId="com.silabs.sdk.stack.super:4.4.3._-295637086" projectCommon.toolchainId="com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205"/>
@@ -1365,7 +1745,11 @@
         &quot;builtinLibraryObjectsStr&quot;: &quot;&quot;, 
         &quot;id&quot;: &quot;&quot;, 
         &quot;builtinIncludesStr&quot;: &quot;&quot;, 
-        &quot;resolvedOptionsStr&quot;: &quot;[\n    {\n        \&quot;listValues\&quot;: [],
+        &quot;resolvedOptionsStr&quot;: &quot;[
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.archiver.base\&quot;,
 
@@ -1375,9 +1759,13 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c(pp)?.compiler.base\&quot;,
 
@@ -1387,9 +1775,13 @@
 
 \&quot;value\&quot;: \&quot;false\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c(pp)?.compiler.base\&quot;,
 
@@ -1399,9 +1791,13 @@
 
 \&quot;value\&quot;: \&quot;false\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c(pp)?.linker.base\&quot;,
 
@@ -1411,9 +1807,17 @@
 
 \&quot;value\&quot;: \&quot;false\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [\n            \&quot;NDEBUG\&quot;\n        ],
+},
+
+{
+
+\&quot;listValues\&quot;: [
+
+\&quot;NDEBUG\&quot;
+
+],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -1423,9 +1827,17 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {\n            \&quot;NDEBUG\&quot;: \&quot;PARENT\&quot;\n        }\n    },
+\&quot;listValuesMap\&quot;: {
 
-{\n        \&quot;listValues\&quot;: [],
+\&quot;NDEBUG\&quot;: \&quot;PARENT\&quot;
+
+}
+
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base\&quot;,
 
@@ -1435,9 +1847,13 @@
 
 \&quot;value\&quot;: \&quot;gnu.c.optimization.level.size\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.base\&quot;,
 
@@ -1447,9 +1863,13 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.linker.base\&quot;,
 
@@ -1459,9 +1879,13 @@
 
 \&quot;value\&quot;: \&quot;\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.toolchain.exe\&quot;,
 
@@ -1471,9 +1895,13 @@
 
 \&quot;value\&quot;: \&quot;com.silabs.ide.si32.gcc.cdt.managedbuild.toolchain.debug.level.none\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;toolOption.generic.compiler.c\&quot;,
 
@@ -1483,9 +1911,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;toolOption.generic.compiler.c\&quot;,
 
@@ -1495,9 +1927,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;toolOption.generic.compiler.c\&quot;,
 
@@ -1507,9 +1943,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;toolOption.generic.compiler.c\&quot;,
 
@@ -1519,9 +1959,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;toolOption.generic.compiler.c\&quot;,
 
@@ -1531,9 +1975,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;toolOption.generic.compiler.c\&quot;,
 
@@ -1543,9 +1991,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;toolOption.generic.compiler.c\&quot;,
 
@@ -1555,9 +2007,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;toolOption.generic.compiler.c\&quot;,
 
@@ -1567,9 +2023,13 @@
 
 \&quot;value\&quot;: \&quot;false\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;toolOption.generic.compiler.c\&quot;,
 
@@ -1579,9 +2039,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;toolOption.generic.compiler.c\&quot;,
 
@@ -1591,9 +2055,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;toolOption.generic.compiler.c\&quot;,
 
@@ -1603,9 +2071,13 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    },
+\&quot;listValuesMap\&quot;: {}
 
-{\n        \&quot;listValues\&quot;: [],
+},
+
+{
+
+\&quot;listValues\&quot;: [],
 
 \&quot;toolId\&quot;: \&quot;toolOption.generic.compiler.c\&quot;,
 
@@ -1615,7 +2087,11 @@
 
 \&quot;value\&quot;: \&quot;true\&quot;,
 
-\&quot;listValuesMap\&quot;: {}\n    }\n]&quot;
+\&quot;listValuesMap\&quot;: {}
+
+}
+
+]&quot;
     }
 ]" moduleId="com.silabs.ss.framework.ide.project.core.cpp" projectCommon.buildArtifactType="EXE" projectCommon.referencedModules="[
     {
@@ -1642,7 +2118,7 @@
             &quot;autogen/sl_event_handler.c&quot;, 
             &quot;autogen/sl_event_handler.h&quot;
         ], 
-        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.ucTemplate.com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;         \n&lt;/project:MModule&gt;&quot;, 
+        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.ucTemplate.com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;  &lt;/project:MModule&gt;&quot;, 
         &quot;builtin&quot;: true
     }, 
     {
@@ -1969,7 +2445,7 @@
             &quot;main.cpp&quot;, 
             &quot;readme.md&quot;
         ], 
-        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.componentSetup.com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;         \n&lt;/project:MModule&gt;&quot;, 
+        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.componentSetup.com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;  &lt;/project:MModule&gt;&quot;, 
         &quot;builtin&quot;: true
     }, 
     {
@@ -2000,7 +2476,7 @@
             &quot;config/sl_device_init_lfxo_config.h&quot;, 
             &quot;config/sl_memory_config.h&quot;
         ], 
-        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.ucConfig.com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;         \n&lt;/project:MModule&gt;&quot;, 
+        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.ucConfig.com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;  &lt;/project:MModule&gt;&quot;, 
         &quot;builtin&quot;: true
     }, 
     {
@@ -2011,7 +2487,7 @@
         &quot;builtinSources&quot;: [
             &quot;autogen/.crc_config.crc&quot;
         ], 
-        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.ucProject.com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;         \n&lt;/project:MModule&gt;&quot;, 
+        &quot;module&quot;: &quot;&lt;project:MModule xmlns:project=\&quot;http://www.silabs.com/ss/Project.ecore\&quot; builtin=\&quot;true\&quot; id=\&quot;uc.module.setup.ucProject.com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205.gcc\&quot; pdm=\&quot;true\&quot;&gt;  &lt;inclusions pattern=\&quot;.*\&quot;/&gt;  &lt;/project:MModule&gt;&quot;, 
         &quot;builtin&quot;: true
     }
 ]" projectCommon.toolchainId="com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:12.2.1.20221205"/>
