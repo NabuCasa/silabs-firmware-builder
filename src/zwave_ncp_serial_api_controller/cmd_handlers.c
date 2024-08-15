@@ -128,26 +128,26 @@ ZW_ADD_CMD(FUNC_ID_GET_TX_TIMERS)
 
   uint8_t i = 0;
   // Copy with endian swap
-  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel_0 >> 24) & 0xff);
-  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel_0 >> 16) & 0xff);
-  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel_0 >> 8)  & 0xff);
-  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel_0 >> 0)  & 0xff);
-  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel_1 >> 24) & 0xff);
-  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel_1 >> 16) & 0xff);
-  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel_1 >> 8)  & 0xff);
-  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel_1 >> 0)  & 0xff);
-  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel_2 >> 24) & 0xff);
-  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel_2 >> 16) & 0xff);
-  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel_2 >> 8)  & 0xff);
-  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel_2 >> 0)  & 0xff);
-  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel_3 >> 24) & 0xff);
-  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel_3 >> 16) & 0xff);
-  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel_3 >> 8)  & 0xff);
-  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel_3 >> 0)  & 0xff);
-  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel_4 >> 24) & 0xff);
-  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel_4 >> 16) & 0xff);
-  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel_4 >> 8)  & 0xff);
-  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel_4 >> 0)  & 0xff);
+  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel[0] >> 24) & 0xff);
+  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel[0] >> 16) & 0xff);
+  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel[0] >> 8)  & 0xff);
+  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel[0] >> 0)  & 0xff);
+  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel[1] >> 24) & 0xff);
+  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel[1] >> 16) & 0xff);
+  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel[1] >> 8)  & 0xff);
+  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel[1] >> 0)  & 0xff);
+  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel[2] >> 24) & 0xff);
+  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel[2] >> 16) & 0xff);
+  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel[2] >> 8)  & 0xff);
+  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel[2] >> 0)  & 0xff);
+  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel[3] >> 24) & 0xff);
+  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel[3] >> 16) & 0xff);
+  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel[3] >> 8)  & 0xff);
+  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel[3] >> 0)  & 0xff);
+  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel[4] >> 24) & 0xff);
+  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel[4] >> 16) & 0xff);
+  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel[4] >> 8)  & 0xff);
+  compl_workbuf[i++] = (uint8_t)((sRFStats->tx_time_channel[4] >> 0)  & 0xff);
 
   DoRespond_workbuf(i);
 }
