@@ -26,7 +26,7 @@ source:
 - {path: main.c}
 - {path: app.c}
 tag: [prebuilt_demo]
-sdk: {id: gecko_sdk, version: 4.4.3}
+sdk: {id: gecko_sdk, version: 4.4.4}
 toolchain_settings: []
 component:
 - {id: EFR32MG21A010F1024IM32}
