@@ -45,23 +45,11 @@ RUN \
     && tar -C /opt -xf arm-gnu-toolchain-12.2.rel1-x86_64-arm-none-eabi.tar.xz \
     && rm arm-gnu-toolchain-12.2.rel1-x86_64-arm-none-eabi.tar.xz
 
-# GCC Embedded Toolchain 10.3-2021.10 (for earlier Gecko SDKs)
+# Gecko SDK 4.4.4
 RUN \
-    curl -O https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2 \
-    && tar -C /opt -xf gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2 \
-    && rm gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2
-
-# Gecko SDK 4.4.3
-RUN \
-    curl -o gecko_sdk_4.4.3.zip -L https://github.com/SiliconLabs/gecko_sdk/releases/download/v4.4.3/gecko-sdk.zip \
-    && unzip -q -d gecko_sdk_4.4.3 gecko_sdk_4.4.3.zip \
-    && rm gecko_sdk_4.4.3.zip
-
-# Gecko SDK 4.3.1
-RUN \
-    curl -o gecko_sdk_4.3.1.zip -L https://github.com/SiliconLabs/gecko_sdk/releases/download/v4.3.1/gecko-sdk.zip \
-    && unzip -q -d gecko_sdk_4.3.1 gecko_sdk_4.3.1.zip \
-    && rm gecko_sdk_4.3.1.zip
+    curl -o gecko_sdk_4.4.4.zip -L https://github.com/SiliconLabs/gecko_sdk/releases/download/v4.4.4/gecko-sdk.zip \
+    && unzip -q -d gecko_sdk_4.4.4 gecko_sdk_4.4.4.zip \
+    && rm gecko_sdk_4.4.4.zip
 
 ARG USERNAME=builder
 ARG USER_UID=1000

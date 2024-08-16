@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="ASCII"?>
 <model:MDescriptors xmlns:model="http://www.silabs.com/ss/Studio.ecore">
   <descriptors name="rcp-uart-802154">
-    <properties key="projectCommon.sdkId" value="com.silabs.sdk.stack.super:4.4.3._-295637086"/>
+    <properties key="projectCommon.sdkId" value="com.silabs.sdk.stack.super:4.4.4._-295637083"/>
     <properties key="universalConfig.relativeWorkspacePath" value="../rcp-uart-802154.slcw"/>
     <properties key="universalConfig.generationDirectory" value=""/>
     <properties key="universalConfig.toolchainCompatibility" value="gcc"/>

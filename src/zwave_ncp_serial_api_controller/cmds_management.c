@@ -45,6 +45,31 @@
 #define MAX( x, y ) ( ( x ) > ( y ) ? ( x ) : ( y ) )
 #endif // MAX
 
+static const serial_api_setup_cmd_get_region_info_answer_t regions_info[] = {
+  {.region=REGION_EU,    .zw_classic=1, .zw_lr=0, .reserved=0, .included_region=REGION_UNDEFINED},
+  {.region=REGION_US,    .zw_classic=1, .zw_lr=0, .reserved=0, .included_region=REGION_UNDEFINED},
+  {.region=REGION_ANZ,   .zw_classic=1, .zw_lr=0, .reserved=0, .included_region=REGION_UNDEFINED},
+  {.region=REGION_HK,    .zw_classic=1, .zw_lr=0, .reserved=0, .included_region=REGION_UNDEFINED},
+  {.region=REGION_IN,    .zw_classic=1, .zw_lr=0, .reserved=0, .included_region=REGION_UNDEFINED},
+  {.region=REGION_IL,    .zw_classic=1, .zw_lr=0, .reserved=0, .included_region=REGION_UNDEFINED},
+  {.region=REGION_RU,    .zw_classic=1, .zw_lr=0, .reserved=0, .included_region=REGION_UNDEFINED},
+  {.region=REGION_CN,    .zw_classic=1, .zw_lr=0, .reserved=0, .included_region=REGION_UNDEFINED},
+  {.region=REGION_US_LR, .zw_classic=1, .zw_lr=1, .reserved=0, .included_region=REGION_US},
+  {.region=REGION_JP,    .zw_classic=1, .zw_lr=0, .reserved=0, .included_region=REGION_UNDEFINED},
+  {.region=REGION_KR,    .zw_classic=1, .zw_lr=0, .reserved=0, .included_region=REGION_UNDEFINED},
+};
+#define REGIONS_INFO_COUNT   (sizeof(regions_info)/sizeof(regions_info[0]))
+//default answer in case the requested region is not found in the regions_info table.
+static const serial_api_setup_cmd_get_region_info_answer_t unknown_region_info =
+{
+  .region = REGION_UNDEFINED,
+  .zw_classic = 0,
+  .zw_lr = 0,
+  .reserved = 0,
+  .included_region = 0
+};
+#define REGION_INFO_SIZE  (sizeof(serial_api_setup_cmd_get_region_info_answer_t))
+
 void func_id_serial_api_get_init_data(__attribute__((unused)) uint8_t inputLength,
                                       __attribute__((unused)) const uint8_t *pInputBuffer,
                                       uint8_t *pOutputBuffer,
@@ -202,6 +227,8 @@ void func_id_serial_api_setup(uint8_t inputLength,
     BITMASK_ADD_CMD(supportedBitmask, SERIAL_API_SETUP_CMD_TX_GET_MAX_LR_PAYLOAD_SIZE);   // (17)
     BITMASK_ADD_CMD(supportedBitmask, SERIAL_API_SETUP_CMD_TX_POWERLEVEL_SET_16_BIT);     // (18)
     BITMASK_ADD_CMD(supportedBitmask, SERIAL_API_SETUP_CMD_TX_POWERLEVEL_GET_16_BIT);     // (19)
+    BITMASK_ADD_CMD(supportedBitmask, SERIAL_API_SETUP_CMD_GET_SUPPORTED_REGION);         // (21)
+    BITMASK_ADD_CMD(supportedBitmask, SERIAL_API_SETUP_CMD_GET_REGION_INFO);              // (22)
 
     /* Currently supported command with the highest value is SERIAL_API_SETUP_CMD_NODEID_BASETYPE_SET.
      No commands after it. */
@@ -252,6 +279,49 @@ void func_id_serial_api_setup(uint8_t inputLength,
     }
     BYTE_IN_AR(pOutputBuffer, i++) = cmdRes;
     break;
+
+  case SERIAL_API_SETUP_CMD_GET_SUPPORTED_REGION:
+  {
+    uint8_t supported_region_count = 0;
+    uint8_t region_count_index = i;
+    i++;  //skip suported region count, move to first region value;
+    for (rfRegion = REGION_EU; rfRegion <= REGION_US_LR; rfRegion++) {
+      if (true == isRfRegionValid(rfRegion)) {
+        supported_region_count++;
+        pOutputBuffer[i] = (uint8_t) rfRegion;
+        i++;
+      }
+    }
+    for (rfRegion = REGION_JP; rfRegion <= REGION_KR; rfRegion++) {
+      if (true == isRfRegionValid(rfRegion)) {
+        supported_region_count++;
+        pOutputBuffer[i] = (uint8_t) rfRegion;
+        i++;
+      }
+    }
+    pOutputBuffer[region_count_index] = supported_region_count;
+    break;
+  }
+
+  case SERIAL_API_SETUP_CMD_GET_REGION_INFO:
+  {
+    uint8_t info_idx;
+    //search for the requested region in the regions_info table.
+    for (info_idx = 0; info_idx < REGIONS_INFO_COUNT; info_idx++) {
+      if (regions_info[info_idx].region == pInputBuffer[SAPI_SETUP_GET_REGION_INFO_RX_IDX_REGION]) {
+        break;
+      }
+    }
+    // Copy the answer in the output buffer.
+    if (info_idx < REGIONS_INFO_COUNT) {
+      memcpy(&(pOutputBuffer[i]), &(regions_info[info_idx]), REGION_INFO_SIZE);
+    } else {
+      //region not found, answer the unknown region info.
+      memcpy(&(pOutputBuffer[i]), &unknown_region_info, REGION_INFO_SIZE);
+    }
+    i += REGION_INFO_SIZE;
+    break;
+  }
 
   case SERIAL_API_SETUP_CMD_TX_POWERLEVEL_SET:
   {

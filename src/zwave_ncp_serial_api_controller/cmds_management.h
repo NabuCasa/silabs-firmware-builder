@@ -37,6 +37,8 @@ typedef enum
   SERIAL_API_SETUP_CMD_TX_GET_MAX_LR_PAYLOAD_SIZE = 17,
   SERIAL_API_SETUP_CMD_TX_POWERLEVEL_SET_16_BIT   = 18,
   SERIAL_API_SETUP_CMD_TX_POWERLEVEL_GET_16_BIT   = 19,
+  SERIAL_API_SETUP_CMD_GET_SUPPORTED_REGION       = 21,
+  SERIAL_API_SETUP_CMD_GET_REGION_INFO            = 22,
 } eSerialAPISetupCmd;
 
 /* SERIAL_API_SETUP_CMD_NODEID_BASETYPE_SET definitions */
@@ -73,6 +75,22 @@ extern eSerialAPISetupNodeIdBaseType nodeIdBaseType;
 #define SERIAL_API_SETUP_CMD_TX_POWERLEVEL_SET_CMD_LENGTH_MIN   3
 #define SERIAL_API_SETUP_CMD_NODEID_BASETYPE_SET_CMD_LENGTH_MIN 2
 #define SERIAL_API_SETUP_CMD_MAX_LR_TX_PWR_SET_CMD_LENGTH_MIN   3
+
+// --------------------------------
+// Definitions related to the sub command get region info
+/// Index of the region in received buffer
+#define SAPI_SETUP_GET_REGION_INFO_RX_IDX_REGION    (1)
+/// structure used to describe the format of a get region info answer.
+#pragma pack(push)
+#pragma pack(1)
+typedef struct {
+  uint8_t   region;
+  uint8_t   zw_classic:1;     ///< the region supports classic Z-Wave
+  uint8_t   zw_lr:1;          ///< the region supports Z-Wave Long Range
+  uint8_t   reserved:6;       ///< reserved for future use
+  uint8_t   included_region;  ///< the selected region include this one (e.g. US_LR include US)
+} serial_api_setup_cmd_get_region_info_answer_t;
+#pragma pack(pop)
 
 /**
  * Must be called upon receiving a "Node List Command".

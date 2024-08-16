@@ -22,7 +22,7 @@ include:
 - path: .
   file_list:
   - {path: app.h}
-sdk: {id: gecko_sdk, version: 4.4.3}
+sdk: {id: gecko_sdk, version: 4.4.4}
 toolchain_settings: []
 component:
 - {id: EFR32MG21A010F1024IM32}
