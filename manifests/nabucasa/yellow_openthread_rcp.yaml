@@ -1,7 +1,9 @@
 name: Yellow OpenThread RCP
 device: MGM210PA32JIA
-base_project: src/ot-rcp
+base_project: src/openthread_rcp
 filename: "{manifest_name}_{ot_rcp_version.split('/')[-1]}_gsdk_{sdk_version}"
+sdk: "gecko_sdk:4.4.4"
+toolchain: "12.2.1.20221205"
 
 gbl:
   fw_type: ot-rcp
@@ -14,6 +16,9 @@ add_components:
 
 configuration:
   SL_UARTDRV_USART_VCOM_BAUDRATE: 460800
+
+slcp_defines:
+  OPENTHREAD_CONFIG_DEFAULT_TRANSMIT_POWER: 6
 
 c_defines:
   SL_UARTDRV_USART_VCOM_PERIPHERAL: USART0
