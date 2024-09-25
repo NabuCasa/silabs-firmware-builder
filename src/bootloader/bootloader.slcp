@@ -1,0 +1,35 @@
+project_name: bootloader
+package: bootloader
+quality: production
+label: Bootloader
+description: Gecko bootloader with XMODEM-CRC transfer over UART.
+
+category: Example|Bootloader
+filter:
+  - name: "Device Type"
+    value: ["NCP"]
+  - name: "Project Difficulty"
+    value: ["Advanced"]
+  - name: "MCU"
+    value: ["Bootloader"]
+
+
+component:
+  - id: bootloader_core
+  - id: bootloader_crc
+  - id: bootloader_aes_sha_ecdsa
+  - id: bootloader_delay_driver
+  - id: bootloader_gpio_activation
+  - id: bootloader_image_parser
+  - id: bootloader_token_management
+  - id: bootloader_serial_driver
+  - id: bootloader_xmodem_parser
+  - id: bootloader_uart_xmodem
+  - id: bootloader_debug
+
+configuration:
+  - name: SL_VCOM_ENABLE
+    value: 1
+
+post_build:
+  profile: bootloader_series_2
