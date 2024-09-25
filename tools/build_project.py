@@ -6,7 +6,6 @@ from __future__ import annotations
 import re
 import ast
 import sys
-import copy
 import json
 import time
 import shutil
@@ -19,7 +18,6 @@ import contextlib
 import subprocess
 import multiprocessing
 
-from xml.etree import ElementTree
 from ruamel.yaml import YAML
 
 # Matches all known chip and board names. Some varied examples:
@@ -140,48 +138,45 @@ def get_git_commit_id(repo: pathlib.Path) -> str:
     return commit_id
 
 
-def determine_chip_specific_config_filenames(
-    slcp_path: pathlib.Path, sdk: pathlib.Path
-) -> list[str]:
-    """Determine the chip-specific config files to remove."""
-    proc = subprocess.run(
-        SLC
-        + [
-            "graph",
-            "--project-file",
-            str(slcp_path.absolute()),
-            "--sdk",
-            str(sdk.absolute()),
-        ],
-        cwd=str(slcp_path.parent),
-        check=True,
-        text=True,
-        capture_output=True,
-    )
+def load_sdks(paths: list[pathlib.Path]) -> dict[pathlib.Path, str]:
+    """Load the SDK metadata from the SDKs."""
+    sdks = {}
 
-    all_components = {a or b for a, b in GRAPH_COMPONENT_REGEX.findall(proc.stdout)}
-
-    # Some configs don't seem to be present explicitly in the component graph
-    config_files = {"sl_memory_config.h"}
-
-    # List all of the SLCC files. There are neary 4,000.
-    slcc_paths = {slcc.stem.lower(): slcc for slcc in sdk.glob("**/*.slcc")}
-
-    for component_id in all_components:
-        if CHIP_REGEX.match(component_id) or BOARD_REGEX.match(component_id):
-            pass
-        elif component_id in CHIP_SPECIFIC_COMPONENTS:
-            component_id = CHIP_SPECIFIC_COMPONENTS[component_id]
-        else:
+    for sdk in paths:
+        try:
+            sdk_meta = yaml.load((sdk / "gecko_sdk.slcs").read_text())
+        except FileNotFoundError:
+            LOGGER.warning("SDK %s is not valid, skipping", sdk)
             continue
 
-        slcc = yaml.load(slcc_paths[component_id.lower()].read_text())
+        version = sdk_meta["sdk_version"]
+        sdks[sdk] = f"gecko_sdk:{version}"
 
-        for config_file in slcc.get("config_file", []):
-            path = pathlib.PurePosixPath(config_file["path"]).name
-            config_files.add(path)
+    return sdks
 
-    return config_files
+
+def load_toolchains(paths: list[pathlib.Path]) -> dict[pathlib.Path, str]:
+    """Load the toolchain metadata from the toolchains."""
+    toolchains = {}
+
+    for toolchain in paths:
+        gcc_plugin_version_h = next(
+            toolchain.glob("lib/gcc/arm-none-eabi/*/plugin/include/plugin-version.h")
+        )
+        version_info = {}
+
+        for line in gcc_plugin_version_h.read_text().split("\n"):
+            # static char basever[] = "10.3.1";
+            if line.startswith("static char") and line.endswith(";"):
+                name = line.split("[]", 1)[0].split()[-1]
+                value = ast.literal_eval(line.split(" = ", 1)[1][:-1])
+                version_info[name] = value
+
+        toolchains[toolchain] = (
+            version_info["basever"] + "." + version_info["datestamp"]
+        )
+
+    return toolchains
 
 
 def main():
@@ -278,8 +273,6 @@ def main():
     if args.build_dir is None:
         args.build_dir = pathlib.Path(f"build/{time.time():.0f}_{args.manifest.stem}")
 
-    LOGGER.info("Building in %s", args.build_dir.resolve())
-
     # argparse defaults should be replaced, not extended
     if args.sdks != get_sdk_default_paths():
         args.sdks = args.sdks[len(get_sdk_default_paths()) :]
@@ -289,35 +282,63 @@ def main():
 
     manifest = yaml.load(args.manifest.read_text())
 
+    # Ensure we can load the correct SDK and toolchain
+    sdks = load_sdks(args.sdks)
+    sdk = next(path for path, version in sdks.items() if version == manifest["sdk"])
+
+    toolchains = load_toolchains(args.toolchains)
+    toolchain = next(
+        path for path, version in toolchains.items() if version == manifest["toolchain"]
+    )
+
     for key, override in args.overrides:
         manifest[key] = override
 
-    # First, load the base project
+    # First, copy the base project into the build dir, under `template/`
     projects_root = pathlib.Path(__file__).parent.parent
     base_project_path = projects_root / manifest["base_project"]
     assert base_project_path.is_relative_to(projects_root)
-    (base_project_slcp,) = base_project_path.glob("*.slcp")
+
+    build_template_path = args.build_dir / "template"
+
+    LOGGER.info("Building in %s", args.build_dir.resolve())
+
+    if args.clean_build_dir:
+        with contextlib.suppress(OSError):
+            shutil.rmtree(args.build_dir)
+
+    shutil.copytree(
+        base_project_path,
+        build_template_path,
+        dirs_exist_ok=True,
+        ignore=lambda dir, contents: [
+            "autogen",
+            ".git",
+            ".settings",
+            ".projectlinkstore",
+            ".project",
+            ".pdm",
+            ".cproject",
+            ".uceditor",
+        ],
+    )
+
+    # We extend the base project with the manifest, since added components could have
+    # extra dependencies
+    (base_project_slcp,) = build_template_path.glob("*.slcp")
+    base_project_name = base_project_slcp.stem
     base_project = yaml.load(base_project_slcp.read_text())
-    base_project_name = base_project_path.stem
-
-    output_project = copy.deepcopy(base_project)
-
-    # Strip chip- and board-specific components to modify the base device type
-    output_project["component"] = [
-        c
-        for c in output_project["component"]
-        if not CHIP_REGEX.match(c["id"]) and not BOARD_REGEX.match(c["id"])
-    ]
-    output_project["component"].append({"id": manifest["device"]})
 
     # Add new components
-    output_project["component"].extend(manifest.get("add_components", []))
-    output_project["toolchain_settings"].extend(manifest.get("toolchain_settings", []))
+    base_project["component"].extend(manifest.get("add_components", []))
+    base_project.setdefault("toolchain_settings", []).extend(
+        manifest.get("toolchain_settings", [])
+    )
 
     # Remove components
     for component in manifest.get("remove_components", []):
         try:
-            output_project["component"].remove(component)
+            base_project["component"].remove(component)
         except ValueError:
             LOGGER.warning(
                 "Component %s is not present in manifest, cannot remove", component
@@ -328,11 +349,11 @@ def main():
     for input_config, output_config in [
         (
             manifest.get("configuration", {}),
-            output_project.setdefault("configuration", []),
+            base_project.setdefault("configuration", []),
         ),
         (
             manifest.get("slcp_defines", {}),
-            output_project.setdefault("define", []),
+            base_project.setdefault("define", []),
         ),
     ]:
         for name, value in input_config.items():
@@ -348,115 +369,35 @@ def main():
                 # Otherwise, append it
                 output_config.append({"name": name, "value": value})
 
-    # Template variables for C defines
-    value_template_env = {
-        "git_repo_hash": get_git_commit_id(repo=pathlib.Path(__file__).parent.parent),
-        "manifest_name": args.manifest.stem,
-    }
-
-    # Copy the base project into the output directory
-    if args.clean_build_dir:
-        with contextlib.suppress(OSError):
-            shutil.rmtree(args.build_dir)
-
-    args.build_dir.mkdir(exist_ok=True, parents=True)
-
-    shutil.copytree(
-        base_project_path,
-        args.build_dir,
-        dirs_exist_ok=True,
-        ignore=lambda dir, contents: [
-            # XXX: pruning `autogen` is extremely important!
-            "autogen",
-            ".git",
-            ".settings",
-            ".projectlinkstore",
-            ".project",
-            ".pdm",
-            ".cproject",
-            ".uceditor",
-        ],
-    )
-
-    # Delete the original project file
-    (args.build_dir / base_project_slcp.name).unlink()
-
-    # Write the new project SLCP file
-    with (args.build_dir / f"{base_project_name}.slcp").open("w") as f:
-        yaml.dump(output_project, f)
+    # Finally, write out the modified base project
+    with base_project_slcp.open("w") as f:
+        yaml.dump(base_project, f)
 
     # Create a GBL metadata file
     with (args.build_dir / "gbl_metadata.yaml").open("w") as f:
         yaml.dump(manifest["gbl"], f)
 
-    # Generate a build directory
-    cmake_build_root = args.build_dir / f"{base_project_name}_cmake"
-    shutil.rmtree(cmake_build_root, ignore_errors=True)
+    # Next, generate a chip-specific project from the modified base project
+    print(f"Generating project for {manifest['device']}")
 
-    # Find the SDK version required by the project
-    for sdk in args.sdks:
-        try:
-            sdk_meta = yaml.load((sdk / "gecko_sdk.slcs").read_text())
-        except FileNotFoundError:
-            LOGGER.warning("SDK %s is not valid, skipping", sdk)
-            continue
-
-        assert base_project["sdk"]["id"] == "gecko_sdk"
-
-        LOGGER.info("SDK %s has version %s", sdk, sdk_meta["sdk_version"])
-
-        if base_project["sdk"]["version"] == sdk_meta["sdk_version"]:
-            LOGGER.info("Version is correct, picking %s", sdk)
-            break
-    else:
-        LOGGER.error("Project SDK version %s not found", base_project["sdk"]["version"])
-        sys.exit(1)
-
-    LOGGER.info("Building component graph and identifying board-specific files")
-    for name in determine_chip_specific_config_filenames(
-        slcp_path=base_project_slcp, sdk=sdk
-    ):
-        try:
-            (args.build_dir / f"config/{name}").unlink()
-        except FileNotFoundError:
-            pass
-        else:
-            LOGGER.info("Deleted device-specific config: %s", name)
-
-    # Find the toolchain required by the project
-    slps_path = (args.build_dir / base_project_name).with_suffix(".slps")
-    slps_xml = ElementTree.parse(slps_path)
-    slps_toolchain_id = (
-        slps_xml.getroot()
-        .find(".//properties[@key='projectCommon.toolchainId']")
-        .attrib["value"]
-        .split(":")[-1]
+    # fmt: off
+    subprocess.run(
+        SLC
+        + [
+            "generate",
+            "--with", manifest["device"],
+            "--project-file", base_project_slcp.resolve(),
+            "--export-destination", args.build_dir.resolve(),
+            "--copy-proj-sources",
+            "--copy-sdk-sources",
+            "--new-project",
+            "--toolchain", "toolchain_gcc",
+            "--sdk", sdk,
+            "--output-type", args.build_system,
+        ],
+        check=True,
     )
-
-    # Find the correct toolchain
-    for toolchain in args.toolchains:
-        gcc_plugin_version_h = next(
-            toolchain.glob("lib/gcc/arm-none-eabi/*/plugin/include/plugin-version.h")
-        )
-        version_info = {}
-
-        for line in gcc_plugin_version_h.read_text().split("\n"):
-            # static char basever[] = "10.3.1";
-            if line.startswith("static char") and line.endswith(";"):
-                name = line.split("[]", 1)[0].split()[-1]
-                value = ast.literal_eval(line.split(" = ", 1)[1][:-1])
-                version_info[name] = value
-
-        toolchain_id = version_info["basever"] + "." + version_info["datestamp"]
-
-        LOGGER.info("Toolchain %s has version %s", toolchain, toolchain_id)
-
-        if toolchain_id == slps_toolchain_id:
-            LOGGER.info("Version is correct, picking %s", toolchain)
-            break
-    else:
-        LOGGER.error("Project toolchain version %s not found", slps_toolchain_id)
-        sys.exit(1)
+    # fmt: on
 
     # Make sure all extensions are valid
     for sdk_extension in base_project.get("sdk_extension", []):
@@ -466,23 +407,11 @@ def main():
             LOGGER.error("Referenced extension not present in SDK: %s", expected_dir)
             sys.exit(1)
 
-    subprocess.run(
-        SLC
-        + [
-            "generate",
-            "--project-file",
-            (args.build_dir / f"{base_project_name}.slcp").resolve(),
-            "--export-destination",
-            args.build_dir.resolve(),
-            "--sdk",
-            sdk,
-            "--toolchain",
-            "toolchain_gcc",
-            "--output-type",
-            args.build_system,
-        ],
-        check=True,
-    )
+    # Template variables for C defines
+    value_template_env = {
+        "git_repo_hash": get_git_commit_id(repo=pathlib.Path(__file__).parent.parent),
+        "manifest_name": args.manifest.stem,
+    }
 
     # Actually search for C defines within config
     unused_defines = set(manifest.get("c_defines", {}).keys())
@@ -512,8 +441,7 @@ def main():
 
                         # Make sure that we do not have conflicting defines provided over the command line
                         assert not any(
-                            c["name"] == define
-                            for c in output_project.get("define", [])
+                            c["name"] == define for c in base_project.get("define", [])
                         )
                         new_config_h_lines[index - 1] = "#if 1"
                     elif "#warning" in prev_line:
@@ -599,13 +527,12 @@ def main():
 
     makefile.write_text(makefile_contents)
 
+    # fmt: off
     subprocess.run(
-        [
+        [   
             "make",
-            "-C",
-            args.build_dir,
-            "-f",
-            f"{base_project_name}.Makefile",
+            "-C", args.build_dir,
+            "-f", f"{base_project_name}.Makefile",
             f"-j{multiprocessing.cpu_count()}",
             f"ARM_GCC_DIR={toolchain}",
             f"POST_BUILD_EXE={args.postbuild}",
@@ -613,6 +540,7 @@ def main():
         ],
         check=True,
     )
+    # fmt: on
 
     # Read the metadata extracted from the source and build trees
     extracted_gbl_metadata = json.loads(
