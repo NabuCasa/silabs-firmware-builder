@@ -389,7 +389,6 @@ def main():
             "--project-file", base_project_slcp.resolve(),
             "--export-destination", args.build_dir.resolve(),
             "--copy-proj-sources",
-            "--copy-sdk-sources",
             "--new-project",
             "--toolchain", "toolchain_gcc",
             "--sdk", sdk,

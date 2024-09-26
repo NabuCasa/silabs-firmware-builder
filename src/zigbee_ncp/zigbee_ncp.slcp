@@ -26,7 +26,13 @@ component:
   - id: zigbee_debug_basic
   - id: zigbee_debug_extended
 
+define:
+  - name: EMBER_CUSTOM_MAC_FILTER_TABLE_SIZE
+    value: 15
+
 configuration:
+  - name: SL_CLI_MAX_INPUT_ARGUMENTS
+    value: 16
   - name: SL_BOARD_ENABLE_VCOM
     value: 1
   - name: SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE
