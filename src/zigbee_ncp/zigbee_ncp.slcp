@@ -25,6 +25,7 @@ component:
   - id: zigbee_ncp_uart_hardware
   - id: zigbee_debug_basic
   - id: zigbee_debug_extended
+  - id: rail_util_rssi
 
 define:
   - name: EMBER_CUSTOM_MAC_FILTER_TABLE_SIZE
