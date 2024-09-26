@@ -25,6 +25,10 @@ source:
   - path: main.c
   - path: app.c
 
+define:
+  - name: OPENTHREAD_CONFIG_DEFAULT_TRANSMIT_POWER
+    value: 6
+
 configuration:
   - name: SL_BOARD_ENABLE_VCOM
     value: 1
