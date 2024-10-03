@@ -2,7 +2,7 @@
  * @file cmds_management.c
  * @copyright 2022 Silicon Laboratories Inc.
  */
-
+#include <assert.h>
 #include <app.h>
 #include <cmds_management.h>
 #include <ZW_application_transport_interface.h>
@@ -11,12 +11,12 @@
 #include <serialapi_file.h>
 #include <ZAF_Common_interface.h>
 #include <ZAF_types.h>
+#include <ZAF_version.h>
 #include <string.h>
 #include <zpal_misc.h>
 
 //#define DEBUGPRINT
 #include <DebugPrint.h>
-#include "zw_build_no.h"
 
 #ifdef ZW_CONTROLLER
 #include <ZW_controller_api.h>
@@ -44,31 +44,6 @@
  */
 #define MAX( x, y ) ( ( x ) > ( y ) ? ( x ) : ( y ) )
 #endif // MAX
-
-static const serial_api_setup_cmd_get_region_info_answer_t regions_info[] = {
-  {.region=REGION_EU,    .zw_classic=1, .zw_lr=0, .reserved=0, .included_region=REGION_UNDEFINED},
-  {.region=REGION_US,    .zw_classic=1, .zw_lr=0, .reserved=0, .included_region=REGION_UNDEFINED},
-  {.region=REGION_ANZ,   .zw_classic=1, .zw_lr=0, .reserved=0, .included_region=REGION_UNDEFINED},
-  {.region=REGION_HK,    .zw_classic=1, .zw_lr=0, .reserved=0, .included_region=REGION_UNDEFINED},
-  {.region=REGION_IN,    .zw_classic=1, .zw_lr=0, .reserved=0, .included_region=REGION_UNDEFINED},
-  {.region=REGION_IL,    .zw_classic=1, .zw_lr=0, .reserved=0, .included_region=REGION_UNDEFINED},
-  {.region=REGION_RU,    .zw_classic=1, .zw_lr=0, .reserved=0, .included_region=REGION_UNDEFINED},
-  {.region=REGION_CN,    .zw_classic=1, .zw_lr=0, .reserved=0, .included_region=REGION_UNDEFINED},
-  {.region=REGION_US_LR, .zw_classic=1, .zw_lr=1, .reserved=0, .included_region=REGION_US},
-  {.region=REGION_JP,    .zw_classic=1, .zw_lr=0, .reserved=0, .included_region=REGION_UNDEFINED},
-  {.region=REGION_KR,    .zw_classic=1, .zw_lr=0, .reserved=0, .included_region=REGION_UNDEFINED},
-};
-#define REGIONS_INFO_COUNT   (sizeof(regions_info)/sizeof(regions_info[0]))
-//default answer in case the requested region is not found in the regions_info table.
-static const serial_api_setup_cmd_get_region_info_answer_t unknown_region_info =
-{
-  .region = REGION_UNDEFINED,
-  .zw_classic = 0,
-  .zw_lr = 0,
-  .reserved = 0,
-  .included_region = 0
-};
-#define REGION_INFO_SIZE  (sizeof(serial_api_setup_cmd_get_region_info_answer_t))
 
 void func_id_serial_api_get_init_data(__attribute__((unused)) uint8_t inputLength,
                                       __attribute__((unused)) const uint8_t *pInputBuffer,
@@ -101,7 +76,7 @@ void func_id_serial_api_get_init_data(__attribute__((unused)) uint8_t inputLengt
   BYTE_IN_AR(pOutputBuffer, 3 + (ZW_MAX_NODES / 8)) = zpal_get_chip_type();
   BYTE_IN_AR(pOutputBuffer, 4 + (ZW_MAX_NODES / 8)) = zpal_get_chip_revision();
   *pOutputLength += (ZW_MAX_NODES / 8);
-  ASSERT(*pOutputLength <= 34);  // Elsewhere, like in zwapi_init.c, the pOutputBuffer is hardcoded to 34 bytes in lenght.
+  assert(*pOutputLength <= 34);  // Elsewhere, like in zwapi_init.c, the pOutputBuffer is hardcoded to 34 bytes in lenght.
 #else
   BYTE_IN_AR(pOutputBuffer, 1) |= GET_INIT_DATA_FLAG_SLAVE_API; /* Flag byte */
   BYTE_IN_AR(pOutputBuffer, 2) = 0;                             /* node bitmask length */
@@ -124,7 +99,7 @@ void func_id_serial_api_get_LR_nodes(__attribute__((unused)) uint8_t inputLength
    * This Assert is here to remind us to update this function, if in the future the number of supported nodes increases.
    * In which case the MAX_LR_NODEMASK_LENGTH define will become greater than 128
    */
-  STATIC_ASSERT(MAX_LR_NODEMASK_LENGTH <= 128, STATIC_ASSERT_MAX_LR_NODEMASK_LENGTH_to_big);
+  _Static_assert(MAX_LR_NODEMASK_LENGTH <= 128, "STATIC_ASSERT_MAX_LR_NODEMASK_LENGTH_to_big");
 
   uint8_t bitmaskOffset = pInputBuffer[0];
   *pOutputLength = 3 + MAX_LR_NODEMASK_LENGTH;
@@ -177,7 +152,8 @@ void func_id_serial_api_setup(uint8_t inputLength,
   uint8_t i=0;
   uint8_t cmdRes;
   zpal_radio_region_t rfRegion;
-  zpal_tx_power_t iPowerLevel, iPower0dbmMeasured;
+  zpal_tx_power_t iPowerLevel = 0;
+  zpal_tx_power_t iPower0dbmMeasured = 0;
 
   /* We assume operation is nonesuccessful */
   cmdRes = false;
@@ -227,8 +203,6 @@ void func_id_serial_api_setup(uint8_t inputLength,
     BITMASK_ADD_CMD(supportedBitmask, SERIAL_API_SETUP_CMD_TX_GET_MAX_LR_PAYLOAD_SIZE);   // (17)
     BITMASK_ADD_CMD(supportedBitmask, SERIAL_API_SETUP_CMD_TX_POWERLEVEL_SET_16_BIT);     // (18)
     BITMASK_ADD_CMD(supportedBitmask, SERIAL_API_SETUP_CMD_TX_POWERLEVEL_GET_16_BIT);     // (19)
-    BITMASK_ADD_CMD(supportedBitmask, SERIAL_API_SETUP_CMD_GET_SUPPORTED_REGION);         // (21)
-    BITMASK_ADD_CMD(supportedBitmask, SERIAL_API_SETUP_CMD_GET_REGION_INFO);              // (22)
 
     /* Currently supported command with the highest value is SERIAL_API_SETUP_CMD_NODEID_BASETYPE_SET.
      No commands after it. */
@@ -271,7 +245,7 @@ void func_id_serial_api_setup(uint8_t inputLength,
     {
       rfRegion = pInputBuffer[1];
       /* Check if the RF Region value is valid, and then store it in flash  */
-      if ((rfRegion <= REGION_US_LR) || (rfRegion == REGION_JP) || (rfRegion == REGION_KR))
+      if (true == isRfRegionValid(rfRegion))
       {
         /* Save into nvm */
         cmdRes = SaveApplicationRfRegion(rfRegion);
@@ -280,52 +254,10 @@ void func_id_serial_api_setup(uint8_t inputLength,
     BYTE_IN_AR(pOutputBuffer, i++) = cmdRes;
     break;
 
-  case SERIAL_API_SETUP_CMD_GET_SUPPORTED_REGION:
-  {
-    uint8_t supported_region_count = 0;
-    uint8_t region_count_index = i;
-    i++;  //skip suported region count, move to first region value;
-    for (rfRegion = REGION_EU; rfRegion <= REGION_US_LR; rfRegion++) {
-      if (true == isRfRegionValid(rfRegion)) {
-        supported_region_count++;
-        pOutputBuffer[i] = (uint8_t) rfRegion;
-        i++;
-      }
-    }
-    for (rfRegion = REGION_JP; rfRegion <= REGION_KR; rfRegion++) {
-      if (true == isRfRegionValid(rfRegion)) {
-        supported_region_count++;
-        pOutputBuffer[i] = (uint8_t) rfRegion;
-        i++;
-      }
-    }
-    pOutputBuffer[region_count_index] = supported_region_count;
-    break;
-  }
-
-  case SERIAL_API_SETUP_CMD_GET_REGION_INFO:
-  {
-    uint8_t info_idx;
-    //search for the requested region in the regions_info table.
-    for (info_idx = 0; info_idx < REGIONS_INFO_COUNT; info_idx++) {
-      if (regions_info[info_idx].region == pInputBuffer[SAPI_SETUP_GET_REGION_INFO_RX_IDX_REGION]) {
-        break;
-      }
-    }
-    // Copy the answer in the output buffer.
-    if (info_idx < REGIONS_INFO_COUNT) {
-      memcpy(&(pOutputBuffer[i]), &(regions_info[info_idx]), REGION_INFO_SIZE);
-    } else {
-      //region not found, answer the unknown region info.
-      memcpy(&(pOutputBuffer[i]), &unknown_region_info, REGION_INFO_SIZE);
-    }
-    i += REGION_INFO_SIZE;
-    break;
-  }
-
   case SERIAL_API_SETUP_CMD_TX_POWERLEVEL_SET:
   {
-    zpal_tx_power_t iTxPower, iAdjust;
+    zpal_tx_power_t iTxPower;
+    zpal_tx_power_t iAdjust;
     /**
      *  HOST->ZW: SERIAL_API_SETUP_CMD_TX_POWER_SET | NormalTxPowerLevel | Measured0dBmPower
      *  ZW->HOST: SERIAL_API_SETUP_CMD_TX_POWER_SET | cmdRes
@@ -378,7 +310,8 @@ void func_id_serial_api_setup(uint8_t inputLength,
 
   case SERIAL_API_SETUP_CMD_TX_POWERLEVEL_SET_16_BIT:
   {
-    zpal_tx_power_t iTxPower, iAdjust;
+    zpal_tx_power_t iTxPower;
+    zpal_tx_power_t iAdjust;
     zpal_tx_power_t iTxPowerMaxSupported;
     /**
      *  HOST->ZW: SERIAL_API_SETUP_CMD_TX_POWER_SET | NormalTxPowerLevel (MSB) |NormalTxPowerLevel (LSB) | Measured0dBmPower (MSB)| Measured0dBmPower (LSB)
@@ -477,7 +410,7 @@ void func_id_serial_api_setup(uint8_t inputLength,
      *  ZW->HOST: SERIAL_API_SETUP_CMD_MAX_LR_TX_PWR_GET | maxtxpower (16-bit)
      */
     {
-      int16_t readout;
+      int16_t readout = 0;
       ReadApplicationMaxLRTxPwr(&readout);
       BYTE_IN_AR(pOutputBuffer, i++) = (uint8_t)((readout >> 8) & 0xFF);
       BYTE_IN_AR(pOutputBuffer, i++) = (uint8_t)(readout & 0xFF);
@@ -544,19 +477,15 @@ void func_id_zw_get_protocol_version(uint8_t inputLength,
   // Defined in the specs to be the max size of the git hash
   const uint8_t git_hash_max_size = 16;
   uint8_t len = 0;
-#if defined(GIT_HASH_ID)
-  uint8_t git_hash_id[40] = GIT_HASH_ID;
-#else /* defined(GIT_HASH_ID) */
-  uint8_t *git_hash_id = ZW_GetProtocolGitHash();
-#endif /* defined(GIT_HASH_ID) */
+  const uint8_t *git_hash_id = ZW_GetProtocolGitHash();
 
   const SApplicationHandles *pAppHandles = ZAF_getAppHandle();
   pOutputBuffer[len++] = pAppHandles->pProtocolInfo->eProtocolType;
   pOutputBuffer[len++] = pAppHandles->pProtocolInfo->ProtocolVersion.Major;
   pOutputBuffer[len++] = pAppHandles->pProtocolInfo->ProtocolVersion.Minor;
   pOutputBuffer[len++] = pAppHandles->pProtocolInfo->ProtocolVersion.Revision;
-  pOutputBuffer[len++] =  (uint8_t)(ZAF_BUILD_NO >> 8);
-  pOutputBuffer[len++] =  (uint8_t)(ZAF_BUILD_NO );
+  pOutputBuffer[len++] =  (uint8_t)(ZAF_GetBuildNumber() >> 8);
+  pOutputBuffer[len++] =  (uint8_t)(ZAF_GetBuildNumber() );
   for (uint32_t i = 0 ; i < git_hash_max_size; i++,len++)
   {
     pOutputBuffer[len] = git_hash_id[i];
@@ -575,8 +504,8 @@ bool InitiateShutdown( ZW_Void_Callback_t pCallback)
   if (EQUEUENOTIFYING_STATUS_SUCCESS == QueueNotifyingSendToBack(pAppHandles->pZwCommandQueue, (uint8_t *)&shutdown, 0))
   {
     // Wait for protocol to handle command
-    SZwaveCommandStatusPackage result = { 0 };
-    if (GetCommandResponse(&result, EZWAVECOMMANDSTATUS_ZW_INITIATE_SHUTDOWN))
+    SZwaveCommandStatusPackage result = { .eStatusType = EZWAVECOMMANDSTATUS_ZW_INITIATE_SHUTDOWN };
+    if (GetCommandResponse(&result, result.eStatusType))
     {
       return result.Content.InitiateShutdownStatus.result;
     }

@@ -13,7 +13,6 @@ component:
   - id: zw_apputilities_minimal
   - id: zw_app_timer_deep_sleep
   - id: zw_api_zw
-  - id: zw_api_serialapi
   - id: zw_api_controller
   - id: zw_dcdc_override
   - id: ZW_MIGRATION_FROM_7_20
@@ -55,19 +54,17 @@ include:
       - path: nvm_backup_restore.h
       - path: serialapi_file.h
       - path: app.h
+      - path: common_supported_func.h
       - path: slave_supported_func.h
       - path: utils.h
       - path: virtual_slave_node_info.h
+      - path: SerialAPI.h
   - path: .
     file_list:
       - path: "zaf_config_security.h"
 config_file:
-  # For series 1
-  - path: ./zaf_config_series1.h
-    file_id: zaf_config
-    condition: [device_series_1]
   # For series 2
-  - path: ./zaf_config_series2.h
+  - path: zaf_config.h
     file_id: zaf_config
     condition: [device_series_2]
 configuration:
@@ -102,12 +99,6 @@ configuration:
   - name: configTIMER_TASK_PRIORITY
     value: 55
   - name: configMAX_SYSCALL_INTERRUPT_PRIORITY
-    value: 32
-    condition: [device_series_1]
-  - name: configKERNEL_INTERRUPT_PRIORITY
-    value: 224
-    condition: [device_series_1]
-  - name: configMAX_SYSCALL_INTERRUPT_PRIORITY
     value: 16
     condition: [device_series_2]
   - name: configKERNEL_INTERRUPT_PRIORITY
@@ -126,12 +117,6 @@ configuration:
   - name: SL_SLEEPTIMER_PERIPHERAL
     value: SL_SLEEPTIMER_PERIPHERAL_BURTC
     condition: ["device_series_2"]
-  - name: configTIMER_QUEUE_LENGTH
-    value: 4
-    condition: [device_sdid_95]
-  - name: configTOTAL_HEAP_SIZE
-    value: 256
-    condition: [device_sdid_95]
   - name: SL_STACK_SIZE
     value: 1280
   - name: SL_HEAP_SIZE
@@ -146,14 +131,6 @@ configuration:
 define:
   - name: APP_PROPERTIES_CONFIG_FILE
     value: <application_properties_config.h>
-  - name: MAX_CALLBACK_QUEUE
-    value: 4
-    condition: [device_sdid_95]
-  - name: MAX_UNSOLICITED_QUEUE
-    value: 4
-    condition: [device_sdid_95]
-  - name: LCD_PRESENT
-    value: 1
 
 post_build:
   profile: zwave_ncp_serial_api_controller
@@ -165,3 +142,7 @@ filter:
     value: ["NCP"]
   - name: "Project Difficulty"
     value: ["Beginner"]
+
+template_contribution:
+  - name: rodata_sections # Ensure memory section define by Z-Wave stack are placed in the rodata section
+    value: zw_cmd_handlers
