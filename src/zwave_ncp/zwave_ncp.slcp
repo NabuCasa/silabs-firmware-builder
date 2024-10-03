@@ -131,6 +131,8 @@ configuration:
 define:
   - name: APP_PROPERTIES_CONFIG_FILE
     value: <application_properties_config.h>
+  - name: LCD_PRESENT
+    value: 1
 
 post_build:
   profile: zwave_ncp_serial_api_controller
