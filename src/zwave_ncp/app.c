@@ -903,7 +903,7 @@ ApplicationInitSW(void)
       compl_workbuf[6 + i] = apCCLists[0]->pCommandClasses[i];
     }
   }
-  eSerialAPIStartedCapabilities capabilities = (RadioConfig->eRegion == REGION_US_LR) ? SERIAL_API_STARTED_CAPABILITIES_L0NG_RANGE : 0;
+  eSerialAPIStartedCapabilities capabilities = (RadioConfig->eRegion == REGION_US_LR || RadioConfig->eRegion == REGION_EU_LR) ? SERIAL_API_STARTED_CAPABILITIES_L0NG_RANGE : 0;
   compl_workbuf[6 + i] = capabilities;
 
   uint32_t zpal_reset_info = 0;
