@@ -20,18 +20,6 @@ import multiprocessing
 
 from ruamel.yaml import YAML
 
-# Matches all known chip and board names. Some varied examples:
-#   MGM210PB32JIA EFM32GG890F512 MGM12P22F1024GA EZR32WG330F128R69 EFR32FG14P231F256GM32
-CHIP_REGEX = re.compile(r"^(?:[a-z]+\d+){2,5}[a-z]*$", flags=re.IGNORECASE)
-BOARD_REGEX = re.compile(r"^brd\d+[a-z](?:_.+)?$", flags=re.IGNORECASE)
-GRAPH_COMPONENT_REGEX = re.compile(r"^(\w+)|- (\w+)", flags=re.MULTILINE)
-
-CHIP_SPECIFIC_COMPONENTS = {
-    "sl_system": "sl_system",
-    "sl_memory": "sl_memory",
-    # There are only a few components whose filename doesn't match the component name
-    "freertos": "freertos_kernel",
-}
 
 SLC = ["slc", "--daemon", "--daemon-timeout", "1"]
 
@@ -74,9 +62,7 @@ def get_toolchain_default_paths() -> list[pathlib.Path]:
 def get_sdk_default_paths() -> list[pathlib.Path]:
     """Return the path to the SDK."""
     if sys.platform == "darwin":
-        return list(
-            pathlib.Path("~/SimplicityStudio/SDKs").expanduser().glob("gecko_sdk*")
-        )
+        return list(pathlib.Path("~/SimplicityStudio/SDKs").expanduser().glob("*_sdk*"))
 
     return []
 
@@ -143,14 +129,17 @@ def load_sdks(paths: list[pathlib.Path]) -> dict[pathlib.Path, str]:
     sdks = {}
 
     for sdk in paths:
+        sdk_file = next(sdk.glob("*_sdk.slcs"))
+
         try:
-            sdk_meta = yaml.load((sdk / "gecko_sdk.slcs").read_text())
+            sdk_meta = yaml.load(sdk_file.read_text())
         except FileNotFoundError:
             LOGGER.warning("SDK %s is not valid, skipping", sdk)
             continue
 
-        version = sdk_meta["sdk_version"]
-        sdks[sdk] = f"gecko_sdk:{version}"
+        sdk_id = sdk_meta["id"]
+        sdk_version = sdk_meta["sdk_version"]
+        sdks[sdk] = f"{sdk_id}:{sdk_version}"
 
     return sdks
 
@@ -284,7 +273,10 @@ def main():
 
     # Ensure we can load the correct SDK and toolchain
     sdks = load_sdks(args.sdks)
-    sdk = next(path for path, version in sdks.items() if version == manifest["sdk"])
+    sdk, sdk_version = next(
+        (path, version) for path, version in sdks.items() if version == manifest["sdk"]
+    )
+    sdk_name = sdk_version.split(":", 1)[0]
 
     toolchains = load_toolchains(args.toolchains)
     toolchain = next(
@@ -492,7 +484,7 @@ def main():
     extra_compiler_flags = [
         f"-ffile-prefix-map={str(src.absolute())}={dst}"
         for src, dst in {
-            sdk: "/gecko_sdk",
+            sdk: f"/{sdk_name}",
             args.build_dir: "/src",
             toolchain: "/toolchain",
         }.items()
