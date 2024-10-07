@@ -8,11 +8,9 @@ It uses the Silicon Labs Gecko SDK and proprietary Silicon Labs tools such as th
 Silicon Labs Configurator (slc) and the Simplicity Commander standalone utility.
 
 ## Background
-The projects contained within this repository are configured for the BRD4001A dev kit
-with a BRD4179B (EFR32MG21) module. This allows base projects to be debugged using
-the Simplicity Studio IDE. These base projects are then retargeted for other boards
-using manifest files. For example, the [`skyconnect_ncp-uart-hw.yaml`](https://github.com/NabuCasa/silabs-firmware-builder/blob/main/manifests/skyconnect_ncp-uart-hw.yaml)
-manifest file retargets the base firmware to the SkyConnect/Connect ZBT-1.
+The project templates in this repository are configured and built for specific boards
+using manifest files. For example, the [`skyconnect_zigbee_ncp.yaml`](https://github.com/NabuCasa/silabs-firmware-builder/blob/main/manifests/skyconnect_zigbee_ncp.yaml)
+manifest file configures the Zigbee firmware for the SkyConnect/Connect ZBT-1.
 
 ## Setting up Simplicity Studio (for development)
 If you are going to be developing using Simplicity Studio, note that each project can
@@ -35,11 +33,9 @@ Simplicity Studio SDK management workflow and manually manage SDKs:
 
 Repeat this process for every necessary SDK version.
 
-Base projects can now be built normally.
-
 > [!TIP]
 > If you have build issues after switching commits, make sure to delete any
-> `gecko_sdk_*` folders from the Simplicity working tree.
+> `gecko_sdk_*` and `template` folders from the Simplicity working tree.
 
 ## Building with a firmware manifest (for building device firmware)
 Command line building requires:

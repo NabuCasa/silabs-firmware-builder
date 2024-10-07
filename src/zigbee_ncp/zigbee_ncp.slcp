@@ -1,0 +1,71 @@
+project_name: zigbee_ncp
+label: Zigbee - NCP
+package: Zigbee
+category: Zigbee Application
+quality: production
+description: Zigbee NCP firmware. Derived from the `ncp-uart-hw` example Gecko SDK project.
+author: Nabu Casa
+
+component:
+  - id: iostream_usart
+    instance:
+      - vcom
+  - id: zigbee_debug_print
+  - id: iostream_vuart
+  - id: token_manager
+  - id: zigbee_token_interface
+  - id: zigbee_mfglib
+  - id: zigbee_pro_stack
+  - id: zigbee_source_route
+  - id: zigbee_gp
+  - id: zigbee_r22_support
+  - id: zigbee_security_link_keys
+  - id: zigbee_zll
+  - id: zigbee_app_framework_common
+  - id: zigbee_ncp_uart_hardware
+  - id: zigbee_debug_basic
+  - id: zigbee_debug_extended
+  - id: rail_util_rssi
+
+define:
+  - name: EMBER_CUSTOM_MAC_FILTER_TABLE_SIZE
+    value: 15
+
+configuration:
+  - name: SL_CLI_MAX_INPUT_ARGUMENTS
+    value: 16
+  - name: SL_BOARD_ENABLE_VCOM
+    value: 1
+  - name: SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE
+    value: usartHwFlowControlCtsAndRts
+  - name: SL_CLI_EXAMPLE_IOSTREAM_HANDLE
+    value: sl_iostream_vuart_handle
+  - name: NVM3_DEFAULT_NVM_SIZE
+    value: 36864
+    condition:
+      - device_series_1
+  - name: NVM3_DEFAULT_NVM_SIZE
+    value: 32768
+    condition:
+      - device_series_2
+  # If using zigbee_secure_key_storage we do not need to support backwards
+  # compatibility because we have never deployed images with keys in PSA
+  # As a result, these lines end up saving some code space
+  - name: SL_PSA_ITS_SUPPORT_V1_DRIVER
+    value: 0
+  - name: SL_PSA_ITS_SUPPORT_V2_DRIVER
+    value: 0
+  - name: SL_PSA_ITS_SUPPORT_V3_DRIVER
+    value: 1
+
+source:
+  - path: main.c
+  - path: app.c
+
+filter:
+  - name: Wireless Technology
+    value: [Zigbee]
+  - name: Device Type
+    value: [NCP]
+  - name: Project Difficulty
+    value: [Advanced]
