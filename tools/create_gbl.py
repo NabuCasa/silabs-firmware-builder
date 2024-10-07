@@ -154,7 +154,7 @@ def main():
     }
 
     # Compute the dynamic metadata
-    gbl_dynamic = gbl_metadata.get("dynamic", [])
+    gbl_dynamic = [k for k, v in gbl_metadata.items() if v == "dynamic"]
 
     if "ezsp_version" in gbl_dynamic:
         gbl_dynamic.remove("ezsp_version")

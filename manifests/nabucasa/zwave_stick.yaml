@@ -7,7 +7,7 @@ toolchain: "12.2.1.20221205"
 
 gbl:
   fw_type: zwave_ncp
-  dynamic: ["zwave_version"]
+  zwave_version: dynamic
   baudrate: 115200
   compression: lz4
   sign_key: "{SDK_DIR}/protocol/z-wave/platform/SiliconLabs/PAL/BootLoader/controller-keys/controller_sign.key"

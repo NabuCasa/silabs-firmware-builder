@@ -7,7 +7,7 @@ toolchain: "12.2.1.20221205"
 
 gbl:
   fw_type: zigbee_ncp
-  dynamic: ["ezsp_version"]
+  ezsp_version: dynamic
   baudrate: 115200
 
 configuration:
