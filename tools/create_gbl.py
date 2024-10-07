@@ -150,6 +150,7 @@ def main():
         "metadata_version": 1,
         "sdk_version": slcp["sdk"]["version"],
         "fw_type": gbl_metadata.get("fw_type"),
+        "fw_variant": gbl_metadata.get("fw_variant"),
         "baudrate": gbl_metadata.get("baudrate"),
     }
 
