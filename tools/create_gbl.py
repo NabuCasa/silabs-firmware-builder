@@ -147,14 +147,15 @@ def main():
 
     # Prepare the GBL metadata
     metadata = {
-        "metadata_version": 1,
+        "metadata_version": 2,
         "sdk_version": slcp["sdk"]["version"],
         "fw_type": gbl_metadata.get("fw_type"),
+        "fw_variant": gbl_metadata.get("fw_variant"),
         "baudrate": gbl_metadata.get("baudrate"),
     }
 
     # Compute the dynamic metadata
-    gbl_dynamic = gbl_metadata.get("dynamic", [])
+    gbl_dynamic = [k for k, v in gbl_metadata.items() if v == "dynamic"]
 
     if "ezsp_version" in gbl_dynamic:
         gbl_dynamic.remove("ezsp_version")
@@ -190,10 +191,10 @@ def main():
 
     if "zwave_version" in gbl_dynamic:
         gbl_dynamic.remove("zwave_version")
-        zwave_esf_props = parse_properties_file(
-            (gsdk_path / "protocol/z-wave/esf.properties").read_text()
+        zwave_props = parse_properties_file(
+            next((gsdk_path / "protocol/z-wave/").glob("*.properties")).read_text()
         )
-        metadata["zwave_version"] = zwave_esf_props["version"][0]
+        metadata["zwave_version"] = zwave_props["version"][0]
 
     if "ot_rcp_version" in gbl_dynamic:
         gbl_dynamic.remove("ot_rcp_version")

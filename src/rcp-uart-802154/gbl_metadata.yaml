@@ -1,3 +1,0 @@
-baudrate: 460800
-dynamic: [ezsp_version, ot_rcp_version, cpc_version]
-fw_type: rcp-uart-802154
