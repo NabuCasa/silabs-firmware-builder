@@ -4,8 +4,8 @@ ZBT-1/SkyConnect and the Home Assistant Yellow's IEEE 802.15.4 radio. The firmwa
 manifests are entirely generic, however, and are intended to be written easily for any
 Silicon Labs EFR32 device.
 
-It uses the Silicon Labs Gecko SDK and proprietary Silicon Labs tools such as the
-Silicon Labs Configurator (slc) and the Simplicity Commander standalone utility.
+It uses the Silicon Labs Gecko/Simplicity SDK and proprietary Silicon Labs tools such as
+the Silicon Labs Configurator (slc) and the Simplicity Commander standalone utility.
 
 ## Background
 The project templates in this repository are configured and built for specific boards
@@ -14,34 +14,32 @@ manifest file configures the Zigbee firmware for the SkyConnect/Connect ZBT-1.
 
 ## Setting up Simplicity Studio (for development)
 If you are going to be developing using Simplicity Studio, note that each project can
-potentially use a different Gecko SDK release. It is recommended to forego the typical
+potentially use a different Simplicity SDK release. It is recommended to forego the typical
 Simplicity Studio SDK management workflow and manually manage SDKs:
 
-1. Clone a specific version of the Gecko SDK:
+1. Clone a specific version of the Simplicity SDK:
    ```bash
    # For macOS
-   mkdir ~/SimplicityStudio/SDKs/gecko_sdk_4.4.2
-   cd ~/SimplicityStudio/SDKs/gecko_sdk_4.4.2
+   mkdir ~/SimplicityStudio/SDKs/simplicity_sdk_2024.6.2
+   cd ~/SimplicityStudio/SDKs/simplicity_sdk_2024.6.2
 
-   git clone -b v4.4.2 https://github.com/SiliconLabs/gecko_sdk .
+   git clone -b v2024.6.2 https://github.com/SiliconLabs/simplicity_sdk .
    git checkout -b branch_tag
    ```
 
 2. Open preferences, navigate to **Simplicity Studio > SDKs**, click the `Add SDK...` button, and browse to the above location.
-3. Once the SDK is added, select its entry and click `Add Extension...`.
-4. In this repo, add the extensions under `gecko_sdk_extensions`.
 
 Repeat this process for every necessary SDK version.
 
 > [!TIP]
 > If you have build issues after switching commits, make sure to delete any
-> `gecko_sdk_*` and `template` folders from the Simplicity working tree.
+> `simplicity_sdk_*`, `gecko_sdk_*`, and `template` folders from the project working tree.
 
 ## Building with a firmware manifest (for building device firmware)
 Command line building requires:
 - [`slc-cli`](https://docs.silabs.com/simplicity-studio-5-users-guide/latest/ss-5-users-guide-tools-slc-cli/02-installation)
 - [Simplicity Commander](https://www.silabs.com/developers/mcu-programming-options) (`commander`)
-- The exact Gecko SDK version required by the project. Note that this doesn't have to be a Git working tree, you can use [a GitHub release](https://github.com/SiliconLabs/gecko_sdk/releases).
+- The exact Simplicity SDK version required by the project. Note that this doesn't have to be a Git working tree, you can use [a GitHub release](https://github.com/SiliconLabs/gecko_sdk/releases).
 - A compatible toolchain. Take a look at the `Dockerfile` for the necessary toolchains.
 
 > [!TIP]
@@ -57,8 +55,8 @@ Command line building requires:
 SDK extensions for every SDK you plan to use:
 
 ```bash
-slc signature trust --sdk ~/SimplicityStudio/SDKs/gecko_sdk_4.4.2
-slc signature trust --sdk ~/SimplicityStudio/SDKs/gecko_sdk_4.4.2 --extension-path ~/SimplicityStudio/SDKs/gecko_sdk_4.4.2/extension/nc_efr32_watchdog_extension
+slc signature trust --sdk ~/SimplicityStudio/SDKs/simplicity_sdk_2024.6.2
+slc signature trust --sdk ~/SimplicityStudio/SDKs/simplicity_sdk_2024.6.2 --extension-path ~/SimplicityStudio/SDKs/simplicity_sdk_2024.6.2/extension/nc_efr32_watchdog_extension
 ```
 
 `tools/build_project.py` is the main entry point for building firmwares. Provide paths
@@ -73,9 +71,9 @@ tool will automatically determine which SDK and toolchain to use.
 pip install ruamel.yaml  # Only dependency
 
 python tools/build_project.py \
-    # The following SDK and toolchain flags can be omitted on macOS
-    --sdk ~/SimplicityStudio/SDKs/gecko_sdk_4.4.0 \
-    --sdk ~/SimplicityStudio/SDKs/gecko_sdk_4.4.2 \
+    # The following SDK and toolchain flags can be omitted on macOS, they are all autodetected
+    --sdk ~/SimplicityStudio/SDKs/gecko_sdk_4.4.4 \
+    --sdk ~/SimplicityStudio/SDKs/simplicity_sdk_2024.6.0 \
     --toolchain '/Applications/Simplicity Studio.app/Contents/Eclipse/developer/toolchains/gnu_arm/10.3_2021.10' \
     --toolchain '/Applications/Simplicity Studio.app/Contents/Eclipse/developer/toolchains/gnu_arm/12.2.rel1_2023.7' \
 
