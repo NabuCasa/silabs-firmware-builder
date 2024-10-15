@@ -17,6 +17,7 @@ import argparse
 import contextlib
 import subprocess
 import multiprocessing
+from datetime import datetime, timezone
 
 from ruamel.yaml import YAML
 
@@ -402,6 +403,7 @@ def main():
     value_template_env = {
         "git_repo_hash": get_git_commit_id(repo=pathlib.Path(__file__).parent.parent),
         "manifest_name": args.manifest.stem,
+        "now": datetime.now(timezone.utc),
     }
 
     # Actually search for C defines within config
