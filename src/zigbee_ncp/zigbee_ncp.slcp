@@ -21,29 +21,28 @@ component:
   - id: zigbee_r22_support
   - id: zigbee_security_link_keys
   - id: zigbee_zll
-  - id: zigbee_app_framework_common
+  - id: zigbee_system_common
   - id: zigbee_ncp_uart_hardware
   - id: zigbee_debug_basic
   - id: zigbee_debug_extended
   - id: rail_util_rssi
+  - id: clock_manager
 
 define:
   - name: EMBER_CUSTOM_MAC_FILTER_TABLE_SIZE
     value: 15
 
 configuration:
-  - name: SL_CLI_MAX_INPUT_ARGUMENTS
-    value: 16
   - name: SL_BOARD_ENABLE_VCOM
     value: 1
   - name: SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE
     value: usartHwFlowControlCtsAndRts
+  - name: SL_CLI_MAX_INPUT_ARGUMENTS
+    value: 16
+  - name: SL_ZIGBEE_PACKET_BUFFER_HEAP_SIZE
+    value: SL_ZIGBEE_LARGE_PACKET_BUFFER_HEAP
   - name: SL_CLI_EXAMPLE_IOSTREAM_HANDLE
     value: sl_iostream_vuart_handle
-  - name: NVM3_DEFAULT_NVM_SIZE
-    value: 36864
-    condition:
-      - device_series_1
   - name: NVM3_DEFAULT_NVM_SIZE
     value: 32768
     condition:
