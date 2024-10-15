@@ -24,8 +24,10 @@
 
 #include "stack/include/message.h"
 #include "app/ncp/plugin/xncp/xncp.h"
+#include "em_usart.h"
 
 #include "config/xncp_config.h"
+#include "config/sl_iostream_usart_vcom_config.h"
 
 
 #define BUILD_UINT16(low, high)  (((uint16_t)(low) << 0) | ((uint16_t)(high) << 8))
@@ -57,15 +59,22 @@ typedef enum {
 
 
 typedef enum {
+  XNCP_FLOW_CONTROL_TYPE_SOFTWARE = 0x00,
+  XNCP_FLOW_CONTROL_TYPE_HARDWARE = 0x01,
+} XncpFlowControlType;
+
+typedef enum {
   XNCP_CMD_GET_SUPPORTED_FEATURES_REQ = 0x0000,
   XNCP_CMD_SET_SOURCE_ROUTE_REQ       = 0x0001,
   XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_REQ = 0x0002,
   XNCP_CMD_GET_BUILD_STRING_REQ       = 0x0003,
+  XNCP_CMD_GET_FLOW_CONTROL_TYPE_REQ  = 0x0004,
 
   XNCP_CMD_GET_SUPPORTED_FEATURES_RSP = XNCP_CMD_GET_SUPPORTED_FEATURES_REQ | 0x8000,
   XNCP_CMD_SET_SOURCE_ROUTE_RSP       = XNCP_CMD_SET_SOURCE_ROUTE_REQ       | 0x8000,
   XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_RSP = XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_REQ | 0x8000,
   XNCP_CMD_GET_BUILD_STRING_RSP       = XNCP_CMD_GET_BUILD_STRING_REQ       | 0x8000,
+  XNCP_CMD_GET_FLOW_CONTROL_TYPE_RSP  = XNCP_CMD_GET_FLOW_CONTROL_TYPE_REQ  | 0x8000,
 
   XNCP_CMD_UNKNOWN = 0xFFFF
 } XncpCommand;
@@ -375,6 +384,33 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       uint8_t value_length = strlen(XNCP_BUILD_STRING);
       memcpy(replyPayload + *replyPayloadLength, XNCP_BUILD_STRING, value_length);
       *replyPayloadLength += value_length;
+      break;
+    }
+
+    case XNCP_CMD_GET_FLOW_CONTROL_TYPE_REQ: {
+      rsp_command_id = XNCP_CMD_GET_FLOW_CONTROL_TYPE_RSP;
+      rsp_status = EMBER_SUCCESS;
+
+      XncpFlowControlType flow_control_type;
+
+      switch (SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE) {
+        case usartHwFlowControlCtsAndRts: {
+          flow_control_type = XNCP_FLOW_CONTROL_TYPE_HARDWARE;
+          break;
+        }
+
+        case usartHwFlowControlNone: {
+          flow_control_type = XNCP_FLOW_CONTROL_TYPE_SOFTWARE;
+          break;
+        }
+
+        default: {
+          flow_control_type = XNCP_FLOW_CONTROL_TYPE_SOFTWARE;
+          break;
+        }
+      }
+
+      replyPayload[(*replyPayloadLength)++] = (uint8_t)(flow_control_type & 0xFF);
       break;
     }
 
