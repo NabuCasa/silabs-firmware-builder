@@ -51,12 +51,6 @@ RUN \
     && unzip -q -d simplicity_sdk_2024.6.2 simplicity_sdk_2024.6.2.zip \
     && rm simplicity_sdk_2024.6.2.zip
 
-# Gecko SDK 4.4.4
-RUN \
-    curl -o gecko_sdk_4.4.4.zip -L https://github.com/SiliconLabs/gecko_sdk/releases/download/v4.4.4/gecko-sdk.zip \
-    && unzip -q -d gecko_sdk_4.4.4 gecko_sdk_4.4.4.zip \
-    && rm gecko_sdk_4.4.4.zip
-
 ARG USERNAME=builder
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
