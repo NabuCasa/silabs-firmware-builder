@@ -470,6 +470,20 @@ def main():
         LOGGER.error("Defines were unused, aborting: %s", unused_defines)
         sys.exit(1)
 
+    # JSON config
+    for json_config in manifest.get("json_config", []):
+        json_path = args.build_dir / json_config["file"]
+
+        subprocess.run(
+            [
+                "jq",
+                json_config["jq"],
+                json_path,
+                json_path,
+            ],
+            check=True,
+        )
+
     # Fix Gecko SDK bugs
     sl_rail_util_pti_config_h = args.build_dir / "config/sl_rail_util_pti_config.h"
 
