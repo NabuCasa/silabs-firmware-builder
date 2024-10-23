@@ -369,6 +369,23 @@ def main():
     with (args.build_dir / "gbl_metadata.yaml").open("w") as f:
         yaml.dump(manifest["gbl"], f)
 
+    # JSON config
+    for json_config in manifest.get("json_config", []):
+        json_path = build_template_path / json_config["file"]
+
+        result = subprocess.run(
+            [
+                "jq",
+                json_config["jq"],
+                json_path,
+            ],
+            capture_output=True,
+            check=True,
+        )
+
+        with open(json_path, "wb") as f:
+            f.write(result.stdout)
+
     # Next, generate a chip-specific project from the modified base project
     print(f"Generating project for {manifest['device']}")
 
@@ -467,20 +484,6 @@ def main():
     if unused_defines:
         LOGGER.error("Defines were unused, aborting: %s", unused_defines)
         sys.exit(1)
-
-    # JSON config
-    for json_config in manifest.get("json_config", []):
-        json_path = args.build_dir / json_config["file"]
-
-        subprocess.run(
-            [
-                "jq",
-                json_config["jq"],
-                json_path,
-                json_path,
-            ],
-            check=True,
-        )
 
     # Fix Gecko SDK bugs
     sl_rail_util_pti_config_h = args.build_dir / "config/sl_rail_util_pti_config.h"
