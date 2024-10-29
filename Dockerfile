@@ -23,7 +23,7 @@ RUN \
 
 RUN \
     virtualenv /opt/venv \
-    /opt/venv/pip install jq ruamel.yaml
+    && /opt/venv/pip install jq ruamel.yaml
 
 ENV PATH="/opt/venv/bin:$PATH"
 
