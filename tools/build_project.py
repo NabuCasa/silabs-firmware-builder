@@ -17,7 +17,7 @@ import argparse
 import contextlib
 import subprocess
 import multiprocessing
-from datetime import datetime, timezone
+from datetime import datetime
 
 from ruamel.yaml import YAML
 
@@ -28,6 +28,45 @@ LOGGER = logging.getLogger(__name__)
 
 
 yaml = YAML(typ="safe")
+
+# prefix components:
+TREE_SPACE = "    "
+TREE_BRANCH = "│   "
+# pointers:
+TREE_TEE = "├── "
+TREE_LAST = "└── "
+
+
+def tree(dir_path: pathlib.Path, prefix: str = ""):
+    """A recursive generator, given a directory Path object
+    will yield a visual tree structure line by line
+    with each line prefixed by the same characters
+    Source: https://stackoverflow.com/a/59109706
+    """
+    contents = list(dir_path.iterdir())
+    # contents each get pointers that are ├── with a final └── :
+    pointers = [TREE_TEE] * (len(contents) - 1) + [TREE_LAST]
+
+    for pointer, path in zip(pointers, contents):
+        yield prefix + pointer + path.name
+
+        if path.is_dir():  # extend the prefix and recurse:
+            extension = TREE_BRANCH if pointer == TREE_TEE else TREE_SPACE
+
+            # i.e. space because last, └── , above so no more |
+            yield from tree(path, prefix=prefix + extension)
+
+
+def log_tree(dir_path: pathlib.Path, prefix: str = ""):
+    LOGGER.info(f"Tree for {dir_path}:")
+
+    for line in tree(dir_path, prefix):
+        LOGGER.info(line)
+
+
+def log_subprocess_output(pipe, prefix: str = "subprocess"):
+    for line in iter(pipe.readline, b""):
+        LOGGER.info("[%s] %r", prefix, line)
 
 
 def evaulate_f_string(f_string: str, variables: dict[str, typing.Any]) -> str:
@@ -316,6 +355,8 @@ def main():
         ],
     )
 
+    log_tree(build_template_path)
+
     # We extend the base project with the manifest, since added components could have
     # extra dependencies
     (base_project_slcp,) = build_template_path.glob("*.slcp")
@@ -370,11 +411,74 @@ def main():
     with (args.build_dir / "gbl_metadata.yaml").open("w") as f:
         yaml.dump(manifest["gbl"], f)
 
+    zcl_config_zap = build_template_path / "config/zcl/zcl_config.zap"
+
+    if zcl_config_zap.exists():
+        date_code = datetime.today().strftime("%Y-%m-%d")
+        default_zap_changes = [
+            # Set software date code to day of build
+            f'(.endpointTypes[].clusters[].attributes[] | select(.name == "date code")).defaultValue = "{date_code}"',
+            # Set software build ID to SDK version
+            f'(.endpointTypes[].clusters[].attributes[] | select(.name == "sw build id")).defaultValue = "{sdk_version.split(":", 1)[1]}"',
+            # Set path
+            f'(.package[] | select(.type == "zcl-properties")).path = "{sdk}/app/zcl/zcl-zap.json"',
+            # Set path
+            f'(.package[] | select(.type == "gen-templates-json")).path = "{sdk}/protocol/zigbee/app/framework/gen-template/gen-templates.json"',
+        ]
+
+        for zap_change in default_zap_changes:
+            LOGGER.info("Default ZAP change: %s", zap_change)
+
+            result = subprocess.run(
+                [
+                    "jq",
+                    zap_change,
+                    zcl_config_zap,
+                ],
+                capture_output=True,
+            )
+
+            if result.returncode != 0:
+                LOGGER.error("jq stderr: %s\n%s", result.returncode, result.stderr)
+                sys.exit(1)
+
+            with open(zcl_config_zap, "wb") as f:
+                f.write(result.stdout)
+
+    # JSON config
+    for json_config in manifest.get("json_config", []):
+        json_path = build_template_path / json_config["file"]
+
+        if not json_path.exists():
+            raise ValueError(f"[{json_path}] does not exist")
+
+        device_spe_change = json_config["jq"]
+
+        LOGGER.info("Device-specific change in %s: %s", json_path, device_spe_change)
+
+        result = subprocess.run(
+            [
+                "jq",
+                device_spe_change,
+                json_path,
+            ],
+            capture_output=True,
+        )
+
+        if result.returncode != 0:
+            LOGGER.error("jq stderr: %s\n%s", result.returncode, result.stderr)
+            sys.exit(1)
+
+        with open(json_path, "wb") as f:
+            f.write(result.stdout)
+
+    log_tree(build_template_path)
+
     # Next, generate a chip-specific project from the modified base project
-    print(f"Generating project for {manifest['device']}")
+    LOGGER.info(f"Generating project for {manifest['device']}")
 
     # fmt: off
-    subprocess.run(
+    slc_result = subprocess.Popen(
         SLC
         + [
             "generate",
@@ -387,9 +491,21 @@ def main():
             "--sdk", sdk,
             "--output-type", args.build_system,
         ],
-        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT
     )
     # fmt: on
+
+    with slc_result.stdout:
+        log_subprocess_output(slc_result.stdout, "SLC generate")
+
+    slc_result_returncode = slc_result.wait()
+
+    if slc_result_returncode != 0:
+        LOGGER.error("[SLC generate] Error: %s", slc_result_returncode)
+        sys.exit(1)
+
+    log_tree(build_template_path)
 
     # Make sure all extensions are valid
     for sdk_extension in base_project.get("sdk_extension", []):
@@ -403,7 +519,6 @@ def main():
     value_template_env = {
         "git_repo_hash": get_git_commit_id(repo=pathlib.Path(__file__).parent.parent),
         "manifest_name": args.manifest.stem,
-        "now": datetime.now(timezone.utc),
     }
 
     # Actually search for C defines within config
@@ -490,7 +605,14 @@ def main():
             args.build_dir: "/src",
             toolchain: "/toolchain",
         }.items()
-    ] + ["-Wall", "-Wextra", "-Werror"]
+    ] + [
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        # XXX: Fails due to protocol/openthread/platform-abstraction/efr32/radio.c@RAILCb_Generic
+        # Remove once this is fixed in the SDK!
+        "-Wno-error=unused-but-set-variable",
+    ]
 
     output_artifact = (args.build_dir / "build/debug" / base_project_name).with_suffix(
         ".gbl"

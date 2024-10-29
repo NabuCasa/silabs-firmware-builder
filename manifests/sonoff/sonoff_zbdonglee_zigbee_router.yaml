@@ -1,0 +1,100 @@
+name: ZBDongle-E Zigbee
+device: EFR32MG21A020F768IM32
+base_project: src/zigbee_router
+filename: "{manifest_name}_{ezsp_version}_{baudrate}_{fw_variant}"
+sdk: "simplicity_sdk:2024.6.2"
+toolchain: "12.2.1.20221205"
+
+gbl:
+  fw_type: zigbee_router
+  ezsp_version: dynamic
+  baudrate: 115200
+  fw_variant: sw_flow
+
+add_components:
+  # Status
+  - id: simple_led
+    instance:
+      - led0
+  # BOOT
+  - id: simple_button
+    instance:
+      - btn1
+
+slcp_defines:
+  SL_ZIGBEE_ADDRESS_TABLE_SIZE: 32
+  SL_ZIGBEE_MULTICAST_TABLE_SIZE: 26
+  SL_ZIGBEE_ROUTE_TABLE_SIZE: 16
+  SL_ZIGBEE_DISCOVERY_TABLE_SIZE: 8
+
+c_defines:
+  SL_IOSTREAM_USART_VCOM_BAUDRATE: 115200
+  SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE: uartFlowControlSoftware
+
+  SL_IOSTREAM_USART_VCOM_PERIPHERAL: USART0
+  SL_IOSTREAM_USART_VCOM_PERIPHERAL_NO: 0
+
+  SL_IOSTREAM_USART_VCOM_TX_PORT: gpioPortB
+  SL_IOSTREAM_USART_VCOM_TX_PIN:  1
+
+  SL_IOSTREAM_USART_VCOM_RX_PORT: gpioPortB
+  SL_IOSTREAM_USART_VCOM_RX_PIN:  0
+
+  SL_IOSTREAM_USART_VCOM_CTS_PORT: 0
+  SL_IOSTREAM_USART_VCOM_CTS_PIN:  0
+
+  SL_IOSTREAM_USART_VCOM_RTS_PORT: 0
+  SL_IOSTREAM_USART_VCOM_RTS_PIN:  0
+
+  SL_IOSTREAM_USART_VCOM_RX_BUFFER_SIZE: 64
+
+  SL_SIMPLE_LED_LED0_POLARITY: SL_SIMPLE_LED_POLARITY_ACTIVE_LOW
+  SL_SIMPLE_LED_LED0_PORT: gpioPortC
+  SL_SIMPLE_LED_LED0_PIN: 0
+
+  SL_SIMPLE_BUTTON_BTN1_MODE: SL_SIMPLE_BUTTON_MODE_INTERRUPT
+  SL_SIMPLE_BUTTON_BTN1_PORT: gpioPortA
+  SL_SIMPLE_BUTTON_BTN1_PIN: 0
+
+  SL_CLOCK_MANAGER_HFXO_EN: 1
+  SL_CLOCK_MANAGER_HFXO_CTUNE: 128
+
+  SL_ZIGBEE_APS_UNICAST_MESSAGE_COUNT: 64
+  SL_ZIGBEE_BROADCAST_TABLE_SIZE: 30
+  SL_ZIGBEE_NEIGHBOR_TABLE_SIZE: 26
+  SL_ZIGBEE_SOURCE_ROUTE_TABLE_SIZE: 200
+  SL_ZIGBEE_MAX_END_DEVICE_CHILDREN: 32
+  SL_ZIGBEE_BINDING_TABLE_SIZE: 64
+
+  SL_RAIL_UTIL_RSSI_OFFSET: -11
+
+  # all zigbee channels
+  SL_ZIGBEE_AF_PLUGIN_NETWORK_STEERING_CHANNEL_MASK: 0x07fff800
+  SL_ZIGBEE_AF_PLUGIN_NETWORK_STEERING_RADIO_TX_POWER: 20
+  # RST button behavior:
+  # whenever the dongle is already joined
+  #   a click will allow permit join (with broadcast)
+  #   a >5sec press will force the adapter to leave the network
+  # whenever the dongle is not joined
+  #   a click will run a scan and try to join an open network
+  #   a >5sec press will factory reset the adapter
+  SL_ZIGBEE_AF_PLUGIN_BUTTON_JOINING_PERMIT_JOIN_TIMEOUT: 60
+
+json_config:
+  - file: "config/zcl/zcl_config.zap"
+    jq: |
+      (.endpointTypes[].clusters[].attributes[] | select(.name == "model identifier")).defaultValue = "DONGLE-E_R"
+
+  - file: "config/zcl/zcl_config.zap"
+    jq: |
+      (.endpointTypes[].clusters[].attributes[] | select(.name == "manufacturer name")).defaultValue = "SONOFF"
+
+  # remove OTA cluster
+  - file: "config/zcl/zcl_config.zap"
+    jq: |
+      del(.endpointTypes[].clusters[] | select(.name == "Over the Air Bootloading"))
+
+  # remove Occupancy cluster
+  - file: "config/zcl/zcl_config.zap"
+    jq: |
+      del(.endpointTypes[].clusters[] | select(.name == "Occupancy Sensing"))

@@ -39,7 +39,7 @@ RUN \
 
 ENV PATH="$PATH:/opt/slc_cli"
 
-# GCC Embedded Toolchain 12.2.rel1 (for Gecko SDK 4.4.0+)
+# GCC Embedded Toolchain 12.2.rel1 (for Simplicity SDK)
 RUN \
     curl -O https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-x86_64-arm-none-eabi.tar.xz \
     && tar -C /opt -xf arm-gnu-toolchain-12.2.rel1-x86_64-arm-none-eabi.tar.xz \
@@ -51,18 +51,11 @@ RUN \
     && unzip -q -d simplicity_sdk_2024.6.2 simplicity_sdk_2024.6.2.zip \
     && rm simplicity_sdk_2024.6.2.zip
 
-# Gecko SDK 4.4.4
+# ZCL Advanced Platform (ZAP) v2024.10.24
 RUN \
-    curl -o gecko_sdk_4.4.4.zip -L https://github.com/SiliconLabs/gecko_sdk/releases/download/v4.4.4/gecko-sdk.zip \
-    && unzip -q -d gecko_sdk_4.4.4 gecko_sdk_4.4.4.zip \
-    && rm gecko_sdk_4.4.4.zip
-
-# ZCL Advanced Platform (ZAP) v2024.09.27
-RUN \
-    curl -o zap_2024.09.27.zip -L https://github.com/project-chip/zap/releases/download/v2024.09.27/zap-linux-x64.zip \
-    && unzip -q -d /opt/zap zap_2024.09.27.zip \
-    && rm zap_2024.09.27.zip
-
+    curl -o zap_2024.10.24.zip -L https://github.com/project-chip/zap/releases/download/v2024.10.24/zap-linux-x64.zip \
+    && unzip -q -d /opt/zap zap_2024.10.24.zip \
+    && rm zap_2024.10.24.zip
 ENV STUDIO_ADAPTER_PACK_PATH="/opt/zap"
 
 ARG USERNAME=builder

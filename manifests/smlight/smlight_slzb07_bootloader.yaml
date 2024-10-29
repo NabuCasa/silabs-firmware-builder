@@ -1,17 +1,14 @@
-name: SkyConnect Bootloader
-device: EFR32MG21A020F512IM32
+name: SLZB-07 Bootloader
+device: EFR32MG21A020F768IM32
 base_project: src/bootloader
 filename: "{manifest_name}_{gecko_bootloader_version}"
-sdk: "gecko_sdk:4.4.4"
+sdk: "simplicity_sdk:2024.6.2"
 toolchain: "12.2.1.20221205"
 
 gbl:
   fw_type: gecko-bootloader
   gecko_bootloader_version: dynamic
   baudrate: 115200
-
-remove_components:
-  - id: bootloader_gpio_activation
 
 c_defines:
   SL_SERIAL_UART_FLOW_CONTROL: 1
@@ -30,3 +27,7 @@ c_defines:
 
   SL_SERIAL_UART_RTS_PORT: gpioPortB
   SL_SERIAL_UART_RTS_PIN:  0
+
+  SL_GPIO_ACTIVATION_POLARITY: LOW
+  SL_BTL_BUTTON_PORT: gpioPortA
+  SL_BTL_BUTTON_PIN: 0

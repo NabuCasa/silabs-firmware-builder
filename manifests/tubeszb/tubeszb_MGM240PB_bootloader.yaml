@@ -1,8 +1,8 @@
 name: Yellow Bootloader
-device: MGM210PA32JIA
+device: MGM240PB32VNN
 base_project: src/bootloader
 filename: "{manifest_name}_{gecko_bootloader_version}"
-sdk: "gecko_sdk:4.4.4"
+sdk: "simplicity_sdk:2024.6.2"
 toolchain: "12.2.1.20221205"
 
 gbl:
@@ -17,17 +17,17 @@ c_defines:
   SL_SERIAL_UART_PERIPHERAL_NO: 0
 
   SL_SERIAL_UART_TX_PORT: gpioPortA
-  SL_SERIAL_UART_TX_PIN:  5
+  SL_SERIAL_UART_TX_PIN:  6
 
   SL_SERIAL_UART_RX_PORT: gpioPortA
-  SL_SERIAL_UART_RX_PIN:  6
+  SL_SERIAL_UART_RX_PIN:  5
 
-  SL_SERIAL_UART_CTS_PORT: gpioPortD
-  SL_SERIAL_UART_CTS_PIN:  2
+  SL_SERIAL_UART_CTS_PORT: gpioPortA
+  SL_SERIAL_UART_CTS_PIN:  7
 
-  SL_SERIAL_UART_RTS_PORT: gpioPortC
-  SL_SERIAL_UART_RTS_PIN:  1
+  SL_SERIAL_UART_RTS_PORT: gpioPortA
+  SL_SERIAL_UART_RTS_PIN:  8
 
   SL_GPIO_ACTIVATION_POLARITY: LOW
-  SL_BTL_BUTTON_PORT: gpioPortB
+  SL_BTL_BUTTON_PORT: gpioPortA
   SL_BTL_BUTTON_PIN: 0

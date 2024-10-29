@@ -26,7 +26,7 @@
 #include "sl_system_kernel.h"
 #else
 #include "sl_system_process_action.h"
-#endif  // SL_CATALOG_KERNEL_PRESENT
+#endif // SL_CATALOG_KERNEL_PRESENT
 
 #ifdef SL_ZIGBEE_TEST
 #define main nodeMain

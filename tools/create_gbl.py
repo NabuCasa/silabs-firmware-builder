@@ -164,16 +164,36 @@ def main():
         )
         metadata["ezsp_version"] = zigbee_esf_props["version"][0]
 
+    if "ot_version" in gbl_dynamic:
+        gbl_dynamic.remove("ot_version")
+        ot_esf_props = parse_properties_file(
+            (gsdk_path / "protocol/openthread/esf.properties").read_text()
+        )
+        metadata["ot_version"] = ot_esf_props["version"][0]
+
+    if "ble_version" in gbl_dynamic:
+        gbl_dynamic.remove("ble_version")
+        sl_bt_version_h = parse_c_header_defines(
+            (gsdk_path / "protocol/bluetooth/inc/sl_bt_version.h").read_text()
+        )
+        metadata["ble_version"] = ".".join(
+            [
+                str(sl_bt_version_h["SL_BT_VERSION_MAJOR"]),
+                str(sl_bt_version_h["SL_BT_VERSION_MINOR"]),
+                str(sl_bt_version_h["SL_BT_VERSION_PATCH"]),
+            ]
+        )
+
     if "cpc_version" in gbl_dynamic:
         gbl_dynamic.remove("cpc_version")
-        sl_gsdk_version_h = parse_c_header_defines(
-            (gsdk_path / "platform/common/inc/sl_gsdk_version.h").read_text()
+        sl_platform_version_h = parse_c_header_defines(
+            (gsdk_path / "platform/common/inc/sl_platform_version.h").read_text()
         )
         metadata["cpc_version"] = ".".join(
             [
-                str(sl_gsdk_version_h["SL_GSDK_MAJOR_VERSION"]),
-                str(sl_gsdk_version_h["SL_GSDK_MINOR_VERSION"]),
-                str(sl_gsdk_version_h["SL_GSDK_PATCH_VERSION"]),
+                str(sl_platform_version_h["SL_PLATFORM_MAJOR_VERSION"]),
+                str(sl_platform_version_h["SL_PLATFORM_MINOR_VERSION"]),
+                str(sl_platform_version_h["SL_PLATFORM_PATCH_VERSION"]),
             ]
         )
 
