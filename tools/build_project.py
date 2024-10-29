@@ -170,16 +170,14 @@ def load_toolchains(paths: list[pathlib.Path]) -> dict[pathlib.Path, str]:
 
 
 def subprocess_run_verbose(command: list[str], prefix: str) -> None:
-    result = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-
-    with result.stdout:
-        for line in iter(result.stdout.readline, b""):
+    with subprocess.Popen(
+        command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+    ) as proc:
+        for line in proc.stdout:
             LOGGER.info("[%s] %r", prefix, line.decode("utf-8").strip())
 
-    result_returncode = result.wait()
-
-    if result_returncode != 0:
-        LOGGER.error("[%s] Error: %s", prefix, result_returncode)
+    if proc.returncode != 0:
+        LOGGER.error("[%s] Error: %s", prefix, proc.returncode)
         sys.exit(1)
 
 
