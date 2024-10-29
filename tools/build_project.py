@@ -19,6 +19,7 @@ import subprocess
 import multiprocessing
 from datetime import datetime, timezone
 
+import jq
 from ruamel.yaml import YAML
 
 
@@ -374,18 +375,8 @@ def main():
     for json_config in manifest.get("json_config", []):
         json_path = build_template_path / json_config["file"]
 
-        result = subprocess.run(
-            [
-                "jq",
-                json_config["jq"],
-                json_path,
-            ],
-            capture_output=True,
-            check=True,
-        )
-
-        with open(json_path, "wb") as f:
-            f.write(result.stdout)
+        result = jq.compile(json_config["jq"]).input_text(json_path.read_text()).first()
+        json_path.write_text(json.dumps(result, indent=2))
 
     # Next, generate a chip-specific project from the modified base project
     print(f"Generating project for {manifest['device']}")
