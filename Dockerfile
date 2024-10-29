@@ -2,8 +2,6 @@ FROM debian:bookworm
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-ENV PIP_ROOT_USER_ACTION=ignore
-
 RUN \
     apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -19,9 +17,15 @@ RUN \
        patch \
        python3 \
        python3-pip \
+       python3-virtualenv \
        unzip \
-       xz-utils \
-    && pip install jq ruamel.yaml
+       xz-utils
+
+RUN \
+    virtualenv /opt/venv \
+    /opt/venv/pip install jq ruamel.yaml
+
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Install Simplicity Commander (unfortunately no stable URL available, this
 # is known to be working with Commander_linux_x86_64_1v15p0b1306.tar.bz).
