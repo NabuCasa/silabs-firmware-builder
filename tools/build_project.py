@@ -30,6 +30,11 @@ LOGGER = logging.getLogger(__name__)
 yaml = YAML(typ="safe")
 
 
+def log_subprocess_output(pipe, prefix: str = "subprocess"):
+    for line in iter(pipe.readline, b""):
+        LOGGER.info("[%s] %r", prefix, line)
+
+
 def evaulate_f_string(f_string: str, variables: dict[str, typing.Any]) -> str:
     """
     Evaluates an `f`-string with the given locals.
@@ -371,10 +376,10 @@ def main():
         yaml.dump(manifest["gbl"], f)
 
     # Next, generate a chip-specific project from the modified base project
-    print(f"Generating project for {manifest['device']}")
+    LOGGER.info(f"Generating project for {manifest['device']}")
 
     # fmt: off
-    subprocess.run(
+    slc_result = subprocess.Popen(
         SLC
         + [
             "generate",
@@ -387,9 +392,19 @@ def main():
             "--sdk", sdk,
             "--output-type", args.build_system,
         ],
-        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT
     )
     # fmt: on
+
+    with slc_result.stdout:
+        log_subprocess_output(slc_result.stdout, "SLC generate")
+
+    slc_result_returncode = slc_result.wait()
+
+    if slc_result_returncode != 0:
+        LOGGER.error("[SLC generate] Error: %s", slc_result_returncode)
+        sys.exit(1)
 
     # Make sure all extensions are valid
     for sdk_extension in base_project.get("sdk_extension", []):
