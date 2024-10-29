@@ -173,7 +173,7 @@ def subprocess_run_verbose(command: list[str], prefix: str) -> None:
     result = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     with result.stdout:
-        for line in iter(result.stdout, b""):
+        for line in iter(result.stdout.readline, b""):
             LOGGER.info("[%s] %r", prefix, line.decode("utf-8").strip())
 
     result_returncode = result.wait()
