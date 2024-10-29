@@ -30,11 +30,6 @@ LOGGER = logging.getLogger(__name__)
 yaml = YAML(typ="safe")
 
 
-def log_subprocess_output(pipe, prefix: str = "subprocess"):
-    for line in iter(pipe.readline, b""):
-        LOGGER.info("[%s] %r", prefix, line)
-
-
 def evaulate_f_string(f_string: str, variables: dict[str, typing.Any]) -> str:
     """
     Evaluates an `f`-string with the given locals.
@@ -172,6 +167,20 @@ def load_toolchains(paths: list[pathlib.Path]) -> dict[pathlib.Path, str]:
         )
 
     return toolchains
+
+
+def subprocess_run_verbose(command: list[str], prefix: str) -> None:
+    result = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    with result.stdout:
+        for line in iter(result.stdout, b""):
+            LOGGER.info("[%s] %r", prefix, line.decode("utf-8").strip())
+
+    result_returncode = result.wait()
+
+    if result_returncode != 0:
+        LOGGER.error("[%s] Error: %s", prefix, result_returncode)
+        sys.exit(1)
 
 
 def main():
@@ -379,7 +388,7 @@ def main():
     LOGGER.info(f"Generating project for {manifest['device']}")
 
     # fmt: off
-    slc_result = subprocess.Popen(
+    subprocess_run_verbose(
         SLC
         + [
             "generate",
@@ -392,19 +401,9 @@ def main():
             "--sdk", sdk,
             "--output-type", args.build_system,
         ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT
+        "slc generate"
     )
     # fmt: on
-
-    with slc_result.stdout:
-        log_subprocess_output(slc_result.stdout, "SLC generate")
-
-    slc_result_returncode = slc_result.wait()
-
-    if slc_result_returncode != 0:
-        LOGGER.error("[SLC generate] Error: %s", slc_result_returncode)
-        sys.exit(1)
 
     # Make sure all extensions are valid
     for sdk_extension in base_project.get("sdk_extension", []):
@@ -536,7 +535,7 @@ def main():
     makefile.write_text(makefile_contents)
 
     # fmt: off
-    subprocess.run(
+    subprocess_run_verbose(
         [   
             "make",
             "-C", args.build_dir,
@@ -546,7 +545,7 @@ def main():
             f"POST_BUILD_EXE={args.postbuild}",
             "VERBOSE=1",
         ],
-        check=True,
+        "make"
     )
     # fmt: on
 
