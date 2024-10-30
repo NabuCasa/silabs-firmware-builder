@@ -169,6 +169,18 @@ def load_toolchains(paths: list[pathlib.Path]) -> dict[pathlib.Path, str]:
     return toolchains
 
 
+def subprocess_run_verbose(command: list[str], prefix: str) -> None:
+    with subprocess.Popen(
+        command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+    ) as proc:
+        for line in proc.stdout:
+            LOGGER.info("[%s] %r", prefix, line.decode("utf-8").strip())
+
+    if proc.returncode != 0:
+        LOGGER.error("[%s] Error: %s", prefix, proc.returncode)
+        sys.exit(1)
+
+
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -371,10 +383,10 @@ def main():
         yaml.dump(manifest["gbl"], f)
 
     # Next, generate a chip-specific project from the modified base project
-    print(f"Generating project for {manifest['device']}")
+    LOGGER.info(f"Generating project for {manifest['device']}")
 
     # fmt: off
-    subprocess.run(
+    subprocess_run_verbose(
         SLC
         + [
             "generate",
@@ -387,7 +399,7 @@ def main():
             "--sdk", sdk,
             "--output-type", args.build_system,
         ],
-        check=True,
+        "slc generate"
     )
     # fmt: on
 
@@ -521,7 +533,7 @@ def main():
     makefile.write_text(makefile_contents)
 
     # fmt: off
-    subprocess.run(
+    subprocess_run_verbose(
         [   
             "make",
             "-C", args.build_dir,
@@ -531,7 +543,7 @@ def main():
             f"POST_BUILD_EXE={args.postbuild}",
             "VERBOSE=1",
         ],
-        check=True,
+        "make"
     )
     # fmt: on
 
