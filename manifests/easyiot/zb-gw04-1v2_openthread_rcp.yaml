@@ -10,9 +10,6 @@ gbl:
   ot_rcp_version: dynamic
   baudrate: 230400
 
-configuration:
-  SL_DEVICE_INIT_HFXO_CTUNE: 128
-
 c_defines:
   SL_UARTDRV_USART_VCOM_PERIPHERAL: USART0
   SL_UARTDRV_USART_VCOM_PERIPHERAL_NO: 0
@@ -29,4 +26,6 @@ c_defines:
 
   SL_UARTDRV_USART_VCOM_RTS_PORT: gpioPortD
   SL_UARTDRV_USART_VCOM_RTS_PIN:  4
+
+  SL_CLOCK_MANAGER_HFXO_CTUNE: 128
 
