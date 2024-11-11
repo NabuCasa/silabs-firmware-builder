@@ -4,11 +4,12 @@
 from __future__ import annotations
 
 import json
+import logging
 import hashlib
 import pathlib
 import argparse
+
 from datetime import datetime, timezone
-import logging
 
 from universal_silabs_flasher.firmware import parse_firmware_image
 
