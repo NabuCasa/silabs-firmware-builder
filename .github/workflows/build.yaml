@@ -190,12 +190,14 @@ jobs:
 
   generate-manifest:
     name: Generate manifest
-    needs: [build-firmwares]
+    needs: [build-container, build-firmwares]
     runs-on: ubuntu-latest
     container:
       image: ${{ needs.build-container.outputs.container_name }}
       options: --user root
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download all workflow artifacts
         uses: actions/download-artifact@v4
         with:
