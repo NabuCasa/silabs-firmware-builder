@@ -174,11 +174,6 @@ jobs:
           output_basename=$(basename -- $(basename -- $(ls -1 outputs/*.gbl | head -n 1)) .gbl)
           echo "output_basename=$output_basename" >> $GITHUB_OUTPUT
 
-      - name: Generate manifest
-        id: build-firmware
-        run: |
-          /opt/venv/bin/python3 tools/create_manifest.py outputs > outputs/manifest.json
-
       - name: Install node within container (act)
         if: ${{ env.ACT }}
         run: |
@@ -193,14 +188,48 @@ jobs:
           compression-level: 9
           if-no-files-found: error
 
+  generate-manifest:
+    name: Generate manifest
+    needs: [build-firmwares]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.build-container.outputs.container_name }}
+      options: --user root
+    steps:
+      - name: Download all workflow artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+          pattern: firmware-build-*
+
+      - name: Generate manifest
+        run: |
+          /opt/venv/bin/python3 tools/create_manifest.py artifacts > artifacts/manifest.json
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: manifest
+          path: artifacts/manifest.json
+          compression-level: 9
+          if-no-files-found: error
+
   release-assets:
     name: Upload release assets
-    needs: [build-firmwares]
+    needs: [generate-manifest]
     if: github.event_name == 'release'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
+      - name: Download manifest
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+          pattern: manifest
+
       - name: Download all workflow artifacts
         uses: actions/download-artifact@v4
         with:
@@ -211,4 +240,6 @@ jobs:
       - name: Upload artifacts
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/*.gbl
+          files: |
+            artifacts/*.gbl
+            artifacts/manifest.json
