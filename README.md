@@ -70,7 +70,7 @@ tool will automatically determine which SDK and toolchain to use.
 > automatically found so these flags can be omitted.
 
 ```bash
-pip install ruamel.yaml  # Only dependency
+pip install -r requirements.txt
 
 python tools/build_project.py \
     # The following SDK and toolchain flags can be omitted on macOS

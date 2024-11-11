@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 import ast
 import sys
@@ -169,9 +170,9 @@ def load_toolchains(paths: list[pathlib.Path]) -> dict[pathlib.Path, str]:
     return toolchains
 
 
-def subprocess_run_verbose(command: list[str], prefix: str) -> None:
+def subprocess_run_verbose(command: list[str], prefix: str, **kwargs) -> None:
     with subprocess.Popen(
-        command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+        command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, **kwargs
     ) as proc:
         for line in proc.stdout:
             LOGGER.info("[%s] %r", prefix, line.decode("utf-8").strip())
@@ -543,7 +544,10 @@ def main():
             f"POST_BUILD_EXE={args.postbuild}",
             "VERBOSE=1",
         ],
-        "make"
+        "make",
+        env={
+            "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}"
+        }
     )
     # fmt: on
 

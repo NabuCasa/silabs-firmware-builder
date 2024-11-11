@@ -16,9 +16,17 @@ RUN \
        default-jre-headless \
        patch \
        python3 \
-       python3-ruamel.yaml \
+       python3-pip \
+       python3-virtualenv \
        unzip \
        xz-utils
+
+COPY requirements.txt /tmp/
+
+RUN \
+    virtualenv /opt/venv \
+    && /opt/venv/bin/pip install -r /tmp/requirements.txt \
+    && rm /tmp/requirements.txt
 
 # Install Simplicity Commander (unfortunately no stable URL available, this
 # is known to be working with Commander_linux_x86_64_1v15p0b1306.tar.bz).
