@@ -159,7 +159,7 @@ jobs:
           done
 
           # Build it
-          python3 tools/build_project.py \
+          /opt/venv/bin/python3 tools/build_project.py \
             $sdk_args \
             $toolchain_args \
             --manifest "${{ matrix.manifest }}" \
