@@ -127,49 +127,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install SDK extensions
-        run: |
-          # XXX: slc-cli does not actually work when the extensions aren't in the SDK!
-          for sdk in /*_sdk_*; do
-            slc signature trust --sdk "$sdk"
-
-            ln -s $PWD/gecko_sdk_extensions "$sdk"/extension
-
-            for ext in "$sdk"/extension/*/; do
-              slc signature trust --sdk "$sdk" --extension-path "$ext"
-            done
-          done
-
       - name: Build firmware
         id: build-firmware
+        run: ./tools/build_firmware.sh --manifest "${{ matrix.manifest }}"
+
+      - name: Get output basename
+        id: get-output-basename
         run: |
-          # Fix `fatal: detected dubious ownership in repository at`
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
-          # Pass all SDKs as consecutive `--sdk ...` arguments
-          sdk_args=""
-          for sdk_dir in /*_sdk*; do
-            sdk_args="$sdk_args --sdk $sdk_dir"
-          done
-
-          # Pass all toolchains as consecutive `--toolchain ...` arguments
-          toolchain_args=""
-          for toolchain_dir in /opt/*arm-none-eabi*; do
-            toolchain_args="$toolchain_args --toolchain $toolchain_dir"
-          done
-
-          # Build it
-          /opt/venv/bin/python3 tools/build_project.py \
-            $sdk_args \
-            $toolchain_args \
-            --manifest "${{ matrix.manifest }}" \
-            --build-dir build \
-            --build-system makefile \
-            --output-dir outputs \
-            --output gbl \
-            --output hex \
-            --output out
-
           # Get the basename of the GBL in `outputs`
           output_basename=$(basename -- $(basename -- $(ls -1 outputs/*.gbl | head -n 1)) .gbl)
           echo "output_basename=$output_basename" >> $GITHUB_OUTPUT
