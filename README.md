@@ -90,3 +90,117 @@ python tools/build_project.py \
 ```
 
 Once the build is complete, the firmwares will be in the `output` directory.
+
+## Building with a container (for development)
+
+This is a convenience GNU Make  based wrapper around the build process that is being used on the GitHub Actions CI pipeline, but can also be used for local development.
+
+### Prerequisites
+
+- [GNU Make](https://www.gnu.org/software/make/)
+- [Docker](https://docs.docker.com/get-docker/) or [Podman](https://podman-desktop.io/)
+
+| Prerequisite | macOS | Windows | Debian/Ubuntu | Fedora |
+|-------------|--------|---------|---------------|---------|
+| GNU Make | `brew install make` | Via [Chocolatey](https://chocolatey.org/): `choco install make` | `sudo apt install make` | `sudo dnf install make` |
+| Docker | Download [Docker Desktop](https://www.docker.com/products/docker-desktop/) | Download [Docker Desktop](https://www.docker.com/products/docker-desktop/) | `sudo apt install docker.io` | `sudo dnf install docker-ce docker-ce-cli containerd.io` |
+| Podman | `brew install podman` | Download [Podman Desktop](https://podman-desktop.io/downloads) | `sudo apt install podman` | `sudo dnf install podman` |
+
+### Usage
+
+#### Help
+
+Provides a list of commands and options.
+
+```bash
+make help
+
+Usage: make [all|build_container|build_firmware]
+
+Targets:
+  all             Build container and firmware
+  build_container Build container
+  build_firmware  Build firmware
+  help            Show this help message
+
+Options:
+  build_firmware MANIFESTS=<path>  Override default manifest files (default: all .yaml/.yml files in manifests/)
+
+Examples:
+  # Build the container image
+  make build_container
+
+  # Build all firmware manifests
+  make build_firmware
+
+  # Build a specific firmware manifest
+  make build_firmware MANIFESTS=manifests/nabucasa/yellow_bootloader.yaml
+```
+
+#### Build everything
+
+Builds the container image and all available firmware manifests.
+
+```bash
+make
+```
+
+Once this command completes, the firmwares will be in the `outputs` directory.
+
+```bash
+ls -w 80 outputs | head -3
+skyconnect_bootloader_2.4.2.gbl
+skyconnect_bootloader_2.4.2.hex
+skyconnect_bootloader_2.4.2.out
+```
+
+#### Build the container
+
+Builds only the container image.
+
+```bash
+make build_container
+```
+
+#### Build all available firmware manifests
+
+Builds all available firmware manifests in the `manifests` directory.
+
+```bash
+make build_firmware
+```
+
+#### Build a specific firmware manifest
+
+Builds a specific firmware manifest by providing the path to the manifest file.
+
+```bash
+make build_firmware MANIFESTS=manifests/nabucasa/yellow_openthread_ncp.yaml
+```
+
+Once this command completes, the firmwares will be in the `outputs` directory.
+
+```bash
+ls -w 80 outputs
+yellow_openthread_rcp_2.4.4.0_GitHub-7074a43e4_gsdk_4.4.4.gbl
+yellow_openthread_rcp_2.4.4.0_GitHub-7074a43e4_gsdk_4.4.4.hex
+yellow_openthread_rcp_2.4.4.0_GitHub-7074a43e4_gsdk_4.4.4.out
+```
+
+#### Build with a custom container image
+
+Builds the firmware with a custom container image by providing the container image name.
+
+```bash
+make build_firmware CONTAINER_NAME=ghcr.io/nabucasa/silabs-firmware-builder
+```
+
+### Makefile variables
+
+The following variables can be customized when running make commands:
+
+| Variable | Default Value | Description |
+|----------|---------------|-------------|
+| CONTAINER_NAME | silabs-firmware-builder | Name of the container image to build/use |
+| CONTAINER_ENGINE | docker | Container engine to use (docker or podman) |
+| MANIFESTS | every file in `manifests`  directory| Which firmware manifests to build |
