@@ -22,6 +22,7 @@ RUN \
        xz-utils
 
 COPY requirements.txt /tmp/
+COPY tools/build_firmware.sh /usr/bin/build_firmware.sh
 
 RUN \
     virtualenv /opt/venv \
@@ -81,9 +82,12 @@ ARG USER_GID=$USER_UID
 RUN groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME
 
+RUN mkdir -p /build_dir /outputs
 RUN chown $USERNAME:$USERNAME \
     /gecko_sdk_* \
-    /simplicity_sdk_*
+    /simplicity_sdk_* \
+    /build_dir \
+    /outputs
 
 USER $USERNAME
 WORKDIR /build
