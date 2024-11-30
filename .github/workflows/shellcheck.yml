@@ -1,0 +1,34 @@
+name: reviewdog / shellscripts
+
+on:
+    push:
+        paths:
+            - tools/build_firmware.sh
+
+    pull_request:
+        paths:
+            - tools/build_firmware.sh
+
+jobs:
+
+  shellcheck:
+    name: Check shell scripts with shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck
+        uses: reviewdog/action-shellcheck@v1
+        with:
+          reporter: github-pr-review 
+          path: tools
+          pattern: "*.sh"
+
+  shfmt:
+    name: Check shell scripts with shfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: reviewdog/action-shfmt@v1
+        with:
+          level: warning
+          shfmt_flags: '-i 0 '
