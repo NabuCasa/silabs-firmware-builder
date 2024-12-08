@@ -103,13 +103,18 @@ def get_git_commit_id(repo: pathlib.Path) -> str:
     """Get a commit hash for the current git repository."""
 
     def git(*args: str) -> str:
-        result = subprocess.run(
-            ["git", "-C", str(repo)] + list(args),
-            text=True,
-            capture_output=True,
-            check=True,
-        )
-        return result.stdout.strip()
+        try:
+            result = subprocess.run(
+                ["git", "-C", str(repo)] + list(args),
+                text=True,
+                capture_output=True,
+                check=True,
+            )
+            return result.stdout.strip()
+        except subprocess.CalledProcessError as exc:
+            raise RuntimeError(
+                f"Git command `git -C {repo} {' '.join(args)}` failed: {exc.stderr.strip()}"
+            ) from exc
 
     # Get the current commit ID
     commit_id = git("rev-parse", "HEAD")[:8]
