@@ -20,6 +20,7 @@ jobs:
         run: |
           pip install pre-commit
           pre-commit install
+          python -V
       - name: Run pre-commit
         run: |
           pre-commit run --show-diff-on-failure --color=always --all-files
