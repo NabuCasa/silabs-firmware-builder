@@ -12,7 +12,7 @@ env:
 jobs:
   run-pre-commit:
     name: Run pre-commit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -26,7 +26,7 @@ jobs:
 
   build-container:
     name: Create build container image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       packages: write
     steps:
@@ -98,7 +98,7 @@ jobs:
 
   list-manifests:
     name: List firmware manifests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
@@ -110,7 +110,7 @@ jobs:
   build-firmwares:
     name: Firmware builder
     needs: [list-manifests, build-container]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container:
       image: ${{ needs.build-container.outputs.container_name }}
       options: --user root
@@ -184,7 +184,7 @@ jobs:
   generate-manifest:
     name: Generate manifest
     needs: [build-container, build-firmwares]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container:
       image: ${{ needs.build-container.outputs.container_name }}
       options: --user root
@@ -214,7 +214,7 @@ jobs:
     name: Upload release assets
     needs: [generate-manifest]
     if: github.event_name == 'release'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
     steps:
