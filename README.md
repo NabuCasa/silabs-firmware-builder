@@ -1,90 +1,95 @@
 # Silicon Labs firmware builder repository
-This repository contains tools for building firmwares for the Home Assistant Connect
-ZBT-1/SkyConnect and the Home Assistant Yellow's IEEE 802.15.4 radio. The firmware
-manifests are entirely generic, however, and are intended to be written easily for any
-Silicon Labs EFR32 device.
 
-It uses the Silicon Labs Gecko/Simplicity SDK and proprietary Silicon Labs tools such as
-the Silicon Labs Configurator (slc) and the Simplicity Commander standalone utility.
+This repository contains Dockerfiles and GitHub actions that build Silicon Labs firmware. It also hosts unofficial Zigbee Coordinator and Thread (OpenThread) firmware builds that community members can experiment with at your own risk.
 
-## Background
-The project templates in this repository are configured and built for specific boards
-using manifest files. For example, the [`skyconnect_zigbee_ncp.yaml`](https://github.com/NabuCasa/silabs-firmware-builder/blob/main/manifests/skyconnect_zigbee_ncp.yaml)
-manifest file configures the Zigbee firmware for the SkyConnect/Connect ZBT-1.
+The firmware builder uses the Silicon Labs [Gecko SDK (GSDK)](https://github.com/SiliconLabs/gecko_sdk) and proprietary Silicon Labs tools such as the Silicon Labs Configurator (slc) and the Simplicity Commander standalone utility. This is a fork of the [Silabs firmware builder by Nabu Casa](https://github.com/NabuCasa/silabs-firmware-builder), adding support for additional radio adapter hardware models.
 
-## Setting up Simplicity Studio (for development)
-If you are going to be developing using Simplicity Studio, note that each project can
-potentially use a different Simplicity SDK release. It is recommended to forego the typical
-Simplicity Studio SDK management workflow and manually manage SDKs:
+Again, please note that the pre-compiled firmware builds hosted in this repository are both unofficial and experimental or cutting-edge releases with  minimal testing which may brick your radio adapter so that it requires manual recovery via a compatible debug probe adapter, however, the builds offered via the Web Flasher are the latest versions recommended by the community.
 
-1. Clone a specific version of the Simplicity SDK:
-   ```bash
-   # For macOS
-   mkdir ~/SimplicityStudio/SDKs/simplicity_sdk_2024.6.2
-   cd ~/SimplicityStudio/SDKs/simplicity_sdk_2024.6.2
+## Supported hardware:
+* Sonoff ZBDongle-E by ITead (based on EFR32MG21)
+* Sonoff iHost by ITead (also based on EFR32MG21 and uses the same firmware as Sonoff ZBDongle-E)
+* EasyIot ZB-GW04 v1.1 and v1.2 (based on EFR32MG21)
+* Smlight SLZB-07 (which may require unlocked [bootloader](https://github.com/darkxst/silabs-firmware-builder/raw/main/firmware_builds/slzb-07/BTL_SLZB07.gbl) first) (based on EFR32MG21)
+* Smlight SLZB-06M (based on EFR32MG21)
+* Aeotec Zi-Stick (model “ZGA008” based on EFR32MG21)
+* Sparkfun Things Matter MGM240P (requires [bootloader](https://github.com/darkxst/silabs-firmware-builder/blob/main/firmware_builds/mgm240p/bootloader-uart-xmodem_NCP.hex) to be flashed first using Silabs [Simplicity Commander](https://community.silabs.com/s/article/simplicity-commander?language=en_US)) (based on EFR32MG24)
+* Elelabs Zigbee USB Adapter ELU013 (based on EFR32MG13P)
+* Elelabs Zigbee Raspberry Pi Shield ELR023 (based on EFR32MG13P)
 
-   git clone -b v2024.6.2 https://github.com/SiliconLabs/simplicity_sdk .
-   git checkout -b branch_tag
-   ```
+## Different firmware variants
 
-2. Open preferences, navigate to **Simplicity Studio > SDKs**, click the `Add SDK...` button, and browse to the above location.
+Three network protocol application firmware variants are available:
 
-Repeat this process for every necessary SDK version.
+* **EmberZNet NCP** = Zigbee NCP (Network Co-Processor) is used as a dedicated Zigbee Coordinator for Zigbee-only environments, for direct use with Zigbee2MQTT, Home Assistant's ZHA integration, other Zigpy based Zigbee Gateway implementations, or other Zigbee gateways/frameworks that support the EZSP (EmberZNet Serial Protocol) interface.
+* **OpenThread RCP** firmware (experimental) = This [Thread](https://en.wikipedia.org/wiki/Thread_(network_protocol)) RCP (Radio Co-Processor) is used directly as a dedicated Thread Border Router in Thread-only environments, used for [OpenThread Border Router add-on](https://github.com/home-assistant/addons/blob/master/openthread_border_router/DOCS.md) or wpantund.
+* **RCP Multi-PAN** (no longer recommended) = Multiprotocol firmware for concurrent communication over Zigbee and Thread via Home Assistant [SiliconLabs Multiprotocol add-on](https://github.com/home-assistant/addons/blob/master/silabs-multiprotocol/DOCS.md).
 
-> [!TIP]
-> If you have build issues after switching commits, make sure to delete any
-> `simplicity_sdk_*`, `gecko_sdk_*`, and `template` folders from the project working tree.
+**Note!** Beware that the RCP MultiPAN in multiprotocol mode is no longer recommended because running multi-protocol with multiple active networks on a single radio adapter has proven to not be stable when using Zigbee and Thread network protocols simultaneously on the same radio adapter, it also increases the complexity of software component dependencies needed, so if already using RCP Multi-PAN then it is highly recommended that you plan to migrate to separate dedicated radio adapters instead, (using Zigbee NCP and Thread RCP firmware respectively), even if using RCP MultiPAN on a single radio adapter dongle has been working fine for you so far.
 
-## Building with a firmware manifest (for building device firmware)
-Command line building requires:
-- [`slc-cli`](https://docs.silabs.com/simplicity-studio-5-users-guide/latest/ss-5-users-guide-tools-slc-cli/02-installation)
-- [Simplicity Commander](https://www.silabs.com/developers/mcu-programming-options) (`commander`)
-- The exact Simplicity SDK version required by the project. Note that this doesn't have to be a Git working tree, you can use [a GitHub release](https://github.com/SiliconLabs/gecko_sdk/releases).
-- A compatible toolchain. Take a look at the `Dockerfile` for the necessary toolchains.
+External reference explaining these different co-processor designs at a high level:
+  * https://github.com/home-assistant/addons/blob/master/silabs-multiprotocol/DOCS.md
+  * https://openthread.io/platforms/co-processor
 
-> [!TIP]
-> If you have set up Simplicity Studio on macOS, everything will be automatically
-> detected with the exception of `slc`. This is the only tool you need to download.
+## Web Flasher
+Flash directly from your browser (only Chrome and Edge supported) [SL Web Flasher](https://darkxst.github.io/silabs-firmware-builder/)
 
-> [!WARNING]
-> M1 users should set `JAVA_HOME=$(/usr/libexec/java_home -a x86_64)` when running the
-> build command to make sure the correct Java version is picked by slc-cli. It currently
-> is not compatible with ARM Java.
+Read this [blog post](https://dialedin.com.au/blog/sonoff-zbdongle-e-rcp-firmware) for more details and instructions for using RCP Multi-pan firmware.
 
-`slc-cli` maintains its own SDK and extension trust store so you first must trust all
-SDK extensions for every SDK you plan to use:
+## Home Assistant Add-on
+**RCP MultiPan firmware ONLY**  
+You can install this HA add-on to keep your dongle up to date with latest the RCP  Multi-Pan firmware. This is only for use if you are using the [SiliconLabs Multiprotocol add-on](https://github.com/home-assistant/addons/blob/master/silabs-multiprotocol/DOCS.md).
 
-```bash
-slc signature trust --sdk ~/SimplicityStudio/SDKs/simplicity_sdk_2024.6.2
-slc signature trust --sdk ~/SimplicityStudio/SDKs/simplicity_sdk_2024.6.2 --extension-path ~/SimplicityStudio/SDKs/simplicity_sdk_2024.6.2/extension/nc_efr32_watchdog_extension
+[Multipan Flasher Addon](https://github.com/darkxst/multipan_flasher/tree/main)
+
+It can also be used for the initial conversion to MultiPan firmware, however you will need to disable ZHA or Zigbee2MQTT while you do this initial flash. You can then install and configure the Silabs Multiprotocol Add-on.
+
+## Pre-Compiled Firmware
+Firmware builds can be found in the [firmware_builds](https://github.com/darkxst/silabs-firmware-builder/tree/main/firmware_builds) folder.
+
+`ncp-uart-hw-` EmberZnet pure Zigbee  
+`rcp-uart-802154-` RCP MultiPan  
+`ot-rcp-` OpenThread Only  
+
+ZBDongle-E and ZB-GW04 v1.1 do not support hardware flow control. Yellow, SkyConnect and ZB-GW04 v1.2 are built with hardware flow control. Various baudrates are available as listed at the end of the filename.
+
+Use NabuCasa's [Universal-Silabs-Flasher](https://github.com/NabuCasa/universal-silabs-flasher) to flash the `.gbl` files.
+
+
+## Building locally
+
+To build a firmware locally the build container can be reused. If you use VSCode then simply open the included devcontainer. Or you can manually start the
+container locally using Docker, with a build directory bind-mounted, e.g.
+
+```sh
+docker run --rm -it \
+  --user builder \
+  -v $(pwd)/build:/build \
+  ghcr.io/darkxst/silabs-firmware-builder:4.2.2
 ```
 
-`tools/build_project.py` is the main entry point for building firmwares. Provide paths
-to potential SDKs and toolchains with the `--sdk` and `--toolchain` flags. The build
-tool will automatically determine which SDK and toolchain to use.
+To generate a project, use `slc generate`. To replicate/debug build issues in
+an existing GitHub action, it is often helpful to just copy the command from
+the "Generate Firmware Project" step.
 
-> [!TIP]
-> If you have set up Simplicity Studio on macOS, the default toolchain and SDK paths are
-> automatically found so these flags can be omitted.
-
-```bash
-pip install ruamel.yaml  # Only dependency
-
-python tools/build_project.py \
-    # The following SDK and toolchain flags can be omitted on macOS, they are all autodetected
-    --sdk ~/SimplicityStudio/SDKs/gecko_sdk_4.4.4 \
-    --sdk ~/SimplicityStudio/SDKs/simplicity_sdk_2024.6.0 \
-    --toolchain '/Applications/Simplicity Studio.app/Contents/Eclipse/developer/toolchains/gnu_arm/10.3_2021.10' \
-    --toolchain '/Applications/Simplicity Studio.app/Contents/Eclipse/developer/toolchains/gnu_arm/12.2.rel1_2023.7' \
-
-    --manifest manifests/skyconnect_ncp-uart-hw.yaml \
-    --build-dir build \
-    --output-dir output \
-
-    # Generate `.gbl`, `.out`, and `.hex` firmwares
-    --output gbl \
-    --output out \
-    --output hex
+```sh
+  slc generate \
+      --with="MGM210PA32JIA,simple_led:board_activity" \
+      --project-file="/gecko_sdk/protocol/openthread/sample-apps/ot-ncp/rcp-uart-802154.slcp" \
+      --export-destination=rcp-uart-802154-yellow \
+      --copy-proj-sources --new-project --force \
+      --configuration=""
 ```
 
-Once the build is complete, the firmwares will be in the `output` directory.
+Then build it using commands from the "Build Firmware" step:
+
+```sh
+cd rcp-uart-802154-yellow
+make -f rcp-uart-802154.Makefile release
+```
+
+## Support
+
+If you would like to help support further development of my `Silabs firmware` projects consider buying me a coffee!
+
+<a href="https://www.buymeacoffee.com/darkxst" target="_blank"><img src="img/blue-button.png" alt="Buy Me A Coffee" height="41" width="174"></a>
