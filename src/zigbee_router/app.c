@@ -370,16 +370,6 @@ void sl_button_on_change(const sl_button_t *handle)
 }
 #endif // SL_CATALOG_SIMPLE_BUTTON_PRESENT && SL_ZIGBEE_APP_FRAMEWORK_USE_BUTTON_TO_STAY_AWAKE == 0
 
-//Internal testing stuff
-#if defined(SL_ZIGBEE_TEST)
-void sl_zigbee_af_hal_button_isr_cb(uint8_t button, uint8_t state)
-{
-  if (state == BUTTON_RELEASED) {
-    sl_zigbee_af_event_set_active(&finding_and_binding_event);
-  }
-}
-#endif // SL_ZIGBEE_TEST
-
 #ifdef SL_CATALOG_ZIGBEE_FORCE_SLEEP_AND_WAKEUP_PRESENT
 void sli_zigbee_app_framework_force_sleep_callback(void)
 {
