@@ -204,6 +204,9 @@ void sl_zigbee_af_stack_status_cb(sl_status_t status)
     sl_zigbee_af_event_set_active(&commissioning_led_event);
   } else if (status == SL_STATUS_NETWORK_UP) {
     led_turn_on(COMMISSIONING_STATUS_LED);
+
+    // Send announcement when coming online so coordinator detects without waiting for ping
+    sl_zigbee_send_device_announcement();
     sl_zigbee_af_event_set_active(&finding_and_binding_event);
   }
 }
