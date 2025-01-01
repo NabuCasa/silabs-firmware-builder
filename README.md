@@ -10,12 +10,13 @@ Again, please note that the pre-compiled firmware builds hosted in this reposito
 * Sonoff ZBDongle-E by ITead (based on EFR32MG21)
 * Sonoff iHost by ITead (also based on EFR32MG21 and uses the same firmware as Sonoff ZBDongle-E)
 * EasyIot ZB-GW04 v1.1 and v1.2 (based on EFR32MG21)
-* Smlight SLZB-07 (which may require unlocked [bootloader](https://github.com/darkxst/silabs-firmware-builder/raw/main/firmware_builds/slzb-07/BTL_SLZB07.gbl) first) (based on EFR32MG21)
-* Smlight SLZB-06M (based on EFR32MG21)
+* SMLIGHT SLZB-07 (which may require unlocked [bootloader](https://github.com/darkxst/silabs-firmware-builder/raw/main/firmware_builds/slzb-07/BTL_SLZB07.gbl) first) (based on EFR32MG21)
+* SMLIGHT SLZB-07Mg24 (based on EFR32MG24)
+* SMLIGHT SLZB-06M (based on EFR32MG21)
 * Aeotec Zi-Stick (model “ZGA008” based on EFR32MG21)
 * Sparkfun Things Matter MGM240P (requires [bootloader](https://github.com/darkxst/silabs-firmware-builder/blob/main/firmware_builds/mgm240p/bootloader-uart-xmodem_NCP.hex) to be flashed first using Silabs [Simplicity Commander](https://community.silabs.com/s/article/simplicity-commander?language=en_US)) (based on EFR32MG24)
-* Elelabs Zigbee USB Adapter ELU013 (based on EFR32MG13P)
-* Elelabs Zigbee Raspberry Pi Shield ELR023 (based on EFR32MG13P)
+* Elelabs Zigbee USB Adapter ELU013 (based on EFR32MG13P) [legacy only, 7.4.x builds]
+* Elelabs Zigbee Raspberry Pi Shield ELR023 (based on EFR32MG13P) [legacy only, 7.4.x builds]
 
 ## Different firmware variants
 
