@@ -204,6 +204,9 @@ void sl_zigbee_af_stack_status_cb(sl_status_t status)
     sl_zigbee_af_event_set_active(&commissioning_led_event);
   } else if (status == SL_STATUS_NETWORK_UP) {
     led_turn_on(COMMISSIONING_STATUS_LED);
+
+    // Send announcement when coming online so coordinator detects without waiting for ping
+    sl_zigbee_send_device_announcement();
     sl_zigbee_af_event_set_active(&finding_and_binding_event);
   }
 }
@@ -366,16 +369,6 @@ void sl_button_on_change(const sl_button_t *handle)
   }
 }
 #endif // SL_CATALOG_SIMPLE_BUTTON_PRESENT && SL_ZIGBEE_APP_FRAMEWORK_USE_BUTTON_TO_STAY_AWAKE == 0
-
-//Internal testing stuff
-#if defined(SL_ZIGBEE_TEST)
-void sl_zigbee_af_hal_button_isr_cb(uint8_t button, uint8_t state)
-{
-  if (state == BUTTON_RELEASED) {
-    sl_zigbee_af_event_set_active(&finding_and_binding_event);
-  }
-}
-#endif // SL_ZIGBEE_TEST
 
 #ifdef SL_CATALOG_ZIGBEE_FORCE_SLEEP_AND_WAKEUP_PRESENT
 void sli_zigbee_app_framework_force_sleep_callback(void)

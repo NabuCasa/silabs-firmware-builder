@@ -24,7 +24,7 @@ json_config:
   - file: "config/zcl/zcl_config.zap"
     jq: |
       ( .endpointTypes[].clusters[].attributes[] | select(.name == "date code"))
-      .defaultValue = "20241104"
+      .defaultValue = "20250102"
 
   - file: "config/zcl/zcl_config.zap"
     jq: |
@@ -36,7 +36,7 @@ add_components:
 
 configuration:
   SL_IOSTREAM_USART_VCOM_BAUDRATE: 115200
-  SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE: usartHwFlowControlCtsAndRts
+  SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE: usartHwFlowControlNone
 
 c_defines:
   SL_CLI_LOCAL_ECHO: 0

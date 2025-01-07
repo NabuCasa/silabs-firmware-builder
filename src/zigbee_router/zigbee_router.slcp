@@ -26,11 +26,16 @@ component:
 - id: zigbee_counters
 - id: zigbee_debug_print
 - id: zigbee_find_and_bind_target
+- id: zigbee_gp
+- id: zigbee_green_power_common
+- id: zigbee_green_power_client
 - id: zigbee_identify
+- id: zigbee_interpan
 - id: zigbee_network_steering
 - id: zigbee_packet_handoff
 - id: zigbee_on_off
 - id: zigbee_pro_stack
+- id: zigbee_reporting
 - id: zigbee_scan_dispatch
 - id: zigbee_source_route
 - id: zigbee_stack_diagnostics
