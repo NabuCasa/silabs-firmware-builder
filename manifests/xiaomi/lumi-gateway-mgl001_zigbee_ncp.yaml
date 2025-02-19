@@ -1,7 +1,7 @@
 name: Xiaomi Multimode Gateway 2
 device: EFR32MG21A020F512IM32
 base_project: src/zigbee_ncp
-filename: "{manifest_name}_{ezsp_version}_{fw_variant}_{baudrate}"
+filename: "{manifest_name}_{ezsp_version}_{baudrate}"
 sdk: "simplicity_sdk:2024.6.2"
 toolchain: "12.2.1.20221205"
 
