@@ -16,7 +16,7 @@ Again, please note that the pre-compiled firmware builds hosted in this reposito
 * Aeotec Zi-Stick (model “ZGA008” based on EFR32MG21)
 * Sparkfun Things Matter MGM240P (requires [bootloader](https://github.com/darkxst/silabs-firmware-builder/blob/main/firmware_builds/mgm240p/bootloader-uart-xmodem_NCP.hex) to be flashed first using Silabs [Simplicity Commander](https://community.silabs.com/s/article/simplicity-commander?language=en_US)) (based on EFR32MG24)
 * SeeedStudio Xiao MG24 (based on EFR32MG24), requires bootloader to be [flashed with OpenOCD](https://github.com/darkxst/silabs-firmware-builder/issues/188#issuecomment-2670476887)
-* Xiaomi Multimode Gateway 2 (based on EFR32MG21)
+* Xiaomi Multimode Gateway 2/Mi Smart Hub Pro 2 (based on EFR32MG21)
 * Elelabs Zigbee USB Adapter ELU013 (based on EFR32MG13P) [legacy only, 7.4.x builds]
 * Elelabs Zigbee Raspberry Pi Shield ELR023 (based on EFR32MG13P) [legacy only, 7.4.x builds]
 
