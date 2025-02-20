@@ -1,4 +1,4 @@
-name: Xiaomi Multimode Gateway 2
+name: Xiaomi Multimode Gateway 2 Zigbee
 device: EFR32MG21A020F512IM32
 base_project: src/zigbee_ncp
 filename: "{manifest_name}_{ezsp_version}_{baudrate}"
