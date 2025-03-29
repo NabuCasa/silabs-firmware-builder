@@ -59,7 +59,13 @@ RUN \
     && unzip -q -d simplicity_sdk_2024.6.2 simplicity_sdk_2024.6.2.zip \
     && rm simplicity_sdk_2024.6.2.zip
 
-# Gecko SDK 4.4.4
+# Simplicity SDK 2024.12.1
+RUN \
+    curl -o simplicity_sdk_2024.12.1.zip -L https://github.com/SiliconLabs/simplicity_sdk/releases/download/v2024.12.1-0/simplicity-sdk.zip \
+    && unzip -q -d simplicity_sdk_2024.12.1 simplicity_sdk_2024.12.1.zip \
+    && rm simplicity_sdk_2024.12.1.zip
+
+    # Gecko SDK 4.4.4
 RUN \
     curl -o gecko_sdk_4.4.4.zip -L https://github.com/SiliconLabs/gecko_sdk/releases/download/v4.4.4/gecko-sdk.zip \
     && unzip -q -d gecko_sdk_4.4.4 gecko_sdk_4.4.4.zip \
