@@ -207,7 +207,7 @@ jobs:
 
       - name: Generate manifest
         run: |
-          /opt/venv/bin/python3 tools/create_manifest.py artifacts > artifacts/manifest.json
+          /opt/venv/bin/python3 tools/create_manifest.py artifacts src > artifacts/manifest.json
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
