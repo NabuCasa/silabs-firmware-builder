@@ -233,7 +233,7 @@ def main():
             (project_root / "config/xncp_config.h").read_text()
         )
         if xncp_config_h["XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE"] != 0xFF:
-            patch = xncp_config_h["XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE"]
+            special = xncp_config_h["XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE"]
 
             # Write the override back to the ELF
             with elf.open("r+b") as f:
@@ -249,7 +249,7 @@ def main():
                 )
                 ember_version = modify_elf_symbol(f, "emberVersion", new_ember_version)
 
-        metadata["ezsp_version"] = f"{major}.{minor}.{patch}.{special}.{build}"
+        metadata["ezsp_version"] = f"{major}.{minor}.{patch}.{special}"
 
     if "cpc_version" in gbl_dynamic:
         gbl_dynamic.remove("cpc_version")
