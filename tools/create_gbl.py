@@ -249,7 +249,7 @@ def main():
                 )
                 ember_version = modify_elf_symbol(f, "emberVersion", new_ember_version)
 
-        metadata["ezsp_version"] = f"{major}.{minor}.{patch}.{special}.{build}"
+        metadata["ezsp_version"] = f"{major}.{minor}.{patch}.{special}"
 
     if "cpc_version" in gbl_dynamic:
         gbl_dynamic.remove("cpc_version")
