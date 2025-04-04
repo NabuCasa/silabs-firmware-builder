@@ -233,7 +233,7 @@ def main():
             (project_root / "config/xncp_config.h").read_text()
         )
         if xncp_config_h["XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE"] != 0xFF:
-            patch = xncp_config_h["XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE"]
+            special = xncp_config_h["XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE"]
 
             # Write the override back to the ELF
             with elf.open("r+b") as f:
