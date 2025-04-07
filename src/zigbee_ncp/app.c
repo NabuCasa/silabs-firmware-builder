@@ -91,6 +91,8 @@ typedef struct ManualSourceRoute {
 
 ManualSourceRoute manual_source_routes[XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE];
 
+uint8_t multicast_table_index = 0;
+
 
 ManualSourceRoute* get_manual_source_route(EmberNodeId destination)
 {
@@ -192,8 +194,9 @@ EmberPacketAction sli_zigbee_af_packet_handoff_incoming_callback(EmberZigbeePack
     return EMBER_ACCEPT_PACKET;
   }
 
-  // Take ownership over the first entry and continuously rewrite it
-  EmberMulticastTableEntry *tableEntry = &(sl_zigbee_get_multicast_table()[0]);
+  EmberMulticastTableEntry *table = sl_zigbee_get_multicast_table();
+  EmberMulticastTableEntry *tableEntry = &table[multicast_table_index];
+  multicast_table_index = (multicast_table_index + 1) % sl_zigbee_get_multicast_table_size();
 
   tableEntry->endpoint = 1;
   tableEntry->multicastId = BUILD_UINT16(packetData[1], packetData[2]);
