@@ -177,10 +177,9 @@ EmberPacketAction sli_zigbee_af_packet_handoff_incoming_callback(EmberZigbeePack
   uint8_t* packetData = emberMessageBufferContents(packetBuffer);
   uint16_t packetSize = emberMessageBufferLength(packetBuffer);
 
-  // Skip over the 802.15.4 header to the payload
-  uint8_t payload_offset = sl_mac_flat_field_offset(packetData, true, EMBER_PH_FIELD_MAC_PAYLOAD);
-  packetData += payload_offset;
-  packetSize -= payload_offset;
+  // Jump to the APS data
+  packetData += index;
+  packetSize -= index;
 
   if (packetSize < 3) {
     return EMBER_ACCEPT_PACKET;
