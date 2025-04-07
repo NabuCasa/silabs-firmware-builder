@@ -389,9 +389,10 @@ def main():
         }
         base_project["configuration"].append(wrapped_stack_functions)
 
-    wrapped_stack_functions["value"] = ",".join(
-        manifest.get("wrapped_stack_functions", [])
-    )
+    if "wrapped_stack_functions" in manifest:
+        wrapped_stack_functions["value"] = ",".join(
+            manifest.get("wrapped_stack_functions", [])
+        )
 
     # Finally, write out the modified base project
     with base_project_slcp.open("w") as f:
