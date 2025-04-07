@@ -91,8 +91,6 @@ typedef struct ManualSourceRoute {
 
 ManualSourceRoute manual_source_routes[XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE];
 
-uint8_t multicast_table_index = 0;
-
 
 ManualSourceRoute* get_manual_source_route(EmberNodeId destination)
 {
@@ -162,60 +160,10 @@ void emberAfMainInitCallback(void)
   }
 }
 
-/** @brief Incoming packet filter callback
- *
- * Filters and/or mutates incoming packets. Currently used only for wildcard multicast
- * group membership.
- */
-EmberPacketAction sli_zigbee_af_packet_handoff_incoming_callback(EmberZigbeePacketType packetType,
-                                                                 EmberMessageBuffer packetBuffer,
-                                                                 uint8_t index,
-                                                                 void *data)
+bool __wrap_sli_zigbee_am_multicast_member(EmberMulticastId multicastId)
 {
-  if (packetType != EMBER_ZIGBEE_PACKET_TYPE_APS_DATA) {
-    return EMBER_ACCEPT_PACKET;
-  }
-
-  uint8_t* packetData = emberMessageBufferContents(packetBuffer);
-  uint16_t packetSize = emberMessageBufferLength(packetBuffer);
-
-  // Jump to the APS data
-  packetData += index;
-  packetSize -= index;
-
-  if (packetSize < 3) {
-    return EMBER_ACCEPT_PACKET;
-  }
-
-  uint8_t deliveryMode = (packetData[0] & 0b00001100) >> 2;
-
-  // Only look at multicast packets
-  if (deliveryMode != 0x03) {
-    return EMBER_ACCEPT_PACKET;
-  }
-
-  EmberMulticastTableEntry *table = sl_zigbee_get_multicast_table();
-  EmberMulticastTableEntry *tableEntry = &table[multicast_table_index];
-  multicast_table_index = (multicast_table_index + 1) % sl_zigbee_get_multicast_table_size();
-
-  tableEntry->endpoint = 1;
-  tableEntry->multicastId = BUILD_UINT16(packetData[1], packetData[2]);
-  tableEntry->networkIndex = 0;
-
-  return EMBER_ACCEPT_PACKET;
-}
-
-
-/** @brief Outgoing packet filter callback
- *
- * Filters and/or mutates outgoing packets.
- */
-EmberPacketAction sli_zigbee_af_packet_handoff_outgoing_callback(EmberZigbeePacketType packetType,
-                                                                 EmberMessageBuffer packetBuffer,
-                                                                 uint8_t index,
-                                                                 void *data)
-{
-  return EMBER_ACCEPT_PACKET;
+  // Ignore all binding and multicast table logic, we want all group packets
+  return true;
 }
 
 
