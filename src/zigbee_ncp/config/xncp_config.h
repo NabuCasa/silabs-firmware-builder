@@ -17,4 +17,8 @@
 // Specify a build string that can be read by the host, augmenting its version info
 #define XNCP_BUILD_STRING  ("")
 
+
+// Override the EZSP patch number. The default (0xFF) disables this.
+#define XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE  (0xFF)
+
 #endif /* CONFIG_XNCP_CONFIG_H_ */

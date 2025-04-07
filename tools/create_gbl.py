@@ -7,11 +7,65 @@ import os
 import ast
 import sys
 import json
+import struct
 import pathlib
 import argparse
 import subprocess
 
+from typing import BinaryIO
 from ruamel.yaml import YAML
+from elftools.elf.elffile import ELFFile
+
+
+def _jump_to_elf_symbol(file: BinaryIO, symbol_name: str) -> tuple[ELFFile, int, int]:
+    elf = ELFFile(file)
+
+    symtab = elf.get_section_by_name(".symtab")
+    symbols = symtab.get_symbol_by_name(symbol_name)
+
+    if len(symbols) != 1:
+        raise ValueError(f"Expected one symbol for {symbol_name!r}, got {symbols}")
+
+    symbol = symbols[0]
+    symbol_addr = symbol["st_value"]
+    symbol_size = symbol["st_size"]
+
+    for segment in elf.iter_segments():
+        if segment["p_type"] != "PT_LOAD":
+            continue
+
+        segment_start = segment["p_vaddr"]
+        segment_end = segment_start + segment["p_filesz"]
+
+        if segment_start <= symbol_addr < segment_end:
+            return (
+                elf,
+                symbol_addr - segment_start + segment["p_offset"],
+                symbol_size,
+            )
+
+    raise ValueError("Could not find segment")
+
+
+def read_elf_symbol(file: BinaryIO, symbol_name: str) -> bytes:
+    """
+    Read an ELF symbol.
+    """
+    elf, offset, size = _jump_to_elf_symbol(file, symbol_name)
+
+    file.seek(offset)
+    return file.read(size)
+
+
+def modify_elf_symbol(file: BinaryIO, symbol_name: str, value: bytes) -> None:
+    """
+    Modify an ELF symbol.
+    """
+    elf, offset, size = _jump_to_elf_symbol(file, symbol_name)
+    assert len(value) == size
+
+    file.seek(offset)
+    file.write(value)
 
 
 def parse_c_header_defines(file_content: str) -> dict[str, str]:
@@ -159,10 +213,43 @@ def main():
 
     if "ezsp_version" in gbl_dynamic:
         gbl_dynamic.remove("ezsp_version")
-        zigbee_esf_props = parse_properties_file(
-            (gsdk_path / "protocol/zigbee/esf.properties").read_text()
+
+        elf = list((project_root / "build/debug/").glob("*.out"))[0]
+        with elf.open("rb") as f:
+            ember_version = read_elf_symbol(f, "emberVersion")
+
+        (
+            build,
+            major,
+            minor,
+            patch,
+            special,
+            version_type,
+            padding,
+        ) = struct.unpack(">HBBBBBB", ember_version)
+
+        # Look for overrides
+        xncp_config_h = parse_c_header_defines(
+            (project_root / "config/xncp_config.h").read_text()
         )
-        metadata["ezsp_version"] = zigbee_esf_props["version"][0]
+        if xncp_config_h["XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE"] != 0xFF:
+            special = xncp_config_h["XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE"]
+
+            # Write the override back to the ELF
+            with elf.open("r+b") as f:
+                new_ember_version = struct.pack(
+                    ">HBBBBBB",
+                    build,
+                    major,
+                    minor,
+                    patch,
+                    special,
+                    version_type,
+                    padding,
+                )
+                ember_version = modify_elf_symbol(f, "emberVersion", new_ember_version)
+
+        metadata["ezsp_version"] = f"{major}.{minor}.{patch}.{special}"
 
     if "cpc_version" in gbl_dynamic:
         gbl_dynamic.remove("cpc_version")
@@ -198,10 +285,20 @@ def main():
 
     if "ot_rcp_version" in gbl_dynamic:
         gbl_dynamic.remove("ot_rcp_version")
-        openthread_config_h = parse_c_header_defines(
-            (project_root / "config/sl_openthread_generic_config.h").read_text()
+
+        ot_proj_path = project_root / "config/sl_openthread_generic_config.h"
+        ot_sdk_path = (
+            gsdk_path / "protocol/openthread/include/sl_openthread_package_info.h"
         )
-        metadata["ot_rcp_version"] = openthread_config_h["PACKAGE_STRING"]
+
+        if ot_proj_path.exists():
+            openthread_config_h = parse_c_header_defines(ot_proj_path.read_text())
+            metadata["ot_rcp_version"] = openthread_config_h["PACKAGE_STRING"]
+        elif ot_sdk_path.exists():
+            openthread_package_info_h = parse_c_header_defines(ot_sdk_path.read_text())
+            metadata["ot_rcp_version"] = openthread_package_info_h["PACKAGE_VERSION"]
+        else:
+            raise FileNotFoundError("Could not find OpenThread package info")
 
     if "gecko_bootloader_version" in gbl_dynamic:
         gbl_dynamic.remove("gecko_bootloader_version")

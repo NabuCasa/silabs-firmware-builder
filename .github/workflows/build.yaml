@@ -55,7 +55,7 @@ jobs:
             head_image=$(echo ${{ github.repository }} | awk '{print tolower($0)}')
           fi
 
-          tag_name=$(echo "${{ hashFiles('Dockerfile') }}" | cut -c-16)
+          tag_name=$(echo "${{ hashFiles('Dockerfile', 'requirements.txt') }}" | cut -c-16)
 
           # Default to building a new container under the original repo
           image_name=$head_image
@@ -207,7 +207,7 @@ jobs:
 
       - name: Generate manifest
         run: |
-          /opt/venv/bin/python3 tools/create_manifest.py artifacts > artifacts/manifest.json
+          /opt/venv/bin/python3 tools/create_manifest.py artifacts src > artifacts/manifest.json
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
