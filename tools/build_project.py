@@ -375,6 +375,24 @@ def main():
                 # Otherwise, append it
                 output_config.append({"name": name, "value": value})
 
+    # Builder config: GCC linker `wrap`ed functions
+    try:
+        wrapped_stack_functions = next(
+            c
+            for c in base_project["configuration"]
+            if c["name"] == "BUILDER_WRAPPED_STACK_FUNCTIONS"
+        )
+    except StopIteration:
+        wrapped_stack_functions = {
+            "name": "BUILDER_WRAPPED_STACK_FUNCTIONS",
+            "value": "",
+        }
+        base_project["configuration"].append(wrapped_stack_functions)
+
+    wrapped_stack_functions["value"] = ",".join(
+        manifest.get("wrapped_stack_functions", [])
+    )
+
     # Finally, write out the modified base project
     with base_project_slcp.open("w") as f:
         yaml.dump(base_project, f)
@@ -495,15 +513,29 @@ def main():
             )
         )
 
+    build_flags = {
+        "C_FLAGS": [],
+        "CXX_FLAGS": [],
+        "LD_FLAGS": [],
+    }
+
     # Remove absolute paths from the build for reproducibility
-    extra_compiler_flags = [
+    build_flags["C_FLAGS"] += [
         f"-ffile-prefix-map={str(src.absolute())}={dst}"
         for src, dst in {
             sdk: f"/{sdk_name}",
             args.build_dir: "/src",
             toolchain: "/toolchain",
         }.items()
-    ] + ["-Wall", "-Wextra", "-Werror"]
+    ]
+
+    # Enable errors
+    build_flags["C_FLAGS"] += ["-Wall", "-Wextra", "-Werror"]
+    build_flags["CXX_FLAGS"] = build_flags["C_FLAGS"]
+
+    # Link-time stack function replacement
+    if wrapped_stack_functions["value"]:
+        build_flags["LD_FLAGS"] += [f"-Wl,--wrap={wrapped_stack_functions['value']}"]
 
     output_artifact = (args.build_dir / "build/debug" / base_project_name).with_suffix(
         ".gbl"
@@ -524,9 +556,11 @@ def main():
     )
     makefile_contents += "\t-@echo ' '"
 
-    for flag in ("C_FLAGS", "CXX_FLAGS"):
+    for flag, flag_values in build_flags.items():
         line = f"{flag:<17} = \n"
-        suffix = " ".join([f'"{m}"' for m in extra_compiler_flags]) + "\n"
+        suffix = " ".join([f'"{m}"' for m in flag_values]) + "\n"
+        assert line in makefile_contents
+
         makefile_contents = makefile_contents.replace(
             line, f"{line.rstrip()} {suffix}\n"
         )
