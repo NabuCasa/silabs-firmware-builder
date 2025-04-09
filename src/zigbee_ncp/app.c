@@ -39,7 +39,8 @@
 #define FEATURE_FLOW_CONTROL_TYPE     (0b00000000000000000000000000010000)
 
 #define SUPPORTED_FEATURES ( \
-      FEATURE_MANUAL_SOURCE_ROUTE \
+      FEATURE_MEMBER_OF_ALL_GROUPS \
+    | FEATURE_MANUAL_SOURCE_ROUTE \
     | FEATURE_MFG_TOKEN_OVERRIDES \
     | FEATURE_BUILD_STRING \
     | FEATURE_FLOW_CONTROL_TYPE \
@@ -157,6 +158,12 @@ void emberAfMainInitCallback(void)
   for (uint8_t i = 0; i < XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE; i++) {
     manual_source_routes[i].active = false;
   }
+}
+
+bool __wrap_sli_zigbee_am_multicast_member(EmberMulticastId multicastId)
+{
+  // Ignore all binding and multicast table logic, we want all group packets
+  return true;
 }
 
 
