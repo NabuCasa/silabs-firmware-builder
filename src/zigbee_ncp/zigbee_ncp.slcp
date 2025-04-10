@@ -64,6 +64,9 @@ configuration:
     value: 0
   - name: SL_ZIGBEE_WATCHDOG_PERIODIC_REFRESH_ENABLE
     value: 1
+  # Custom config for the builder
+  - name: BUILDER_WRAPPED_STACK_FUNCTIONS
+    value: sli_zigbee_am_multicast_member
 
 source:
   - path: main.c
