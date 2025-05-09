@@ -14,3 +14,4 @@ artifacts/
 trashed_modified_files/
 src/**/*.bak
 misc/**/*.bak
+static/assets/*

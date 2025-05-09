@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Home Assistant Connect ZBT-1 Flasher</title>
+    <meta name="description" content="Manually upgrade firmware for the Home Assistant Connect ZBT-1." />
+  </head>
+
+  <body>
+    <div>
+      <h1>Install Home Assistant Connect ZBT-1 Latest Firmware</h1>
+      <p>
+        Connect your Home Assistant Connect ZBT-1 to your computer and click on connect below.
+      </p>
+      <nabucasa-zigbee-flasher manifest="./assets/zbt1.json">
+        <span slot="button">Connect</span>
+      </nabucasa-zigbee-flasher>
+    </div>
+
+    <script>
+      document.querySelector("nabucasa-zigbee-flasher").manifest
+    </script>
+    <script src="https://unpkg.com/@nabucasa/sl-web-tools@0.10.1/dist/web/nabucasa-zigbee-flasher.js"></script>
+  </body>
+</html>
