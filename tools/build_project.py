@@ -450,10 +450,12 @@ def main():
 
     for define, config in manifest.get("c_defines", {}).items():
         if not isinstance(config, dict):
-            config = manifest["c_defines"][define] = {"c_flag": False, "value": config}
+            config = manifest["c_defines"][define] = {"type": "config", "value": config}
 
-        if not config["c_flag"]:
+        if config["type"] == "config":
             continue
+        elif config["type"] != "c_flag":
+            raise ValueError(f"Invalid config type: {config['type']}")
 
         build_flags["C_FLAGS"].append(f"-D{define}={config['value']}")
         build_flags["CXX_FLAGS"].append(f"-D{define}={config['value']}")
@@ -467,7 +469,7 @@ def main():
 
             for index, line in enumerate(config_h_lines):
                 for define, config in manifest.get("c_defines", {}).items():
-                    if config["c_flag"]:
+                    if config["type"] == "c_flag":
                         continue
 
                     value_template = config["value"]
