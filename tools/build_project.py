@@ -441,6 +441,24 @@ def main():
     # Actually search for C defines within config
     unused_defines = set(manifest.get("c_defines", {}).keys())
 
+    # First, populate build flags
+    build_flags = {
+        "C_FLAGS": [],
+        "CXX_FLAGS": [],
+        "LD_FLAGS": [],
+    }
+
+    for define, config in manifest.get("c_defines", {}).items():
+        if not isinstance(config, dict):
+            manifest["c_defines"][define] = {"c_flag": False, "value": config}
+
+        if not config["c_flag"]:
+            continue
+
+        build_flags["C_FLAGS"].append(f"-D{define}={config['value']}")
+        build_flags["CXX_FLAGS"].append(f"-D{define}={config['value']}")
+        unused_defines.remove(define)
+
     for config_root in [args.build_dir / "autogen", args.build_dir / "config"]:
         for config_f in config_root.glob("*.h"):
             config_h_lines = config_f.read_text().split("\n")
@@ -448,7 +466,12 @@ def main():
             new_config_h_lines = []
 
             for index, line in enumerate(config_h_lines):
-                for define, value_template in manifest.get("c_defines", {}).items():
+                for define, config in manifest.get("c_defines", {}).items():
+                    if config["c_flag"]:
+                        continue
+
+                    value_template = config["value"]
+
                     if f"#define {define} " not in line:
                         continue
 
@@ -513,12 +536,6 @@ def main():
                 '// #warning "RAIL PTI peripheral not configured"\n',
             )
         )
-
-    build_flags = {
-        "C_FLAGS": [],
-        "CXX_FLAGS": [],
-        "LD_FLAGS": [],
-    }
 
     # Remove absolute paths from the build for reproducibility
     build_flags["C_FLAGS"] += [
