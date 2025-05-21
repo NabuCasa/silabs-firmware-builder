@@ -450,7 +450,7 @@ def main():
 
     for define, config in manifest.get("c_defines", {}).items():
         if not isinstance(config, dict):
-            manifest["c_defines"][define] = {"c_flag": False, "value": config}
+            config = manifest["c_defines"][define] = {"c_flag": False, "value": config}
 
         if not config["c_flag"]:
             continue
