@@ -50,9 +50,9 @@ def main():
                 "product_name": "Home Assistant ZBT-1",
                 "baudrates": {
                     "bootloader": [115200],
-                    "cpc": [460800, 115200, 230400],
                     "ezsp": [115200],
                     "spinel": [460800],
+                    "cpc": [460800, 115200, 230400],
                     "router": [115200],
                 },
                 "usb_filters": [{"pid": 60000, "vid": 4292}],
@@ -69,11 +69,13 @@ def main():
                         "name": "OpenThread (RCP)",
                         "url": "assets/" + zbt1_firmwares["openthread_rcp"]["filename"],
                         "type": "ot-rcp",
-                        "version": zbt1_firmwares["openthread_rcp"]["metadata"][
-                            "ot_rcp_version"
-                        ]
-                        .split("/")[-1]
-                        .split("_")[0],
+                        "version": (
+                            zbt1_firmwares["openthread_rcp"]["metadata"][
+                                "ot_rcp_version"
+                            ]
+                            .split("/")[-1]
+                            .split("_")[0]
+                        ),
                     },
                     {
                         "name": "Multiprotocol (deprecated)",
