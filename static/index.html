@@ -1,24 +1,89 @@
 <!doctype html>
 <html>
   <head>
-    <title>Home Assistant Connect ZBT-1 Flasher</title>
+    <title>Manual Home Assistant Connect ZBT-1 Firmware Upgrade</title>
     <meta name="description" content="Manually upgrade firmware for the Home Assistant Connect ZBT-1." />
+    <meta name="robots" content="noindex" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+
+    <style>
+      body {
+        background-color: rgb(248, 253, 255);
+        font-family: "Figtree", serif;
+        font-optical-sizing: auto;
+        font-size: 16px;
+        font-weight: 400;
+        -webkit-font-smoothing: antialiased;
+        margin: 0;
+      }
+
+      h1 {
+        font-weight: 600;
+      }
+
+      header {
+        border-top: 74px solid #174B62;
+      }
+
+      blockquote {
+        border-left: 1px solid #ddd;
+        color: #7C7F80;
+        font-style: italic;
+        padding: 0 15px;
+      }
+
+      section {
+        max-width: 1400px;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 16px;
+        line-height: 24px;
+        box-sizing: border-box;
+      }
+
+      nabucasa-zigbee-flasher {
+        font-family: "Figtree", serif;
+
+        --mdc-theme-primary: #00AEF8;
+        --mdc-theme-on-primary: #FFFFFF;
+
+        --mdc-typography-button-font-family: "Figtree", serif;
+        --mdc-typography-button-font-weight: 600;
+        --mdc-typography-button-font-size: 16px;
+        --mdc-typography-button-letter-spacing: 0;
+        --mdc-typography-button-text-transform: none;
+
+        --mdc-shape-small: 2rem;
+
+        --mdc-button-raised-box-shadow: none;
+        --mdc-button-height: 40px;
+        --mdc-button-horizontal-padding: 18px;
+
+      }
+    </style>
   </head>
 
   <body>
-    <div>
-      <h1>Install Home Assistant Connect ZBT-1 Latest Firmware</h1>
+    <header></header>
+    <section>
+      <h1>Manual Connect ZBT-1 Firmware Upgrade</h1>
+      <blockquote>
+        <strong>Notice:</strong>
+
+        All devices can now be updated straight from Home Assistant as of 2025.4.0.
+
+        Manual firmware installation through the web flasher is not recommended for Home Assistant SkyConnect and Home Assistant Connect&nbsp;ZBT-1 devices purchased before October 20, 2024.
+      </blockquote>
       <p>
-        Connect your Home Assistant Connect ZBT-1 to your computer and click on connect below.
+        To manually update your Home Assistant Connect&nbsp;ZBT-1 firmware, plug the stick to your current computer and click on the <strong>Connect</strong> button below.
       </p>
       <nabucasa-zigbee-flasher manifest="./assets/zbt1.json">
         <span slot="button">Connect</span>
       </nabucasa-zigbee-flasher>
-    </div>
+    </section>
 
-    <script>
-      document.querySelector("nabucasa-zigbee-flasher").manifest
-    </script>
-    <script src="https://unpkg.com/@nabucasa/sl-web-tools@0.10.1/dist/web/nabucasa-zigbee-flasher.js"></script>
+    <script type="module" src="https://unpkg.com/@nabucasa/sl-web-tools@0.10.1/dist/web/nabucasa-zigbee-flasher.js?module"></script>
   </body>
 </html>
