@@ -130,14 +130,22 @@ jobs:
         run: echo "${{ secrets.PACK_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.repository_owner }} --password-stdin
       - name: Pull build container image
         run: docker pull ${{ needs.build-container.outputs.container_name }}
+      - name: check workspace
+        run: |
+          echo "Current workspace: ${{ github.workspace }}"
+          echo "Current workspace: ${{ gitea.workspace }}"
+          echo "Files in the current directory:"
+          ls -la "${{ github.workspace }}"
       - name: Run build in container
         run: |
           docker run --rm \
             --user root \
-            -v ${{ GITHUB_WORKSPACE }}:/workspace \
+            -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             ${{ needs.build-container.outputs.container_name }} \
             bash -c '
+              ls -la "*"
+              ls -la /workspace
               # Install SDK extensions
               for sdk in /*_sdk_*; do
                 slc signature trust --sdk "$sdk"
