@@ -121,72 +121,77 @@ jobs:
     name: Firmware builder
     needs: [list-manifests, build-container]
     runs-on: ubuntu-latest
-    container:
-      image: ${{ needs.build-container.outputs.container_name }}
-      options: --user root
     strategy:
       matrix:
         manifest: ${{ fromJson(needs.list-manifests.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install SDK extensions
+      - name: Log in to Gitea Container Registry
+        run: echo "${{ secrets.PACK_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.repository_owner }} --password-stdin
+      - name: Pull build container image
+        run: docker pull ${{ needs.build-container.outputs.container_name }}
+      - name: Run build in container
         run: |
-          # XXX: slc-cli does not actually work when the extensions aren't in the SDK!
-          for sdk in /*_sdk_*; do
-            slc signature trust --sdk "$sdk"
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ${{ needs.build-container.outputs.container_name }} \
+            bash -c '
+              # Install SDK extensions
+              for sdk in /*_sdk_*; do
+                slc signature trust --sdk "$sdk"
+                ln -s /workspace/gecko_sdk_extensions "$sdk"/extension
+                for ext in "$sdk"/extension/*/; do
+                  slc signature trust --sdk "$sdk" --extension-path "$ext"
+                done
+              done
 
-            ln -s $PWD/gecko_sdk_extensions "$sdk"/extension
+              # Fix fatal: detected dubious ownership in repository at
+              git config --global --add safe.directory /workspace
 
-            for ext in "$sdk"/extension/*/; do
-              slc signature trust --sdk "$sdk" --extension-path "$ext"
-            done
-          done
+              # Pass all SDKs as consecutive --sdk ... arguments
+              sdk_args=""
+              for sdk_dir in /*_sdk*; do
+                sdk_args="$sdk_args --sdk $sdk_dir"
+              done
 
-      - name: Build firmware
-        id: build-firmware
+              # Pass all toolchains as consecutive --toolchain ... arguments
+              toolchain_args=""
+              for toolchain_dir in /opt/*arm-none-eabi*; do
+                toolchain_args="$toolchain_args --toolchain $toolchain_dir"
+              done
+
+              # Build it
+              python3 tools/build_project.py \
+                $sdk_args \
+                $toolchain_args \
+                --manifest "${{ matrix.manifest }}" \
+                --build-dir build \
+                --build-system makefile \
+                --output-dir outputs \
+                --output gbl \
+                --output hex \
+                --output out
+
+              # Get the basename of the GBL in outputs
+              output_basename=$(basename -- $(basename -- $(ls -1 outputs/*.gbl | head -n 1)) .gbl)
+              echo "output_basename=$output_basename" >> /workspace/build_output.env
+            '
+      - name: Read build output env
         run: |
-          # Fix `fatal: detected dubious ownership in repository at`
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
-          # Pass all SDKs as consecutive `--sdk ...` arguments
-          sdk_args=""
-          for sdk_dir in /*_sdk*; do
-            sdk_args="$sdk_args --sdk $sdk_dir"
-          done
-
-          # Pass all toolchains as consecutive `--toolchain ...` arguments
-          toolchain_args=""
-          for toolchain_dir in /opt/*arm-none-eabi*; do
-            toolchain_args="$toolchain_args --toolchain $toolchain_dir"
-          done
-
-          # Build it
-          python3 tools/build_project.py \
-            $sdk_args \
-            $toolchain_args \
-            --manifest "${{ matrix.manifest }}" \
-            --build-dir build \
-            --build-system makefile \
-            --output-dir outputs \
-            --output gbl \
-            --output hex \
-            --output out
-
-          # Get the basename of the GBL in `outputs`
-          output_basename=$(basename -- $(basename -- $(ls -1 outputs/*.gbl | head -n 1)) .gbl)
-          echo "output_basename=$output_basename" >> $GITHUB_OUTPUT
+          if [ -f build_output.env ]; then
+            cat build_output.env >> $GITHUB_ENV
+          fi
 
       - name: Install node within container (act)
         if: ${{ env.ACT }}
         run: |
           curl -fsSL https://deb.nodesource.com/nsolid_setup_deb.sh | bash -s 20
           apt-get install -y nodejs
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: firmware-build-${{ steps.build-firmware.outputs.output_basename }}
+          name: firmware-build-${{ env.output_basename }}
           path: outputs/*
           compression-level: 9
           if-no-files-found: error
