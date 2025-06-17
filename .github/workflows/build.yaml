@@ -140,7 +140,7 @@ jobs:
         run: |
           docker run --rm \
             --user root \
-            -v /workspace:/workspace \
+            -v /srv/gitea-runner/workspaces:/workspace \
             -w /workspace \
             ${{ needs.build-container.outputs.container_name }} \
             bash -c '
