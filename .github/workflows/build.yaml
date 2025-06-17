@@ -140,7 +140,7 @@ jobs:
         run: |
           docker run --rm \
             --user root \
-            -v ${{ github.workspace }}:/workspace \
+            -v /workspace:/workspace \
             -w /workspace \
             ${{ needs.build-container.outputs.container_name }} \
             bash -c '
