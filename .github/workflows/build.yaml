@@ -14,7 +14,7 @@ on:
       - published
 
 env:
-  REGISTRY: ghcr.io
+  REGISTRY: git.smlight.tech
 
 jobs:
   run-pre-commit:
@@ -47,7 +47,7 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.PACK_TOKEN }}
       - name: Read repository information
         id: read-repo-info
         run: |
