@@ -133,6 +133,7 @@ jobs:
       - name: Run build in container
         run: |
           docker run --rm \
+            --user root \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             ${{ needs.build-container.outputs.container_name }} \
