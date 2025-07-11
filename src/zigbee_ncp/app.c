@@ -29,6 +29,11 @@
 #include "config/xncp_config.h"
 #include "config/sl_iostream_usart_vcom_config.h"
 
+#include "drivers/qma6100p.h"
+#include "drivers/ws2812.h"
+
+#include "app_button_press.h"
+
 
 #define BUILD_UINT16(low, high)  (((uint16_t)(low) << 0) | ((uint16_t)(high) << 8))
 
@@ -37,6 +42,7 @@
 #define FEATURE_MFG_TOKEN_OVERRIDES   (0b00000000000000000000000000000100)
 #define FEATURE_BUILD_STRING          (0b00000000000000000000000000001000)
 #define FEATURE_FLOW_CONTROL_TYPE     (0b00000000000000000000000000010000)
+#define FEATURE_LED_CONTROL           (0b00000000000000000000000000100000)
 
 #define SUPPORTED_FEATURES ( \
       FEATURE_MEMBER_OF_ALL_GROUPS \
@@ -44,6 +50,7 @@
     | FEATURE_MFG_TOKEN_OVERRIDES \
     | FEATURE_BUILD_STRING \
     | FEATURE_FLOW_CONTROL_TYPE \
+    | FEATURE_LED_CONTROL \
 )
 
 extern sli_zigbee_route_table_entry_t sli_zigbee_route_table[];
@@ -72,12 +79,16 @@ typedef enum {
   XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_REQ = 0x0002,
   XNCP_CMD_GET_BUILD_STRING_REQ       = 0x0003,
   XNCP_CMD_GET_FLOW_CONTROL_TYPE_REQ  = 0x0004,
+  XNCP_CMD_SET_LED_STATE_REQ          = 0x0005,
+  XNCP_CMD_GET_ACCELEROMETER_REQ      = 0x0006,
 
   XNCP_CMD_GET_SUPPORTED_FEATURES_RSP = XNCP_CMD_GET_SUPPORTED_FEATURES_REQ | 0x8000,
   XNCP_CMD_SET_SOURCE_ROUTE_RSP       = XNCP_CMD_SET_SOURCE_ROUTE_REQ       | 0x8000,
   XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_RSP = XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_REQ | 0x8000,
   XNCP_CMD_GET_BUILD_STRING_RSP       = XNCP_CMD_GET_BUILD_STRING_REQ       | 0x8000,
   XNCP_CMD_GET_FLOW_CONTROL_TYPE_RSP  = XNCP_CMD_GET_FLOW_CONTROL_TYPE_REQ  | 0x8000,
+  XNCP_CMD_SET_LED_STATE_RSP          = XNCP_CMD_SET_LED_STATE_REQ          | 0x8000,
+  XNCP_CMD_GET_ACCELEROMETER_RSP      = XNCP_CMD_GET_ACCELEROMETER_REQ      | 0x8000,
 
   XNCP_CMD_UNKNOWN = 0xFFFF
 } XncpCommand;
@@ -158,6 +169,11 @@ void emberAfMainInitCallback(void)
   for (uint8_t i = 0; i < XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE; i++) {
     manual_source_routes[i].active = false;
   }
+
+  initqma6100p();
+  initWs2812();
+
+  app_button_press_enable();
 }
 
 bool __wrap_sli_zigbee_am_multicast_member(EmberMulticastId multicastId)
@@ -205,6 +221,41 @@ void nc_zigbee_override_append_source_route(EmberNodeId destination,
   }
 
   return;
+}
+
+void app_button_press_cb(uint8_t button, uint8_t duration) {
+  static int state = 0;
+  state++;
+
+  if (state > 4) {
+      state = 0;
+  }
+
+  rgb_t color;
+
+  if (state == 0) {
+      color.R = 255;
+      color.G = 255;
+      color.B = 255;
+  } else if (state == 1) {
+      color.R = 255;
+      color.G = 0;
+      color.B = 0;
+  } else if (state == 2) {
+      color.R = 0;
+      color.G = 255;
+      color.B = 0;
+  } else if (state == 3) {
+      color.R = 0;
+      color.G = 0;
+      color.B = 255;
+  } else if (state == 4) {
+      color.R = 0;
+      color.G = 0;
+      color.B = 0;
+  }
+
+  set_color_buffer(color);
 }
 
 
@@ -364,6 +415,48 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       }
 
       replyPayload[(*replyPayloadLength)++] = (uint8_t)(flow_control_type & 0xFF);
+      break;
+    }
+
+    case XNCP_CMD_SET_LED_STATE_REQ: {
+      rsp_command_id = XNCP_CMD_SET_LED_STATE_RSP;
+      rsp_status = EMBER_SUCCESS;
+
+      if (messageLength != 3) {
+          rsp_status = EMBER_BAD_ARGUMENT;
+          break;
+      }
+
+      rgb_t color = {
+          .R = messagePayload[0],
+          .G = messagePayload[1],
+          .B = messagePayload[2],
+      };
+
+      set_color_buffer(color);
+
+      break;
+    }
+
+    case XNCP_CMD_GET_ACCELEROMETER_REQ: {
+      rsp_command_id = XNCP_CMD_GET_ACCELEROMETER_RSP;
+      rsp_status = EMBER_SUCCESS;
+
+      float xyz[3];
+      qma6100p_read_acc_xyz(xyz);
+
+      // X
+      memcpy(replyPayload + *replyPayloadLength, (uint8_t*)&xyz[0], sizeof(float));
+      *replyPayloadLength += sizeof(float);
+
+      // Y
+      memcpy(replyPayload + *replyPayloadLength, (uint8_t*)&xyz[1], sizeof(float));
+      *replyPayloadLength += sizeof(float);
+
+      // Z
+      memcpy(replyPayload + *replyPayloadLength, (uint8_t*)&xyz[2], sizeof(float));
+      *replyPayloadLength += sizeof(float);
+
       break;
     }
 
