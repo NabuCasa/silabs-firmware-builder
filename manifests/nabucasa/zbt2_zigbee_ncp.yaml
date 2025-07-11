@@ -7,7 +7,7 @@ toolchain: "12.2.1.20221205"
 
 gbl:
   fw_type: zigbee_ncp
-  fw_variant: 460800_baud
+  fw_variant: 460800_baud_leds
   ezsp_version: dynamic
   #compression: lzma
   baudrate: 460800
@@ -19,6 +19,8 @@ add_components:
 - id: i2cspm
   instance: [inst]
 - id: app_button_press
+- id: simple_button
+  instance: [pin_hole_button]
 
 c_defines:
   XNCP_MFG_MANUF_NAME: '"Nabu Casa"'
@@ -72,5 +74,5 @@ c_defines:
   SL_I2CSPM_INST_SDA_PORT: gpioPortC
   SL_I2CSPM_INST_SDA_PIN: 7
 
-  SL_SIMPLE_BUTTON_INSTANCE0_PORT: gpioPortC
-  SL_SIMPLE_BUTTON_INSTANCE0_PIN: 5
+  SL_SIMPLE_BUTTON_PIN_HOLE_BUTTON_PORT: gpioPortC
+  SL_SIMPLE_BUTTON_PIN_HOLE_BUTTON_PIN: 5
