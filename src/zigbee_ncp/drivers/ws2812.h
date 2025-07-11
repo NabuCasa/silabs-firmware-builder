@@ -14,12 +14,11 @@
 #include "em_ldma.h"
 #include "em_gpio.h"
 #include "em_cmu.h"
-#include "pin_config.h"
 
-#define EUS1MOSI_PORT   EUSART1_TX_PORT
-#define EUS1MOSI_PIN    EUSART1_TX_PIN
-#define EUS1SCLK_PORT   EUSART1_RX_PORT
-#define EUS1SCLK_PIN    EUSART1_RX_PIN
+#define EUS1MOSI_PORT   gpioPortC
+#define EUS1MOSI_PIN    2
+#define EUS1SCLK_PORT   gpioPortD
+#define EUS1SCLK_PIN    2
 #define WS2812_EN_PORT   gpioPortC
 #define WS2812_EN_PIN    3
 

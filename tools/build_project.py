@@ -450,7 +450,13 @@ def main():
 
     for define, config in manifest.get("c_defines", {}).items():
         if not isinstance(config, dict):
-            config = manifest["c_defines"][define] = {"type": "config", "value": config}
+            config = manifest["c_defines"][define] = {
+                "type": "config",
+                "value": config,
+                "error_on_duplicate": True,
+            }
+        elif isinstance(config, dict) and "error_on_duplicate" not in config:
+            config["error_on_duplicate"] = True
 
         if config["type"] == "config":
             continue
@@ -476,6 +482,16 @@ def main():
 
                     if f"#define {define} " not in line:
                         continue
+
+                    if define not in unused_defines:
+                        if manifest["c_defines"][define]["error_on_duplicate"]:
+                            LOGGER.error("Define %r used twice!", define)
+                            sys.exit(1)
+                        else:
+                            LOGGER.warning(
+                                "Define %r used twice but this is allowed", define
+                            )
+                            continue
 
                     define_with_whitespace = line.split(f"#define {define}", 1)[1]
                     alignment = define_with_whitespace[
@@ -510,10 +526,6 @@ def main():
                     new_config_h_lines.append(f"#define {define}{alignment}{value}")
                     written_config[define] = value
 
-                    if define not in unused_defines:
-                        LOGGER.error("Define %r used twice!", define)
-                        sys.exit(1)
-
                     unused_defines.remove(define)
                     break
                 else:
@@ -536,6 +548,19 @@ def main():
             sl_rail_util_pti_config_h.read_text().replace(
                 '#warning "RAIL PTI peripheral not configured"\n',
                 '// #warning "RAIL PTI peripheral not configured"\n',
+            )
+        )
+
+    # Same with EUSART config
+    sl_uartdrv_eusart_ws2812_uart_config = (
+        args.build_dir / "config/sl_uartdrv_eusart_ws2812_uart_config.h"
+    )
+
+    if sl_uartdrv_eusart_ws2812_uart_config.exists():
+        sl_uartdrv_eusart_ws2812_uart_config.write_text(
+            sl_uartdrv_eusart_ws2812_uart_config.read_text().replace(
+                '#warning "UARTDRV EUSART peripheral not configured"\n',
+                '// #warning "UARTDRV EUSART peripheral not configured"\n',
             )
         )
 

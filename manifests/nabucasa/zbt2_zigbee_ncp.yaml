@@ -62,13 +62,37 @@ c_defines:
   SL_IOSTREAM_USART_VCOM_RTS_PORT: gpioPortA
   SL_IOSTREAM_USART_VCOM_RTS_PIN:  0
 
-  SL_UARTDRV_EUSART_WS2812_UART_PERIPHERAL: EUSART1
-  SL_UARTDRV_EUSART_WS2812_UART_PERIPHERAL_NO: 1
-  SL_UARTDRV_EUSART_WS2812_UART_TX_PORT: gpioPortC
-  SL_UARTDRV_EUSART_WS2812_UART_TX_PIN: 2
-  SL_UARTDRV_EUSART_WS2812_UART_RX_PORT: gpioPortD
-  SL_UARTDRV_EUSART_WS2812_UART_RX_PIN: 2
+  SL_UARTDRV_EUSART_WS2812_UART_PERIPHERAL:
+    type: config
+    value: EUSART1
+    error_on_duplicate: false
 
+  SL_UARTDRV_EUSART_WS2812_UART_PERIPHERAL_NO:
+    type: config
+    value: 1
+    error_on_duplicate: false
+
+  SL_UARTDRV_EUSART_WS2812_UART_TX_PORT:
+    type: config
+    value: gpioPortC
+    error_on_duplicate: false
+
+  SL_UARTDRV_EUSART_WS2812_UART_TX_PIN:
+    type: config
+    value: 2
+    error_on_duplicate: false
+
+  SL_UARTDRV_EUSART_WS2812_UART_RX_PORT:
+    type: config
+    value: gpioPortD
+    error_on_duplicate: false
+
+  SL_UARTDRV_EUSART_WS2812_UART_RX_PIN:
+    type: config
+    value: 2
+    error_on_duplicate: false
+
+  SL_I2CSPM_INST_PERIPHERAL: I2C0
   SL_I2CSPM_INST_SCL_PORT: gpioPortC
   SL_I2CSPM_INST_SCL_PIN: 6
   SL_I2CSPM_INST_SDA_PORT: gpioPortC

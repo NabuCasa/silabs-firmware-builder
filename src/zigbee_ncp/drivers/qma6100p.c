@@ -5,6 +5,7 @@
  *      Author: qian
  */
 #include "qma6100p.h"
+#include "sl_udelay.h"
 
 #define I2C_TXBUFFER_SIZE                 10
 #define I2C_RXBUFFER_SIZE                 10
