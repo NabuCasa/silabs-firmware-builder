@@ -32,11 +32,12 @@
 
 #define BUILD_UINT16(low, high)  (((uint16_t)(low) << 0) | ((uint16_t)(high) << 8))
 
-#define FEATURE_MEMBER_OF_ALL_GROUPS  (0b00000000000000000000000000000001)
-#define FEATURE_MANUAL_SOURCE_ROUTE   (0b00000000000000000000000000000010)
-#define FEATURE_MFG_TOKEN_OVERRIDES   (0b00000000000000000000000000000100)
-#define FEATURE_BUILD_STRING          (0b00000000000000000000000000001000)
-#define FEATURE_FLOW_CONTROL_TYPE     (0b00000000000000000000000000010000)
+#define FEATURE_MEMBER_OF_ALL_GROUPS    (0b00000000000000000000000000000001)
+#define FEATURE_MANUAL_SOURCE_ROUTE     (0b00000000000000000000000000000010)
+#define FEATURE_MFG_TOKEN_OVERRIDES     (0b00000000000000000000000000000100)
+#define FEATURE_BUILD_STRING            (0b00000000000000000000000000001000)
+#define FEATURE_FLOW_CONTROL_TYPE       (0b00000000000000000000000000010000)
+#define FEATURE_RESTORE_ROUTE_TABLE     (0b00000000000000000000000000100000)
 
 #define SUPPORTED_FEATURES ( \
       FEATURE_MEMBER_OF_ALL_GROUPS \
@@ -44,6 +45,7 @@
     | FEATURE_MFG_TOKEN_OVERRIDES \
     | FEATURE_BUILD_STRING \
     | FEATURE_FLOW_CONTROL_TYPE \
+    | FEATURE_RESTORE_ROUTE_TABLE \
 )
 
 extern sli_zigbee_route_table_entry_t sli_zigbee_route_table[];
@@ -72,12 +74,16 @@ typedef enum {
   XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_REQ = 0x0002,
   XNCP_CMD_GET_BUILD_STRING_REQ       = 0x0003,
   XNCP_CMD_GET_FLOW_CONTROL_TYPE_REQ  = 0x0004,
+  XNCP_CMD_SET_ROUTE_TABLE_ENTRY_REQ  = 0x0005,
+  XNCP_CMD_GET_ROUTE_TABLE_ENTRY_REQ  = 0x0006,
 
   XNCP_CMD_GET_SUPPORTED_FEATURES_RSP = XNCP_CMD_GET_SUPPORTED_FEATURES_REQ | 0x8000,
   XNCP_CMD_SET_SOURCE_ROUTE_RSP       = XNCP_CMD_SET_SOURCE_ROUTE_REQ       | 0x8000,
   XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_RSP = XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_REQ | 0x8000,
   XNCP_CMD_GET_BUILD_STRING_RSP       = XNCP_CMD_GET_BUILD_STRING_REQ       | 0x8000,
   XNCP_CMD_GET_FLOW_CONTROL_TYPE_RSP  = XNCP_CMD_GET_FLOW_CONTROL_TYPE_REQ  | 0x8000,
+  XNCP_CMD_SET_ROUTE_TABLE_ENTRY_RSP  = XNCP_CMD_SET_ROUTE_TABLE_ENTRY_REQ  | 0x8000,
+  XNCP_CMD_GET_ROUTE_TABLE_ENTRY_RSP  = XNCP_CMD_GET_ROUTE_TABLE_ENTRY_REQ  | 0x8000,
 
   XNCP_CMD_UNKNOWN = 0xFFFF
 } XncpCommand;
@@ -364,6 +370,58 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       }
 
       replyPayload[(*replyPayloadLength)++] = (uint8_t)(flow_control_type & 0xFF);
+      break;
+    }
+
+    case XNCP_CMD_SET_ROUTE_TABLE_ENTRY_REQ: {
+      rsp_command_id = XNCP_CMD_SET_ROUTE_TABLE_ENTRY_RSP;
+      rsp_status = EMBER_SUCCESS;
+
+      if (messageLength != 7) {
+        rsp_status = EMBER_BAD_ARGUMENT;
+        break;
+      }
+
+      uint8_t route_table_index = messagePayload[0];
+      if (route_table_index >= sli_zigbee_route_table_size) {
+        rsp_status = EMBER_BAD_ARGUMENT;
+        break;
+      }
+
+      sli_zigbee_route_table_entry_t *entry = &sli_zigbee_route_table[route_table_index];
+      entry->destination = BUILD_UINT16(messagePayload[1], messagePayload[2]);
+      entry->nextHop = BUILD_UINT16(messagePayload[3], messagePayload[4]);
+      entry->status = messagePayload[5];
+      entry->cost = messagePayload[6];
+      entry->networkIndex = 0;
+      break;
+    }
+
+    case XNCP_CMD_GET_ROUTE_TABLE_ENTRY_REQ: {
+      rsp_command_id = XNCP_CMD_GET_ROUTE_TABLE_ENTRY_RSP;
+      rsp_status = EMBER_SUCCESS;
+
+      if (messageLength != 1) {
+        rsp_status = EMBER_BAD_ARGUMENT;
+        break;
+      }
+
+      uint8_t route_table_index = messagePayload[0];
+      if (route_table_index >= sli_zigbee_route_table_size) {
+        rsp_status = EMBER_BAD_ARGUMENT;
+        break;
+      }
+
+      sli_zigbee_route_table_entry_t *entry = &sli_zigbee_route_table[route_table_index];
+
+      replyPayload[(*replyPayloadLength)++] = (entry->destination & 0x00FF) >> 0;
+      replyPayload[(*replyPayloadLength)++] = (entry->destination & 0xFF00) >> 8;
+
+      replyPayload[(*replyPayloadLength)++] = (entry->nextHop & 0x00FF) >> 0;
+      replyPayload[(*replyPayloadLength)++] = (entry->nextHop & 0xFF00) >> 8;
+
+      replyPayload[(*replyPayloadLength)++] = entry->status;
+      replyPayload[(*replyPayloadLength)++] = entry->cost;
       break;
     }
 
