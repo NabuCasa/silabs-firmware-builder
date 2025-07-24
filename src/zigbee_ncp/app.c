@@ -375,8 +375,8 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       rsp_command_id = XNCP_CMD_GET_PART_NUMBER_RSP;
       rsp_status = EMBER_SUCCESS;
 
-      replyPayloadLength += strlen(PART_NUMBER);
-      memcpy(replyPayload + *replyPayloadLength, PART_NUMBER, strlen(PART_NUMBER));
+      replyPayloadLength += sizeof(PART_NUMBER);
+      memcpy(replyPayload + *replyPayloadLength, PART_NUMBER, sizeof(PART_NUMBER));
       break;
     }
 
