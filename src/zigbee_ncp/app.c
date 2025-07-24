@@ -48,6 +48,8 @@
     | FEATURE_PART_NUMBER \
 )
 
+static const char part_number_str[] = PART_NUMBER;
+
 extern sli_zigbee_route_table_entry_t sli_zigbee_route_table[];
 extern uint8_t sli_zigbee_route_table_size;
 
@@ -375,8 +377,8 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       rsp_command_id = XNCP_CMD_GET_PART_NUMBER_RSP;
       rsp_status = EMBER_SUCCESS;
 
-      replyPayloadLength += sizeof(PART_NUMBER);
-      memcpy(replyPayload + *replyPayloadLength, PART_NUMBER, sizeof(PART_NUMBER));
+      replyPayloadLength += strlen(part_number_str);
+      memcpy(replyPayload + *replyPayloadLength, part_number_str, strlen(part_number_str));
       break;
     }
 
