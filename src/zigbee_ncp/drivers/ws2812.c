@@ -37,7 +37,7 @@ LDMA_TransferCfg_t ldmaTXConfig;
 
 // Output buffer for USART
 static uint8_t USART_tx_buffer[USART_BUFFER_SIZE_BYTES] = {0};
-static rgb_t rgb_color_buffer;
+static rgb_t rgb_color_buffer[NUMBER_OF_LEDS];
 
 // The WS2812 protocol interprets a signal that is 2/3 high 1/3 low as 1
 // and 1/3 high 2/3 low as 0. This can be done by encoding each bit as 3 bits,
@@ -144,23 +144,16 @@ void initWs2812(void)
   initLDMA();
 }
 
-rgb_t get_color_buffer()
+rgb_t* get_color_buffer()
 {
   return rgb_color_buffer;
 }
 
-void set_color_buffer(rgb_t input_color)
+void set_color_buffer(rgb_t *input_colors)
 {
   // Remember the current color for later querying
-  rgb_color_buffer = input_color;
+  memcpy(rgb_color_buffer, input_colors, sizeof(rgb_t) * NUMBER_OF_LEDS);
 
-  // Make it easier to access the color bytes using a pointer
-  rgb_t input_colors[NUMBER_OF_LEDS] = {
-    input_color,
-    input_color,
-    input_color,
-    input_color
-  };
   const uint8_t *input_color_byte = (uint8_t *) input_colors;
 
   // See above for a more detailed description of the protocol and bit order

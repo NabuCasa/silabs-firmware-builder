@@ -255,7 +255,13 @@ void app_button_press_cb(uint8_t button, uint8_t duration) {
       color.B = 0;
   }
 
-  set_color_buffer(color);
+  rgb_t colors[4];
+  memcpy(&colors[0], &color, sizeof(rgb_t));
+  memcpy(&colors[1], &color, sizeof(rgb_t));
+  memcpy(&colors[2], &color, sizeof(rgb_t));
+  memcpy(&colors[3], &color, sizeof(rgb_t));
+
+  set_color_buffer(colors);
 }
 
 
@@ -421,19 +427,40 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
     case XNCP_CMD_SET_LED_STATE_REQ: {
       rsp_command_id = XNCP_CMD_SET_LED_STATE_RSP;
       rsp_status = EMBER_SUCCESS;
+      rgb_t colors[4];
 
-      if (messageLength != 3) {
+      if (messageLength == 12) {
+        colors[0].R = messagePayload[0];
+        colors[0].G = messagePayload[1];
+        colors[0].B = messagePayload[2];
+        colors[1].R = messagePayload[3];
+        colors[1].G = messagePayload[4];
+        colors[1].B = messagePayload[5];
+        colors[2].R = messagePayload[6];
+        colors[2].G = messagePayload[7];
+        colors[2].B = messagePayload[8];
+        colors[3].R = messagePayload[9];
+        colors[3].G = messagePayload[10];
+        colors[3].B = messagePayload[11];
+      } else if (messageLength == 3) {
+        colors[0].R = messagePayload[0];
+        colors[0].G = messagePayload[1];
+        colors[0].B = messagePayload[2];
+        colors[1].R = messagePayload[3];
+        colors[1].G = messagePayload[0];
+        colors[1].B = messagePayload[1];
+        colors[2].R = messagePayload[2];
+        colors[2].G = messagePayload[3];
+        colors[2].B = messagePayload[0];
+        colors[3].R = messagePayload[1];
+        colors[3].G = messagePayload[2];
+        colors[3].B = messagePayload[3];
+      } else {
           rsp_status = EMBER_BAD_ARGUMENT;
           break;
       }
 
-      rgb_t color = {
-          .R = messagePayload[0],
-          .G = messagePayload[1],
-          .B = messagePayload[2],
-      };
-
-      set_color_buffer(color);
+      set_color_buffer(colors);
 
       break;
     }

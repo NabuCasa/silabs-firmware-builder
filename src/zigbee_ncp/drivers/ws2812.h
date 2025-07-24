@@ -38,8 +38,8 @@ static const rgb_t red = { 0x00, 0xFF, 0x00 };
 static const rgb_t yellow = { 0xFF, 0xFF, 0x00 };
 static const rgb_t white = { 0xE3, 0xFF, 0xB5 };
 
-rgb_t get_color_buffer();
-void set_color_buffer(rgb_t input_color);
+rgb_t* get_color_buffer();
+void set_color_buffer(rgb_t *input_color);
 void initWs2812(void);
 // void color_test();
 
