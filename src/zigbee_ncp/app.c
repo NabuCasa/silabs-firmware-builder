@@ -37,7 +37,7 @@
 #define FEATURE_MFG_TOKEN_OVERRIDES   (0b00000000000000000000000000000100)
 #define FEATURE_BUILD_STRING          (0b00000000000000000000000000001000)
 #define FEATURE_FLOW_CONTROL_TYPE     (0b00000000000000000000000000010000)
-#define FEATURE_PART_NUMBER           (0b00000000000000000000000000100000)
+#define FEATURE_CHIP_INFO             (0b00000000000000000000000000100000)
 
 #define SUPPORTED_FEATURES ( \
       FEATURE_MEMBER_OF_ALL_GROUPS \
@@ -45,10 +45,8 @@
     | FEATURE_MFG_TOKEN_OVERRIDES \
     | FEATURE_BUILD_STRING \
     | FEATURE_FLOW_CONTROL_TYPE \
-    | FEATURE_PART_NUMBER \
+    | FEATURE_CHIP_INFO \
 )
-
-static const char part_number_str[] = PART_NUMBER;
 
 extern sli_zigbee_route_table_entry_t sli_zigbee_route_table[];
 extern uint8_t sli_zigbee_route_table_size;
@@ -76,14 +74,14 @@ typedef enum {
   XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_REQ = 0x0002,
   XNCP_CMD_GET_BUILD_STRING_REQ       = 0x0003,
   XNCP_CMD_GET_FLOW_CONTROL_TYPE_REQ  = 0x0004,
-  XNCP_CMD_GET_PART_NUMBER_REQ        = 0x0005,
+  XNCP_CMD_GET_CHIP_INFO_REQ          = 0x0005,
 
   XNCP_CMD_GET_SUPPORTED_FEATURES_RSP = XNCP_CMD_GET_SUPPORTED_FEATURES_REQ | 0x8000,
   XNCP_CMD_SET_SOURCE_ROUTE_RSP       = XNCP_CMD_SET_SOURCE_ROUTE_REQ       | 0x8000,
   XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_RSP = XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_REQ | 0x8000,
   XNCP_CMD_GET_BUILD_STRING_RSP       = XNCP_CMD_GET_BUILD_STRING_REQ       | 0x8000,
   XNCP_CMD_GET_FLOW_CONTROL_TYPE_RSP  = XNCP_CMD_GET_FLOW_CONTROL_TYPE_REQ  | 0x8000,
-  XNCP_CMD_GET_PART_NUMBER_RSP        = XNCP_CMD_GET_PART_NUMBER_REQ        | 0x8000,
+  XNCP_CMD_GET_CHIP_INFO_RSP          = XNCP_CMD_GET_CHIP_INFO_REQ        | 0x8000,
 
   XNCP_CMD_UNKNOWN = 0xFFFF
 } XncpCommand;
@@ -373,12 +371,22 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       break;
     }
 
-    case XNCP_CMD_GET_PART_NUMBER_REQ: {
-      rsp_command_id = XNCP_CMD_GET_PART_NUMBER_RSP;
+    case XNCP_CMD_GET_CHIP_INFO_REQ: {
+      rsp_command_id = XNCP_CMD_GET_CHIP_INFO_RSP;
       rsp_status = EMBER_SUCCESS;
 
-      replyPayloadLength += strlen(part_number_str);
-      memcpy(replyPayload + *replyPayloadLength, part_number_str, strlen(part_number_str));
+      // RAM size
+      replyPayload[(*replyPayloadLength)++] = (uint8_t)((RAM_MEM_SIZE >>  0) & 0xFF);
+      replyPayload[(*replyPayloadLength)++] = (uint8_t)((RAM_MEM_SIZE >>  8) & 0xFF);
+      replyPayload[(*replyPayloadLength)++] = (uint8_t)((RAM_MEM_SIZE >> 16) & 0xFF);
+      replyPayload[(*replyPayloadLength)++] = (uint8_t)((RAM_MEM_SIZE >> 24) & 0xFF);
+
+      // Part number
+      uint8_t value_length = strlen(PART_NUMBER);
+      replyPayload[(*replyPayloadLength)++] = value_length;
+
+      memcpy(replyPayload + *replyPayloadLength, PART_NUMBER, value_length);
+      *replyPayloadLength += value_length;
       break;
     }
 
