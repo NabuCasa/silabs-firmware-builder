@@ -7,7 +7,7 @@ toolchain: "12.2.1.20221205"
 
 gbl:
   fw_type: zigbee_ncp
-  fw_variant: 460800_baud_leds
+  fw_variant: 460800_baud_leds_sw_flow
   ezsp_version: dynamic
   #compression: lzma
   baudrate: 460800
@@ -26,6 +26,10 @@ c_defines:
   XNCP_MFG_MANUF_NAME: '"Nabu Casa"'
   XNCP_MFG_BOARD_NAME: '"Home Assistant Connect ZBT-2"'
   XNCP_BUILD_STRING: template:"{now:%Y%m%d%H%M%S}"
+
+  # The hardware flow control is only between the S3 and the MG24. The application
+  # should not use hardware flow control.
+  XNCP_FLOW_CONTROL_TYPE: usartHwFlowControlNone
 
   EMBER_APS_UNICAST_MESSAGE_COUNT: 32
   EMBER_BINDING_TABLE_SIZE: 32
