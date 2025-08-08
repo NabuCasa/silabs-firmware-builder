@@ -410,7 +410,7 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
 
       XncpFlowControlType flow_control_type;
 
-      switch (SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE) {
+      switch (XNCP_FLOW_CONTROL_TYPE) {
         case usartHwFlowControlCtsAndRts: {
           flow_control_type = XNCP_FLOW_CONTROL_TYPE_HARDWARE;
           break;
