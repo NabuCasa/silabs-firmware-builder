@@ -25,6 +25,9 @@ c_defines:
   SL_SERIAL_UART_RTS_PORT: gpioPortA
   SL_SERIAL_UART_RTS_PIN:  0
 
+  # The bootloader does not allow downgrades so we need to bump the version
+  BOOTLOADER_VERSION_MAIN_CUSTOMER: 3
+
   SL_GPIO_ACTIVATION_POLARITY: LOW
   SL_BTL_BUTTON_PORT: gpioPortA
   SL_BTL_BUTTON_PIN: 6
