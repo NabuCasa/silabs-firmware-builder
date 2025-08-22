@@ -27,6 +27,7 @@ static const uint16_t FADE_STEPS_TOTAL = 500;        // 500 steps * 4ms = 2s cyc
 static const uint32_t BLINK_HALF_PERIOD_TICKS = 62;  // 62 * 4ms = 248ms ≈ 250ms
 static const float TILT_THRESHOLD_DEGREES = 10.0f;   // Tilt threshold
 static const float TILT_HYSTERESIS_DEGREES = 2.0f;   // Hysteresis to prevent flicker
+static const float M_PI = 3.14159265358979323846f;
 
 // Calculate tilt angle from accelerometer data
 static float calculate_tilt_angle(void)
@@ -152,7 +153,7 @@ static void led_update_callback(sl_sleeptimer_timer_handle_t *handle, void *data
   // Update LED animation based on current state
   switch (current_state) {
     case LED_STATE_NETWORK_FORMED:
-      set_all_leds(0, 0, 0); // LEDs off
+      set_all_leds(255, 255, 255); // Solid white
       break;
       
     case LED_STATE_NETWORK_NOT_FORMED:

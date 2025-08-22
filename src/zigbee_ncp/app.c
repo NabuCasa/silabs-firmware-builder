@@ -112,8 +112,7 @@ typedef struct ManualSourceRoute {
 
 ManualSourceRoute manual_source_routes[XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE];
 
-// Network state tracking
-static bool is_network_formed = false;
+
 
 
 ManualSourceRoute* get_manual_source_route(EmberNodeId destination)
@@ -161,13 +160,6 @@ sli_zigbee_route_table_entry_t* find_free_routing_table_entry(EmberNodeId destin
   return &sli_zigbee_route_table[index];
 }
 
-// Linear interpolation between two values
-static uint8_t lerp_uint8(uint8_t a, uint8_t b, float t)
-{
-  if (t <= 0.0f) return a;
-  if (t >= 1.0f) return b;
-  return (uint8_t)(a + t * (b - a));
-}
 
 // Check if device has valid stored network configuration
 static bool device_has_stored_network_settings(void)
@@ -219,13 +211,8 @@ void emberAfMainInitCallback(void)
   // Initialize LED effects system
   led_effects_init();
   
-  // Check if we should start pulsing based on stored network settings
-  if (!device_has_stored_network_settings()) {
-    led_effects_start_pulse();
-    is_network_formed = false;  // false means "should pulse"
-  } else {
-    is_network_formed = true;   // true means "should not pulse"
-  }
+  // Set initial network state
+  led_effects_set_network_state(device_has_stored_network_settings());
 }
 
 bool __wrap_sli_zigbee_am_multicast_member(EmberMulticastId multicastId)
@@ -241,20 +228,8 @@ void emberAfStackStatusCallback(EmberStatus status)
 {
   (void)status;  // Ignore the actual status - we'll check stored settings instead
   
-  // Check current state based on stored network settings
-  bool should_pulse_now = !device_has_stored_network_settings();
-  bool was_pulsing = !is_network_formed;  // is_network_formed is inverted
-  
-  if (should_pulse_now && !was_pulsing) {
-    // Transition from not-pulsing to pulsing - start pulse effect
-    led_effects_start_pulse();
-    is_network_formed = false;  // false means "should pulse"
-  } else if (!should_pulse_now && was_pulsing) {
-    // Transition from pulsing to not-pulsing - stop pulse effect
-    led_effects_stop_pulse();
-    is_network_formed = true;  // true means "should not pulse"
-  }
-  // If should_pulse_now == was_pulsing, no state change - do nothing
+  // Update network state
+  led_effects_set_network_state(device_has_stored_network_settings());
 }
 
 
@@ -299,39 +274,7 @@ void nc_zigbee_override_append_source_route(EmberNodeId destination,
 }
 
 void app_button_press_cb(uint8_t button, uint8_t duration) {
-  static int state = 0;
-  state++;
-
-  if (state > 4) {
-      state = 0;
-  }
-
-  rgb_t color;
-
-  if (state == 0) {
-      color.R = 255;
-      color.G = 255;
-      color.B = 255;
-  } else if (state == 1) {
-      color.R = 255;
-      color.G = 0;
-      color.B = 0;
-  } else if (state == 2) {
-      color.R = 0;
-      color.G = 255;
-      color.B = 0;
-  } else if (state == 3) {
-      color.R = 0;
-      color.G = 0;
-      color.B = 255;
-  } else if (state == 4) {
-      color.R = 0;
-      color.G = 0;
-      color.B = 0;
-  }
-
-  // Stop any pulse effect and set the target color
-  led_effects_set_target_color(&color);
+  
 }
 
 
