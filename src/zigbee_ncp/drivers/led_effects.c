@@ -112,7 +112,7 @@ static void update_fade_animation(void)
     brightness = (uint8_t)((reverse_step * 255) / (FADE_STEPS_TOTAL / 2));
   }
   
-  set_all_leds(brightness, brightness, brightness);
+  set_all_leds(brightness, (uint8_t)((brightness * 114.0) / 255), (uint8_t)((brightness * 46.0) / 255));
   
   fade_step++;
   if (fade_step >= FADE_STEPS_TOTAL) {
@@ -131,9 +131,9 @@ static void update_blink_animation(void)
   }
   
   if (blink_on) {
-    set_all_leds(255, 255, 255); // Full brightness
+    set_all_leds(255, 114, 46);
   } else {
-    set_all_leds(0, 0, 0); // Off
+    set_all_leds(0, 0, 0);
   }
 }
 
@@ -144,8 +144,7 @@ static void led_update_callback(sl_sleeptimer_timer_handle_t *handle, void *data
   (void)data;
   
   tick_counter++;
-  
-  // Read accelerometer every 25 ticks (100ms)
+
   if (tick_counter % 25 == 0) {
     update_tilt_state();
   }
@@ -153,7 +152,7 @@ static void led_update_callback(sl_sleeptimer_timer_handle_t *handle, void *data
   // Update LED animation based on current state
   switch (current_state) {
     case LED_STATE_NETWORK_FORMED:
-      set_all_leds(255, 255, 255); // Solid white
+      set_all_leds(255, 114, 46);
       break;
       
     case LED_STATE_NETWORK_NOT_FORMED:
