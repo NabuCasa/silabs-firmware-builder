@@ -33,6 +33,8 @@
 #include "drivers/ws2812.h"
 
 #include "app_button_press.h"
+#include "sl_sleeptimer.h"
+#include "sl_token_api.h"
 
 
 #define BUILD_UINT16(low, high)  (((uint16_t)(low) << 0) | ((uint16_t)(high) << 8))
@@ -109,6 +111,19 @@ typedef struct ManualSourceRoute {
 
 ManualSourceRoute manual_source_routes[XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE];
 
+// Autonomous LED control variables
+static sl_sleeptimer_timer_handle_t led_pulse_timer;
+static uint32_t animation_start_time = 0; // Timestamp when animation started (network disconnected)
+static bool network_was_connected = false; // Track previous network state
+
+// Animation parameters
+static const uint32_t pulse_period_ms = 2000;        // 2 second cycle time
+static const uint32_t led_update_interval_ms = 50;   // Update every 50ms for smooth animation
+
+// Pulse colors
+static const rgb_t pulse_color_min = {0, 0, 0};      // Color at minimum brightness (off)
+static const rgb_t pulse_color_max = {0, 0, 255};    // Color at maximum brightness (blue)
+
 
 ManualSourceRoute* get_manual_source_route(EmberNodeId destination)
 {
@@ -155,6 +170,89 @@ sli_zigbee_route_table_entry_t* find_free_routing_table_entry(EmberNodeId destin
   return &sli_zigbee_route_table[index];
 }
 
+// Linear interpolation between two values
+static uint8_t lerp_uint8(uint8_t a, uint8_t b, float t)
+{
+  if (t <= 0.0f) return a;
+  if (t >= 1.0f) return b;
+  return (uint8_t)(a + t * (b - a));
+}
+
+// Check if device has valid stored network configuration
+static bool device_has_stored_network_settings(void)
+{
+  tokTypeStackNodeData nodeData;
+  
+  // Read the stored network node data token
+  halCommonGetToken(&nodeData, TOKEN_STACK_NODE_DATA);
+
+  if (nodeData.panId == 0xFFFF) {
+    return false;
+  }
+  
+  if (nodeData.radioFreqChannel < 11 || nodeData.radioFreqChannel > 26) {
+    return false;
+  }
+  
+  return true;
+}
+
+// LED autonomous pulsing callback
+static void led_pulse_callback(sl_sleeptimer_timer_handle_t *handle, void *data)
+{
+  (void)handle;
+  (void)data;
+  
+  bool should_pulse = !device_has_stored_network_settings();
+  bool was_not_pulsing = network_was_connected;  // true means "was not pulsing"
+  
+  // Detect state change from not-pulsing to pulsing
+  if (was_not_pulsing && should_pulse) {
+    // Start/restart animation timing
+    animation_start_time = sl_sleeptimer_get_tick_count();
+  }
+  
+  // Update state tracking
+  network_was_connected = !should_pulse;  // Inverted: true means "should not pulse"
+  
+  if (should_pulse) {
+    // Calculate time since animation started
+    uint32_t current_time = sl_sleeptimer_get_tick_count();
+    uint32_t elapsed_ticks = current_time - animation_start_time;
+    uint32_t elapsed_ms = sl_sleeptimer_tick_to_ms(elapsed_ticks);
+    
+    // Calculate position in the cycle (0.0 to 1.0)
+    float cycle_position = (float)(elapsed_ms % pulse_period_ms) / (float)pulse_period_ms;
+    
+    // Linear transition: 0.0 -> 1.0 -> 0.0 over the cycle
+    float brightness;
+    if (cycle_position <= 0.5f) {
+      // First half: fade up from 0 to 1
+      brightness = cycle_position * 2.0f;
+    } else {
+      // Second half: fade down from 1 to 0
+      brightness = (1.0f - cycle_position) * 2.0f;
+    }
+    
+    // Interpolate between minimum and maximum pulse colors
+    rgb_t colors[4];
+    colors[0].R = lerp_uint8(pulse_color_min.R, pulse_color_max.R, brightness);
+    colors[0].G = lerp_uint8(pulse_color_min.G, pulse_color_max.G, brightness);  
+    colors[0].B = lerp_uint8(pulse_color_min.B, pulse_color_max.B, brightness);
+    
+    // Set all 4 LEDs to the same color
+    for (int i = 1; i < 4; i++) {
+      colors[i] = colors[0];
+    }
+    
+    set_color_buffer(colors);
+  } else {
+    // Turn off LEDs when joined to network
+    rgb_t colors[4] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
+    set_color_buffer(colors);
+  }
+}
+
 
 //----------------------
 // Implemented Callbacks
@@ -181,12 +279,54 @@ void emberAfMainInitCallback(void)
   initWs2812();
 
   app_button_press_enable();
+
+  // Start LED animation timer for smooth updates
+  sl_sleeptimer_start_periodic_timer_ms(&led_pulse_timer,
+                                        led_update_interval_ms,
+                                        led_pulse_callback,
+                                        NULL,
+                                        0,
+                                        0);
+  
+  // Initialize animation start time and network state
+  animation_start_time = sl_sleeptimer_get_tick_count();
+  
+  // Initialize to "was not pulsing" so we start pulsing if needed
+  network_was_connected = true;  // true means "was not pulsing"
+  
+  // Start with LEDs off - the timer will determine if they should pulse
+  rgb_t colors[4] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
+  set_color_buffer(colors);
 }
 
 bool __wrap_sli_zigbee_am_multicast_member(EmberMulticastId multicastId)
 {
   // Ignore all binding and multicast table logic, we want all group packets
   return true;
+}
+
+/** @brief Stack Status Callback
+ * Called when the status of the stack changes.
+ */
+void emberAfStackStatusCallback(EmberStatus status)
+{
+  (void)status;  // Ignore the actual status - we'll check stored settings instead
+  
+  // Check current state based on stored network settings
+  bool should_pulse_now = !device_has_stored_network_settings();
+  bool was_pulsing = !network_was_connected;  // network_was_connected is inverted
+  
+  if (should_pulse_now && !was_pulsing) {
+    // Transition from not-pulsing to pulsing - start animation
+    animation_start_time = sl_sleeptimer_get_tick_count();
+    network_was_connected = false;  // false means "should pulse"
+  } else if (!should_pulse_now && was_pulsing) {
+    // Transition from pulsing to not-pulsing - turn off LEDs
+    rgb_t colors[4] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
+    set_color_buffer(colors);
+    network_was_connected = true;  // true means "should not pulse"
+  }
+  // If should_pulse_now == was_pulsing, no state change - do nothing
 }
 
 
@@ -268,6 +408,7 @@ void app_button_press_cb(uint8_t button, uint8_t duration) {
   memcpy(&colors[2], &color, sizeof(rgb_t));
   memcpy(&colors[3], &color, sizeof(rgb_t));
 
+  // Manual control overrides autonomous pulsing temporarily
   set_color_buffer(colors);
 }
 
@@ -486,6 +627,7 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
           break;
       }
 
+      // Manual LED control via XNCP overrides autonomous pulsing temporarily
       set_color_buffer(colors);
 
       break;
