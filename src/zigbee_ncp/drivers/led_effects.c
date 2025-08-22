@@ -1,220 +1,216 @@
 /*
  * led_effects.c
  *
- * LED Color Transition and Effects System Implementation
+ * LED State Machine Implementation
+ * Simple state-based LED control for adapter status indication
  */
 
 #include "led_effects.h"
+#include "qma6100p.h"
 #include <string.h>
+#include <math.h>
 
-// LED Color Transition System - Internal State
-static rgb_t current_color = {0, 0, 0};              // Current LED color
-static rgb_t target_color = {0, 0, 0};               // Target LED color  
-static uint32_t transition_end_time = 0;             // When transition should complete
-static sl_sleeptimer_timer_handle_t color_transition_timer;  // Fast timer for smooth transitions
-static sl_sleeptimer_timer_handle_t pulse_effect_timer;      // Timer for pulse effect
-static bool pulse_active = false;                    // Track if pulse effect is running
+// LED State Machine - Internal State  
+static led_state_t current_state = LED_STATE_NETWORK_NOT_FORMED;
+static led_state_t network_state = LED_STATE_NETWORK_NOT_FORMED; // Remember network state for tilt recovery
+static sl_sleeptimer_timer_handle_t led_update_timer;
+static uint32_t tick_counter = 0;
+
+// Animation state
+static uint16_t fade_step = 0;     // 0-499 for fade animation (500 steps total)
+static bool blink_on = false;     // Current blink state for tilted mode
+static uint32_t blink_counter = 0; // Counter for blink timing
 
 // Animation parameters
-static const uint32_t transition_update_interval_ms = 30;    // Update every 30ms for smooth transitions
-static const uint32_t pulse_toggle_interval_ms = 2 * (0xFF - 25) * 4;  // Pulse timing
-static const uint32_t default_transition_duration_ms = pulse_toggle_interval_ms; // Default transition time
+static const uint32_t LED_UPDATE_INTERVAL_MS = 4;    // 4ms timer for all updates
+static const uint16_t FADE_STEPS_TOTAL = 500;        // 500 steps * 4ms = 2s cycle
+static const uint32_t BLINK_HALF_PERIOD_TICKS = 62;  // 62 * 4ms = 248ms ≈ 250ms
+static const float TILT_THRESHOLD_DEGREES = 10.0f;   // Tilt threshold
+static const float TILT_HYSTERESIS_DEGREES = 2.0f;   // Hysteresis to prevent flicker
 
-// Pulse colors
-static const rgb_t pulse_color_min = {25, 25, 25};   // Minimum pulse color
-static const rgb_t pulse_color_max = {75, 75, 75};   // Maximum pulse color
-
-// Linear interpolation between two uint8_t values
-static uint8_t lerp_uint8(uint8_t a, uint8_t b, float t)
+// Calculate tilt angle from accelerometer data
+static float calculate_tilt_angle(void)
 {
-  if (t <= 0.0f) return a;
-  if (t >= 1.0f) return b;
-  return (uint8_t)(a + t * (b - a));
+  float xyz[3];
+  qma6100p_read_acc_xyz(xyz);
+  
+  // Calculate tilt angle using accelerometer data
+  // For a device at rest, gravity provides 1g acceleration
+  // Tilt angle = arcsin(sqrt(ax^2 + ay^2) / |total_acceleration|)
+  float ax = xyz[0];
+  float ay = xyz[1]; 
+  float az = xyz[2];
+  
+  float total_mag = sqrtf(ax*ax + ay*ay + az*az);
+  if (total_mag < 0.1f) {
+    return 0.0f; // Avoid division by zero
+  }
+  
+  float horizontal_mag = sqrtf(ax*ax + ay*ay);
+  float tilt_rad = asinf(horizontal_mag / total_mag);
+  float tilt_deg = tilt_rad * 180.0f / M_PI;
+  
+  return tilt_deg;
 }
 
-// Check if two colors are equal
-static bool colors_equal(const rgb_t *a, const rgb_t *b)
-{
-  return (a->R == b->R && a->G == b->G && a->B == b->B);
-}
-
-// Apply current color to all LEDs
-static void apply_current_color(void)
+// Apply color to all LEDs
+static void set_all_leds(uint8_t r, uint8_t g, uint8_t b)
 {
   rgb_t colors[4];
   for (int i = 0; i < 4; i++) {
-    colors[i] = current_color;
+    colors[i].R = r;
+    colors[i].G = g;
+    colors[i].B = b;
   }
   set_color_buffer(colors);
 }
 
-// Color transition timer callback - handles smooth color transitions
-static void color_transition_callback(sl_sleeptimer_timer_handle_t *handle, void *data)
+// Update LED state based on tilt detection
+static void update_tilt_state(void)
 {
-  (void)handle;
-  (void)data;
+  static bool was_tilted = false;
+  float tilt_angle = calculate_tilt_angle();
   
-  // Check if we've reached the target
-  if (colors_equal(&current_color, &target_color)) {
-    // Stop the transition timer - we're at the target
-    sl_sleeptimer_stop_timer(&color_transition_timer);
-    return;
-  }
-  
-  // Calculate transition progress
-  uint32_t current_time = sl_sleeptimer_get_tick_count();
-  
-  if (current_time >= transition_end_time) {
-    // Transition complete - snap to target
-    current_color = target_color;
+  // Apply hysteresis to prevent flickering
+  bool is_tilted;
+  if (was_tilted) {
+    // Higher threshold to exit tilted state
+    is_tilted = (tilt_angle > (TILT_THRESHOLD_DEGREES - TILT_HYSTERESIS_DEGREES));
   } else {
-    // Calculate how far through the transition we are (0.0 to 1.0)
-    uint32_t transition_start_time = transition_end_time - sl_sleeptimer_ms_to_tick(default_transition_duration_ms);
-    uint32_t elapsed_ticks = current_time - transition_start_time;
-    float progress = (float)sl_sleeptimer_tick_to_ms(elapsed_ticks) / (float)default_transition_duration_ms;
-    
-    // Clamp progress to [0.0, 1.0]
-    if (progress < 0.0f) progress = 0.0f;
-    if (progress > 1.0f) progress = 1.0f;
-    
-    // Interpolate current color towards target
-    current_color.R = lerp_uint8(current_color.R, target_color.R, progress);
-    current_color.G = lerp_uint8(current_color.G, target_color.G, progress);
-    current_color.B = lerp_uint8(current_color.B, target_color.B, progress);
+    // Lower threshold to enter tilted state
+    is_tilted = (tilt_angle > TILT_THRESHOLD_DEGREES);
   }
   
-  // Apply the color
-  apply_current_color();
+  if (is_tilted && current_state != LED_STATE_TILTED) {
+    // Enter tilted state
+    current_state = LED_STATE_TILTED;
+    blink_counter = 0;
+    blink_on = true;
+  } else if (!is_tilted && current_state == LED_STATE_TILTED) {
+    // Exit tilted state - return to network state
+    current_state = network_state;
+    if (current_state == LED_STATE_NETWORK_NOT_FORMED) {
+      fade_step = 0; // Reset fade animation
+    }
+  }
+  
+  was_tilted = is_tilted;
 }
 
-// Pulse effect timer callback - toggles between pulse colors
-static void pulse_effect_callback(sl_sleeptimer_timer_handle_t *handle, void *data)
+// Update fade animation for network not formed state
+static void update_fade_animation(void)
+{
+  // Triangle wave: 0->255->0 over 500 steps
+  uint8_t brightness;
+  if (fade_step < FADE_STEPS_TOTAL / 2) {
+    // First half: 0 to 255
+    brightness = (uint8_t)((fade_step * 255) / (FADE_STEPS_TOTAL / 2));
+  } else {
+    // Second half: 255 to 0
+    uint16_t reverse_step = FADE_STEPS_TOTAL - fade_step - 1;
+    brightness = (uint8_t)((reverse_step * 255) / (FADE_STEPS_TOTAL / 2));
+  }
+  
+  set_all_leds(brightness, brightness, brightness);
+  
+  fade_step++;
+  if (fade_step >= FADE_STEPS_TOTAL) {
+    fade_step = 0;
+  }
+}
+
+// Update blink animation for tilted state
+static void update_blink_animation(void)
+{
+  blink_counter++;
+  
+  if (blink_counter >= BLINK_HALF_PERIOD_TICKS) {
+    blink_on = !blink_on;
+    blink_counter = 0;
+  }
+  
+  if (blink_on) {
+    set_all_leds(255, 255, 255); // Full brightness
+  } else {
+    set_all_leds(0, 0, 0); // Off
+  }
+}
+
+// Main LED update timer callback
+static void led_update_callback(sl_sleeptimer_timer_handle_t *handle, void *data)
 {
   (void)handle;
   (void)data;
   
-  // Toggle between min and max pulse colors
-  if (colors_equal(&target_color, &pulse_color_min)) {
-    target_color = pulse_color_max;
-  } else {
-    target_color = pulse_color_min;
+  tick_counter++;
+  
+  // Read accelerometer every 25 ticks (100ms)
+  if (tick_counter % 25 == 0) {
+    update_tilt_state();
   }
   
-  // Update transition timing and start transition timer
-  transition_end_time = sl_sleeptimer_get_tick_count() + sl_sleeptimer_ms_to_tick(default_transition_duration_ms);
-  sl_sleeptimer_restart_periodic_timer_ms(&color_transition_timer,
-                                          transition_update_interval_ms,
-                                          color_transition_callback,
-                                          NULL,
-                                          0,
-                                          0);
+  // Update LED animation based on current state
+  switch (current_state) {
+    case LED_STATE_NETWORK_FORMED:
+      set_all_leds(0, 0, 0); // LEDs off
+      break;
+      
+    case LED_STATE_NETWORK_NOT_FORMED:
+      update_fade_animation();
+      break;
+      
+    case LED_STATE_TILTED:
+      update_blink_animation();
+      break;
+  }
 }
 
 // Public API Implementation
 
 void led_effects_init(void)
 {
-  // Initialize colors to off
-  rgb_t off_color = {0, 0, 0};
-  current_color = off_color;
-  target_color = off_color;
-  pulse_active = false;
+  // Initialize state machine
+  current_state = LED_STATE_NETWORK_NOT_FORMED;
+  network_state = LED_STATE_NETWORK_NOT_FORMED;
+  tick_counter = 0;
+  fade_step = 0;
+  blink_on = false;
+  blink_counter = 0;
   
-  // Apply initial state
-  apply_current_color();
-}
-
-void led_effects_set_target_color(const rgb_t *color)
-{
-  // Stop pulse effect if running
-  if (pulse_active) {
-    sl_sleeptimer_stop_timer(&pulse_effect_timer);
-    pulse_active = false;
-  }
-  
-  target_color = *color;
-  
-  // If we're not already at this color, start transitioning
-  if (!colors_equal(&current_color, &target_color)) {
-    transition_end_time = sl_sleeptimer_get_tick_count() + sl_sleeptimer_ms_to_tick(default_transition_duration_ms);
-    sl_sleeptimer_restart_periodic_timer_ms(&color_transition_timer,
-                                            transition_update_interval_ms,
-                                            color_transition_callback,
-                                            NULL,
-                                            0,
-                                            0);
-  }
-}
-
-void led_effects_set_color_immediate(const rgb_t *color)
-{
-  // Stop all effects
-  pulse_active = false;
-  sl_sleeptimer_stop_timer(&pulse_effect_timer);
-  sl_sleeptimer_stop_timer(&color_transition_timer);
-  
-  // Set colors immediately
-  current_color = *color;
-  target_color = *color;
-  apply_current_color();
-}
-
-void led_effects_start_pulse(void)
-{
-  // Stop any existing effects
-  sl_sleeptimer_stop_timer(&pulse_effect_timer);
-  sl_sleeptimer_stop_timer(&color_transition_timer);
-  
-  // Set initial state
-  led_effects_set_color_immediate(&pulse_color_min);
-  target_color = pulse_color_max;
-  pulse_active = true;
-  
-  // Start the pulse toggle timer
-  sl_sleeptimer_start_periodic_timer_ms(&pulse_effect_timer,
-                                        pulse_toggle_interval_ms,
-                                        pulse_effect_callback,
+  // Start the main LED update timer (4ms periodic)
+  sl_sleeptimer_start_periodic_timer_ms(&led_update_timer,
+                                        LED_UPDATE_INTERVAL_MS,
+                                        led_update_callback,
                                         NULL,
                                         0,
                                         0);
-  
-  // Trigger the first transition
-  transition_end_time = sl_sleeptimer_get_tick_count() + sl_sleeptimer_ms_to_tick(default_transition_duration_ms);
-  sl_sleeptimer_restart_periodic_timer_ms(&color_transition_timer,
-                                          transition_update_interval_ms,
-                                          color_transition_callback,
-                                          NULL,
-                                          0,
-                                          0);
 }
 
-void led_effects_stop_pulse(void)
+void led_effects_set_network_state(bool network_formed)
 {
-  pulse_active = false;
-  sl_sleeptimer_stop_timer(&pulse_effect_timer);
+  led_state_t new_state = network_formed ? LED_STATE_NETWORK_FORMED : LED_STATE_NETWORK_NOT_FORMED;
   
-  // Fade to off
-  rgb_t off_color = {0, 0, 0};
-  led_effects_set_target_color(&off_color);
+  // Only update if network state actually changed
+  if (network_state != new_state) {
+    network_state = new_state;
+    
+    // If not currently tilted, update current state immediately
+    if (current_state != LED_STATE_TILTED) {
+      current_state = network_state;
+      if (current_state == LED_STATE_NETWORK_NOT_FORMED) {
+        fade_step = 0; // Reset fade animation
+      }
+    }
+  }
 }
 
 void led_effects_stop_all(void)
 {
-  pulse_active = false;
-  sl_sleeptimer_stop_timer(&pulse_effect_timer);
-  sl_sleeptimer_stop_timer(&color_transition_timer);
-  
-  // Set to off immediately
-  rgb_t off_color = {0, 0, 0};
-  led_effects_set_color_immediate(&off_color);
+  sl_sleeptimer_stop_timer(&led_update_timer);
+  set_all_leds(0, 0, 0); // Turn off all LEDs
 }
 
-bool led_effects_is_pulsing(void)
+led_state_t led_effects_get_state(void)
 {
-  return pulse_active;
-}
-
-rgb_t led_effects_get_current_color(void)
-{
-  return current_color;
+  return current_state;
 }
