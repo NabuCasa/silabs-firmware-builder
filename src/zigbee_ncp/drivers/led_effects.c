@@ -17,8 +17,8 @@ static uint32_t tick_counter = 0;
 
 // Animation parameters
 static const uint32_t LED_UPDATE_INTERVAL_MS = 4;    // 4ms timer for all updates
-static const float TILT_THRESHOLD_DEGREES = 10.0f;   // Tilt threshold
-static const float TILT_HYSTERESIS_DEGREES = 2.0f;   // Hysteresis to prevent flicker
+static const float TILT_THRESHOLD_DEGREES = 16.0f;   // Tilt threshold
+static const float TILT_HYSTERESIS_DEGREES = 4.0f;   // Hysteresis to prevent flicker
 static const float M_PI = 3.14159265358979323846f;
 
 // Calculate tilt angle from accelerometer data
