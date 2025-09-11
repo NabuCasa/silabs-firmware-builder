@@ -36,7 +36,10 @@ typedef struct rgb_t{
 
 static const rgb_t red = { 0x00, 0xFF, 0x00 };
 static const rgb_t yellow = { 0xFF, 0xFF, 0x00 };
-static const rgb_t white = { 0xE3, 0xFF, 0xB5 };
+static const rgb_t white = { 0xFF, 0xFF, 0xFF };
+
+// Reduce the intensity a little to match the ZWA-2
+static const rgb_t zwa2_white = { 75, 75, 75 };
 
 rgb_t* get_color_buffer();
 void set_color_buffer(rgb_t *input_color);

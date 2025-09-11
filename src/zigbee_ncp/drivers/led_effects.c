@@ -12,6 +12,7 @@
 
 // LED State Machine - Internal State
 static led_state_t current_state = LED_STATE_NETWORK_NOT_FORMED;
+static bool network_formed_state = false;
 static sl_sleeptimer_timer_handle_t led_update_timer;
 static uint32_t tick_counter = 0;
 
@@ -81,7 +82,7 @@ static void led_update_callback(sl_sleeptimer_timer_handle_t *handle, void *data
         current_state = LED_STATE_TILTED;
     } else if (!is_tilted && current_state == LED_STATE_TILTED) {
         // Return to the network-dependent state
-        led_effects_set_network_state(led_effects_get_state() == LED_STATE_NETWORK_FORMED);
+        current_state = network_formed_state ? LED_STATE_NETWORK_FORMED : LED_STATE_NETWORK_NOT_FORMED;
     }
     was_tilted = is_tilted;
   }
@@ -93,24 +94,28 @@ static void led_update_callback(sl_sleeptimer_timer_handle_t *handle, void *data
       break;
 
     case LED_STATE_NETWORK_NOT_FORMED: {
-      // Gentle pulse (triangle wave over a 2-second cycle)
-      uint32_t step = tick_counter % 500;
+      // Gentle pulse (triangle wave over a ~2.76-second cycle)
+      uint32_t step = tick_counter % 690;
       uint8_t brightness;
-      if (step < 250) {
+      if (step < 345) {
         // Fade in
-        brightness = (step * 255) / 250;
+        brightness = 25 + (step * (255 - 25)) / 345;
       } else {
         // Fade out
-        brightness = 255 - ((step - 250) * 255) / 250;
+        brightness = 255 - ((step - 345) * (255 - 25)) / 345;
       }
-      set_all_leds(brightness, brightness, brightness);
+      set_all_leds(
+        (uint8_t)((brightness * zwa2_white.R) / 255),
+        (uint8_t)((brightness * zwa2_white.G) / 255),
+        (uint8_t)((brightness * zwa2_white.B) / 255)
+      );
       break;
     }
 
     case LED_STATE_TILTED: {
       // Fast pulse (blink with a 248ms half-period)
       if ((tick_counter / 62) % 2) {
-        set_all_leds(255, 255, 255);
+        set_all_leds(zwa2_white.R, zwa2_white.G, zwa2_white.B);
       } else {
         set_all_leds(0, 0, 0);
       }
@@ -138,6 +143,7 @@ void led_effects_init(void)
 
 void led_effects_set_network_state(bool network_formed)
 {
+    network_formed_state = network_formed;
     led_state_t new_state = network_formed ? LED_STATE_NETWORK_FORMED : LED_STATE_NETWORK_NOT_FORMED;
     // Only update if not tilted
     if (current_state != LED_STATE_TILTED) {

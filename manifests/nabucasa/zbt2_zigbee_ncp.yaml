@@ -7,7 +7,7 @@ toolchain: "12.2.1.20221205"
 
 gbl:
   fw_type: zigbee_ncp
-  fw_variant: 460800_baud_leds_sw_flow
+  fw_variant: "20250911_final"
   ezsp_version: dynamic
   #compression: lzma
   baudrate: 460800
