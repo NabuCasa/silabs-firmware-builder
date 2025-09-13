@@ -1,4 +1,4 @@
-name: ZBGW7688 EFR32MG21V2
+name: ZBGW7688 EFR32MG21V2 Zigbee
 device: EFR32MG21A020F512IM32
 base_project: src/zigbee_ncp
 filename: "{manifest_name}_{ezsp_version}"
@@ -15,7 +15,7 @@ configuration:
 
 c_defines:
   XNCP_MFG_MANUF_NAME: '"ZBGW7688"'
-  XNCP_MFG_BOARD_NAME: '"EFR32MG21_V2"'
+  XNCP_MFG_BOARD_NAME: '"Silicon Labs EFR32MG21 V2"'
 
   EMBER_APS_UNICAST_MESSAGE_COUNT: 32
   EMBER_BINDING_TABLE_SIZE: 32
