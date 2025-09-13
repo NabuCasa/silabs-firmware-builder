@@ -1,4 +1,4 @@
-name: REX3CS215 Bootloader
+name: ZBGW7688 EFR32MG21V1.0 Bootloader
 device: EFR32MG21A020F512IM32
 base_project: src/bootloader
 filename: "{manifest_name}_{gecko_bootloader_version}"
@@ -24,3 +24,9 @@ c_defines:
 
   SL_SERIAL_UART_RX_PORT: gpioPortA
   SL_SERIAL_UART_RX_PIN:  5
+
+  SL_SERIAL_UART_CTS_PORT: 0
+  SL_SERIAL_UART_CTS_PIN:  0
+
+  SL_SERIAL_UART_RTS_PORT: 0
+  SL_SERIAL_UART_RTS_PIN:  0
