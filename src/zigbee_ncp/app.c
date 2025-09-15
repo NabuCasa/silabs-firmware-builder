@@ -29,11 +29,14 @@
 #include "config/xncp_config.h"
 #include "config/sl_iostream_usart_vcom_config.h"
 
-#include "drivers/qma6100p.h"
-#include "drivers/ws2812.h"
-#include "drivers/led_effects.h"
+#ifdef NC_CONNECT_ZBT_2
+  #include "drivers/qma6100p.h"
+  #include "drivers/ws2812.h"
+  #include "drivers/led_effects.h"
 
-#include "app_button_press.h"
+  #include "app_button_press.h"
+#endif
+
 #include "sl_sleeptimer.h"
 #include "sl_token_api.h"
 
@@ -49,15 +52,17 @@
 
 #define FEATURE_LED_CONTROL           (0b10000000000000000000000000000000)
 
-#define SUPPORTED_FEATURES ( \
-      FEATURE_MEMBER_OF_ALL_GROUPS \
-    | FEATURE_MANUAL_SOURCE_ROUTE \
-    | FEATURE_MFG_TOKEN_OVERRIDES \
-    | FEATURE_BUILD_STRING \
-    | FEATURE_FLOW_CONTROL_TYPE \
-    | FEATURE_CHIP_INFO \
-    | FEATURE_LED_CONTROL \
-)
+uint32_t SUPPORTED_FEATURES = (
+      FEATURE_MEMBER_OF_ALL_GROUPS
+    | FEATURE_MANUAL_SOURCE_ROUTE
+    | FEATURE_MFG_TOKEN_OVERRIDES
+    | FEATURE_BUILD_STRING
+    | FEATURE_FLOW_CONTROL_TYPE
+    | FEATURE_CHIP_INFO
+#ifdef NC_CONNECT_ZBT_2
+    | FEATURE_LED_CONTROL
+#endif
+);
 
 extern sli_zigbee_route_table_entry_t sli_zigbee_route_table[];
 extern uint8_t sli_zigbee_route_table_size;
@@ -161,6 +166,7 @@ sli_zigbee_route_table_entry_t* find_free_routing_table_entry(EmberNodeId destin
 }
 
 
+#ifdef NC_CONNECT_ZBT_2
 // Check if device has valid stored network configuration
 static bool device_has_stored_network_settings(void)
 {
@@ -179,6 +185,7 @@ static bool device_has_stored_network_settings(void)
   
   return true;
 }
+#endif
 
 
 
@@ -203,16 +210,18 @@ void emberAfMainInitCallback(void)
     manual_source_routes[i].active = false;
   }
 
-  initqma6100p();
-  initWs2812();
+  #ifdef NC_CONNECT_ZBT_2
+    initqma6100p();
+    initWs2812();
 
-  app_button_press_enable();
+    app_button_press_enable();
 
-  // Initialize LED effects system
-  led_effects_init();
+    // Initialize LED effects system
+    led_effects_init();
   
-  // Set initial network state
-  led_effects_set_network_state(device_has_stored_network_settings());
+    // Set initial network state
+    led_effects_set_network_state(device_has_stored_network_settings());
+  #endif
 }
 
 bool __wrap_sli_zigbee_am_multicast_member(EmberMulticastId multicastId)
@@ -228,8 +237,10 @@ void emberAfStackStatusCallback(EmberStatus status)
 {
   (void)status;  // Ignore the actual status - we'll check stored settings instead
   
-  // Update network state
-  led_effects_set_network_state(device_has_stored_network_settings());
+  #ifdef NC_CONNECT_ZBT_2
+    // Update network state for LEDs
+    led_effects_set_network_state(device_has_stored_network_settings());
+  #endif
 }
 
 
@@ -273,9 +284,11 @@ void nc_zigbee_override_append_source_route(EmberNodeId destination,
   return;
 }
 
+#ifdef NC_CONNECT_ZBT_2
 void app_button_press_cb(uint8_t button, uint8_t duration) {
   
 }
+#endif
 
 
 EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
@@ -456,6 +469,7 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       break;
     }
 
+    #ifdef NC_CONNECT_ZBT_2
     case XNCP_CMD_SET_LED_STATE_REQ: {
       rsp_command_id = XNCP_CMD_SET_LED_STATE_RSP;
       rsp_status = EMBER_SUCCESS;
@@ -520,6 +534,7 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
 
       break;
     }
+    #endif
 
     default: {
       rsp_status = EMBER_NOT_FOUND;
