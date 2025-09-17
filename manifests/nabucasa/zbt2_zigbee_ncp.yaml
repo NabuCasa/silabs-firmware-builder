@@ -56,7 +56,7 @@ c_defines:
 
   EMBER_ROUTE_TABLE_SIZE:
     type: c_flag
-    value: 200
+    value: 250
 
   # To enable/disable blocks of code
   NC_CONNECT_ZBT_2:
