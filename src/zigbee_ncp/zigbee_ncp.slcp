@@ -65,16 +65,6 @@ configuration:
 source:
   - path: main.c
   - path: app.c
-  - path: drivers/qma6100p.c
-  - path: drivers/ws2812.c
-  - path: drivers/led_effects.c
-
-include:
-  - path: drivers
-    file_list:
-    - path: qma6100p.h
-    - path: ws2812.h
-    - path: led_effects.h
 
 config_file:
   - path: config/xncp_config.h

@@ -351,6 +351,10 @@ def main():
             )
             sys.exit(1)
 
+    # Add new sources
+    base_project.setdefault("source", []).extend(manifest.get("add_sources", []))
+    base_project.setdefault("include", []).extend(manifest.get("add_includes", []))
+
     # Extend configuration and C defines
     for input_config, output_config in [
         (

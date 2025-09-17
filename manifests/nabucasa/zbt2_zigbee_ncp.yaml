@@ -18,9 +18,20 @@ add_components:
 - id: emlib_i2c
 - id: i2cspm
   instance: [inst]
-- id: app_button_press
 - id: simple_button
   instance: [pin_hole_button]
+
+add_sources:
+  - path: drivers/qma6100p.c
+  - path: drivers/ws2812.c
+  - path: drivers/led_effects.c
+
+add_includes:
+  - path: drivers
+    file_list:
+    - path: qma6100p.h
+    - path: ws2812.h
+    - path: led_effects.h
 
 c_defines:
   XNCP_MFG_MANUF_NAME: '"Nabu Casa"'

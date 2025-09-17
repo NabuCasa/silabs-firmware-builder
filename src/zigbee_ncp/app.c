@@ -33,8 +33,6 @@
   #include "drivers/qma6100p.h"
   #include "drivers/ws2812.h"
   #include "drivers/led_effects.h"
-
-  #include "app_button_press.h"
 #endif
 
 #include "sl_sleeptimer.h"
@@ -166,9 +164,8 @@ sli_zigbee_route_table_entry_t* find_free_routing_table_entry(EmberNodeId destin
 }
 
 
-#ifdef NC_CONNECT_ZBT_2
 // Check if device has valid stored network configuration
-static bool device_has_stored_network_settings(void)
+bool device_has_stored_network_settings(void)
 {
   tokTypeStackNodeData nodeData;
   
@@ -185,7 +182,6 @@ static bool device_has_stored_network_settings(void)
   
   return true;
 }
-#endif
 
 
 
@@ -213,8 +209,6 @@ void emberAfMainInitCallback(void)
   #ifdef NC_CONNECT_ZBT_2
     initqma6100p();
     initWs2812();
-
-    app_button_press_enable();
 
     // Initialize LED effects system
     led_effects_init();
@@ -283,12 +277,6 @@ void nc_zigbee_override_append_source_route(EmberNodeId destination,
 
   return;
 }
-
-#ifdef NC_CONNECT_ZBT_2
-void app_button_press_cb(uint8_t button, uint8_t duration) {
-  
-}
-#endif
 
 
 EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
