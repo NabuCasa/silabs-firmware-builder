@@ -568,12 +568,6 @@ def main():
             )
         )
 
-    build_flags = {
-        "C_FLAGS": [],
-        "CXX_FLAGS": [],
-        "LD_FLAGS": [],
-    }
-
     # Remove absolute paths from the build for reproducibility
     build_flags["C_FLAGS"] += [
         f"-ffile-prefix-map={str(src.absolute())}={dst}"
