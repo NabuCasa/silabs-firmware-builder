@@ -7,6 +7,7 @@
 
 #include "led_effects.h"
 #include "qma6100p.h"
+#include "sl_status.h"
 #include <string.h>
 #include <math.h>
 
@@ -131,29 +132,45 @@ void led_effects_init(void)
   // Initialize state machine
   current_state = LED_STATE_NETWORK_NOT_FORMED;
   tick_counter = 0;
-
-  // Start the main LED update timer (4ms periodic)
-  sl_sleeptimer_start_periodic_timer_ms(&led_update_timer,
-                                        LED_UPDATE_INTERVAL_MS,
-                                        led_update_callback,
-                                        NULL,
-                                        0,
-                                        0);
 }
 
 void led_effects_set_network_state(bool network_formed)
 {
     network_formed_state = network_formed;
-    led_state_t new_state = network_formed ? LED_STATE_NETWORK_FORMED : LED_STATE_NETWORK_NOT_FORMED;
-    // Only update if not tilted
+    bool is_running;
+
+    // If the network is formed, stop all effects and turn off LEDs
+    if (network_formed) {
+        if (sl_sleeptimer_is_timer_running(&led_update_timer, &is_running) == SL_STATUS_OK && is_running) {
+            sl_sleeptimer_stop_timer(&led_update_timer);
+        }
+        set_all_leds(0, 0, 0);
+        current_state = LED_STATE_NETWORK_FORMED;
+        return;
+    }
+
+    // If the network is not formed, start the timer if it's not running
+    if (sl_sleeptimer_is_timer_running(&led_update_timer, &is_running) != SL_STATUS_OK || !is_running) {
+        sl_sleeptimer_start_periodic_timer_ms(&led_update_timer,
+                                              LED_UPDATE_INTERVAL_MS,
+                                              led_update_callback,
+                                              NULL,
+                                              0,
+                                              0);
+    }
+
+    // Set the state to not formed if we are not tilted
     if (current_state != LED_STATE_TILTED) {
-        current_state = new_state;
+        current_state = LED_STATE_NETWORK_NOT_FORMED;
     }
 }
 
 void led_effects_stop_all(void)
 {
-  sl_sleeptimer_stop_timer(&led_update_timer);
+  bool is_running;
+  if (sl_sleeptimer_is_timer_running(&led_update_timer, &is_running) == SL_STATUS_OK && is_running) {
+    sl_sleeptimer_stop_timer(&led_update_timer);
+  }
   set_all_leds(0, 0, 0); // Turn off all LEDs
 }
 
