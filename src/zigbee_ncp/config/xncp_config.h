@@ -21,4 +21,8 @@
 // Override the EZSP patch number. The default (0xFF) disables this.
 #define XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE  (0xFF)
 
+// Flow control type exposed to the application. Default is automatic, taken from the
+// SDK macro.
+#define XNCP_FLOW_CONTROL_TYPE  (SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE)
+
 #endif /* CONFIG_XNCP_CONFIG_H_ */
