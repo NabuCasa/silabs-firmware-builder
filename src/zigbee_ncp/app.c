@@ -29,6 +29,15 @@
 #include "config/xncp_config.h"
 #include "config/sl_iostream_usart_vcom_config.h"
 
+#ifdef NC_CONNECT_ZBT_2
+  #include "drivers/qma6100p.h"
+  #include "drivers/ws2812.h"
+  #include "drivers/led_effects.h"
+#endif
+
+#include "sl_sleeptimer.h"
+#include "sl_token_api.h"
+
 
 #define BUILD_UINT16(low, high)  (((uint16_t)(low) << 0) | ((uint16_t)(high) << 8))
 
@@ -39,14 +48,19 @@
 #define FEATURE_FLOW_CONTROL_TYPE     (0b00000000000000000000000000010000)
 #define FEATURE_CHIP_INFO             (0b00000000000000000000000000100000)
 
-#define SUPPORTED_FEATURES ( \
-      FEATURE_MEMBER_OF_ALL_GROUPS \
-    | FEATURE_MANUAL_SOURCE_ROUTE \
-    | FEATURE_MFG_TOKEN_OVERRIDES \
-    | FEATURE_BUILD_STRING \
-    | FEATURE_FLOW_CONTROL_TYPE \
-    | FEATURE_CHIP_INFO \
-)
+#define FEATURE_LED_CONTROL           (0b10000000000000000000000000000000)
+
+uint32_t SUPPORTED_FEATURES = (
+      FEATURE_MEMBER_OF_ALL_GROUPS
+    | FEATURE_MANUAL_SOURCE_ROUTE
+    | FEATURE_MFG_TOKEN_OVERRIDES
+    | FEATURE_BUILD_STRING
+    | FEATURE_FLOW_CONTROL_TYPE
+    | FEATURE_CHIP_INFO
+#ifdef NC_CONNECT_ZBT_2
+    | FEATURE_LED_CONTROL
+#endif
+);
 
 extern sli_zigbee_route_table_entry_t sli_zigbee_route_table[];
 extern uint8_t sli_zigbee_route_table_size;
@@ -76,12 +90,18 @@ typedef enum {
   XNCP_CMD_GET_FLOW_CONTROL_TYPE_REQ  = 0x0004,
   XNCP_CMD_GET_CHIP_INFO_REQ          = 0x0005,
 
+  XNCP_CMD_SET_LED_STATE_REQ          = 0x0F00,
+  XNCP_CMD_GET_ACCELEROMETER_REQ      = 0x0F01,
+
   XNCP_CMD_GET_SUPPORTED_FEATURES_RSP = XNCP_CMD_GET_SUPPORTED_FEATURES_REQ | 0x8000,
   XNCP_CMD_SET_SOURCE_ROUTE_RSP       = XNCP_CMD_SET_SOURCE_ROUTE_REQ       | 0x8000,
   XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_RSP = XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_REQ | 0x8000,
   XNCP_CMD_GET_BUILD_STRING_RSP       = XNCP_CMD_GET_BUILD_STRING_REQ       | 0x8000,
   XNCP_CMD_GET_FLOW_CONTROL_TYPE_RSP  = XNCP_CMD_GET_FLOW_CONTROL_TYPE_REQ  | 0x8000,
   XNCP_CMD_GET_CHIP_INFO_RSP          = XNCP_CMD_GET_CHIP_INFO_REQ          | 0x8000,
+
+  XNCP_CMD_SET_LED_STATE_RSP          = XNCP_CMD_SET_LED_STATE_REQ          | 0x8000,
+  XNCP_CMD_GET_ACCELEROMETER_RSP      = XNCP_CMD_GET_ACCELEROMETER_REQ      | 0x8000,
 
   XNCP_CMD_UNKNOWN = 0xFFFF
 } XncpCommand;
@@ -94,6 +114,8 @@ typedef struct ManualSourceRoute {
 } ManualSourceRoute;
 
 ManualSourceRoute manual_source_routes[XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE];
+
+
 
 
 ManualSourceRoute* get_manual_source_route(EmberNodeId destination)
@@ -142,6 +164,27 @@ sli_zigbee_route_table_entry_t* find_free_routing_table_entry(EmberNodeId destin
 }
 
 
+// Check if device has valid stored network configuration
+bool device_has_stored_network_settings(void)
+{
+  tokTypeStackNodeData nodeData;
+  
+  // Read the stored network node data token
+  halCommonGetToken(&nodeData, TOKEN_STACK_NODE_DATA);
+
+  if (nodeData.panId == 0xFFFF) {
+    return false;
+  }
+  
+  if (nodeData.radioFreqChannel < 11 || nodeData.radioFreqChannel > 26) {
+    return false;
+  }
+  
+  return true;
+}
+
+
+
 //----------------------
 // Implemented Callbacks
 
@@ -162,12 +205,36 @@ void emberAfMainInitCallback(void)
   for (uint8_t i = 0; i < XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE; i++) {
     manual_source_routes[i].active = false;
   }
+
+  #ifdef NC_CONNECT_ZBT_2
+    initqma6100p();
+    initWs2812();
+
+    // Initialize LED effects system
+    led_effects_init();
+  
+    // Set initial network state
+    led_effects_set_network_state(device_has_stored_network_settings());
+  #endif
 }
 
 bool __wrap_sli_zigbee_am_multicast_member(EmberMulticastId multicastId)
 {
   // Ignore all binding and multicast table logic, we want all group packets
   return true;
+}
+
+/** @brief Stack Status Callback
+ * Called when the status of the stack changes.
+ */
+void emberAfStackStatusCallback(EmberStatus status)
+{
+  (void)status;  // Ignore the actual status - we'll check stored settings instead
+  
+  #ifdef NC_CONNECT_ZBT_2
+    // Update network state for LEDs
+    led_effects_set_network_state(device_has_stored_network_settings());
+  #endif
 }
 
 
@@ -350,7 +417,7 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
 
       XncpFlowControlType flow_control_type;
 
-      switch (SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE) {
+      switch (XNCP_FLOW_CONTROL_TYPE) {
         case usartHwFlowControlCtsAndRts: {
           flow_control_type = XNCP_FLOW_CONTROL_TYPE_HARDWARE;
           break;
@@ -389,6 +456,73 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       *replyPayloadLength += value_length;
       break;
     }
+
+    #ifdef NC_CONNECT_ZBT_2
+    case XNCP_CMD_SET_LED_STATE_REQ: {
+      rsp_command_id = XNCP_CMD_SET_LED_STATE_RSP;
+      rsp_status = EMBER_SUCCESS;
+      rgb_t colors[4];
+
+      if (messageLength == 12) {
+        colors[0].R = messagePayload[0];
+        colors[0].G = messagePayload[1];
+        colors[0].B = messagePayload[2];
+        colors[1].R = messagePayload[3];
+        colors[1].G = messagePayload[4];
+        colors[1].B = messagePayload[5];
+        colors[2].R = messagePayload[6];
+        colors[2].G = messagePayload[7];
+        colors[2].B = messagePayload[8];
+        colors[3].R = messagePayload[9];
+        colors[3].G = messagePayload[10];
+        colors[3].B = messagePayload[11];
+      } else if (messageLength == 3) {
+        colors[0].R = messagePayload[0];
+        colors[0].G = messagePayload[1];
+        colors[0].B = messagePayload[2];
+        colors[1].R = messagePayload[3];
+        colors[1].G = messagePayload[0];
+        colors[1].B = messagePayload[1];
+        colors[2].R = messagePayload[2];
+        colors[2].G = messagePayload[3];
+        colors[2].B = messagePayload[0];
+        colors[3].R = messagePayload[1];
+        colors[3].G = messagePayload[2];
+        colors[3].B = messagePayload[3];
+      } else {
+          rsp_status = EMBER_BAD_ARGUMENT;
+          break;
+      }
+
+      // Manual LED control via XNCP overrides autonomous pulsing
+      led_effects_stop_all();
+      set_color_buffer(colors);
+
+      break;
+    }
+
+    case XNCP_CMD_GET_ACCELEROMETER_REQ: {
+      rsp_command_id = XNCP_CMD_GET_ACCELEROMETER_RSP;
+      rsp_status = EMBER_SUCCESS;
+
+      float xyz[3];
+      qma6100p_read_acc_xyz(xyz);
+
+      // X
+      memcpy(replyPayload + *replyPayloadLength, (uint8_t*)&xyz[0], sizeof(float));
+      *replyPayloadLength += sizeof(float);
+
+      // Y
+      memcpy(replyPayload + *replyPayloadLength, (uint8_t*)&xyz[1], sizeof(float));
+      *replyPayloadLength += sizeof(float);
+
+      // Z
+      memcpy(replyPayload + *replyPayloadLength, (uint8_t*)&xyz[2], sizeof(float));
+      *replyPayloadLength += sizeof(float);
+
+      break;
+    }
+    #endif
 
     default: {
       rsp_status = EMBER_NOT_FOUND;

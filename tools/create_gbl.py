@@ -306,11 +306,19 @@ def main():
             (gsdk_path / "platform/bootloader/config/btl_config.h").read_text()
         )
 
+        # Look for overrides
+        btl_core_config_h = parse_c_header_defines(
+            (project_root / "config/btl_core_cfg.h").read_text()
+        )
+
+        btl_config = dict(btl_config_h)
+        btl_config.update(btl_core_config_h)
+
         metadata["gecko_bootloader_version"] = ".".join(
             [
-                str(btl_config_h["BOOTLOADER_VERSION_MAIN_MAJOR"]),
-                str(btl_config_h["BOOTLOADER_VERSION_MAIN_MINOR"]),
-                str(btl_config_h["BOOTLOADER_VERSION_MAIN_CUSTOMER"]),
+                str(btl_config["BOOTLOADER_VERSION_MAIN_MAJOR"]),
+                str(btl_config["BOOTLOADER_VERSION_MAIN_MINOR"]),
+                str(btl_config["BOOTLOADER_VERSION_MAIN_CUSTOMER"]),
             ]
         )
 
