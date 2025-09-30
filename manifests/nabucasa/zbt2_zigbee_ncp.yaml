@@ -34,7 +34,7 @@ add_includes:
     - path: led_effects.h
 
 c_defines:
-  XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE: 2
+  XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE: 3
 
   XNCP_MFG_MANUF_NAME: '"Nabu Casa"'
   XNCP_MFG_BOARD_NAME: '"Home Assistant Connect ZBT-2"'
