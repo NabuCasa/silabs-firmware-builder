@@ -1,6 +1,9 @@
 # 7.5.0.0
 Beta release built with Gecko SDK 4.4.6.
 
+# 7.4.4.3
+Fix setup LED behavior for adapters with external indicator LEDs and tweak routing and child table sizes.
+
 # 7.4.4.2
 Allow receiving events from devices using unregistered group IDs and increase routing and child table sizes.
 
