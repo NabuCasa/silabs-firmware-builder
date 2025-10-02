@@ -1,0 +1,113 @@
+
+#include "drivers/zbt2_reset_button.h"
+
+#include "sl_simple_button_pin_hole_button_config.h"
+#include "sl_simple_button_instances.h"
+#include "sl_sleeptimer.h"
+#include "drivers/ws2812.h"
+#include "ember_api.h"
+
+// The number of cycles the button must be held to trigger a reset.
+#define RESET_CYCLES 5
+
+// Animation delays in milliseconds.
+#define CYCLE_DELAY_MS 1000
+#define BLINK_ON_DELAY_MS 50
+#define BLINK_OFF_DELAY_MS 100
+#define RESET_CONFIRMATION_DELAY_MS 1000
+
+// Timer handles
+static sl_sleeptimer_timer_handle_t reset_timer;
+static sl_sleeptimer_timer_handle_t blink_timer;
+
+// The current reset cycle.
+static uint8_t reset_cycle = 0;
+
+// Task to handle the LED blinking pattern.
+static void blink_task(sl_sleeptimer_timer_handle_t *handle, void *data);
+
+// Resets the Zigbee network settings and reboots the adapter.
+static void reset_adapter(void)
+{
+    // Set the LED to red to indicate that the reset is in progress.
+    set_all_leds(red.R, red.G, red.B);
+
+    // Wait for the confirmation delay.
+    sl_sleeptimer_delay_millisecond(RESET_CONFIRMATION_DELAY_MS);
+
+    // Leave the Zigbee network.
+    emberLeaveNetwork();
+
+    // Reboot the adapter.
+    halReboot();
+}
+
+// Called when the reset timer expires.
+static void reset_timer_callback(sl_sleeptimer_timer_handle_t *handle, void *data)
+{
+    // Increment the reset cycle.
+    reset_cycle++;
+
+    // If the reset cycle is greater than the number of cycles required to trigger a
+    // reset, then reset the adapter.
+    if (reset_cycle > RESET_CYCLES) {
+        reset_adapter();
+        return;
+    }
+
+    // Start the blink task.
+    sl_sleeptimer_start_timer_ms(&blink_timer, 200, blink_task, NULL, 0, 0);
+}
+
+// Task to handle the LED blinking pattern.
+static void blink_task(sl_sleeptimer_timer_handle_t *handle, void *data)
+{
+    static uint8_t blink_count = 0;
+    static bool led_on = false;
+
+    // If the LED is on, turn it off.
+    if (led_on) {
+        set_all_leds(0, 0, 0);
+        led_on = false;
+
+        // If we have blinked enough times, then start the next reset cycle.
+        if (blink_count >= reset_cycle) {
+            blink_count = 0;
+            sl_sleeptimer_start_timer_ms(&reset_timer, CYCLE_DELAY_MS, reset_timer_callback, NULL, 0, 0);
+        } else {
+            sl_sleeptimer_start_timer_ms(&blink_timer, BLINK_OFF_DELAY_MS, blink_task, NULL, 0, 0);
+        }
+    } else {
+        // If the LED is off, turn it on.
+        set_all_leds(amber.R, amber.G, amber.B);
+        led_on = true;
+        blink_count++;
+        sl_sleeptimer_start_timer_ms(&blink_timer, BLINK_ON_DELAY_MS, blink_task, NULL, 0, 0);
+    }
+}
+
+// Called when the button changes state.
+void sl_button_on_change(const sl_button_t *handle)
+{
+    // If the button is the pinhole button, then handle the state change.
+    if (handle == &sl_button_pin_hole_button) {
+        // If the button is pressed, start the reset timer.
+        if (sl_button_get_state(handle) == SL_SIMPLE_BUTTON_PRESSED) {
+            reset_cycle = 0;
+            sl_sleeptimer_start_timer_ms(&reset_timer, CYCLE_DELAY_MS, reset_timer_callback, NULL, 0, 0);
+        } else {
+            // If the button is released, stop the reset timer and the blink timer.
+            sl_sleeptimer_stop_timer(&reset_timer);
+            sl_sleeptimer_stop_timer(&blink_timer);
+
+            // Turn the LED off.
+            set_all_leds(0, 0, 0);
+        }
+    }
+}
+
+// Initializes the reset button.
+void zbt2_reset_button_init(void)
+{
+    // The simple_button component handles the initialization of the button.
+}

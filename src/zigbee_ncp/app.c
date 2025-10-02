@@ -33,6 +33,8 @@
   #include "drivers/qma6100p.h"
   #include "drivers/ws2812.h"
   #include "drivers/led_effects.h"
+
+  #include "drivers/zbt2_reset_button.h"
 #endif
 
 #include "sl_sleeptimer.h"
@@ -206,16 +208,18 @@ void emberAfMainInitCallback(void)
     manual_source_routes[i].active = false;
   }
 
-  #ifdef NC_CONNECT_ZBT_2
+    #ifdef NC_CONNECT_ZBT_2
     initqma6100p();
     initWs2812();
 
+    zbt2_reset_button_init();
+
     // Initialize LED effects system
     led_effects_init();
-  
+
     // Set initial network state
     led_effects_set_network_state(device_has_stored_network_settings());
-  #endif
+    #endif
 }
 
 bool __wrap_sli_zigbee_am_multicast_member(EmberMulticastId multicastId)
