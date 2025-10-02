@@ -1,4 +1,5 @@
 #include "hal/hal.h"
+#include "ember.h"
 
 #include "zbt2_reset_button.h"
 
@@ -11,9 +12,9 @@
 #define RESET_CYCLES 5
 
 // Animation delays in milliseconds.
-#define CYCLE_DELAY_MS 1000
-#define BLINK_ON_DELAY_MS 50
-#define BLINK_OFF_DELAY_MS 100
+#define CYCLE_DELAY_MS 500
+#define BLINK_ON_DELAY_MS 150
+#define BLINK_OFF_DELAY_MS 50
 #define RESET_CONFIRMATION_DELAY_MS 1000
 
 // Timer handles
@@ -36,7 +37,8 @@ static void reset_adapter(void)
     sl_sleeptimer_delay_millisecond(RESET_CONFIRMATION_DELAY_MS);
 
     // Leave the Zigbee network.
-    // emberLeaveNetwork();
+    emberLeaveNetwork();
+    emberClearKeyTable();
 
     set_all_leds(&off);
 
@@ -49,13 +51,6 @@ static void reset_timer_callback(sl_sleeptimer_timer_handle_t *handle, void *dat
 {
     // Increment the reset cycle.
     reset_cycle++;
-
-    // If the reset cycle is greater than the number of cycles required to trigger a
-    // reset, then reset the adapter.
-    if (reset_cycle > RESET_CYCLES) {
-        reset_adapter();
-        return;
-    }
 
     // Start the blink task.
     sl_sleeptimer_start_timer_ms(&blink_timer, 200, blink_task, NULL, 0, 0);
@@ -75,7 +70,11 @@ static void blink_task(sl_sleeptimer_timer_handle_t *handle, void *data)
         // If we have blinked enough times, then start the next reset cycle.
         if (blink_count >= reset_cycle) {
             blink_count = 0;
-            sl_sleeptimer_start_timer_ms(&reset_timer, CYCLE_DELAY_MS, reset_timer_callback, NULL, 0, 0);
+            if (reset_cycle == RESET_CYCLES) {
+                reset_adapter();
+            } else {
+                sl_sleeptimer_start_timer_ms(&reset_timer, CYCLE_DELAY_MS, reset_timer_callback, NULL, 0, 0);
+            }
         } else {
             sl_sleeptimer_start_timer_ms(&blink_timer, BLINK_OFF_DELAY_MS, blink_task, NULL, 0, 0);
         }
