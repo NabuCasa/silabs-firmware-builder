@@ -1,11 +1,11 @@
+#include "hal/hal.h"
 
-#include "drivers/zbt2_reset_button.h"
+#include "zbt2_reset_button.h"
 
 #include "sl_simple_button_pin_hole_button_config.h"
 #include "sl_simple_button_instances.h"
 #include "sl_sleeptimer.h"
-#include "drivers/ws2812.h"
-#include "ember_api.h"
+#include "ws2812.h"
 
 // The number of cycles the button must be held to trigger a reset.
 #define RESET_CYCLES 5
@@ -36,7 +36,9 @@ static void reset_adapter(void)
     sl_sleeptimer_delay_millisecond(RESET_CONFIRMATION_DELAY_MS);
 
     // Leave the Zigbee network.
-    emberLeaveNetwork();
+    // emberLeaveNetwork();
+
+    set_all_leds(&off);
 
     // Reboot the adapter.
     halReboot();
@@ -67,7 +69,7 @@ static void blink_task(sl_sleeptimer_timer_handle_t *handle, void *data)
 
     // If the LED is on, turn it off.
     if (led_on) {
-        set_all_leds(off);
+        set_all_leds(&off);
         led_on = false;
 
         // If we have blinked enough times, then start the next reset cycle.
@@ -79,7 +81,7 @@ static void blink_task(sl_sleeptimer_timer_handle_t *handle, void *data)
         }
     } else {
         // If the LED is off, turn it on.
-        set_all_leds(amber);
+        set_all_leds(&amber);
         led_on = true;
         blink_count++;
         sl_sleeptimer_start_timer_ms(&blink_timer, BLINK_ON_DELAY_MS, blink_task, NULL, 0, 0);
@@ -101,7 +103,7 @@ void sl_button_on_change(const sl_button_t *handle)
             sl_sleeptimer_stop_timer(&blink_timer);
 
             // Turn the LED off.
-            set_all_leds(off);
+            set_all_leds(&off);
         }
     }
 }
