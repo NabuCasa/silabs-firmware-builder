@@ -30,7 +30,7 @@ static void blink_task(sl_sleeptimer_timer_handle_t *handle, void *data);
 static void reset_adapter(void)
 {
     // Set the LED to red to indicate that the reset is in progress.
-    set_all_leds(red.R, red.G, red.B);
+    set_all_leds(&red);
 
     // Wait for the confirmation delay.
     sl_sleeptimer_delay_millisecond(RESET_CONFIRMATION_DELAY_MS);
@@ -67,7 +67,7 @@ static void blink_task(sl_sleeptimer_timer_handle_t *handle, void *data)
 
     // If the LED is on, turn it off.
     if (led_on) {
-        set_all_leds(0, 0, 0);
+        set_all_leds(off);
         led_on = false;
 
         // If we have blinked enough times, then start the next reset cycle.
@@ -79,7 +79,7 @@ static void blink_task(sl_sleeptimer_timer_handle_t *handle, void *data)
         }
     } else {
         // If the LED is off, turn it on.
-        set_all_leds(amber.R, amber.G, amber.B);
+        set_all_leds(amber);
         led_on = true;
         blink_count++;
         sl_sleeptimer_start_timer_ms(&blink_timer, BLINK_ON_DELAY_MS, blink_task, NULL, 0, 0);
@@ -101,7 +101,7 @@ void sl_button_on_change(const sl_button_t *handle)
             sl_sleeptimer_stop_timer(&blink_timer);
 
             // Turn the LED off.
-            set_all_leds(0, 0, 0);
+            set_all_leds(off);
         }
     }
 }

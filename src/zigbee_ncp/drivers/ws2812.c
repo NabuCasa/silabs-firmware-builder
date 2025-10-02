@@ -195,3 +195,13 @@ void set_color_buffer(rgb_t *input_colors)
 
   LDMA_StartTransfer(TX_LDMA_CHANNEL, &ldmaTXConfig, &ldmaTXDescriptor);
 }
+
+
+void set_all_leds(const rgb_t *color)
+{
+  rgb_t colors[NUMBER_OF_LEDS];
+  for (size_t i = 0; i < NUMBER_OF_LEDS; i++) {
+    colors[i] = *color;
+  }
+  set_color_buffer(colors);
+}

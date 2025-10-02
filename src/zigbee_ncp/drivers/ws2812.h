@@ -34,6 +34,7 @@ typedef struct rgb_t{
   uint8_t G, R, B;
 }rgb_t;
 
+static const rgb_t off =    {.R = 0,   .G = 0,   .B = 0};
 static const rgb_t red =    {.R = 255, .G = 0,   .B = 0};
 static const rgb_t yellow = {.R = 255, .G = 255, .B = 0};
 static const rgb_t amber =  {.R = 255, .G = 191, .B = 0};
@@ -44,6 +45,7 @@ static const rgb_t zwa2_white = {.R = 75, .G = 75, .B = 75};
 
 rgb_t* get_color_buffer();
 void set_color_buffer(rgb_t *input_color);
+void set_all_leds(const rgb_t *input_color);
 void initWs2812(void);
 // void color_test();
 
