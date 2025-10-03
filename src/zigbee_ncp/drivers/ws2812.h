@@ -37,6 +37,7 @@ typedef struct rgb_t{
 static const rgb_t off =    {.R = 0,   .G = 0,   .B = 0};
 static const rgb_t red =    {.R = 255, .G = 0,   .B = 0};
 static const rgb_t yellow = {.R = 255, .G = 255, .B = 0};
+static const rgb_t green =  {.R = 0,   .G = 255, .B = 0};
 static const rgb_t amber =  {.R = 255, .G = 40,  .B = 0};
 static const rgb_t white =  {.R = 255, .G = 255, .B = 255};
 
