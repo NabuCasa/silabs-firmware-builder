@@ -1,7 +1,9 @@
 #include "hal/hal.h"
 #include "ember.h"
+#include "sl_token_manager.h"
 
 #include "zbt2_reset_button.h"
+#include "led_effects.h"
 
 #include "sl_simple_button_pin_hole_button_config.h"
 #include "sl_simple_button_instances.h"
@@ -16,6 +18,9 @@
 #define BLINK_ON_DELAY_MS 150
 #define BLINK_OFF_DELAY_MS 50
 #define RESET_CONFIRMATION_DELAY_MS 1000
+
+// From app.c
+extern bool device_has_stored_network_settings(void);
 
 // Timer handles
 static sl_sleeptimer_timer_handle_t reset_timer;
@@ -89,6 +94,7 @@ void sl_button_on_change(const sl_button_t *handle)
     if (handle == &sl_button_pin_hole_button) {
         // If the button is pressed, start the reset timer.
         if (sl_button_get_state(handle) == SL_SIMPLE_BUTTON_PRESSED) {
+            led_effects_stop_all();
             reset_cycle = 0;
             sl_sleeptimer_start_timer_ms(&reset_timer, CYCLE_DELAY_MS, reset_timer_callback, NULL, 0, 0);
         } else {
@@ -96,8 +102,8 @@ void sl_button_on_change(const sl_button_t *handle)
             sl_sleeptimer_stop_timer(&reset_timer);
             sl_sleeptimer_stop_timer(&blink_timer);
 
-            // Turn the LED off.
-            set_all_leds(&off);
+            // Restore the LED effects.
+            led_effects_set_network_state(device_has_stored_network_settings());
         }
     }
 }
