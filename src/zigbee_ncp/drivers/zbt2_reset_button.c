@@ -9,7 +9,7 @@
 #include "ws2812.h"
 
 // The number of cycles the button must be held to trigger a reset.
-#define RESET_CYCLES 5
+#define RESET_CYCLES 4
 
 // Animation delays in milliseconds.
 #define CYCLE_DELAY_MS 500
