@@ -33,21 +33,11 @@ static void reset_adapter(void)
     // Set the LED to red to indicate that the reset is in progress.
     set_all_leds(&red);
 
-    // Wait for the confirmation delay.
-    sl_sleeptimer_delay_millisecond(RESET_CONFIRMATION_DELAY_MS);
+    // Erase NVRAM
+    sl_token_init();
+    sl_zigbee_token_factory_reset(false, false);
 
-    // Reset the custom EUI64
-    EmberEUI64 eui64;
-    MEMSET(eui64, 0xFF, EUI64_SIZE);
-    emberSetTokenData(CREATOR_STACK_RESTORED_EUI64, 0, eui64, EUI64_SIZE);
-
-    // Leave the Zigbee network.
-    emberLeaveNetwork();
-    emberClearKeyTable();
-
-    set_all_leds(&off);
-
-    // Reboot the adapter.
+    // Synchronously wait for a while and then reboot
     halReboot();
 }
 
