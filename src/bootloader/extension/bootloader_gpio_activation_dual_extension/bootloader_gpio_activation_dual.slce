@@ -1,6 +1,4 @@
 id: bootloader_gpio_activation_dual
-label: Bootloader GPIO Activation Dual Pin Extension
-description: Dual GPIO bootloader activation extension
 version: "1.0.0"
 sdk:
   id: gecko_sdk
