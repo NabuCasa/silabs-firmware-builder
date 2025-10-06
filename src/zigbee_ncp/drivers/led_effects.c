@@ -48,18 +48,6 @@ static float calculate_tilt_angle(void)
   return tilt_deg;
 }
 
-// Apply color to all LEDs
-static void set_all_leds(uint8_t r, uint8_t g, uint8_t b)
-{
-  rgb_t colors[4];
-  for (int i = 0; i < 4; i++) {
-    colors[i].R = r;
-    colors[i].G = g;
-    colors[i].B = b;
-  }
-  set_color_buffer(colors);
-}
-
 // Main LED update timer callback
 static void led_update_callback(sl_sleeptimer_timer_handle_t *handle, void *data)
 {
@@ -91,7 +79,7 @@ static void led_update_callback(sl_sleeptimer_timer_handle_t *handle, void *data
   // Update LED animation based on current state
   switch (current_state) {
     case LED_STATE_NETWORK_FORMED:
-      set_all_leds(0, 0, 0); // Off
+      set_all_leds(&off);
       break;
 
     case LED_STATE_NETWORK_NOT_FORMED: {
@@ -105,20 +93,23 @@ static void led_update_callback(sl_sleeptimer_timer_handle_t *handle, void *data
         // Fade out
         brightness = 255 - ((step - 345) * (255 - 25)) / 345;
       }
-      set_all_leds(
-        (uint8_t)((brightness * zwa2_white.R) / 255),
-        (uint8_t)((brightness * zwa2_white.G) / 255),
-        (uint8_t)((brightness * zwa2_white.B) / 255)
-      );
+
+      rgb_t fading_white = {
+        .R = (uint8_t)((brightness * zwa2_white.R) / 255),
+        .G = (uint8_t)((brightness * zwa2_white.G) / 255),
+        .B = (uint8_t)((brightness * zwa2_white.B) / 255),
+      };
+
+      set_all_leds(&fading_white);
       break;
     }
 
     case LED_STATE_TILTED: {
       // Fast pulse (blink with a 248ms half-period)
       if ((tick_counter / 62) % 2) {
-        set_all_leds(zwa2_white.R, zwa2_white.G, zwa2_white.B);
+        set_all_leds(&zwa2_white);
       } else {
-        set_all_leds(0, 0, 0);
+        set_all_leds(&off);
       }
       break;
     }
@@ -144,7 +135,7 @@ void led_effects_set_network_state(bool network_formed)
         if (sl_sleeptimer_is_timer_running(&led_update_timer, &is_running) == SL_STATUS_OK && is_running) {
             sl_sleeptimer_stop_timer(&led_update_timer);
         }
-        set_all_leds(0, 0, 0);
+        set_all_leds(&off);
         current_state = LED_STATE_NETWORK_FORMED;
         return;
     }
@@ -171,7 +162,7 @@ void led_effects_stop_all(void)
   if (sl_sleeptimer_is_timer_running(&led_update_timer, &is_running) == SL_STATUS_OK && is_running) {
     sl_sleeptimer_stop_timer(&led_update_timer);
   }
-  set_all_leds(0, 0, 0); // Turn off all LEDs
+  set_all_leds(&off); // Turn off all LEDs
 }
 
 led_state_t led_effects_get_state(void)
