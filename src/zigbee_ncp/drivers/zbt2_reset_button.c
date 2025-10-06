@@ -2,10 +2,9 @@
 #include "ember.h"
 #include "sl_token_manager.h"
 
+#include "zbt2_reset_button.h"
 #include "led_effects.h"
 
-#include "sl_simple_button_pin_hole_button_config.h"
-#include "sl_simple_button_instances.h"
 #include "sl_sleeptimer.h"
 #include "ws2812.h"
 
@@ -80,15 +79,9 @@ static void blink_task(sl_sleeptimer_timer_handle_t *handle, void *data)
     }
 }
 
-// Called when the button changes state.
-void sl_button_on_change(const sl_button_t *handle)
+void zbt2_reset_button_handle_state(bool pressed)
 {
-    // If the button is the pinhole button, then handle the state change
-    if (handle != &sl_button_pin_hole_button) {
-        return;
-    }
-
-    if (sl_button_get_state(handle) == SL_SIMPLE_BUTTON_PRESSED) {
+    if (pressed) {
         // If the button is pressed, start the reset timer
         led_effects_stop_all();
         reset_cycle = 0;

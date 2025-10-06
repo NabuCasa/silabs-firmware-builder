@@ -33,6 +33,7 @@ add_includes:
     - path: qma6100p.h
     - path: ws2812.h
     - path: led_effects.h
+    - path: zbt2_reset_button.h
 
 c_defines:
   XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE: 3

@@ -33,6 +33,9 @@
   #include "drivers/qma6100p.h"
   #include "drivers/ws2812.h"
   #include "drivers/led_effects.h"
+  #include "drivers/zbt2_reset_button.h"
+
+  #include "sl_simple_button_instances.h"
 #endif
 
 #include "sl_sleeptimer.h"
@@ -182,6 +185,17 @@ bool device_has_stored_network_settings(void)
   
   return true;
 }
+
+void sl_button_on_change(const sl_button_t *handle)
+{
+  #ifdef NC_CONNECT_ZBT_2
+    if (handle == &sl_button_pin_hole_button) {
+      bool pressed = (sl_button_get_state(handle) == SL_SIMPLE_BUTTON_PRESSED);
+      zbt2_reset_button_handle_state(pressed);
+    }
+  #endif
+}
+
 
 
 
