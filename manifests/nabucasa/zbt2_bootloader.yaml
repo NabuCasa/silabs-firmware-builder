@@ -10,6 +10,17 @@ gbl:
   gecko_bootloader_version: dynamic
   baudrate: 115200
 
+sdk_extension:
+  - id: bootloader_gpio_activation_dual
+    version: 1.0.0
+
+remove_components:
+  - id: bootloader_gpio_activation
+
+add_components:
+  - id: bootloader_gpio_activation_dual
+    from: bootloader_gpio_activation_dual
+
 c_defines:
   SL_SERIAL_UART_FLOW_CONTROL: 1
 
@@ -28,6 +39,13 @@ c_defines:
   # The bootloader does not allow downgrades so we need to bump the version
   BOOTLOADER_VERSION_MAIN_CUSTOMER: 3
 
-  SL_GPIO_ACTIVATION_POLARITY: LOW
-  SL_BTL_BUTTON_PORT: gpioPortA
-  SL_BTL_BUTTON_PIN: 6
+  # Dual GPIO activation for the bootloader
+  # Triggered by trace to S3
+  NC_PRIMARY_GPIO_ACTIVATION_POLARITY: LOW
+  NC_BTL_BUTTON_PRIMARY_PORT: gpioPortA
+  NC_BTL_BUTTON_PRIMARY_PIN: 6
+
+  # And by the reset button on the back
+  NC_SECONDARY_GPIO_ACTIVATION_POLARITY: LOW
+  NC_BTL_BUTTON_SECONDARY_PORT: gpioPortC
+  NC_BTL_BUTTON_SECONDARY_PIN: 5
