@@ -24,6 +24,8 @@ static sl_sleeptimer_timer_handle_t reset_timer;
 static sl_sleeptimer_timer_handle_t blink_timer;
 
 static uint8_t reset_cycle = 0;
+static uint8_t blink_count = 0;
+static bool led_on = false;
 
 // Task to handle the LED blinking pattern
 static void blink_task(sl_sleeptimer_timer_handle_t *handle, void *data);
@@ -51,9 +53,6 @@ static void reset_timer_callback(sl_sleeptimer_timer_handle_t *handle, void *dat
 // Task to handle the LED blinking pattern.
 static void blink_task(sl_sleeptimer_timer_handle_t *handle, void *data)
 {
-    static uint8_t blink_count = 0;
-    static bool led_on = false;
-
     // If the LED is on, turn it off
     if (led_on) {
         set_all_leds(&off);
@@ -81,17 +80,19 @@ static void blink_task(sl_sleeptimer_timer_handle_t *handle, void *data)
 
 void zbt2_reset_button_handle_state(bool pressed)
 {
+    // Stop any running timers first
+    sl_sleeptimer_stop_timer(&reset_timer);
+    sl_sleeptimer_stop_timer(&blink_timer);
+
+    // Now safe to reset state
+    reset_cycle = 0;
+    blink_count = 0;
+    led_on = false;
+
     if (pressed) {
-        // If the button is pressed, start the reset timer
         led_effects_stop_all();
-        reset_cycle = 0;
         sl_sleeptimer_start_timer_ms(&reset_timer, CYCLE_DELAY_MS, reset_timer_callback, NULL, 0, 0);
     } else {
-        // If the button is released, stop the reset timer and the blink timer
-        sl_sleeptimer_stop_timer(&reset_timer);
-        sl_sleeptimer_stop_timer(&blink_timer);
-
-        // Restore the LED effects (if the device is in setup mode)
         led_effects_set_network_state(device_has_stored_network_settings());
     }
 }
