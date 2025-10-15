@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import re
+import sys
 import json
 import logging
 import hashlib
@@ -84,6 +85,8 @@ def main():
             }
         )
 
+    missing_changelogs = False
+
     for fw in manifest["firmwares"]:
         if fw["metadata"] is None:
             continue
@@ -104,9 +107,23 @@ def main():
         version_key = list(version_keys)[0]
 
         version = fw["metadata"][version_key]
+
+        if version not in changelogs:
+            _LOGGER.error(
+                "Firmware %s version %s has no changelog entry in %s",
+                fw["filename"],
+                version,
+                changelog_md,
+            )
+            missing_changelogs = True
+            continue
+
         release_notes, release_summary = changelogs[version]
         fw["release_notes"] = release_notes
         fw["release_summary"] = release_summary
+
+    if missing_changelogs:
+        sys.exit(1)
 
     print(json.dumps(manifest, indent=2))
 

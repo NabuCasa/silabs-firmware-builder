@@ -1,3 +1,6 @@
+# 2.4.7.0_GitHub-fb0446f53
+Beta release built with Gecko SDK 4.5.0.
+
 # 2.4.6.0_GitHub-bdb394eb3
 Beta release built with Gecko SDK 4.4.6.
 
