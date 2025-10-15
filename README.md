@@ -58,7 +58,6 @@ SDK extensions for every SDK you plan to use:
 
 ```bash
 slc signature trust --sdk ~/SimplicityStudio/SDKs/gecko_sdk_4.4.2
-slc signature trust --sdk ~/SimplicityStudio/SDKs/gecko_sdk_4.4.2 --extension-path ~/SimplicityStudio/SDKs/gecko_sdk_4.4.2/extension/nc_efr32_watchdog_extension
 ```
 
 `tools/build_project.py` is the main entry point for building firmwares. Provide paths
