@@ -1,4 +1,4 @@
-# 7.5.0.2
+# 7.5.1.0
 Beta release built with Gecko SDK 4.5.0. This includes a new feature to restore routes on adapter startup, speeding up network responsiveness after a reset.
 
 # 7.5.0.0
