@@ -1,6 +1,9 @@
 # 7.5.0.0
 Beta release built with Gecko SDK 4.4.6.
 
+# 7.4.4.4
+Increase UART RX buffer size from 32 to 128 bytes to fix issues with OTA when using Z2M.
+
 # 7.4.4.3
 Fix setup LED behavior for adapters with external indicator LEDs and tweak routing and child table sizes.
 
