@@ -25,6 +25,7 @@ add_sources:
   - path: drivers/qma6100p.c
   - path: drivers/ws2812.c
   - path: drivers/led_effects.c
+  - path: drivers/zbt2_reset_button.c
 
 add_includes:
   - path: drivers
@@ -32,6 +33,7 @@ add_includes:
     - path: qma6100p.h
     - path: ws2812.h
     - path: led_effects.h
+    - path: zbt2_reset_button.h
 
 c_defines:
   XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE: 4
