@@ -36,7 +36,7 @@ add_includes:
     - path: zbt2_reset_button.h
 
 c_defines:
-  XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE: 4
+  XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE: 5
 
   XNCP_MFG_MANUF_NAME: '"Nabu Casa"'
   XNCP_MFG_BOARD_NAME: '"Home Assistant Connect ZBT-2"'
