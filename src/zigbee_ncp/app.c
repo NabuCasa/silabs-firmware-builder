@@ -29,15 +29,20 @@
 #include "config/xncp_config.h"
 #include "config/sl_iostream_usart_vcom_config.h"
 
+#include "sl_sleeptimer.h"
+#include "sl_token_api.h"
+
+#ifdef SL_CATALOG_SIMPLE_BUTTON_PRESENT
+  #include "sl_button.h"
+  #include "sl_simple_button_instances.h"
+#endif
+
 #ifdef NC_CONNECT_ZBT_2
   #include "drivers/qma6100p.h"
   #include "drivers/ws2812.h"
   #include "drivers/led_effects.h"
+  #include "drivers/zbt2_reset_button.h"
 #endif
-
-#include "sl_sleeptimer.h"
-#include "sl_token_api.h"
-
 
 #define BUILD_UINT16(low, high)  (((uint16_t)(low) << 0) | ((uint16_t)(high) << 8))
 
@@ -183,6 +188,19 @@ bool device_has_stored_network_settings(void)
   return true;
 }
 
+#ifdef SL_CATALOG_SIMPLE_BUTTON_PRESENT
+void sl_button_on_change(const sl_button_t *handle)
+{
+  #ifdef NC_CONNECT_ZBT_2
+    if (handle == &sl_button_pin_hole_button) {
+      bool pressed = (sl_button_get_state(handle) == SL_SIMPLE_BUTTON_PRESSED);
+      zbt2_reset_button_handle_state(pressed);
+    }
+  #endif
+}
+#endif // SL_CATALOG_SIMPLE_BUTTON_PRESENT
+
+
 
 
 //----------------------
@@ -212,7 +230,7 @@ void emberAfMainInitCallback(void)
 
     // Initialize LED effects system
     led_effects_init();
-  
+
     // Set initial network state
     led_effects_set_network_state(device_has_stored_network_settings());
   #endif
