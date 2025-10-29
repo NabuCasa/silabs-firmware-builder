@@ -84,15 +84,16 @@ void zbt2_reset_button_handle_state(bool pressed)
     sl_sleeptimer_stop_timer(&reset_timer);
     sl_sleeptimer_stop_timer(&blink_timer);
 
-    // Now safe to reset state
-    reset_cycle = 0;
-    blink_count = 0;
-    led_on = false;
-
     if (pressed) {
+        // Reset state and start the cycle, this is hit only when the button is initially pressed
         led_effects_stop_all();
+        reset_cycle = 0;
+        blink_count = 0;
+        led_on = false;
+
         sl_sleeptimer_start_timer_ms(&reset_timer, CYCLE_DELAY_MS, reset_timer_callback, NULL, 0, 0);
     } else {
+        // This is the release and will only be hit if we cancel early
         led_effects_set_network_state(device_has_stored_network_settings());
     }
 }
