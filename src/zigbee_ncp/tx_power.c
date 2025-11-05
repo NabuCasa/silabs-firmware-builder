@@ -58,6 +58,8 @@ static const CountryTxPower COUNTRY_TX_POWERS[] = {
   {{'M', 'C'}, 10, 10},  // Monaco
   {{'S', 'M'}, 10, 10},  // San Marino
   {{'V', 'A'}, 10, 10},  // Vatican City
+  // Disable the maximum, for testing
+  {{'?', '?'}, 8, 127},
 };
 
 void get_tx_power_for_country(const char c1, const char c2, CountryTxPower *output) {
