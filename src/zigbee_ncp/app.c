@@ -482,7 +482,7 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
 
     #ifdef NC_CONNECT_ZBT_2
     case XNCP_CMD_GET_TX_POWER_INFO_REQ: {
-      rsp_command_id = XNCP_CMD_GET_MAX_TX_POWER_RSP;
+      rsp_command_id = XNCP_CMD_GET_TX_POWER_INFO_RSP;
       rsp_status = EMBER_SUCCESS;
 
       if (messageLength != 2) {

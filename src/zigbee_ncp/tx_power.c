@@ -1,11 +1,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef struct {
-  char code[2];
-  int8_t recommended_power_dbm;
-  int8_t max_power_dbm;
-} CountryTxPower;
+#include "tx_power.h"
 
 static const CountryTxPower COUNTRY_TX_POWERS[] = {
   // EU Member States
@@ -63,19 +59,19 @@ static const CountryTxPower COUNTRY_TX_POWERS[] = {
 };
 
 void get_tx_power_for_country(const char c1, const char c2, CountryTxPower *output) {
-  output.code[0] = c1;
-  output.code[1] = c2;
+  output->code[0] = c1;
+  output->code[1] = c2;
 
   for (uint8_t i = 0; i < sizeof(COUNTRY_TX_POWERS) / sizeof(CountryTxPower); i++) {
     if (COUNTRY_TX_POWERS[i].code[0] == c1 && COUNTRY_TX_POWERS[i].code[1] == c2) {
-      output.recommended_power_dbm = COUNTRY_TX_POWERS[i].recommended_power_dbm;
-      output.max_power_dbm = COUNTRY_TX_POWERS[i].max_power_dbm;
+      output->recommended_power_dbm = COUNTRY_TX_POWERS[i].recommended_power_dbm;
+      output->max_power_dbm = COUNTRY_TX_POWERS[i].max_power_dbm;
 
       return;
     }
   }
 
   // Not found, return default
-  output.recommended_power_dbm = XNCP_DEFAULT_MAX_TX_POWER_DBM;
-  output.max_power_dbm = XNCP_DEFAULT_MAX_TX_POWER_DBM;
+  output->recommended_power_dbm = XNCP_DEFAULT_MAX_TX_POWER_DBM;
+  output->max_power_dbm = XNCP_DEFAULT_MAX_TX_POWER_DBM;
 }
