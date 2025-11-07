@@ -2,6 +2,6 @@ id: bootloader_gpio_activation_dual
 version: "1.0.0"
 sdk:
   id: gecko_sdk
-  version: "4.4.4"
+  version: "4.5.0"
 component_path:
   - path: "./"
