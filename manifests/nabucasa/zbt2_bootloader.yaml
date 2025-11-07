@@ -37,7 +37,7 @@ c_defines:
   SL_SERIAL_UART_RTS_PIN:  0
 
   # The bootloader does not allow downgrades so we need to bump the version
-  BOOTLOADER_VERSION_MAIN_CUSTOMER: 3
+  BOOTLOADER_VERSION_MAIN_CUSTOMER: 4
 
   # Dual GPIO activation for the bootloader
   # Triggered by trace to S3
