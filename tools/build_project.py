@@ -417,7 +417,7 @@ def main():
             "--with", manifest["device"],
             "--project-file", base_project_slcp.resolve(),
             "--export-destination", args.build_dir.resolve(),
-            "--copy-proj-sources",
+            "--copy-sources",
             "--new-project",
             "--toolchain", "toolchain_gcc",
             "--sdk", sdk,
@@ -431,6 +431,22 @@ def main():
         }
     )
     # fmt: on
+
+    # Apply patches if they exist
+    patches_dir = base_project_path / "patches"
+    if patches_dir.is_dir():
+        patch_files = sorted(patches_dir.glob("*.diff")) + sorted(
+            patches_dir.glob("*.patch")
+        )
+        (sdk_build_dir,) = args.build_dir.glob("*_sdk_*")
+
+        for patch_file in patch_files:
+            print(f"Applying patch {patch_file.name}")
+            subprocess_run_verbose(
+                ["git", "apply", str(patch_file.resolve())],
+                f"patch {patch_file.name}",
+                cwd=sdk_build_dir,
+            )
 
     # Make sure all extensions are valid
     for sdk_extension in base_project.get("sdk_extension", []):
