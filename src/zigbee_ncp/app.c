@@ -482,31 +482,15 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       rgb_t colors[4];
 
       if (messageLength == 12) {
-        colors[0].R = messagePayload[0];
-        colors[0].G = messagePayload[1];
-        colors[0].B = messagePayload[2];
-        colors[1].R = messagePayload[3];
-        colors[1].G = messagePayload[4];
-        colors[1].B = messagePayload[5];
-        colors[2].R = messagePayload[6];
-        colors[2].G = messagePayload[7];
-        colors[2].B = messagePayload[8];
-        colors[3].R = messagePayload[9];
-        colors[3].G = messagePayload[10];
-        colors[3].B = messagePayload[11];
+        memcpy(&colors[0], &messagePayload[0], 3);
+        memcpy(&colors[1], &messagePayload[3], 3);
+        memcpy(&colors[2], &messagePayload[6], 3);
+        memcpy(&colors[3], &messagePayload[9], 3);
       } else if (messageLength == 3) {
-        colors[0].R = messagePayload[0];
-        colors[0].G = messagePayload[1];
-        colors[0].B = messagePayload[2];
-        colors[1].R = messagePayload[0];
-        colors[1].G = messagePayload[1];
-        colors[1].B = messagePayload[2];
-        colors[2].R = messagePayload[0];
-        colors[2].G = messagePayload[1];
-        colors[2].B = messagePayload[2];
-        colors[3].R = messagePayload[0];
-        colors[3].G = messagePayload[1];
-        colors[3].B = messagePayload[2];
+        memcpy(&colors[0], &messagePayload[0], 3);
+        memcpy(&colors[1], &messagePayload[0], 3);
+        memcpy(&colors[2], &messagePayload[0], 3);
+        memcpy(&colors[3], &messagePayload[0], 3);
       } else {
           rsp_status = EMBER_BAD_ARGUMENT;
           break;
