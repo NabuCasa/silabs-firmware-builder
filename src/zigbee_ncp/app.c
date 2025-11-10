@@ -498,15 +498,15 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
         colors[0].R = messagePayload[0];
         colors[0].G = messagePayload[1];
         colors[0].B = messagePayload[2];
-        colors[1].R = messagePayload[3];
-        colors[1].G = messagePayload[0];
-        colors[1].B = messagePayload[1];
-        colors[2].R = messagePayload[2];
-        colors[2].G = messagePayload[3];
-        colors[2].B = messagePayload[0];
-        colors[3].R = messagePayload[1];
-        colors[3].G = messagePayload[2];
-        colors[3].B = messagePayload[3];
+        colors[1].R = messagePayload[0];
+        colors[1].G = messagePayload[1];
+        colors[1].B = messagePayload[2];
+        colors[2].R = messagePayload[0];
+        colors[2].G = messagePayload[1];
+        colors[2].B = messagePayload[2];
+        colors[3].R = messagePayload[0];
+        colors[3].G = messagePayload[1];
+        colors[3].B = messagePayload[2];
       } else {
           rsp_status = EMBER_BAD_ARGUMENT;
           break;
