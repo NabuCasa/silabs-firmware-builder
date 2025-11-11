@@ -72,6 +72,6 @@ void get_tx_power_for_country(const char c1, const char c2, CountryTxPower *outp
   }
 
   // Not found, return default
-  output->recommended_power_dbm = XNCP_DEFAULT_MAX_TX_POWER_DBM;
+  output->recommended_power_dbm = XNCP_DEFAULT_RECOMMENDED_TX_POWER_DBM;
   output->max_power_dbm = XNCP_DEFAULT_MAX_TX_POWER_DBM;
 }
