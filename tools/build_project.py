@@ -341,6 +341,11 @@ def main():
         manifest.get("toolchain_settings", [])
     )
 
+    # Add SDK extensions
+    base_project.setdefault("sdk_extension", []).extend(
+        manifest.get("sdk_extension", [])
+    )
+
     # Remove components
     for component in manifest.get("remove_components", []):
         try:
@@ -432,12 +437,19 @@ def main():
     )
     # fmt: on
 
-    # Make sure all extensions are valid
+    # Make sure all extensions are valid (check both SDK and project extensions)
     for sdk_extension in base_project.get("sdk_extension", []):
-        expected_dir = sdk / f"extension/{sdk_extension['id']}_extension"
+        sdk_ext_dir = sdk / f"extension/{sdk_extension['id']}_extension"
+        project_ext_dir = (
+            build_template_path / f"extension/{sdk_extension['id']}_extension"
+        )
 
-        if not expected_dir.is_dir():
-            LOGGER.error("Referenced extension not present in SDK: %s", expected_dir)
+        if not sdk_ext_dir.is_dir() and not project_ext_dir.is_dir():
+            LOGGER.error(
+                "Referenced extension not present in SDK (%s) or project (%s)",
+                sdk_ext_dir,
+                project_ext_dir,
+            )
             sys.exit(1)
 
     # Template variables for C defines
@@ -521,7 +533,7 @@ def main():
                         new_config_h_lines[index - 1] = "#if 1"
                     elif "#warning" in prev_line:
                         assert re.match(r'#warning ".*? not configured"', prev_line)
-                        new_config_h_lines.pop(index - 1)
+                        new_config_h_lines[index - 1] = f"//{prev_line}"
 
                     value_template = str(value_template)
 

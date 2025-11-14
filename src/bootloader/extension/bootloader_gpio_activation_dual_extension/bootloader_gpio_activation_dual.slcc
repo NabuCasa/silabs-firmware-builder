@@ -1,0 +1,24 @@
+id: bootloader_gpio_activation_dual
+label: GPIO activation (dual pin)
+package: bootloader
+description: >
+  The Bootloader GPIO activation component provides entry to bootloader firmware upgrade mode
+  if either of two GPIOs has a given state at reset. The GPIO state is configurable.
+category: Platform|Bootloader|Utils
+quality: production
+source:
+  - path: src/btl_gpio_activation_dual.c
+include:
+  - path: inc
+    file_list:
+    - path: btl_gpio_activation_dual.h
+config_file:
+  - path: inc/btl_gpio_activation_dual_cfg.h
+    file_id: btl_gpio_activation_cfg
+define:
+  - name: BTL_GPIO_ACTIVATION
+    value: 1
+provides:
+  - name: bootloader_gpio_activation_dual
+  - name: bootloader_nonsecure_incompatible
+    condition: [bootloader_core_nonsecure]
