@@ -42,6 +42,7 @@
   #include "drivers/ws2812.h"
   #include "drivers/led_effects.h"
   #include "drivers/zbt2_reset_button.h"
+  #include "tx_power.h"
 #endif
 
 #define BUILD_UINT16(low, high)  (((uint16_t)(low) << 0) | ((uint16_t)(high) << 8))
@@ -52,6 +53,7 @@
 #define FEATURE_BUILD_STRING          (0b00000000000000000000000000001000)
 #define FEATURE_FLOW_CONTROL_TYPE     (0b00000000000000000000000000010000)
 #define FEATURE_CHIP_INFO             (0b00000000000000000000000000100000)
+#define FEATURE_TX_POWER_INFO         (0b00000000000000000000000010000000)
 
 #define FEATURE_LED_CONTROL           (0b10000000000000000000000000000000)
 
@@ -63,6 +65,7 @@ uint32_t SUPPORTED_FEATURES = (
     | FEATURE_FLOW_CONTROL_TYPE
     | FEATURE_CHIP_INFO
 #ifdef NC_CONNECT_ZBT_2
+    | FEATURE_TX_POWER_INFO
     | FEATURE_LED_CONTROL
 #endif
 );
@@ -94,6 +97,7 @@ typedef enum {
   XNCP_CMD_GET_BUILD_STRING_REQ       = 0x0003,
   XNCP_CMD_GET_FLOW_CONTROL_TYPE_REQ  = 0x0004,
   XNCP_CMD_GET_CHIP_INFO_REQ          = 0x0005,
+  XNCP_CMD_GET_TX_POWER_INFO_REQ      = 0x0008,
 
   XNCP_CMD_SET_LED_STATE_REQ          = 0x0F00,
   XNCP_CMD_GET_ACCELEROMETER_REQ      = 0x0F01,
@@ -103,7 +107,8 @@ typedef enum {
   XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_RSP = XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_REQ | 0x8000,
   XNCP_CMD_GET_BUILD_STRING_RSP       = XNCP_CMD_GET_BUILD_STRING_REQ       | 0x8000,
   XNCP_CMD_GET_FLOW_CONTROL_TYPE_RSP  = XNCP_CMD_GET_FLOW_CONTROL_TYPE_REQ  | 0x8000,
-  XNCP_CMD_GET_CHIP_INFO_RSP          = XNCP_CMD_GET_CHIP_INFO_REQ        | 0x8000,
+  XNCP_CMD_GET_CHIP_INFO_RSP          = XNCP_CMD_GET_CHIP_INFO_REQ          | 0x8000,
+  XNCP_CMD_GET_TX_POWER_INFO_RSP      = XNCP_CMD_GET_TX_POWER_INFO_REQ      | 0x8000,
 
   XNCP_CMD_SET_LED_STATE_RSP          = XNCP_CMD_SET_LED_STATE_REQ          | 0x8000,
   XNCP_CMD_GET_ACCELEROMETER_RSP      = XNCP_CMD_GET_ACCELEROMETER_REQ      | 0x8000,
@@ -476,6 +481,23 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
     }
 
     #ifdef NC_CONNECT_ZBT_2
+    case XNCP_CMD_GET_TX_POWER_INFO_REQ: {
+      rsp_command_id = XNCP_CMD_GET_TX_POWER_INFO_RSP;
+      rsp_status = EMBER_SUCCESS;
+
+      if (messageLength != 2) {
+        rsp_status = EMBER_BAD_ARGUMENT;
+        break;
+      }
+
+      CountryTxPower result;
+      get_tx_power_for_country(messagePayload[0], messagePayload[1], &result);
+
+      replyPayload[(*replyPayloadLength)++] = (uint8_t)result.recommended_power_dbm;
+      replyPayload[(*replyPayloadLength)++] = (uint8_t)result.max_power_dbm;
+      break;
+    }
+
     case XNCP_CMD_SET_LED_STATE_REQ: {
       rsp_command_id = XNCP_CMD_SET_LED_STATE_RSP;
       rsp_status = EMBER_SUCCESS;

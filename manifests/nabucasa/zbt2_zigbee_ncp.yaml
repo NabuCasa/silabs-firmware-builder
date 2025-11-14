@@ -24,6 +24,7 @@ add_sources:
   - path: drivers/ws2812.c
   - path: drivers/led_effects.c
   - path: drivers/zbt2_reset_button.c
+  - path: tx_power.c
 
 add_includes:
   - path: drivers
@@ -32,9 +33,12 @@ add_includes:
     - path: ws2812.h
     - path: led_effects.h
     - path: zbt2_reset_button.h
+  - path: .
+    file_list:
+    - path: tx_power.h
 
 c_defines:
-  XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE: 5
+  XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE: 6
 
   XNCP_MFG_MANUF_NAME: '"Nabu Casa"'
   XNCP_MFG_BOARD_NAME: '"Home Assistant Connect ZBT-2"'

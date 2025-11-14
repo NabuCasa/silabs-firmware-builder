@@ -25,4 +25,10 @@
 // SDK macro.
 #define XNCP_FLOW_CONTROL_TYPE  (SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE)
 
+// Default maximum TX power in dBm if country code is not overridden.
+#define XNCP_DEFAULT_MAX_TX_POWER_DBM  (8)
+
+// Default recommended TX power in dBm if country code is not overridden.
+#define XNCP_DEFAULT_RECOMMENDED_TX_POWER_DBM  (8)
+
 #endif /* CONFIG_XNCP_CONFIG_H_ */
