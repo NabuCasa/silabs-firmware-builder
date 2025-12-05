@@ -15,6 +15,8 @@ gbl:
 sdk_extension:
   - id: ws2812_driver
     version: 1.0.0
+  - id: qma6100p_driver
+    version: 1.0.0
 
 add_components:
 - id: uartdrv_eusart
@@ -26,15 +28,15 @@ add_components:
   instance: [pin_hole_button]
 - id: ws2812_driver
   from: ws2812_driver
+- id: qma6100p_driver
+  from: qma6100p_driver
 
 add_sources:
-  - path: drivers/qma6100p.c
   - path: drivers/led_effects.c
 
 add_includes:
   - path: drivers
     file_list:
-    - path: qma6100p.h
     - path: led_effects.h
 
 c_defines:

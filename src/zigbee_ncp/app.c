@@ -30,9 +30,10 @@
 #include "config/sl_iostream_usart_vcom_config.h"
 
 #ifdef NC_CONNECT_ZBT_2
-  #include "drivers/qma6100p.h"
+  #include "qma6100p.h"
   #include "ws2812.h"
   #include "drivers/led_effects.h"
+  #include "sl_i2cspm_instances.h"
 #endif
 
 #include "sl_sleeptimer.h"
@@ -213,7 +214,7 @@ void emberAfMainInitCallback(void)
   }
 
   #ifdef NC_CONNECT_ZBT_2
-    initqma6100p();
+    qma6100p_init(sl_i2cspm_inst);
     initWs2812();
 
     // Initialize LED effects system
@@ -564,7 +565,7 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(uint8_t messageLength,
       rsp_status = EMBER_SUCCESS;
 
       float xyz[3];
-      qma6100p_read_acc_xyz(xyz);
+      qma6100p_read_acc_xyz(sl_i2cspm_inst, xyz);
 
       // X
       memcpy(replyPayload + *replyPayloadLength, (uint8_t*)&xyz[0], sizeof(float));

@@ -7,6 +7,7 @@
 
 #include "led_effects.h"
 #include "qma6100p.h"
+#include "sl_i2cspm_instances.h"
 #include "sl_status.h"
 #include <string.h>
 #include <math.h>
@@ -27,7 +28,7 @@ static const float M_PI = 3.14159265358979323846f;
 static float calculate_tilt_angle(void)
 {
   float xyz[3];
-  qma6100p_read_acc_xyz(xyz);
+  qma6100p_read_acc_xyz(sl_i2cspm_inst, xyz);
 
   // Calculate tilt angle using accelerometer data
   // For a device at rest, gravity provides 1g acceleration
