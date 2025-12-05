@@ -171,27 +171,6 @@ sli_zigbee_route_table_entry_t* find_free_routing_table_entry(EmberNodeId destin
 }
 
 
-// Check if device has valid stored network configuration
-bool device_has_stored_network_settings(void)
-{
-  tokTypeStackNodeData nodeData;
-  
-  // Read the stored network node data token
-  halCommonGetToken(&nodeData, TOKEN_STACK_NODE_DATA);
-
-  if (nodeData.panId == 0xFFFF) {
-    return false;
-  }
-  
-  if (nodeData.radioFreqChannel < 11 || nodeData.radioFreqChannel > 26) {
-    return false;
-  }
-  
-  return true;
-}
-
-
-
 //----------------------
 // Implemented Callbacks
 
@@ -212,36 +191,12 @@ void emberAfMainInitCallback(void)
   for (uint8_t i = 0; i < XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE; i++) {
     manual_source_routes[i].active = false;
   }
-
-  #ifdef NC_CONNECT_ZBT_2
-    qma6100p_init(sl_i2cspm_inst);
-    initWs2812();
-
-    // Initialize LED effects system
-    led_effects_init();
-  
-    // Set initial network state
-    led_effects_set_network_state(device_has_stored_network_settings());
-  #endif
 }
 
 bool __wrap_sli_zigbee_am_multicast_member(EmberMulticastId multicastId)
 {
   // Ignore all binding and multicast table logic, we want all group packets
   return true;
-}
-
-/** @brief Stack Status Callback
- * Called when the status of the stack changes.
- */
-void emberAfStackStatusCallback(EmberStatus status)
-{
-  (void)status;  // Ignore the actual status - we'll check stored settings instead
-  
-  #ifdef NC_CONNECT_ZBT_2
-    // Update network state for LEDs
-    led_effects_set_network_state(device_has_stored_network_settings());
-  #endif
 }
 
 

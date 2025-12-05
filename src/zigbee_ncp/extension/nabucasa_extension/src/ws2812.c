@@ -190,3 +190,9 @@ void set_color_buffer(rgb_t *input_colors)
 
   LDMA_StartTransfer(WS2812_LDMA_CHANNEL, &ldmaTXConfig, &ldmaTXDescriptor);
 }
+
+void ws2812_system_init(uint8_t init_level)
+{
+  (void)init_level;
+  initWs2812();
+}

@@ -14,3 +14,8 @@ provides:
   - name: qma6100p_driver
 requires:
   - name: i2cspm
+template_contribution:
+  - name: zigbee_af_callback
+    value:
+      callback_type: event_init
+      function_name: qma6100p_system_init
