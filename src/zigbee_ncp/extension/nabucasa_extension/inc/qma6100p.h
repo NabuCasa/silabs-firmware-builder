@@ -11,23 +11,35 @@
 #include <stdint.h>
 #include "sl_i2cspm.h"
 
-#define QMA6100P_M_G              9.80665f
-#define QMA6100P_I2C_ADDR         0x12    /* qma6100p device address (8-bit write) */
+#define QMA6100P_M_G                   9.80665f
+#define QMA6100P_I2C_ADDR              0x12    /* qma6100p device address (8-bit write) */
 
-#define QMA6100P_CHIP_ID          0x00
-#define QMA6100P_DEVICE_ID        0x90
+#define QMA6100P_CHIP_ID               0x00
+#define QMA6100P_DEVICE_ID             0x90
 
-#define QMA6100P_XOUTL            0x01
-#define QMA6100P_XOUTH            0x02
-#define QMA6100P_YOUTL            0x03
-#define QMA6100P_YOUTH            0x04
-#define QMA6100P_ZOUTL            0x05
-#define QMA6100P_ZOUTH            0x06
+#define QMA6100P_XOUTL                 0x01
+#define QMA6100P_XOUTH                 0x02
+#define QMA6100P_YOUTL                 0x03
+#define QMA6100P_YOUTH                 0x04
+#define QMA6100P_ZOUTL                 0x05
+#define QMA6100P_ZOUTH                 0x06
 
-#define QMA6100P_REG_RANGE        0x0f
-#define QMA6100P_REG_BW_ODR       0x10
-#define QMA6100P_REG_POWER_MANAGE 0x11
-#define QMA6100P_REG_RESET        0x36
+#define QMA6100P_REG_CHIP_ID           0x00
+#define QMA6100P_REG_RANGE             0x0f
+#define QMA6100P_REG_BW_ODR            0x10
+#define QMA6100P_REG_POWER_MANAGEMENT  0x11
+#define QMA6100P_REG_RESET             0x36
+
+// Undocumented
+#define QMA6100P_REG_INTERNAL_4A       0x4A 
+#define QMA6100P_REG_INTERNAL_56       0x56 
+#define QMA6100P_REG_INTERNAL_5F       0x5F
+
+#define QMA6100P_RESET_CMD             0xB6  // Magic value to trigger soft reset 
+#define QMA6100P_RESET_CLR             0x00  // Value to write back after reset
+
+#define QMA6100P_PM_MODE_ACTIVE        0x80
+#define QMA6100P_PM_MCLK_51_2K         0x04
 
 typedef enum {
   QMA6100P_RANGE_2G = 0x01,

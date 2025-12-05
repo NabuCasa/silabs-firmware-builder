@@ -53,25 +53,24 @@ uint8_t qma6100p_init(sl_i2cspm_t *i2cspm)
   qma6100p_read_reg(i2cspm, QMA6100P_CHIP_ID, &id, 1);
 
   /* software reset */
-  qma6100p_write_reg(i2cspm, QMA6100P_REG_RESET, 0xb6);
-  sl_udelay_wait(5000);
-  qma6100p_write_reg(i2cspm, QMA6100P_REG_RESET, 0x00);
+  qma6100p_write_reg(i2cspm, QMA6100P_REG_RESET, QMA6100P_RESET_CMD);
+  sl_udelay_wait(5000);  
+  qma6100p_write_reg(i2cspm, QMA6100P_REG_RESET, QMA6100P_RESET_CLR);
   sl_udelay_wait(10000);
 
   /* recommended initialization sequence */
-  qma6100p_write_reg(i2cspm, 0x11, 0x80);
-  qma6100p_write_reg(i2cspm, 0x11, 0x84);
-  qma6100p_write_reg(i2cspm, 0x4a, 0x20);
-  qma6100p_write_reg(i2cspm, 0x56, 0x01);
-  qma6100p_write_reg(i2cspm, 0x5f, 0x80);
+  qma6100p_write_reg(i2cspm, QMA6100P_REG_POWER_MANAGEMENT, QMA6100P_PM_MODE_ACTIVE);
+  qma6100p_write_reg(i2cspm, QMA6100P_REG_POWER_MANAGEMENT, QMA6100P_PM_MODE_ACTIVE | QMA6100P_PM_MCLK_51_2K);
+  qma6100p_write_reg(i2cspm, QMA6100P_REG_INTERNAL_4A, 0x20);
+  qma6100p_write_reg(i2cspm, QMA6100P_REG_INTERNAL_56, 0x01);
+  qma6100p_write_reg(i2cspm, QMA6100P_REG_INTERNAL_5F, 0x80);
   sl_udelay_wait(2000);
-  qma6100p_write_reg(i2cspm, 0x5f, 0x00);
+  qma6100p_write_reg(i2cspm, QMA6100P_REG_INTERNAL_5F, 0x00);
   sl_udelay_wait(10000);
 
-  /* set range, output frequency, operating mode */
   qma6100p_write_reg(i2cspm, QMA6100P_REG_RANGE, QMA6100P_RANGE_8G);
   qma6100p_write_reg(i2cspm, QMA6100P_REG_BW_ODR, QMA6100P_BW_100);
-  qma6100p_write_reg(i2cspm, QMA6100P_REG_POWER_MANAGE, 0x84);  /* MCLK 51.2K + active */
+  qma6100p_write_reg(i2cspm, QMA6100P_REG_POWER_MANAGEMENT, QMA6100P_PM_MODE_ACTIVE | QMA6100P_PM_MCLK_51_2K);
 
   return 0;
 }
