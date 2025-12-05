@@ -15,7 +15,6 @@ static I2C_TransferReturn_TypeDef qma6100p_read_reg(sl_i2cspm_t *i2cspm,
                                                      uint8_t len)
 {
   I2C_TransferSeq_TypeDef seq;
-
   seq.addr = QMA6100P_I2C_ADDR;
   seq.flags = I2C_FLAG_WRITE_READ;
   seq.buf[0].data = &reg;
@@ -30,16 +29,15 @@ static I2C_TransferReturn_TypeDef qma6100p_write_reg(sl_i2cspm_t *i2cspm,
                                                       uint8_t reg,
                                                       uint8_t value)
 {
-  I2C_TransferSeq_TypeDef seq;
   uint8_t buf[2];
-
   buf[0] = reg;
   buf[1] = value;
 
+  I2C_TransferSeq_TypeDef seq;
   seq.addr = QMA6100P_I2C_ADDR;
   seq.flags = I2C_FLAG_WRITE;
   seq.buf[0].data = buf;
-  seq.buf[0].len = 2;
+  seq.buf[0].len = sizeof(buf);
   seq.buf[1].data = NULL;
   seq.buf[1].len = 0;
 
