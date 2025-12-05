@@ -2,6 +2,7 @@
  * ws2812.c
  *
  * WS2812 addressable RGB LED driver using EUSART and LDMA
+ * Author: qian
  */
 
 #include "ws2812.h"

@@ -116,6 +116,17 @@ c_defines:
     value: 2
     error_on_duplicate: false
 
+  # LED driver
+  WS2812_MOSI_PORT: gpioPortC
+  WS2812_MOSI_PIN: 2
+  WS2812_SCLK_PORT: gpioPortD
+  WS2812_SCLK_PIN: 2
+  WS2812_EN_PORT: gpioPortC
+  WS2812_EN_PIN: 3
+  WS2812_EUSART_NUM: 1
+  WS2812_LDMA_CHANNEL: 1
+  WS2812_NUM_LEDS: 4
+
   SL_I2CSPM_INST_PERIPHERAL: I2C0
   SL_I2CSPM_INST_SCL_PORT: gpioPortC
   SL_I2CSPM_INST_SCL_PIN: 6

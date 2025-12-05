@@ -2,6 +2,7 @@
  * ws2812.h
  *
  * WS2812 addressable RGB LED driver
+ * Author: qian
  */
 
 #ifndef WS2812_H_
