@@ -14,6 +14,7 @@ gbl:
 
 sdk_extension:
   - id: ws2812_driver
+    version: 1.0.0
 
 add_components:
 - id: uartdrv_eusart
@@ -24,6 +25,7 @@ add_components:
 - id: simple_button
   instance: [pin_hole_button]
 - id: ws2812_driver
+  from: ws2812_driver
 
 add_sources:
   - path: drivers/qma6100p.c

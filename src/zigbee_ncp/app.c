@@ -31,7 +31,7 @@
 
 #ifdef NC_CONNECT_ZBT_2
   #include "drivers/qma6100p.h"
-  #include "drivers/ws2812.h"
+  #include "ws2812.h"
   #include "drivers/led_effects.h"
 #endif
 
