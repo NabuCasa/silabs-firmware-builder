@@ -1,4 +1,4 @@
-id: nabucasa
+id: nabucasa_hardware
 version: "1.0.0"
 sdk:
   id: gecko_sdk

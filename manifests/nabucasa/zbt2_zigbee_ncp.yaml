@@ -7,13 +7,11 @@ toolchain: "12.2.1.20221205"
 
 gbl:
   fw_type: zigbee_ncp
-  fw_variant: "20250911_final"
   ezsp_version: dynamic
-  #compression: lzma
   baudrate: 460800
 
 sdk_extension:
-  - id: nabucasa
+  - id: nabucasa_hardware
     version: 1.0.0
 
 add_components:
@@ -25,11 +23,11 @@ add_components:
 - id: simple_button
   instance: [pin_hole_button]
 - id: ws2812_driver
-  from: nabucasa
+  from: nabucasa_hardware
 - id: qma6100p_driver
-  from: nabucasa
+  from: nabucasa_hardware
 - id: led_effects
-  from: nabucasa
+  from: nabucasa_hardware
 
 c_defines:
   XNCP_MFG_MANUF_NAME: '"Nabu Casa"'
