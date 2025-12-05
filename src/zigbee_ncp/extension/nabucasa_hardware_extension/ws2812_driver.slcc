@@ -1,0 +1,28 @@
+id: ws2812_driver
+label: WS2812 LED Driver
+package: custom
+description: WS2812 addressable RGB LED driver using EUSART and LDMA
+category: Platform|Driver|LED
+quality: production
+source:
+  - path: src/ws2812.c
+include:
+  - path: inc
+    file_list:
+    - path: ws2812.h
+    - path: ws2812_peripheral.h
+config_file:
+  - path: config/ws2812_config.h
+    file_id: ws2812_config
+provides:
+  - name: ws2812_driver
+requires:
+  - name: emlib_eusart
+  - name: emlib_ldma
+  - name: emlib_gpio
+  - name: emlib_cmu
+template_contribution:
+  - name: zigbee_af_callback
+    value:
+      callback_type: event_init
+      function_name: ws2812_system_init

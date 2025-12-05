@@ -6,8 +6,13 @@
  */
 
 #include "led_effects.h"
+#include "led_effects_config.h"
 #include "qma6100p.h"
+#include "ws2812.h"
+#include "sl_i2cspm_instances.h"
 #include "sl_status.h"
+#include "sl_token_api.h"
+#include "stack/include/ember-types.h"
 #include <string.h>
 #include <math.h>
 
@@ -17,17 +22,14 @@ static bool network_formed_state = false;
 static sl_sleeptimer_timer_handle_t led_update_timer;
 static uint32_t tick_counter = 0;
 
-// Animation parameters
-static const uint32_t LED_UPDATE_INTERVAL_MS = 4;    // 4ms timer for all updates
-static const float TILT_THRESHOLD_DEGREES = 16.0f;   // Tilt threshold
-static const float TILT_HYSTERESIS_DEGREES = 4.0f;   // Hysteresis to prevent flicker
+// Constants
 static const float M_PI = 3.14159265358979323846f;
 
 // Calculate tilt angle from accelerometer data
 static float calculate_tilt_angle(void)
 {
   float xyz[3];
-  qma6100p_read_acc_xyz(xyz);
+  qma6100p_read_acc_xyz(sl_i2cspm_inst, xyz);
 
   // Calculate tilt angle using accelerometer data
   // For a device at rest, gravity provides 1g acceleration
@@ -74,9 +76,9 @@ static void led_update_callback(sl_sleeptimer_timer_handle_t *handle, void *data
     float tilt_angle = calculate_tilt_angle();
     bool is_tilted;
     if (was_tilted) {
-        is_tilted = (tilt_angle > (TILT_THRESHOLD_DEGREES - TILT_HYSTERESIS_DEGREES));
+        is_tilted = (tilt_angle > (LED_EFFECTS_TILT_THRESHOLD_DEG - LED_EFFECTS_TILT_HYSTERESIS_DEG));
     } else {
-        is_tilted = (tilt_angle > TILT_THRESHOLD_DEGREES);
+        is_tilted = (tilt_angle > LED_EFFECTS_TILT_THRESHOLD_DEG);
     }
 
     if (is_tilted && current_state != LED_STATE_TILTED) {
@@ -152,7 +154,7 @@ void led_effects_set_network_state(bool network_formed)
     // If the network is not formed, start the timer if it's not running
     if (sl_sleeptimer_is_timer_running(&led_update_timer, &is_running) != SL_STATUS_OK || !is_running) {
         sl_sleeptimer_start_periodic_timer_ms(&led_update_timer,
-                                              LED_UPDATE_INTERVAL_MS,
+                                              LED_EFFECTS_UPDATE_INTERVAL_MS,
                                               led_update_callback,
                                               NULL,
                                               0,
@@ -177,4 +179,36 @@ void led_effects_stop_all(void)
 led_state_t led_effects_get_state(void)
 {
   return current_state;
+}
+
+// Check if device has valid stored network configuration
+static bool device_has_stored_network_settings(void)
+{
+  tokTypeStackNodeData nodeData;
+  halCommonGetToken(&nodeData, TOKEN_STACK_NODE_DATA);
+
+  if (nodeData.panId == 0xFFFF) {
+    return false;
+  }
+
+  if (nodeData.radioFreqChannel < 11 || nodeData.radioFreqChannel > 26) {
+    return false;
+  }
+
+  return true;
+}
+
+// SDK callback: system init
+void led_effects_system_init(uint8_t init_level)
+{
+  (void)init_level;
+  led_effects_init();
+  led_effects_set_network_state(device_has_stored_network_settings());
+}
+
+// SDK callback: stack status change
+void led_effects_stack_status_callback(EmberStatus status)
+{
+  (void)status;
+  led_effects_set_network_state(device_has_stored_network_settings());
 }

@@ -1,8 +1,8 @@
 /*
  * ws2812.h
  *
- *  Created on: 2024年11月1日
- *      Author: qian
+ * WS2812 addressable RGB LED driver
+ * Author: qian
  */
 
 #ifndef WS2812_H_
@@ -15,20 +15,8 @@
 #include "em_gpio.h"
 #include "em_cmu.h"
 
-#define EUS1MOSI_PORT   gpioPortC
-#define EUS1MOSI_PIN    2
-#define EUS1SCLK_PORT   gpioPortD
-#define EUS1SCLK_PIN    2
-#define WS2812_EN_PORT   gpioPortC
-#define WS2812_EN_PIN    3
-
-// LDMA channels for receive and transmit servicing
-#define TX_LDMA_CHANNEL 1
-
-// NEEDS TO BE USER DEFINED
-#ifndef NUMBER_OF_LEDS
-#define NUMBER_OF_LEDS         4
-#endif
+#include "ws2812_config.h"
+#include "ws2812_peripheral.h"
 
 typedef struct rgb_t{
   uint8_t G, R, B;
@@ -41,9 +29,8 @@ static const rgb_t white = { 0xFF, 0xFF, 0xFF };
 // Reduce the intensity a little to match the ZWA-2
 static const rgb_t zwa2_white = { 75, 75, 75 };
 
-rgb_t* get_color_buffer();
+rgb_t* get_color_buffer(void);
 void set_color_buffer(rgb_t *input_color);
 void initWs2812(void);
-// void color_test();
 
 #endif /* WS2812_H_ */
