@@ -1,12 +1,9 @@
 /*
  * ws2812.c
  *
- *  Created on: 2024年11月1日
- *      Author: qian
+ * WS2812 addressable RGB LED driver using EUSART and LDMA
  */
 
-
-// BSP for board controller pin macros
 #include "ws2812.h"
 #include <string.h>
 
@@ -22,7 +19,7 @@ LDMA_TransferCfg_t ldmaTXConfig;
 #define REQUIRED_USART_FREQUENCY (PROTOCOL_FREQUENCY * 3)
 
 // 3 color channels, 8 bits each
-#define NUMBER_OF_COLOR_BITS     (NUMBER_OF_LEDS * 3 * 8)
+#define NUMBER_OF_COLOR_BITS     (WS2812_NUM_LEDS * 3 * 8)
 
 // 3 USART bits are required to make a full 1.25uS color bit,
 // each USART bit is 416nS
@@ -37,7 +34,7 @@ LDMA_TransferCfg_t ldmaTXConfig;
 
 // Output buffer for USART
 static uint8_t USART_tx_buffer[USART_BUFFER_SIZE_BYTES] = {0};
-static rgb_t rgb_color_buffer[NUMBER_OF_LEDS];
+static rgb_t rgb_color_buffer[WS2812_NUM_LEDS];
 
 // The WS2812 protocol interprets a signal that is 2/3 high 1/3 low as 1
 // and 1/3 high 2/3 low as 0. This can be done by encoding each bit as 3 bits,
@@ -60,9 +57,9 @@ static rgb_t rgb_color_buffer[NUMBER_OF_LEDS];
  *****************************************************************************/
 static void initCMU(void)
 {
-  // Enable clock to GPIO and EUSART1
+  // Enable clock to GPIO and EUSART
   CMU_ClockEnable(cmuClock_GPIO, true);
-  CMU_ClockEnable(cmuClock_EUSART1, true);
+  CMU_ClockEnable(WS2812_EUSART_CLOCK, true);
 }
 
 /**************************************************************************//**
@@ -72,27 +69,24 @@ static void initCMU(void)
 static void initGPIO(void)
 {
   // Configure MOSI (TX) pin as an output
-  GPIO_PinModeSet(EUS1MOSI_PORT, EUS1MOSI_PIN, gpioModePushPull, 1);
+  GPIO_PinModeSet(WS2812_MOSI_PORT, WS2812_MOSI_PIN, gpioModePushPull, 1);
 
   // Configure SCLK pin as an output low (CPOL = 0)
-  GPIO_PinModeSet(EUS1SCLK_PORT, EUS1SCLK_PIN, gpioModePushPull, 1);
+  GPIO_PinModeSet(WS2812_SCLK_PORT, WS2812_SCLK_PIN, gpioModePushPull, 1);
 
   GPIO_PinModeSet(WS2812_EN_PORT, WS2812_EN_PIN, gpioModePushPull, 1);
 }
 
 /**************************************************************************//**
  * @brief
- *    EUSART1 initialization
+ *    EUSART initialization
  *****************************************************************************/
-static void initEUSART1(void)
+static void initEUSART(void)
 {
   // SPI advanced configuration (part of the initializer)
   EUSART_SpiAdvancedInit_TypeDef adv = EUSART_SPI_ADVANCED_INIT_DEFAULT;
 
   adv.msbFirst = true;        // SPI standard MSB first
-//  adv.invertIO = eusartInvertTxEnable;
-//  adv.autoInterFrameTime = 7; // 7 bit times of delay between frames
-//                              // to accommodate non-DMA secondaries
 
   // Default asynchronous initializer (main/master mode and 8-bit data)
   EUSART_SpiInit_TypeDef init = EUSART_SPI_MASTER_INIT_DEFAULT_HF;
@@ -101,21 +95,21 @@ static void initEUSART1(void)
   init.advancedSettings = &adv;   // Advanced settings structure
 
   /*
-   * Route EUSART1 MOSI, MISO, and SCLK to the specified pins.  CS is
-   * not controlled by EUSART1 so there is no write to the corresponding
+   * Route EUSART MOSI, MISO, and SCLK to the specified pins.  CS is
+   * not controlled by EUSART so there is no write to the corresponding
    * EUSARTROUTE register to do this.
    */
-  GPIO->EUSARTROUTE[1].TXROUTE = (EUS1MOSI_PORT << _GPIO_EUSART_TXROUTE_PORT_SHIFT)
-      | (EUS1MOSI_PIN << _GPIO_EUSART_TXROUTE_PIN_SHIFT);
-  GPIO->EUSARTROUTE[1].SCLKROUTE = (EUS1SCLK_PORT << _GPIO_EUSART_SCLKROUTE_PORT_SHIFT)
-      | (EUS1SCLK_PIN << _GPIO_EUSART_SCLKROUTE_PIN_SHIFT);
+  GPIO->EUSARTROUTE[WS2812_EUSART_NUM].TXROUTE = (WS2812_MOSI_PORT << _GPIO_EUSART_TXROUTE_PORT_SHIFT)
+      | (WS2812_MOSI_PIN << _GPIO_EUSART_TXROUTE_PIN_SHIFT);
+  GPIO->EUSARTROUTE[WS2812_EUSART_NUM].SCLKROUTE = (WS2812_SCLK_PORT << _GPIO_EUSART_SCLKROUTE_PORT_SHIFT)
+      | (WS2812_SCLK_PIN << _GPIO_EUSART_SCLKROUTE_PIN_SHIFT);
 
   // Enable EUSART interface pins
-  GPIO->EUSARTROUTE[1].ROUTEEN = GPIO_EUSART_ROUTEEN_TXPEN |    // MOSI
+  GPIO->EUSARTROUTE[WS2812_EUSART_NUM].ROUTEEN = GPIO_EUSART_ROUTEEN_TXPEN |    // MOSI
                                  GPIO_EUSART_ROUTEEN_SCLKPEN;
 
-  // Configure and enable EUSART1
-  EUSART_SpiInit(EUSART1, &init);
+  // Configure and enable EUSART
+  EUSART_SpiInit(WS2812_EUSART, &init);
 }
 
 /**************************************************************************//**
@@ -128,11 +122,11 @@ void initLDMA(void)
   LDMA_Init_t ldmaInit = LDMA_INIT_DEFAULT;
   LDMA_Init(&ldmaInit);
 
-  // Source is USART_tx_buffer, destination is EUSART1_TXDATA, and length if BUFLEN
-  ldmaTXDescriptor = (LDMA_Descriptor_t)LDMA_DESCRIPTOR_SINGLE_M2P_BYTE(USART_tx_buffer, &(EUSART1->TXDATA), USART_BUFFER_SIZE_BYTES);
+  // Source is USART_tx_buffer, destination is EUSART_TXDATA, and length if BUFLEN
+  ldmaTXDescriptor = (LDMA_Descriptor_t)LDMA_DESCRIPTOR_SINGLE_M2P_BYTE(USART_tx_buffer, &(WS2812_EUSART->TXDATA), USART_BUFFER_SIZE_BYTES);
 
   // Transfer a byte on free space in the EUSART FIFO
-  ldmaTXConfig = (LDMA_TransferCfg_t)LDMA_TRANSFER_CFG_PERIPHERAL(ldmaPeripheralSignal_EUSART1_TXFL);
+  ldmaTXConfig = (LDMA_TransferCfg_t)LDMA_TRANSFER_CFG_PERIPHERAL(WS2812_LDMA_SIGNAL);
 }
 
 void initWs2812(void)
@@ -140,11 +134,11 @@ void initWs2812(void)
   // Initialize GPIO and USART0
   initCMU();
   initGPIO();
-  initEUSART1();
+  initEUSART();
   initLDMA();
 }
 
-rgb_t* get_color_buffer()
+rgb_t* get_color_buffer(void)
 {
   return rgb_color_buffer;
 }
@@ -152,7 +146,7 @@ rgb_t* get_color_buffer()
 void set_color_buffer(rgb_t *input_colors)
 {
   // Remember the current color for later querying
-  memcpy(rgb_color_buffer, input_colors, sizeof(rgb_t) * NUMBER_OF_LEDS);
+  memcpy(rgb_color_buffer, input_colors, sizeof(rgb_t) * WS2812_NUM_LEDS);
 
   const uint8_t *input_color_byte = (uint8_t *) input_colors;
 
@@ -189,9 +183,9 @@ void set_color_buffer(rgb_t *input_colors)
     // Load byte into the TX buffer
     USART_tx_buffer[usart_buffer_index + RESET_SIGNAL_BYTES] = bit_2 | bit_1 | bit_0 | THIRD_BYTE_DEFAULT;
     usart_buffer_index++; // Increment USART_tx_buffer pointer
-    
+
     input_color_byte++; // move to the next color byte
   }
 
-  LDMA_StartTransfer(TX_LDMA_CHANNEL, &ldmaTXConfig, &ldmaTXDescriptor);
+  LDMA_StartTransfer(WS2812_LDMA_CHANNEL, &ldmaTXConfig, &ldmaTXDescriptor);
 }
