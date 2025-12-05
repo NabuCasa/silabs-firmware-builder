@@ -13,6 +13,10 @@ gbl:
 sdk_extension:
   - id: nabucasa_hardware
     version: 1.0.0
+  - id: xncp
+    version: 1.0.0
+  - id: xncp_common
+    version: 1.0.0
 
 add_components:
 - id: uartdrv_eusart
@@ -28,11 +32,18 @@ add_components:
   from: nabucasa_hardware
 - id: led_effects
   from: nabucasa_hardware
+- id: xncp_core
+  from: xncp
+- id: xncp_common_commands
+  from: xncp_common
+- id: xncp_zbt2_commands
+  from: nabucasa_hardware
 
 c_defines:
   XNCP_MFG_MANUF_NAME: '"Nabu Casa"'
   XNCP_MFG_BOARD_NAME: '"Home Assistant Connect ZBT-2"'
   XNCP_BUILD_STRING: template:"{now:%Y%m%d%H%M%S}"
+  XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE: 200
 
   # The hardware flow control is only between the S3 and the MG24. The application
   # should not use hardware flow control.

@@ -1,0 +1,39 @@
+/***************************************************************************//**
+ * @file xncp_dispatcher.c
+ * @brief Auto-generated XNCP command dispatcher
+ *******************************************************************************
+ * # License
+ * <b>Copyright 2024 Nabu Casa, Inc.</b>
+ ******************************************************************************/
+
+// <<< sl:start pin_tool >>>
+// This file is auto-generated. Do not edit manually.
+// <<< sl:end pin_tool >>>
+
+#include "xncp_dispatcher.h"
+#include "xncp_types.h"
+
+{% for handler in xncp_command_handler %}
+// Handler from component: {{ handler['function_name'] }}
+extern bool {{ handler['function_name'] }}(xncp_context_t *ctx);
+extern uint32_t {{ handler['function_name'] }}_features(void);
+{% endfor %}
+
+uint32_t xncp_get_supported_features(void)
+{
+    return 0
+{% for handler in xncp_command_handler %}
+        | {{ handler['function_name'] }}_features()
+{% endfor %}
+    ;
+}
+
+bool xncp_dispatch_command(xncp_context_t *ctx)
+{
+{% for handler in xncp_command_handler %}
+    if ({{ handler['function_name'] }}(ctx)) {
+        return true;
+    }
+{% endfor %}
+    return false;
+}
