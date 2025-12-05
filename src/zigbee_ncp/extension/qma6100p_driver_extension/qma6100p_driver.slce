@@ -1,7 +1,0 @@
-id: qma6100p_driver
-version: "1.0.0"
-sdk:
-  id: gecko_sdk
-  version: "4.5.0"
-component_path:
-  - path: "./"

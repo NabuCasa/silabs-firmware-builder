@@ -1,4 +1,4 @@
-id: ws2812_driver
+id: nabucasa
 version: "1.0.0"
 sdk:
   id: gecko_sdk
