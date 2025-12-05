@@ -126,10 +126,10 @@ bool xncp_set_source_route(xncp_context_t *ctx)
     #undef BUILD_UINT16
 }
 
-// Called from nc_zigbee_override_append_source_route in app.c
-void xncp_source_route_override_append(uint16_t destination,
-                                        void *header,
-                                        bool *consumed)
+// Callback registered via template_contribution
+void nc_zigbee_override_append_source_route(uint16_t destination,
+                                             void *header,
+                                             bool *consumed)
 {
     EmberMessageBuffer *msg_header = (EmberMessageBuffer *)header;
     ManualSourceRoute *route = xncp_get_manual_source_route(destination);

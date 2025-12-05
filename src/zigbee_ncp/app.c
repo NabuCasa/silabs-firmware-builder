@@ -17,13 +17,6 @@
 
 #include PLATFORM_HEADER
 #include "ember.h"
-#include "ember-types.h"
-#include "stack/include/message.h"
-
-// Forward declaration for source route override from XNCP common extension
-extern void xncp_source_route_override_append(uint16_t destination,
-                                               void *header,
-                                               bool *consumed);
 
 //----------------------
 // Implemented Callbacks
@@ -46,15 +39,4 @@ bool __wrap_sli_zigbee_am_multicast_member(EmberMulticastId multicastId)
   (void)multicastId;
   // Ignore all binding and multicast table logic, we want all group packets
   return true;
-}
-
-/** @brief
- *
- * Override source route handling - forwards to XNCP common extension
- */
-void nc_zigbee_override_append_source_route(EmberNodeId destination,
-                                            EmberMessageBuffer *header,
-                                            bool *consumed)
-{
-  xncp_source_route_override_append(destination, header, consumed);
 }

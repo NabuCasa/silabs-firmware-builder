@@ -26,3 +26,8 @@ template_contribution:
     value:
       callback_type: event_init
       function_name: xncp_common_init
+  - name: zigbee_stack_callback
+    priority: -9999
+    value:
+      callback_type: override_append_source_route
+      function_name: nc_zigbee_override_append_source_route
