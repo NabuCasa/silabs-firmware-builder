@@ -419,6 +419,7 @@ def main():
         SLC
         + [
             "generate",
+            "--trust-totality",
             "--with", manifest["device"],
             "--project-file", base_project_slcp.resolve(),
             "--export-destination", args.build_dir.resolve(),
@@ -431,8 +432,6 @@ def main():
         "slc generate",
         env={
             **os.environ,
-            # XXX: this is a fun hack to disable `slc trust`
-            "JAVA_TOOL_OPTIONS": "-Dstudio.unittest=true",
         }
     )
     # fmt: on
