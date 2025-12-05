@@ -28,14 +28,8 @@ add_components:
   from: nabucasa
 - id: qma6100p_driver
   from: nabucasa
-
-add_sources:
-  - path: drivers/led_effects.c
-
-add_includes:
-  - path: drivers
-    file_list:
-    - path: led_effects.h
+- id: led_effects
+  from: nabucasa
 
 c_defines:
   XNCP_MFG_MANUF_NAME: '"Nabu Casa"'
@@ -126,6 +120,11 @@ c_defines:
   WS2812_EUSART_NUM: 1
   WS2812_LDMA_CHANNEL: 1
   WS2812_NUM_LEDS: 4
+
+  # LED effects animation
+  LED_EFFECTS_UPDATE_INTERVAL_MS: 4
+  LED_EFFECTS_TILT_THRESHOLD_DEG: 16
+  LED_EFFECTS_TILT_HYSTERESIS_DEG: 4
 
   SL_I2CSPM_INST_PERIPHERAL: I2C0
   SL_I2CSPM_INST_SCL_PORT: gpioPortC

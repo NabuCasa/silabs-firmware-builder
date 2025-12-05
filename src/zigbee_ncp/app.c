@@ -32,7 +32,7 @@
 #ifdef NC_CONNECT_ZBT_2
   #include "qma6100p.h"
   #include "ws2812.h"
-  #include "drivers/led_effects.h"
+  #include "led_effects.h"
   #include "sl_i2cspm_instances.h"
 #endif
 

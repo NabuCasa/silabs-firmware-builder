@@ -1,0 +1,21 @@
+id: led_effects
+label: LED Effects
+package: custom
+description: LED state machine for network status and tilt detection
+category: Platform|Driver|LED
+quality: production
+source:
+  - path: src/led_effects.c
+include:
+  - path: inc
+    file_list:
+    - path: led_effects.h
+config_file:
+  - path: config/led_effects_config.h
+    file_id: led_effects_config
+provides:
+  - name: led_effects
+requires:
+  - name: ws2812_driver
+  - name: qma6100p_driver
+  - name: sleeptimer
