@@ -1,0 +1,49 @@
+id: xncp_common_commands
+label: XNCP Common Commands
+package: custom
+description: Common XNCP commands for all coordinators
+category: Zigbee|NCP
+quality: production
+source:
+  - path: src/xncp_common_commands.c
+include:
+  - path: inc
+    file_list:
+    - path: xncp_common_commands.h
+config_file:
+  - path: config/xncp_config.h
+    file_id: xncp_config
+provides:
+  - name: xncp_common_commands
+requires:
+  - name: xncp_core
+toolchain_settings:
+  - option: gcc_linker_option
+    value: "-Wl,--wrap=sli_zigbee_am_multicast_member"
+template_contribution:
+  - name: xncp_command_table
+    value:
+      name: xncp_common_commands
+  - name: xncp_feature
+    value: XNCP_FEATURE_MEMBER_OF_ALL_GROUPS
+  - name: xncp_feature
+    value: XNCP_FEATURE_MANUAL_SOURCE_ROUTE
+  - name: xncp_feature
+    value: XNCP_FEATURE_MFG_TOKEN_OVERRIDES
+  - name: xncp_feature
+    value: XNCP_FEATURE_BUILD_STRING
+  - name: xncp_feature
+    value: XNCP_FEATURE_FLOW_CONTROL_TYPE
+  - name: xncp_feature
+    value: XNCP_FEATURE_CHIP_INFO
+  - name: xncp_feature
+    value: XNCP_FEATURE_RESTORE_ROUTE_TABLE
+  - name: zigbee_af_callback
+    value:
+      callback_type: event_init
+      function_name: xncp_common_init
+  - name: zigbee_stack_callback
+    priority: -9999
+    value:
+      callback_type: override_append_source_route
+      function_name: nc_zigbee_override_append_source_route

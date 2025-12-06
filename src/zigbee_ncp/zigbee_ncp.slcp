@@ -63,23 +63,10 @@ configuration:
     value: 1
   - name: SL_LEGACY_HAL_DISABLE_WATCHDOG
     value: 0
-  # Custom config for the builder
-  - name: BUILDER_WRAPPED_STACK_FUNCTIONS
-    value: sli_zigbee_am_multicast_member
 
 source:
   - path: main.c
   - path: app.c
-
-config_file:
-  - path: config/xncp_config.h
-    file_id: xncp_config
-
-template_contribution:
-- name: zigbee_stack_callback
-  priority: -9999
-  value: {callback_type: override_append_source_route, function_name: nc_zigbee_override_append_source_route}
-
 
 filter:
   - name: Wireless Technology

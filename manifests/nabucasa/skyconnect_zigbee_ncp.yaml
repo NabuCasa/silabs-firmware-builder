@@ -10,7 +10,24 @@ gbl:
   ezsp_version: dynamic
   baudrate: 115200
 
+sdk_extension:
+  - id: xncp
+    version: 1.0.0
+  - id: xncp_common
+    version: 1.0.0
+
+add_components:
+- id: xncp_core
+  from: xncp
+- id: xncp_common_commands
+  from: xncp_common
+
 c_defines:
+  XNCP_MFG_MANUF_NAME: '"Nabu Casa"'
+  XNCP_MFG_BOARD_NAME: '"Home Assistant Connect ZBT-1"'
+  XNCP_BUILD_STRING: template:"{now:%Y%m%d%H%M%S}"
+  XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE: 200
+
   EMBER_APS_UNICAST_MESSAGE_COUNT: 32
   EMBER_BINDING_TABLE_SIZE: 32
   EMBER_BROADCAST_TABLE_SIZE: 64

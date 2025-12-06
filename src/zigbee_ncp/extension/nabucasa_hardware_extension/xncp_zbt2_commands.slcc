@@ -1,0 +1,25 @@
+id: xncp_zbt2_commands
+label: XNCP ZBT-2 Commands
+package: custom
+description: ZBT-2 specific XNCP commands (LED control, accelerometer)
+category: Zigbee|NCP
+quality: production
+source:
+  - path: src/xncp_zbt2_commands.c
+include:
+  - path: inc
+    file_list:
+    - path: xncp_zbt2_commands.h
+provides:
+  - name: xncp_zbt2_commands
+requires:
+  - name: xncp_core
+  - name: ws2812_driver
+  - name: qma6100p_driver
+  - name: led_effects
+template_contribution:
+  - name: xncp_command_table
+    value:
+      name: xncp_zbt2_commands
+  - name: xncp_feature
+    value: XNCP_FEATURE_LED_CONTROL

@@ -1,0 +1,25 @@
+/***************************************************************************//**
+ * @file xncp_dispatcher.h
+ * @brief Auto-generated XNCP command dispatcher header
+ *******************************************************************************
+ * # License
+ * <b>Copyright 2024 Nabu Casa, Inc.</b>
+ ******************************************************************************/
+
+// <<< sl:start pin_tool >>>
+// This file is auto-generated. Do not edit manually.
+// <<< sl:end pin_tool >>>
+
+#ifndef XNCP_DISPATCHER_H
+#define XNCP_DISPATCHER_H
+
+#include "xncp_types.h"
+
+// Get aggregated feature flags from all handlers
+uint32_t xncp_get_supported_features(void);
+
+// Dispatch command to registered handlers
+// Returns true if a handler processed the command
+bool xncp_dispatch_command(xncp_context_t *ctx);
+
+#endif // XNCP_DISPATCHER_H
