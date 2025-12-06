@@ -22,10 +22,4 @@
 bool xncp_common_handle_command(xncp_context_t *ctx);
 uint32_t xncp_common_handle_command_features(void);
 
-// Source route override (called from nc_zigbee_override_append_source_route)
-void xncp_source_route_init(void);
-void xncp_source_route_override_append(uint16_t destination,
-                                        void *header,
-                                        bool *consumed);
-
 #endif // XNCP_COMMON_COMMANDS_H
