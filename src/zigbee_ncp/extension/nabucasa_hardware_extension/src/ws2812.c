@@ -191,6 +191,15 @@ void set_color_buffer(rgb_t *input_colors)
   LDMA_StartTransfer(WS2812_LDMA_CHANNEL, &ldmaTXConfig, &ldmaTXDescriptor);
 }
 
+void set_all_leds(const rgb_t *input_color)
+{
+  rgb_t colors[WS2812_NUM_LEDS];
+  for (int i = 0; i < WS2812_NUM_LEDS; i++) {
+    colors[i] = *input_color;
+  }
+  set_color_buffer(colors);
+}
+
 void ws2812_system_init(uint8_t init_level)
 {
   (void)init_level;
