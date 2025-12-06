@@ -13,6 +13,9 @@
 #include "ember.h"
 #include <string.h>
 
+#define XNCP_CMD_SET_LED_STATE_REQ     0x0F00
+#define XNCP_CMD_GET_ACCELEROMETER_REQ 0x0F01
+
 static bool handle_set_led_state(xncp_context_t *ctx)
 {
     rgb_t colors[4];

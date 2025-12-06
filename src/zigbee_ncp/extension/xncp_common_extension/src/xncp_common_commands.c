@@ -16,13 +16,20 @@
 
 #define BUILD_UINT16(low, high) (((uint16_t)(low)) | ((uint16_t)(high) << 8))
 
-// Flow control type enum
+#define XNCP_CMD_SET_SOURCE_ROUTE_REQ       0x0001
+#define XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_REQ 0x0002
+#define XNCP_CMD_GET_BUILD_STRING_REQ       0x0003
+#define XNCP_CMD_GET_FLOW_CONTROL_TYPE_REQ  0x0004
+#define XNCP_CMD_GET_CHIP_INFO_REQ          0x0005
+#define XNCP_CMD_SET_ROUTE_TABLE_ENTRY_REQ  0x0006
+#define XNCP_CMD_GET_ROUTE_TABLE_ENTRY_REQ  0x0007
+
+
 typedef enum {
   XNCP_FLOW_CONTROL_TYPE_SOFTWARE = 0x00,
   XNCP_FLOW_CONTROL_TYPE_HARDWARE = 0x01,
 } XncpFlowControlType;
 
-// Route table entry status values
 typedef enum {
   EMBER_ROUTE_ACTIVE = 0,
   EMBER_ROUTE_BEING_DISCOVERED = 1,
@@ -144,7 +151,7 @@ void nc_zigbee_override_append_source_route(uint16_t destination,
     }
 }
 
-static bool handle_set_source_route(xncp_context_t *ctx)
+static bool xncp_handle_set_source_route(xncp_context_t *ctx)
 {
     if ((ctx->payload_length < 2) || (ctx->payload_length % 2 != 0)) {
         *ctx->status = EMBER_BAD_ARGUMENT;
@@ -194,7 +201,7 @@ static bool handle_set_source_route(xncp_context_t *ctx)
 // Route table management (XNCP_FEATURE_RESTORE_ROUTE_TABLE)
 //------------------------------------------------------------------------------
 
-static bool handle_set_route_table_entry(xncp_context_t *ctx)
+static bool xncp_handle_set_route_table_entry(xncp_context_t *ctx)
 {
     if (ctx->payload_length != 7) {
         *ctx->status = EMBER_BAD_ARGUMENT;
@@ -221,7 +228,7 @@ static bool handle_set_route_table_entry(xncp_context_t *ctx)
     return true;
 }
 
-static bool handle_get_route_table_entry(xncp_context_t *ctx)
+static bool xncp_handle_get_route_table_entry(xncp_context_t *ctx)
 {
     if (ctx->payload_length != 1) {
         *ctx->status = EMBER_BAD_ARGUMENT;
@@ -256,7 +263,7 @@ static bool handle_get_route_table_entry(xncp_context_t *ctx)
 // Token and info commands
 //------------------------------------------------------------------------------
 
-static bool handle_get_mfg_token_override(xncp_context_t *ctx)
+static bool xncp_handle_get_mfg_token_override(xncp_context_t *ctx)
 {
     if (ctx->payload_length != 1) {
         *ctx->status = EMBER_BAD_ARGUMENT;
@@ -291,7 +298,7 @@ static bool handle_get_mfg_token_override(xncp_context_t *ctx)
     return true;
 }
 
-static bool handle_get_build_string(xncp_context_t *ctx)
+static bool xncp_handle_get_build_string(xncp_context_t *ctx)
 {
     uint8_t value_length = strlen(XNCP_BUILD_STRING);
     memcpy(ctx->reply + *ctx->reply_length, XNCP_BUILD_STRING, value_length);
@@ -302,7 +309,7 @@ static bool handle_get_build_string(xncp_context_t *ctx)
     return true;
 }
 
-static bool handle_get_flow_control_type(xncp_context_t *ctx)
+static bool xncp_handle_get_flow_control_type(xncp_context_t *ctx)
 {
     XncpFlowControlType flow_control_type;
 
@@ -324,7 +331,7 @@ static bool handle_get_flow_control_type(xncp_context_t *ctx)
     return true;
 }
 
-static bool handle_get_chip_info(xncp_context_t *ctx)
+static bool xncp_handle_get_chip_info(xncp_context_t *ctx)
 {
     // RAM size
     ctx->reply[(*ctx->reply_length)++] = (uint8_t)((RAM_MEM_SIZE >>  0) & 0xFF);
@@ -352,25 +359,25 @@ bool xncp_common_handle_command(xncp_context_t *ctx)
 {
     switch (ctx->command_id) {
         case XNCP_CMD_SET_SOURCE_ROUTE_REQ:
-            return handle_set_source_route(ctx);
+            return xncp_handle_set_source_route(ctx);
 
         case XNCP_CMD_GET_MFG_TOKEN_OVERRIDE_REQ:
-            return handle_get_mfg_token_override(ctx);
+            return xncp_handle_get_mfg_token_override(ctx);
 
         case XNCP_CMD_GET_BUILD_STRING_REQ:
-            return handle_get_build_string(ctx);
+            return xncp_handle_get_build_string(ctx);
 
         case XNCP_CMD_GET_FLOW_CONTROL_TYPE_REQ:
-            return handle_get_flow_control_type(ctx);
+            return xncp_handle_get_flow_control_type(ctx);
 
         case XNCP_CMD_GET_CHIP_INFO_REQ:
-            return handle_get_chip_info(ctx);
+            return xncp_handle_get_chip_info(ctx);
 
         case XNCP_CMD_SET_ROUTE_TABLE_ENTRY_REQ:
-            return handle_set_route_table_entry(ctx);
+            return xncp_handle_set_route_table_entry(ctx);
 
         case XNCP_CMD_GET_ROUTE_TABLE_ENTRY_REQ:
-            return handle_get_route_table_entry(ctx);
+            return xncp_handle_get_route_table_entry(ctx);
 
         default:
             return false;
