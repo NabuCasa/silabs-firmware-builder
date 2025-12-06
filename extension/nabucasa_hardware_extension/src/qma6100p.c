@@ -101,8 +101,7 @@ void qma6100p_read_acc_xyz(sl_i2cspm_t *i2cspm, float accdata[3])
   accdata[2] = (float)(rawdata[2] * QMA6100P_M_G * -1) / 1024;
 }
 
-void qma6100p_system_init(uint8_t init_level)
+void qma6100p_system_init(void)
 {
-  (void)init_level;
   qma6100p_init(sl_i2cspm_inst);
 }

@@ -63,9 +63,8 @@ typedef enum {
 /**
  * @brief Initialize QMA6100P accelerometer
  * @param i2cspm Pointer to I2CSPM instance to use
- * @return 0 on success
  */
-uint8_t qma6100p_init(sl_i2cspm_t *i2cspm);
+void qma6100p_system_init(void);
 
 /**
  * @brief Read raw 3-axis acceleration data

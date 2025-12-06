@@ -22,7 +22,8 @@ requires:
   - name: emlib_gpio
   - name: emlib_cmu
 template_contribution:
-  - name: zigbee_af_callback
+  - name: event_handler
     value:
-      callback_type: event_init
-      function_name: ws2812_system_init
+      event: stack_init
+      include: ws2812.h
+      handler: initWs2812

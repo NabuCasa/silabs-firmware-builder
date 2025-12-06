@@ -199,9 +199,3 @@ void set_all_leds(const rgb_t *input_color)
   }
   set_color_buffer(colors);
 }
-
-void ws2812_system_init(uint8_t init_level)
-{
-  (void)init_level;
-  initWs2812();
-}
