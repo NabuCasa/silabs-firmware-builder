@@ -12,27 +12,29 @@
 
 #include "xncp_dispatcher.h"
 #include "xncp_types.h"
+#include <stddef.h>
 
-{% for handler in xncp_command_handler %}
-// Handler from component: {{ handler['function_name'] }}
-extern bool {{ handler['function_name'] }}(xncp_context_t *ctx);
-extern uint32_t {{ handler['function_name'] }}_features(void);
+{% for table in xncp_command_table %}
+extern const xncp_command_def_t {{ table.name }}[];
 {% endfor %}
 
 uint32_t xncp_get_supported_features(void)
 {
     return 0
-{% for handler in xncp_command_handler %}
-        | {{ handler['function_name'] }}_features()
+{% for feature in xncp_feature %}
+        | {{ feature }}
 {% endfor %}
     ;
 }
 
 bool xncp_dispatch_command(xncp_context_t *ctx)
 {
-{% for handler in xncp_command_handler %}
-    if ({{ handler['function_name'] }}(ctx)) {
-        return true;
+{% for table in xncp_command_table %}
+    for (const xncp_command_def_t *cmd = {{ table.name }}; cmd->handler != NULL; cmd++) {
+        if (cmd->command_id == ctx->command_id) {
+            *ctx->response_id = ctx->command_id | XNCP_CMD_RESPONSE_BIT;
+            return cmd->handler(ctx);
+        }
     }
 {% endfor %}
     return false;

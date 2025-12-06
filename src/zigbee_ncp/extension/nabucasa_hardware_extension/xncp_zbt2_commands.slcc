@@ -18,6 +18,8 @@ requires:
   - name: qma6100p_driver
   - name: led_effects
 template_contribution:
-  - name: xncp_command_handler
+  - name: xncp_command_table
     value:
-      function_name: xncp_zbt2_handle_command
+      name: xncp_zbt2_commands
+  - name: xncp_feature
+    value: XNCP_FEATURE_LED_CONTROL

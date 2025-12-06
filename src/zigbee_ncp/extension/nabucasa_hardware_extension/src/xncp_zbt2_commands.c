@@ -13,8 +13,26 @@
 #include "ember.h"
 #include <string.h>
 
-#define XNCP_CMD_SET_LED_STATE_REQ     0x0F00
-#define XNCP_CMD_GET_ACCELEROMETER_REQ 0x0F01
+//------------------------------------------------------------------------------
+// Forward declarations
+//------------------------------------------------------------------------------
+
+static bool handle_set_led_state(xncp_context_t *ctx);
+static bool handle_get_accelerometer(xncp_context_t *ctx);
+
+//------------------------------------------------------------------------------
+// Command table
+//------------------------------------------------------------------------------
+
+const xncp_command_def_t xncp_zbt2_commands[] = {
+    {0x0F00, handle_set_led_state},
+    {0x0F01, handle_get_accelerometer},
+    {0, NULL}  // sentinel
+};
+
+//------------------------------------------------------------------------------
+// Handlers
+//------------------------------------------------------------------------------
 
 static bool handle_set_led_state(xncp_context_t *ctx)
 {
@@ -43,7 +61,6 @@ static bool handle_set_led_state(xncp_context_t *ctx)
         }
     } else {
         *ctx->status = EMBER_BAD_ARGUMENT;
-        *ctx->response_id = XNCP_CMD_SET_LED_STATE_REQ | XNCP_CMD_RESPONSE_BIT;
         return true;
     }
 
@@ -52,7 +69,6 @@ static bool handle_set_led_state(xncp_context_t *ctx)
     set_color_buffer(colors);
 
     *ctx->status = EMBER_SUCCESS;
-    *ctx->response_id = XNCP_CMD_SET_LED_STATE_REQ | XNCP_CMD_RESPONSE_BIT;
     return true;
 }
 
@@ -74,27 +90,5 @@ static bool handle_get_accelerometer(xncp_context_t *ctx)
     *ctx->reply_length += sizeof(float);
 
     *ctx->status = EMBER_SUCCESS;
-    *ctx->response_id = XNCP_CMD_GET_ACCELEROMETER_REQ | XNCP_CMD_RESPONSE_BIT;
     return true;
-}
-
-// Main command handler - called from generated dispatcher
-bool xncp_zbt2_handle_command(xncp_context_t *ctx)
-{
-    switch (ctx->command_id) {
-        case XNCP_CMD_SET_LED_STATE_REQ:
-            return handle_set_led_state(ctx);
-
-        case XNCP_CMD_GET_ACCELEROMETER_REQ:
-            return handle_get_accelerometer(ctx);
-
-        default:
-            return false;  // Not handled
-    }
-}
-
-// Return feature flags for ZBT-2 commands
-uint32_t xncp_zbt2_handle_command_features(void)
-{
-    return XNCP_FEATURE_LED_CONTROL;
 }

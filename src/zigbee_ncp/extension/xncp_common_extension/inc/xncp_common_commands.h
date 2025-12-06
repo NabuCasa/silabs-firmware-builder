@@ -9,7 +9,6 @@
 
 #include "xncp_types.h"
 
-bool xncp_common_handle_command(xncp_context_t *ctx);
-uint32_t xncp_common_handle_command_features(void);
+extern const xncp_command_def_t xncp_common_commands[];
 
 #endif // XNCP_COMMON_COMMANDS_H

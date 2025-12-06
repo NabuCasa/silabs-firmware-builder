@@ -41,6 +41,12 @@ typedef struct {
 // Handler function type - returns true if command was handled
 typedef bool (*xncp_handler_fn_t)(xncp_context_t *ctx);
 
+// Command definition for dispatch tables (sentinel-terminated with {0, NULL})
+typedef struct {
+    uint16_t command_id;
+    xncp_handler_fn_t handler;
+} xncp_command_def_t;
+
 // Get aggregated feature flags from all handlers (generated)
 uint32_t xncp_get_supported_features(void);
 
