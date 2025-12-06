@@ -65,11 +65,6 @@ c_defines:
     type: c_flag
     value: 250
 
-  # To enable/disable blocks of code
-  NC_CONNECT_ZBT_2:
-    type: c_flag
-    value: 1
-
   SL_DEVICE_INIT_HFXO_FREQ: 39000000
   SL_DEVICE_INIT_HFXO_PRECISION: 10
   SL_DEVICE_INIT_HFXO_CTUNE: 108
