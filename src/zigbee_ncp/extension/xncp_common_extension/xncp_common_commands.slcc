@@ -6,7 +6,6 @@ category: Zigbee|NCP
 quality: production
 source:
   - path: src/xncp_common_commands.c
-  - path: src/xncp_source_route.c
 include:
   - path: inc
     file_list:
