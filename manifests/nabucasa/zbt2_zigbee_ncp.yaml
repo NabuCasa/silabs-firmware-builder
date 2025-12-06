@@ -17,6 +17,8 @@ sdk_extension:
     version: 1.0.0
   - id: xncp_common
     version: 1.0.0
+  - id: xncp_zbt2
+    version: 1.0.0
 
 add_components:
 - id: uartdrv_eusart
@@ -39,7 +41,7 @@ add_components:
 - id: xncp_common_commands
   from: xncp_common
 - id: xncp_zbt2_commands
-  from: nabucasa_hardware
+  from: xncp_zbt2
 
 c_defines:
   XNCP_MFG_MANUF_NAME: '"Nabu Casa"'
