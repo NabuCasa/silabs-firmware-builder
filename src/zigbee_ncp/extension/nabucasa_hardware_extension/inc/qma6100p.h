@@ -12,7 +12,7 @@
 #include "sl_i2cspm.h"
 
 #define QMA6100P_M_G                   9.80665f
-#define QMA6100P_I2C_ADDR              0x12    /* qma6100p device address (8-bit write) */
+#define QMA6100P_I2C_ADDR              0x24
 
 #define QMA6100P_CHIP_ID               0x00
 #define QMA6100P_DEVICE_ID             0x90
