@@ -14,3 +14,6 @@ provides:
   - name: led_effects
 requires:
   - name: led_effects_base
+template_contribution:
+  - name: ot_init
+    value: led_effects_system_init
