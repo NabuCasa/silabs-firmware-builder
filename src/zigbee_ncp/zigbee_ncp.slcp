@@ -63,7 +63,7 @@ configuration:
     value: 1
   - name: SL_LEGACY_HAL_DISABLE_WATCHDOG
     value: 0
-  # Custom config for the builder
+  # Custom config for the builder: wrap stack functions at link time
   - name: BUILDER_WRAPPED_STACK_FUNCTIONS
     value: sli_zigbee_am_multicast_member
 

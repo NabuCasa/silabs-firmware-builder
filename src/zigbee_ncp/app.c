@@ -29,14 +29,3 @@ void emberAfRadioNeedsCalibratingCallback(void)
 {
   sl_mac_calibrate_current_channel();
 }
-
-/** @brief
- *
- * Override to accept all multicast group packets
- */
-bool __wrap_sli_zigbee_am_multicast_member(EmberMulticastId multicastId)
-{
-  (void)multicastId;
-  // Ignore all binding and multicast table logic, we want all group packets
-  return true;
-}

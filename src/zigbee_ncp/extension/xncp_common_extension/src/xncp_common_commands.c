@@ -32,6 +32,14 @@ void xncp_common_init(uint8_t init_level)
     xncp_source_route_init();
 }
 
+// Override to accept all multicast group packets (XNCP_FEATURE_MEMBER_OF_ALL_GROUPS)
+bool __wrap_sli_zigbee_am_multicast_member(EmberMulticastId multicastId)
+{
+    (void)multicastId;
+    // Ignore all binding and multicast table logic, we want all group packets
+    return true;
+}
+
 static bool handle_get_mfg_token_override(xncp_context_t *ctx)
 {
     if (ctx->payload_length != 1) {
