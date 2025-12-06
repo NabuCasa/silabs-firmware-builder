@@ -17,6 +17,9 @@ provides:
   - name: xncp_common_commands
 requires:
   - name: xncp_core
+toolchain_settings:
+  - option: gcc_linker_option
+    value: "-Wl,--wrap=sli_zigbee_am_multicast_member"
 template_contribution:
   - name: xncp_command_handler
     value:
