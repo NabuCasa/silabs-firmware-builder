@@ -1,4 +1,4 @@
-id: led_effects
+id: led_effects_base
 label: LED Effects Base
 package: custom
 description: LED state machine for network status and tilt detection, base implementation
