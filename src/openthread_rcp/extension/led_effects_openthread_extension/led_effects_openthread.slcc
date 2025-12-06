@@ -1,0 +1,16 @@
+id: led_effects_openthread
+label: LED Effects OpenThread
+package: custom
+description: LED state machine for network status and tilt detection, OpenThread implementation
+category: Thread|NCP
+quality: production
+source:
+  - path: src/led_effects_openthread.c
+include:
+  - path: inc
+    file_list:
+    - path: led_effects_openthread.h
+provides:
+  - name: led_effects
+requires:
+  - name: led_effects_base

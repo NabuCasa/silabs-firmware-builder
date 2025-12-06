@@ -10,9 +10,13 @@
 #include "led_effects.h"
 #include "ws2812.h"
 
+
+#if defined(SL_CATALOG_ZIGBEE_NCP_PRESENT)
 #include "hal/hal.h"
 #include "ember.h"
 #include "sl_token_manager.h"
+#endif
+
 #include "sl_sleeptimer.h"
 #include "sl_button.h"
 #include "sl_simple_button_instances.h"
@@ -34,10 +38,12 @@ static void reset_adapter(void)
     set_all_leds(&red);
 
     // Erase NVRAM
+    #if defined(SL_CATALOG_ZIGBEE_NCP_PRESENT)
     sl_token_init();
     sl_zigbee_token_factory_reset(false, false);
 
     halReboot();
+    #endif
 }
 
 // Called when the reset timer expires.

@@ -11,7 +11,6 @@
 #include "ws2812.h"
 #include "sl_i2cspm_instances.h"
 #include "sl_status.h"
-#include "sl_token_api.h"
 #include <string.h>
 #include <math.h>
 
@@ -20,9 +19,6 @@ static led_state_t current_state = LED_STATE_NETWORK_NOT_FORMED;
 static bool network_formed_state = false;
 static sl_sleeptimer_timer_handle_t led_update_timer;
 static uint32_t tick_counter = 0;
-
-// Constants
-static const float M_PI = 3.14159265358979323846f;
 
 // Calculate tilt angle from accelerometer data
 static float calculate_tilt_angle(void)

@@ -13,6 +13,8 @@
 #include "ws2812.h"
 #include "sl_sleeptimer.h"
 
+#define M_PI  3.14159265358979323846f
+
 // LED State Machine
 typedef enum {
   LED_STATE_NETWORK_FORMED,      // Network connected - LEDs off
