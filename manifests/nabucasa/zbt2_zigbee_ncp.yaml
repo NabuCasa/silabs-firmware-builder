@@ -32,6 +32,8 @@ add_components:
   from: nabucasa_hardware
 - id: led_effects
   from: nabucasa_hardware
+- id: zbt2_reset_button
+  from: nabucasa_hardware
 - id: xncp_core
   from: xncp
 - id: xncp_common_commands

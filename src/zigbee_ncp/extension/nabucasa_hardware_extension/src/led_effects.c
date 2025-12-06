@@ -182,7 +182,7 @@ led_state_t led_effects_get_state(void)
 }
 
 // Check if device has valid stored network configuration
-static bool device_has_stored_network_settings(void)
+bool device_has_stored_network_settings(void)
 {
   tokTypeStackNodeData nodeData;
   halCommonGetToken(&nodeData, TOKEN_STACK_NODE_DATA);
