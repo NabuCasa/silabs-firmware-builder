@@ -2,7 +2,7 @@
  * zbt2_reset_button.c
  *
  * ZBT-2 Reset Button Implementation
- * Handles pin-hole button press to factory reset the Zigbee network
+ * Handles pin-hole button press to factory reset network settings
  */
 
 #include "zbt2_reset_button.h"
@@ -10,12 +10,16 @@
 #include "led_effects.h"
 #include "ws2812.h"
 
-#include "hal/hal.h"
-#include "ember.h"
-#include "sl_token_manager.h"
+#include "nvm3_default.h"
+#include "psa/crypto.h"
+#include "em_core.h"
+
 #include "sl_sleeptimer.h"
 #include "sl_button.h"
 #include "sl_simple_button_instances.h"
+
+#define ZB_PSA_KEY_ID_MIN  0x00030000
+#define ZB_PSA_KEY_ID_MAX  0x0003FFFF
 
 static sl_sleeptimer_timer_handle_t reset_timer;
 static sl_sleeptimer_timer_handle_t blink_timer;
@@ -27,17 +31,20 @@ static bool led_on = false;
 // Task to handle the LED blinking pattern
 static void blink_task(sl_sleeptimer_timer_handle_t *handle, void *data);
 
-// Resets the Zigbee network settings and reboots the adapter
+// Resets network settings and reboots the adapter
 static void reset_adapter(void)
 {
     // Set the LED to red to indicate that the reset is in progress.
     set_all_leds(&red);
 
-    // Erase NVRAM
-    sl_token_init();
-    sl_zigbee_token_factory_reset(false, false);
+    nvm3_initDefault();
+    nvm3_eraseAll(nvm3_defaultHandle);
 
-    halReboot();
+    for (psa_key_id_t key_id = ZB_PSA_KEY_ID_MIN; key_id <= ZB_PSA_KEY_ID_MAX; key_id++) {
+        psa_destroy_key(key_id);
+    }
+
+    NVIC_SystemReset();
 }
 
 // Called when the reset timer expires.

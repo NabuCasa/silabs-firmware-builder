@@ -15,7 +15,8 @@ provides:
 requires:
   - name: i2cspm
 template_contribution:
-  - name: zigbee_af_callback
+  - name: event_handler
     value:
-      callback_type: event_init
-      function_name: qma6100p_system_init
+      event: stack_init
+      include: qma6100p.h
+      handler: qma6100p_system_init

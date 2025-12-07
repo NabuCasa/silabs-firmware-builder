@@ -1,25 +1,19 @@
-id: led_effects
-label: LED Effects
+id: led_effects_zigbee
+label: LED Effects Zigbee
 package: custom
-description: LED state machine for network status and tilt detection
-category: Platform|Driver|LED
+description: LED state machine for network status and tilt detection, Zigbee implementation
+category: Zigbee|NCP
 quality: production
 source:
-  - path: src/led_effects.c
+  - path: src/led_effects_zigbee.c
 include:
   - path: inc
     file_list:
-    - path: led_effects.h
-config_file:
-  - path: config/led_effects_config.h
-    file_id: led_effects_config
+    - path: led_effects_zigbee.h
 provides:
   - name: led_effects
 requires:
-  - name: ws2812_driver
-  - name: qma6100p_driver
-  - name: sleeptimer
-  - name: i2cspm
+  - name: led_effects_base
 template_contribution:
   - name: zigbee_af_callback
     value:

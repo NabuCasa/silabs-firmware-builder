@@ -17,6 +17,10 @@ sdk_extension:
     version: 1.0.0
   - id: xncp_common
     version: 1.0.0
+  - id: xncp_zbt2
+    version: 1.0.0
+  - id: led_effects_zigbee
+    version: 1.0.0
 
 add_components:
 - id: uartdrv_eusart
@@ -30,8 +34,8 @@ add_components:
   from: nabucasa_hardware
 - id: qma6100p_driver
   from: nabucasa_hardware
-- id: led_effects
-  from: nabucasa_hardware
+- id: led_effects_zigbee
+  from: led_effects_zigbee
 - id: zbt2_reset_button
   from: nabucasa_hardware
 - id: xncp_core
@@ -39,7 +43,7 @@ add_components:
 - id: xncp_common_commands
   from: xncp_common
 - id: xncp_zbt2_commands
-  from: nabucasa_hardware
+  from: xncp_zbt2
 
 c_defines:
   XNCP_MFG_MANUF_NAME: '"Nabu Casa"'
@@ -96,11 +100,6 @@ c_defines:
   WS2812_EUSART_NUM: 1
   WS2812_LDMA_CHANNEL: 1
   WS2812_NUM_LEDS: 4
-
-  # LED effects animation
-  LED_EFFECTS_UPDATE_INTERVAL_MS: 4
-  LED_EFFECTS_TILT_THRESHOLD_DEG: 16
-  LED_EFFECTS_TILT_HYSTERESIS_DEG: 4
 
   # I2C
   SL_I2CSPM_INST_PERIPHERAL: I2C0

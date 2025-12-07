@@ -11,8 +11,6 @@
 #include "ws2812.h"
 #include "sl_i2cspm_instances.h"
 #include "sl_status.h"
-#include "sl_token_api.h"
-#include "stack/include/ember-types.h"
 #include <string.h>
 #include <math.h>
 
@@ -21,9 +19,6 @@ static led_state_t current_state = LED_STATE_NETWORK_NOT_FORMED;
 static bool network_formed_state = false;
 static sl_sleeptimer_timer_handle_t led_update_timer;
 static uint32_t tick_counter = 0;
-
-// Constants
-static const float M_PI = 3.14159265358979323846f;
 
 // Calculate tilt angle from accelerometer data
 static float calculate_tilt_angle(void)
@@ -168,36 +163,4 @@ void led_effects_stop_all(void)
 led_state_t led_effects_get_state(void)
 {
   return current_state;
-}
-
-// Check if device has valid stored network configuration
-bool device_has_stored_network_settings(void)
-{
-  tokTypeStackNodeData nodeData;
-  halCommonGetToken(&nodeData, TOKEN_STACK_NODE_DATA);
-
-  if (nodeData.panId == 0xFFFF) {
-    return false;
-  }
-
-  if (nodeData.radioFreqChannel < 11 || nodeData.radioFreqChannel > 26) {
-    return false;
-  }
-
-  return true;
-}
-
-// SDK callback: system init
-void led_effects_system_init(uint8_t init_level)
-{
-  (void)init_level;
-  led_effects_init();
-  led_effects_set_network_state(device_has_stored_network_settings());
-}
-
-// SDK callback: stack status change
-void led_effects_stack_status_callback(EmberStatus status)
-{
-  (void)status;
-  led_effects_set_network_state(device_has_stored_network_settings());
 }

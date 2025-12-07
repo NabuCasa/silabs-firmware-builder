@@ -13,6 +13,8 @@
 #include "ws2812.h"
 #include "sl_sleeptimer.h"
 
+#define M_PI  3.14159265358979323846f
+
 // LED State Machine
 typedef enum {
   LED_STATE_NETWORK_FORMED,      // Network connected - LEDs off
@@ -49,6 +51,6 @@ led_state_t led_effects_get_state(void);
  * @brief Check if device has valid stored network configuration
  * @return true if network settings are stored, false otherwise
  */
-bool device_has_stored_network_settings(void);
+extern bool device_has_stored_network_settings(void);
 
 #endif /* LED_EFFECTS_H_ */
