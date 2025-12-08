@@ -7,13 +7,25 @@ category: OpenThread Examples
 quality: production
 
 component:
+  - id: sl_main
   - id: ot_stack_rcp
   - id: ot_crash_handler
-  - id: uartdrv_usart
+  - id: iostream_usart
     instance:
       - vcom
+    condition:
+     - device_series_2
+  - id: iostream_eusart
+    instance:
+      - vcom
+    condition:
+      - device_series_3
   - id: rail_util_pti
   - id: bootloader_interface
+  - id: clock_manager
+  - id: ot_reset_utils
+  # Platform - Enable LTO for gcc by installing the following component
+  - id: toolchain_gcc_lto
 
 include:
   - path: .
@@ -30,11 +42,18 @@ define:
     value: 6
 
 configuration:
+  - name: SL_MAIN_START_TASK_STACK_SIZE_BYTES
+    value: 2752
+    condition: [sl_main]
   - name: SL_BOARD_ENABLE_VCOM
     value: 1
   # By default, OTBR is configured to work with 460800 baud rate on UART
-  - name: SL_UARTDRV_USART_VCOM_BAUDRATE
+  - name: SL_IOSTREAM_USART_VCOM_BAUDRATE
     value: 460800
+    condition: [iostream_usart]
+  - name: SL_IOSTREAM_EUSART_VCOM_BAUDRATE
+    value: 460800
+    condition: [iostream_eusart]
   - name: OPENTHREAD_CONFIG_HEAP_EXTERNAL_ENABLE
     value: 0
   - name: OPENTHREAD_CONFIG_LOG_OUTPUT
@@ -43,18 +62,22 @@ configuration:
   - name: BUFFER_SIZE_UP
     value: 768
     condition: [ot_rtt_log]
-  - name: BUFFER_SIZE_UP
-    value: 128
-    condition: [ot_rtt_log, device_family_efr32mg1]
   - name: BUFFER_SIZE_DOWN
     value: 0
     condition: [ot_rtt_log]
-  - name: SL_UARTDRV_USART_VCOM_FLOW_CONTROL_TYPE
-    value: uartdrvFlowControlHwUart
-    condition: [uartdrv_usart]
-  - name: SL_UARTDRV_EUSART_VCOM_FLOW_CONTROL_TYPE
-    value: uartdrvFlowControlHwUart
-    condition: [uartdrv_eusart]
+  - name: CIRCULAR_QUEUE_LEN_MAX
+    value: 16
+  - name: SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE
+    value: usartHwFlowControlCtsAndRts
+    condition: [iostream_usart]
+  - name: SL_IOSTREAM_EUSART_VCOM_FLOW_CONTROL_TYPE
+    value: SL_IOSTREAM_EUSART_UART_FLOW_CTRL_CTS_RTS
+    condition: [iostream_eusart]
+  - name: SL_OPENTHREAD_STACK_TASK_MEM_SIZE
+    value: 4608
+  - name: SL_STACK_SIZE
+    value: 0x800
+    condition: [kernel]
 
 filter:
   - name: "Wireless Technology"

@@ -2,6 +2,10 @@ FROM debian:trixie
 
 ARG DEBIAN_FRONTEND=noninteractive
 
+# Simplicity SDK includes unicode characters in folder names and fails to unzip
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+
 RUN \
     apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -54,11 +58,11 @@ RUN \
     && tar -C /opt -xf arm-gnu-toolchain-12.2.rel1-x86_64-arm-none-eabi.tar.xz \
     && rm arm-gnu-toolchain-12.2.rel1-x86_64-arm-none-eabi.tar.xz
 
-# Simplicity SDK 2024.6.2
+# Simplicity SDK 2025.6.2
 RUN \
-    curl -o simplicity_sdk_2024.6.2.zip -L https://github.com/SiliconLabs/simplicity_sdk/releases/download/v2024.6.2/gecko-sdk.zip \
-    && unzip -q -d simplicity_sdk_2024.6.2 simplicity_sdk_2024.6.2.zip \
-    && rm simplicity_sdk_2024.6.2.zip
+    curl -o simplicity_sdk_2025.6.2.zip -L https://github.com/SiliconLabs/simplicity_sdk/releases/download/v2025.6.2/simplicity-sdk.zip \
+    && unzip -q -d simplicity_sdk_2025.6.2 simplicity_sdk_2025.6.2.zip \
+    && rm simplicity_sdk_2025.6.2.zip
 
 # Gecko SDK 4.5.0
 RUN \

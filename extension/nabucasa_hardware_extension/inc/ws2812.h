@@ -9,14 +9,8 @@
 #define WS2812_H_
 
 #include <stdint.h>
-#include <stdlib.h>
-#include "em_eusart.h"
-#include "em_ldma.h"
-#include "em_gpio.h"
-#include "em_cmu.h"
 
 #include "ws2812_config.h"
-#include "ws2812_peripheral.h"
 
 typedef struct rgb_t{
   uint8_t G, R, B;
@@ -33,7 +27,7 @@ static const rgb_t white =  { 255, 255, 255 };
 static const rgb_t zwa2_white = { 75, 75, 75 };
 
 rgb_t* get_color_buffer(void);
-void set_color_buffer(rgb_t *input_color);
+void set_color_buffer(const rgb_t *input_color);
 void set_all_leds(const rgb_t *input_color);
 void initWs2812(void);
 

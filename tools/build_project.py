@@ -543,7 +543,8 @@ def main():
     # Fix Gecko SDK bugs
     sl_rail_util_pti_config_h = args.build_dir / "config/sl_rail_util_pti_config.h"
 
-    # PTI seemingly cannot be excluded, even if it is disabled
+    # PTI seemingly cannot be excluded, even if it is disabled.
+    # This causes builds to fail when `-Werror` is enabled.
     if sl_rail_util_pti_config_h.exists():
         sl_rail_util_pti_config_h.write_text(
             sl_rail_util_pti_config_h.read_text().replace(
@@ -552,18 +553,11 @@ def main():
             )
         )
 
-    # Same with EUSART config
-    sl_uartdrv_eusart_ws2812_uart_config = (
-        args.build_dir / "config/sl_uartdrv_eusart_ws2812_uart_config.h"
-    )
-
-    if sl_uartdrv_eusart_ws2812_uart_config.exists():
-        sl_uartdrv_eusart_ws2812_uart_config.write_text(
-            sl_uartdrv_eusart_ws2812_uart_config.read_text().replace(
-                '#warning "UARTDRV EUSART peripheral not configured"\n',
-                '// #warning "UARTDRV EUSART peripheral not configured"\n',
-            )
-        )
+    # Fix LTO parallel compilation issue with paths containing spaces.
+    # `-flto=auto` spawns make sub-processes that fail with spaces in toolchain paths.
+    project_mak = args.build_dir / f"{base_project_name}.project.mak"
+    if project_mak.exists():
+        project_mak.write_text(project_mak.read_text().replace("-flto=auto", "-flto=1"))
 
     # Remove absolute paths from the build for reproducibility
     build_flags["C_FLAGS"] += [
