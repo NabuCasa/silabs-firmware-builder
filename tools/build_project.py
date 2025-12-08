@@ -565,6 +565,12 @@ def main():
             )
         )
 
+    # Fix LTO parallel compilation issue with paths containing spaces
+    # -flto=auto spawns make sub-processes that fail with spaces in toolchain paths
+    project_mak = args.build_dir / f"{base_project_name}.project.mak"
+    if project_mak.exists():
+        project_mak.write_text(project_mak.read_text().replace("-flto=auto", "-flto"))
+
     # Remove absolute paths from the build for reproducibility
     build_flags["C_FLAGS"] += [
         f"-ffile-prefix-map={str(src.absolute())}={dst}"
