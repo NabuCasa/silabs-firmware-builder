@@ -9,14 +9,8 @@
 #define WS2812_H_
 
 #include <stdint.h>
-#include <stdlib.h>
-#include "em_eusart.h"
-#include "em_ldma.h"
-#include "em_gpio.h"
-#include "em_cmu.h"
 
 #include "ws2812_config.h"
-#include "ws2812_peripheral.h"
 
 typedef struct rgb_t{
   uint8_t G, R, B;
