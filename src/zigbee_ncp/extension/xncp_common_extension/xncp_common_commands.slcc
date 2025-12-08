@@ -6,10 +6,12 @@ category: Zigbee|NCP
 quality: production
 source:
   - path: src/xncp_common_commands.c
+  - path: src/tx_power.c
 include:
   - path: inc
     file_list:
     - path: xncp_common_commands.h
+    - path: tx_power.h
 config_file:
   - path: config/xncp_config.h
     file_id: xncp_config

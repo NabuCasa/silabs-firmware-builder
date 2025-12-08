@@ -23,3 +23,5 @@ template_contribution:
       name: xncp_zbt2_commands
   - name: xncp_feature
     value: XNCP_FEATURE_LED_CONTROL
+  - name: xncp_feature
+    value: XNCP_FEATURE_TX_POWER_INFO
