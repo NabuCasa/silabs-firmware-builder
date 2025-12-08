@@ -27,7 +27,7 @@ static const rgb_t white =  { 255, 255, 255 };
 static const rgb_t zwa2_white = { 75, 75, 75 };
 
 rgb_t* get_color_buffer(void);
-void set_color_buffer(rgb_t *input_color);
+void set_color_buffer(const rgb_t *input_color);
 void set_all_leds(const rgb_t *input_color);
 void initWs2812(void);
 
