@@ -7,6 +7,7 @@
 #include "xncp_common_commands.h"
 #include "xncp_types.h"
 #include "xncp_config.h"
+#include "tx_power.h"
 #include "ember.h"
 #include "ezsp-enum.h"
 #include "em_usart.h"
@@ -52,6 +53,7 @@ static bool handle_get_flow_control_type(xncp_context_t *ctx);
 static bool handle_get_chip_info(xncp_context_t *ctx);
 static bool handle_set_route_table_entry(xncp_context_t *ctx);
 static bool handle_get_route_table_entry(xncp_context_t *ctx);
+static bool handle_get_tx_power_info(xncp_context_t *ctx);
 
 //------------------------------------------------------------------------------
 // Command table
@@ -65,6 +67,7 @@ const xncp_command_def_t xncp_common_commands[] = {
     {0x0005, handle_get_chip_info},
     {0x0006, handle_set_route_table_entry},
     {0x0007, handle_get_route_table_entry},
+    {0x0008, handle_get_tx_power_info},
     {0, NULL}  // sentinel
 };
 
@@ -351,5 +354,23 @@ static bool handle_get_chip_info(xncp_context_t *ctx)
     *ctx->reply_length += value_length;
 
     *ctx->status = EMBER_SUCCESS;
+    return true;
+}
+
+
+static bool handle_get_tx_power_info(xncp_context_t *ctx)
+{
+    if (ctx->payload_length != 2) {
+      *ctx->status = EMBER_BAD_ARGUMENT;
+      return true;
+    }
+  
+    CountryTxPower result;
+    get_tx_power_for_country(ctx->payload[0], ctx->payload[1], &result);
+  
+    *ctx->status = EMBER_SUCCESS;
+    ctx->reply[(*ctx->reply_length)++] = (uint8_t)result.recommended_power_dbm;
+    ctx->reply[(*ctx->reply_length)++] = (uint8_t)result.max_power_dbm;
+
     return true;
 }

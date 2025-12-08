@@ -18,6 +18,7 @@
 #define XNCP_FEATURE_FLOW_CONTROL_TYPE     (1UL << 4)
 #define XNCP_FEATURE_CHIP_INFO             (1UL << 5)
 #define XNCP_FEATURE_RESTORE_ROUTE_TABLE   (1UL << 6)
+#define XNCP_FEATURE_TX_POWER_INFO         (1UL << 7)
 #define XNCP_FEATURE_LED_CONTROL           (1UL << 31)
 
 // Base command IDs (extensions define their own in separate headers)
