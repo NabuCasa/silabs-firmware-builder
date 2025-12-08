@@ -45,6 +45,10 @@ add_components:
 - id: xncp_zbt2_commands
   from: xncp_zbt2
 
+# SLC reads `configuration` during validation, before c_defines are patched
+configuration:
+  SL_SPIDRV_EUSART_WS2812_CS_CONTROL: spidrvCsControlApplication
+
 c_defines:
   XNCP_MFG_MANUF_NAME: '"Nabu Casa"'
   XNCP_MFG_BOARD_NAME: '"Home Assistant Connect ZBT-2"'

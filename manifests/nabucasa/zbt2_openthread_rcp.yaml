@@ -33,6 +33,10 @@ add_components:
 - id: zbt2_reset_button
   from: nabucasa_hardware
 
+# SLC reads `configuration` during validation, before c_defines are patched
+configuration:
+  SL_SPIDRV_EUSART_WS2812_CS_CONTROL: spidrvCsControlApplication
+
 c_defines:
   SL_CLOCK_MANAGER_HFXO_FREQ: 39000000
   SL_CLOCK_MANAGER_HFXO_PRECISION: 10
