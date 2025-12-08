@@ -14,7 +14,15 @@ add_components:
 - id: simple_led
   instance: [board_activity]
 
+# SLC validates clock settings before c_defines are patched, use `configuration`
+configuration:
+  SL_CLOCK_MANAGER_DEFAULT_HF_CLOCK_SOURCE: SL_CLOCK_MANAGER_DEFAULT_HF_CLOCK_SOURCE_HFXO
+
 c_defines:
+  # SDK bug: the default HF clock source is HFRCODPLL for the MGM210 in Simplicity SDK,
+  # it should be overridden to the normal HFXO
+  SL_CLOCK_MANAGER_DEFAULT_HF_CLOCK_SOURCE: SL_CLOCK_MANAGER_DEFAULT_HF_CLOCK_SOURCE_HFXO
+
   SL_IOSTREAM_USART_VCOM_PERIPHERAL: USART0
   SL_IOSTREAM_USART_VCOM_PERIPHERAL_NO: 0
   SL_IOSTREAM_USART_VCOM_BAUDRATE: 460800
