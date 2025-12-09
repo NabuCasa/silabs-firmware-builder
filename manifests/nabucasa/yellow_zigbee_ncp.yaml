@@ -15,10 +15,14 @@ sdk_extension:
     version: 1.0.0
   - id: xncp_common
     version: 1.0.0
+  - id: board_activity
+    version: 1.0.0
 
 add_components:
 - id: simple_led
   instance: [board_activity]
+- id: board_activity_led
+  from: board_activity
 - id: xncp_core
   from: xncp
 - id: xncp_common_commands
@@ -66,3 +70,5 @@ c_defines:
   SL_SIMPLE_LED_BOARD_ACTIVITY_POLARITY: SL_SIMPLE_LED_POLARITY_ACTIVE_LOW
   SL_SIMPLE_LED_BOARD_ACTIVITY_PORT:     gpioPortB
   SL_SIMPLE_LED_BOARD_ACTIVITY_PIN:      1
+
+  BOARD_ACTIVITY_LED_INSTANCE: sl_led_board_activity
