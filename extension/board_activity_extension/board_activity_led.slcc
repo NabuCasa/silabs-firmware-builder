@@ -8,6 +8,9 @@ category: Platform|Driver|LED
 quality: production
 source:
   - path: src/board_activity_led.c
+config_file:
+  - path: config/board_activity_led_config.h
+    file_id: board_activity_led_config
 provides:
   - name: board_activity_led
 requires:

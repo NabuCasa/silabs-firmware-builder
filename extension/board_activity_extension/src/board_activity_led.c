@@ -1,13 +1,14 @@
 #include <stdbool.h>
 
+#include "board_activity_led_config.h"
 #include "sl_led.h"
 #include "sl_simple_led_instances.h"
 
 void __wrap_halStackIndicateActivity(bool turnOn)
 {
     if (turnOn) {
-        sl_led_turn_on(&sl_led_board_activity);
+        sl_led_turn_on(&BOARD_ACTIVITY_LED_INSTANCE);
     } else {
-        sl_led_turn_off(&sl_led_board_activity);
+        sl_led_turn_off(&BOARD_ACTIVITY_LED_INSTANCE);
     }
 }
