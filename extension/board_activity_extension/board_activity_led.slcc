@@ -14,7 +14,7 @@ config_file:
 provides:
   - name: board_activity_led
 requires:
-  - name: simple_led
+  - name: led
 toolchain_settings:
   - option: gcc_linker_option
     value: "-Wl,--wrap=halStackIndicateActivity"
