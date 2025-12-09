@@ -37,15 +37,20 @@ const xncp_command_def_t xncp_zbt2_commands[] = {
 
 static bool handle_set_led_state(xncp_context_t *ctx)
 {
-    if (ctx->payload_length != 3) {
+    uint16_t r, g, b;
+
+    if (ctx->payload_length == 3) {
+        r = (uint16_t)ctx->payload[0] << 8;
+        g = (uint16_t)ctx->payload[1] << 8;
+        b = (uint16_t)ctx->payload[2] << 8;
+    } else if (ctx->payload_length == 6) {
+        r = ((uint16_t)ctx->payload[0] << 8) | ctx->payload[1];
+        g = ((uint16_t)ctx->payload[2] << 8) | ctx->payload[3];
+        b = ((uint16_t)ctx->payload[4] << 8) | ctx->payload[5];
+    } else {
         *ctx->status = EMBER_BAD_ARGUMENT;
         return true;
     }
-
-    // Convert 8-bit to 16-bit color values
-    uint16_t r = (uint16_t)ctx->payload[0] << 8;
-    uint16_t g = (uint16_t)ctx->payload[1] << 8;
-    uint16_t b = (uint16_t)ctx->payload[2] << 8;
 
     // Manual LED control via XNCP overrides autonomous pulsing
     led_effects_stop_all();
