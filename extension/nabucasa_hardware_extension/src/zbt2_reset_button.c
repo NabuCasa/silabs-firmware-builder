@@ -9,14 +9,23 @@
 #include "zbt2_reset_button_config.h"
 #include "led_effects.h"
 #include "ws2812.h"
+#include "sl_simple_rgb_pwm_led.h"
 
 #include "nvm3_default.h"
+
 #include "psa/crypto.h"
 #include "em_core.h"
-
 #include "sl_sleeptimer.h"
+
 #include "sl_button.h"
 #include "sl_simple_button_instances.h"
+
+#define COLOR_RED_R    (255 * 257)
+#define COLOR_RED_G    (0 * 257)
+#define COLOR_RED_B    (0 * 257)
+#define COLOR_AMBER_R  (255 * 257)
+#define COLOR_AMBER_G  (40 * 257)
+#define COLOR_AMBER_B  (0 * 257)
 
 #define ZB_PSA_KEY_ID_MIN  0x00030000
 #define ZB_PSA_KEY_ID_MAX  0x0003FFFF
@@ -35,7 +44,8 @@ static void blink_task(sl_sleeptimer_timer_handle_t *handle, void *data);
 static void reset_adapter(void)
 {
     // Set the LED to red to indicate that the reset is in progress.
-    set_all_leds(&red);
+    sl_led_set_rgb_color(&sl_led_ws2812, COLOR_RED_R, COLOR_RED_G, COLOR_RED_B);
+    sl_led_turn_on(&sl_led_ws2812.led_common);
 
     nvm3_initDefault();
     nvm3_eraseAll(nvm3_defaultHandle);
@@ -65,7 +75,7 @@ static void blink_task(sl_sleeptimer_timer_handle_t *handle, void *data)
 
     // If the LED is on, turn it off
     if (led_on) {
-        set_all_leds(&off);
+        sl_led_turn_off(&sl_led_ws2812.led_common);
         led_on = false;
 
         // If we have blinked enough times, then start the next reset cycle
@@ -81,7 +91,8 @@ static void blink_task(sl_sleeptimer_timer_handle_t *handle, void *data)
         }
     } else {
         // If the LED is off, turn it on
-        set_all_leds(&amber);
+        sl_led_set_rgb_color(&sl_led_ws2812, COLOR_AMBER_R, COLOR_AMBER_G, COLOR_AMBER_B);
+        sl_led_turn_on(&sl_led_ws2812.led_common);
         led_on = true;
         blink_count++;
         sl_sleeptimer_start_timer_ms(&blink_timer, ZBT2_RESET_BUTTON_BLINK_ON_MS, blink_task, NULL, 0, 0);
