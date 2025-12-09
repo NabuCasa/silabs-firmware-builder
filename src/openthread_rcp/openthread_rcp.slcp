@@ -34,7 +34,6 @@ include:
     - path: reset_util.h  # Originally included from `util/third_party/openthread/src/lib/platform`
 
 source:
-  - path: main.c
   - path: app.c
 
 define:
