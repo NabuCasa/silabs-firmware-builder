@@ -7,8 +7,8 @@
 void __wrap_halStackIndicateActivity(bool turnOn)
 {
     if (turnOn) {
-        sl_led_turn_on((const sl_led_t *)&BOARD_ACTIVITY_LED_INSTANCE);
+        sl_led_turn_on(&BOARD_ACTIVITY_LED_INSTANCE);
     } else {
-        sl_led_turn_off((const sl_led_t *)&BOARD_ACTIVITY_LED_INSTANCE);
+        sl_led_turn_off(&BOARD_ACTIVITY_LED_INSTANCE);
     }
 }
