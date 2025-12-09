@@ -1,0 +1,17 @@
+id: board_activity_led
+label: Board Activity LED
+package: custom
+description: >
+  Fixes Gecko SDK bug where halStackIndicateActivity does not work with
+  simple_led. Uses linker wrap to override the function.
+category: Platform|Driver|LED
+quality: production
+source:
+  - path: src/board_activity_led.c
+provides:
+  - name: board_activity_led
+requires:
+  - name: simple_led
+toolchain_settings:
+  - option: gcc_linker_option
+    value: "-Wl,--wrap=halStackIndicateActivity"
