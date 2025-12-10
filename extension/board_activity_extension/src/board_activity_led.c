@@ -2,7 +2,7 @@
 
 #include "board_activity_led_config.h"
 #include "sl_led.h"
-#include "sl_simple_led_instances.h"
+#include BOARD_ACTIVITY_LED_INCLUDE
 
 void __wrap_halStackIndicateActivity(bool turnOn)
 {

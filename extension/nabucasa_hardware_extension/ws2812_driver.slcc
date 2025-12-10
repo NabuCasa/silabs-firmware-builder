@@ -18,9 +18,10 @@ provides:
 requires:
   - name: spidrv_instance
   - name: emlib_gpio
+  - name: simple_rgb_pwm_led_core
 template_contribution:
   - name: event_handler
     value:
-      event: stack_init
+      event: driver_init
       include: ws2812.h
-      handler: initWs2812
+      handler: ws2812_led_driver_init
