@@ -10,13 +10,6 @@ component:
   - id: sl_main
   - id: ot_stack_rcp
   - id: ot_crash_handler
-  - id: iostream_usart
-    instance:
-      - vcom
-    condition:
-      - device_has_usart
-    unless:
-      - device_has_eusart
   - id: iostream_eusart
     instance:
       - vcom
