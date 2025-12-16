@@ -10,16 +10,9 @@ component:
   - id: sl_main
   - id: ot_stack_rcp
   - id: ot_crash_handler
-  - id: iostream_usart
-    instance:
-      - vcom
-    condition:
-     - device_series_2
   - id: iostream_eusart
     instance:
       - vcom
-    condition:
-      - device_series_3
   - id: rail_util_pti
   - id: bootloader_interface
   - id: clock_manager
@@ -47,12 +40,8 @@ configuration:
   - name: SL_BOARD_ENABLE_VCOM
     value: 1
   # By default, OTBR is configured to work with 460800 baud rate on UART
-  - name: SL_IOSTREAM_USART_VCOM_BAUDRATE
-    value: 460800
-    condition: [iostream_usart]
   - name: SL_IOSTREAM_EUSART_VCOM_BAUDRATE
     value: 460800
-    condition: [iostream_eusart]
   - name: OPENTHREAD_CONFIG_HEAP_EXTERNAL_ENABLE
     value: 0
   - name: OPENTHREAD_CONFIG_LOG_OUTPUT
@@ -66,12 +55,8 @@ configuration:
     condition: [ot_rtt_log]
   - name: CIRCULAR_QUEUE_LEN_MAX
     value: 16
-  - name: SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE
-    value: usartHwFlowControlCtsAndRts
-    condition: [iostream_usart]
   - name: SL_IOSTREAM_EUSART_VCOM_FLOW_CONTROL_TYPE
     value: SL_IOSTREAM_EUSART_UART_FLOW_CTRL_CTS_RTS
-    condition: [iostream_eusart]
   - name: SL_OPENTHREAD_STACK_TASK_MEM_SIZE
     value: 4608
   - name: SL_STACK_SIZE
