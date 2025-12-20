@@ -10,6 +10,51 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// SDK compatibility layer
+#ifdef STACK_TYPES_HEADER
+// Simplicity SDK (2025.x)
+#include "stack/include/sl_zigbee.h"
+#include "stack/include/sl_zigbee_types_internal.h"
+#include "stack/include/message.h"
+
+typedef sl_status_t xncp_status_t;
+#define XNCP_STATUS_OK           SL_STATUS_OK
+#define XNCP_STATUS_BAD_ARGUMENT SL_STATUS_INVALID_PARAMETER
+#define XNCP_STATUS_NOT_FOUND    SL_STATUS_NOT_FOUND
+
+#define XNCP_MAX_SOURCE_ROUTE_RELAY_COUNT SL_ZIGBEE_MAX_SOURCE_ROUTE_RELAY_COUNT
+
+typedef sl_zigbee_multicast_id_t xncp_multicast_id_t;
+typedef sl_802154_short_addr_t xncp_node_id_t;
+typedef sli_buffer_manager_buffer_t xncp_message_buffer_t;
+
+#define xncp_get_pseudo_random_number sl_zigbee_get_pseudo_random_number
+#define xncp_append_to_linked_buffers sl_legacy_buffer_manager_append_to_linked_buffers
+
+#else
+// Gecko SDK (4.x)
+#include "ember.h"
+
+typedef EmberStatus xncp_status_t;
+#define XNCP_STATUS_OK           EMBER_SUCCESS
+#define XNCP_STATUS_BAD_ARGUMENT EMBER_BAD_ARGUMENT
+#define XNCP_STATUS_NOT_FOUND    EMBER_NOT_FOUND
+
+#define XNCP_MAX_SOURCE_ROUTE_RELAY_COUNT EMBER_MAX_SOURCE_ROUTE_RELAY_COUNT
+
+typedef EmberMulticastId xncp_multicast_id_t;
+typedef EmberNodeId xncp_node_id_t;
+typedef EmberMessageBuffer xncp_message_buffer_t;
+
+#define xncp_get_pseudo_random_number emberGetPseudoRandomNumber
+#define xncp_append_to_linked_buffers emberAppendToLinkedBuffers
+
+// EZSP enum aliases for new SDK names
+#define SL_ZIGBEE_EZSP_MFG_STRING     EZSP_MFG_STRING
+#define SL_ZIGBEE_EZSP_MFG_BOARD_NAME EZSP_MFG_BOARD_NAME
+
+#endif
+
 // Feature flags - components OR these together
 #define XNCP_FEATURE_MEMBER_OF_ALL_GROUPS  (1UL << 0)
 #define XNCP_FEATURE_MANUAL_SOURCE_ROUTE   (1UL << 1)

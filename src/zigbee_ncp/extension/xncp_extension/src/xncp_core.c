@@ -6,21 +6,20 @@
 
 #include "xncp_types.h"
 #include "xncp_dispatcher.h"
-#include "ember.h"
 
 #define BUILD_UINT16(low, high) (((uint16_t)(low)) | ((uint16_t)(high) << 8))
 
-EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(
+static xncp_status_t xncp_incoming_custom_frame_handler(
     uint8_t messageLength,
     uint8_t *messagePayload,
     uint8_t *replyPayloadLength,
     uint8_t *replyPayload)
 {
-    uint8_t rsp_status = EMBER_SUCCESS;
+    uint8_t rsp_status = XNCP_STATUS_OK;
     uint16_t rsp_command_id = XNCP_CMD_UNKNOWN;
 
     if (messageLength < 3) {
-        rsp_status = EMBER_BAD_ARGUMENT;
+        rsp_status = XNCP_STATUS_BAD_ARGUMENT;
         goto respond;
     }
 
@@ -57,12 +56,34 @@ EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(
     };
 
     if (!xncp_dispatch_command(&ctx)) {
-        rsp_status = EMBER_NOT_FOUND;
+        rsp_status = XNCP_STATUS_NOT_FOUND;
     }
 
 respond:
     replyPayload[0] = (uint8_t)((rsp_command_id >> 0) & 0xFF);
     replyPayload[1] = (uint8_t)((rsp_command_id >> 8) & 0xFF);
     replyPayload[2] = rsp_status;
-    return EMBER_SUCCESS;
+    return XNCP_STATUS_OK;
 }
+
+#ifdef STACK_TYPES_HEADER
+sl_status_t sl_zigbee_af_xncp_incoming_custom_frame_cb(
+    uint8_t messageLength,
+    uint8_t *messagePayload,
+    uint8_t *replyPayloadLength,
+    uint8_t *replyPayload)
+{
+    return xncp_incoming_custom_frame_handler(messageLength, messagePayload,
+                                               replyPayloadLength, replyPayload);
+}
+#else
+EmberStatus emberAfPluginXncpIncomingCustomFrameCallback(
+    uint8_t messageLength,
+    uint8_t *messagePayload,
+    uint8_t *replyPayloadLength,
+    uint8_t *replyPayload)
+{
+    return xncp_incoming_custom_frame_handler(messageLength, messagePayload,
+                                               replyPayloadLength, replyPayload);
+}
+#endif
