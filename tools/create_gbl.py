@@ -23,7 +23,7 @@ def _jump_to_elf_symbol(file: BinaryIO, symbol_name: str) -> tuple[ELFFile, int,
     symtab = elf.get_section_by_name(".symtab")
     symbols = symtab.get_symbol_by_name(symbol_name)
 
-    if len(symbols) != 1:
+    if symbols is None or len(symbols) != 1:
         raise ValueError(f"Expected one symbol for {symbol_name!r}, got {symbols}")
 
     symbol = symbols[0]
@@ -216,7 +216,14 @@ def main():
 
         elf = list(build_dir.glob("*.out"))[0]
         with elf.open("rb") as f:
-            ember_version = read_elf_symbol(f, "emberVersion")
+            # Try new SDK symbol name first, fall back to old
+            try:
+                ember_version = read_elf_symbol(f, "sl_zigbee_version")
+                version_symbol = "sl_zigbee_version"
+            except (ValueError, TypeError):
+                f.seek(0)
+                ember_version = read_elf_symbol(f, "emberVersion")
+                version_symbol = "emberVersion"
 
         (
             build,
@@ -247,7 +254,7 @@ def main():
                     version_type,
                     padding,
                 )
-                ember_version = modify_elf_symbol(f, "emberVersion", new_ember_version)
+                modify_elf_symbol(f, version_symbol, new_ember_version)
 
         metadata["ezsp_version"] = f"{major}.{minor}.{patch}.{special}"
 

@@ -44,6 +44,12 @@ define:
   - name: SL_ZIGBEE_CUSTOM_MAC_FILTER_TABLE_SIZE
     value: 15
 
+# Prevent LTO from stripping sl_zigbee_version, which is read from the ELF
+# by create_gbl.py to extract the EZSP version for firmware metadata.
+toolchain_settings:
+  - option: gcc_linker_option
+    value: "-Wl,--undefined=sl_zigbee_version"
+
 configuration:
   - name: SL_CLI_MAX_INPUT_ARGUMENTS
     value: 16
