@@ -110,23 +110,21 @@ static void ws2812_led_turn_on(void *context)
 {
     ws2812_context_t *ctx = (ws2812_context_t *)context;
     ctx->state = SL_LED_CURRENT_STATE_ON;
-    ws2812_led_apply_color(ctx);
 }
 
 static void ws2812_led_turn_off(void *context)
 {
     ws2812_context_t *ctx = (ws2812_context_t *)context;
     ctx->state = SL_LED_CURRENT_STATE_OFF;
-    ws2812_led_apply_color(ctx);
 }
 
 static void ws2812_led_toggle(void *context)
 {
     ws2812_context_t *ctx = (ws2812_context_t *)context;
     if (ctx->state == SL_LED_CURRENT_STATE_ON) {
-        ws2812_led_turn_off(context);
+        ctx->state = SL_LED_CURRENT_STATE_OFF;
     } else {
-        ws2812_led_turn_on(context);
+        ctx->state = SL_LED_CURRENT_STATE_ON;
     }
 }
 
@@ -142,10 +140,6 @@ static void ws2812_led_set_color(void *context, uint16_t red, uint16_t green, ui
     ctx->red = red;
     ctx->green = green;
     ctx->blue = blue;
-
-    if (ctx->state == SL_LED_CURRENT_STATE_ON) {
-        ws2812_led_apply_color(ctx);
-    }
 }
 
 static void ws2812_led_get_color(void *context, uint16_t *red, uint16_t *green, uint16_t *blue)
@@ -154,6 +148,11 @@ static void ws2812_led_get_color(void *context, uint16_t *red, uint16_t *green, 
     *red = ctx->red;
     *green = ctx->green;
     *blue = ctx->blue;
+}
+
+void ws2812_led_driver_refresh(void)
+{
+    ws2812_led_apply_color(&ws2812_context);
 }
 
 const sl_led_rgb_pwm_t sl_led_ws2812 = {

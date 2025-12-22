@@ -16,7 +16,6 @@ config_file:
 provides:
   - name: zbt2_reset_button
 requires:
-  - name: led_effects
-  - name: ws2812_driver
+  - name: led_manager
   - name: simple_button
   - name: sleeptimer

@@ -16,6 +16,13 @@
 
 void ws2812_led_driver_init(void);
 
+/**
+ * @brief Refresh the LED hardware
+ * Performs dithering and blasts the current color state to the LEDs.
+ * Safe to call from ISR.
+ */
+void ws2812_led_driver_refresh(void);
+
 extern const sl_led_rgb_pwm_t sl_led_ws2812;
 
 #endif /* WS2812_H_ */
