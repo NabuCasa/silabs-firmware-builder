@@ -199,6 +199,40 @@ def subprocess_run_verbose(command: list[str], prefix: str, **kwargs) -> None:
         sys.exit(1)
 
 
+def validate_linker_wrap_symbols(map_file: pathlib.Path) -> None:
+    """
+    Check that all --wrap linker flags wrap non-stub symbols.
+
+    When using GCC's --wrap=X, the linker creates __real_X pointing to the original.
+    If these __real functions are stubs, LTO will usually combine them and reuse the
+    same address.
+    """
+    map_content = map_file.read_text()
+
+    # Build address -> [symbols] and symbol -> address mappings
+    addr_to_symbols: dict[str, list[str]] = {}
+    symbol_to_addr: dict[str, str] = {}
+
+    for match in re.finditer(r"^\s+(0x[0-9a-f]+)\s+(\w+)$", map_content):
+        addr, name = match.groups()
+        addr_to_symbols.setdefault(addr, []).append(name)
+        symbol_to_addr[name] = addr
+
+    # Check if original symbols share addresses with unrelated symbols
+    for name in re.findall(r"__wrap_(\w+)", map_content):
+        if name not in symbol_to_addr:
+            continue
+
+        addr = symbol_to_addr[name]
+        symbols_at_addr = addr_to_symbols[addr]
+
+        if len(symbols_at_addr) > 1:
+            raise RuntimeError(
+                f"Linker --wrap={name} appears to wrap an empty stub "
+                f"(shares address {addr} with: {symbols_at_addr}"
+            )
+
+
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -711,6 +745,9 @@ def main():
         }
     )
     # fmt: on
+
+    # Verify that --wrap linker flags don't wrap weak stubs
+    validate_linker_wrap_symbols(map_file=output_artifact.with_suffix(".map"))
 
     # Read the metadata extracted from the source and build trees
     extracted_gbl_metadata = json.loads(
