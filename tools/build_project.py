@@ -475,6 +475,7 @@ def main():
             "--project-file", base_project_slcp.resolve(),
             "--export-destination", args.build_dir.resolve(),
             "--copy-proj-sources",
+            "--copy-sdk-sources",
             "--new-project",
             "--toolchain", "toolchain_gcc",
             "--sdk", sdk,
@@ -484,6 +485,20 @@ def main():
         env=env,
     )
     # fmt: on
+
+    # Apply SDK patches if specified. These should be a last resort, we prefer to use
+    # SDK extensions wherever possible!
+    if manifest.get("sdk_patches"):
+        copied_sdk_dir = next(args.build_dir.glob(f"{sdk_name}_*"))
+
+        for patch_path in manifest["sdk_patches"]:
+            patch_file = base_project_path / "sdk_patches" / patch_path
+            LOGGER.info("Applying SDK patch: %s", patch_file.name)
+            subprocess.run(
+                ["git", "apply", str(patch_file.resolve())],
+                check=True,
+                cwd=copied_sdk_dir,
+            )
 
     # Make sure all extensions are valid (check both SDK and project extensions)
     for sdk_extension in base_project.get("sdk_extension", []):
