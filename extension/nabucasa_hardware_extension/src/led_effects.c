@@ -22,6 +22,7 @@
 static sl_sleeptimer_timer_handle_t tilt_monitor_timer;
 static uint32_t monitor_ticks = 0;
 static bool is_monitoring = false;
+static bool was_tilted = false;
 
 // Calculate tilt angle from accelerometer data
 static float calculate_tilt_angle(void)
@@ -53,7 +54,6 @@ static void tilt_monitor_callback(sl_sleeptimer_timer_handle_t *handle, void *da
 
   // Check tilt every ~100ms (25 * 4ms)
   if (monitor_ticks % 25 == 0) {
-    static bool was_tilted = false;
     float tilt_angle = calculate_tilt_angle();
     bool is_tilted;
     
@@ -104,13 +104,17 @@ void led_effects_set_network_state(bool network_formed)
         led_pattern_t search_pattern = {
             .mode = LED_MODE_PULSE,
             .color = LED_COLOR_WHITE_DIM,
-            .period_ms = 2760, // Original cycle ~2.76s
-            .duration_ms = 0
+            .period_ms = 2760,
+            .duration_ms = 0,
+            .brightness_min = 6554,  // ~10%
+            .brightness_max = 65535,
         };
         led_manager_set_pattern(LED_PRIORITY_BACKGROUND, &search_pattern);
 
         // Start tilt monitoring if not already running
         if (!is_monitoring) {
+            monitor_ticks = 0;
+            was_tilted = false;
             sl_sleeptimer_start_periodic_timer_ms(&tilt_monitor_timer,
                                         LED_EFFECTS_UPDATE_INTERVAL_MS,
                                         tilt_monitor_callback,

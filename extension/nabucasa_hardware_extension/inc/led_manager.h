@@ -25,8 +25,10 @@ typedef enum {
 typedef struct {
     led_mode_t mode;
     rgb_t color;
-    uint16_t period_ms;   // Cycle time for blink/pulse
-    uint32_t duration_ms; // Auto-clear after this time (0 = infinite)
+    uint16_t period_ms;      // Cycle time for blink/pulse
+    uint32_t duration_ms;    // Auto-clear after this time (0 = infinite)
+    uint16_t brightness_min; // Min brightness for pulse (0-65535)
+    uint16_t brightness_max; // Max brightness for pulse (0-65535)
 } led_pattern_t;
 
 /**

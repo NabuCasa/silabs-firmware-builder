@@ -72,19 +72,20 @@ static void update_led_hardware(void) {
         }
 
         case LED_MODE_PULSE: {
-            uint32_t period = (p->period_ms > 2) ? p->period_ms : 1000;
+            uint32_t period = (p->period_ms >= 2) ? p->period_ms : 1000;
             uint32_t half_period = period / 2;
             uint32_t phase = ms_elapsed % period;
-            
-            uint32_t brightness; // 0 to 65535
+
+            uint32_t brightness;
             if (phase < half_period) {
                 brightness = (phase * 65535) / half_period;
             } else {
                 brightness = 65535 - ((phase - half_period) * 65535) / (period - half_period);
             }
 
-            uint32_t min_b = 6553;
-            brightness = min_b + ((65535 - min_b) * brightness / 65535);
+            uint32_t min_b = p->brightness_min;
+            uint32_t max_b = p->brightness_max;
+            brightness = min_b + ((max_b - min_b) * brightness / 65535);
 
             uint16_t r = ((uint32_t)p->color.r * brightness) / 65535;
             uint16_t g = ((uint32_t)p->color.g * brightness) / 65535;
