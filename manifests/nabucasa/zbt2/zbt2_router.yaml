@@ -8,7 +8,6 @@ toolchain: "12.2.1.20221205"
 gbl:
   fw_type: zigbee_router
   baudrate: 115200
-  #compression: lzma
 
 sdk_extension:
   - id: nabucasa_hardware
@@ -46,12 +45,6 @@ add_components:
 - id: zigbee_zll_level_control_server
 - id: zigbee_scenes
 - id: zigbee_zll_scenes_server
-# OTA client support
-#- id: zigbee_ota_client
-#- id: zigbee_ota_client_policy
-#- id: zigbee_ota_bootload
-#- id: zigbee_ota_storage_simple
-#- id: zigbee_ota_storage_simple_eeprom
 
 # SLC reads `configuration` during validation, before c_defines are patched
 configuration:
@@ -127,10 +120,3 @@ c_defines:
 
   # Product ID to prevent cross-flashing across devices
   SL_APPLICATION_PRODUCT_ID: '{0xF4, 0x5E, 0x03, 0x17, 0xD5, 0x84, 0xAD, 0xA4, 0x7D, 0xDA, 0x6C, 0x95, 0x11, 0x2F, 0x24, 0xFA}'
-
-  # OTA client configuration
-  #SL_ZIGBEE_AF_PLUGIN_OTA_CLIENT_POLICY_IMAGE_TYPE_ID: 0x0001
-  #SL_ZIGBEE_AF_PLUGIN_OTA_CLIENT_POLICY_FIRMWARE_VERSION: 0x00000001
-
-  # OTA storage configuration: use the bootloader's first storage slot
-  #SL_ZIGBEE_AF_PLUGIN_OTA_STORAGE_SIMPLE_EEPROM_GECKO_BOOTLOADER_STORAGE_SUPPORT: USE_FIRST_SLOT
