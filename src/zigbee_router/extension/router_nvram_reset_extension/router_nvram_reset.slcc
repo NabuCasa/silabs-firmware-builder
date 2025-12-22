@@ -1,0 +1,24 @@
+id: router_nvram_reset
+label: Router NVRAM Reset
+package: custom
+description: Resets NVRAM if coordinator data is found, allowing a router to start fresh when previously flashed with coordinator/NCP firmware
+category: Zigbee|Router
+quality: production
+source:
+  - path: src/router_nvram_reset.c
+include:
+  - path: inc
+    file_list:
+    - path: router_nvram_reset.h
+provides:
+  - name: router_nvram_reset
+requires:
+  - name: nvm3_default
+  - name: psa_crypto
+  - name: token_manager
+  - name: zigbee_pro_stack
+template_contribution:
+  - name: zigbee_af_callback
+    value:
+      callback_type: event_init
+      function_name: router_nvram_reset_init

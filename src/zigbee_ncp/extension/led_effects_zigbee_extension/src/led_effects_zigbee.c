@@ -7,7 +7,14 @@
 
 #include "led_effects_zigbee.h"
 #include "sl_token_api.h"
+
+#ifdef STACK_TYPES_HEADER
+#include "stack/include/sl_zigbee_types.h"
+#else
 #include "stack/include/ember-types.h"
+#define sl_status_t EmberStatus
+#endif
+
 #include "led_effects.h"
 
 // Check if device has valid stored network configuration
@@ -28,7 +35,7 @@ bool device_has_stored_network_settings(void)
 }
 
 // SDK callback: stack status change
-void led_effects_stack_status_callback(EmberStatus status)
+void led_effects_stack_status_callback(sl_status_t status)
 {
   (void)status;
   led_effects_set_network_state(device_has_stored_network_settings());

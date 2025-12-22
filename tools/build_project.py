@@ -262,6 +262,12 @@ def main():
         help="Path to a GCC toolchain",
     )
     parser.add_argument(
+        "--zap-path",
+        type=pathlib.Path,
+        required=False,
+        help="Path to unzipped ZAP adapter pack",
+    )
+    parser.add_argument(
         "--postbuild",
         default=pathlib.Path(__file__).parent / "create_gbl.py",
         required=False,
@@ -389,6 +395,11 @@ def main():
         manifest.get("sdk_extension", [])
     )
 
+    # Add template contributions
+    base_project.setdefault("template_contribution", []).extend(
+        manifest.get("template_contribution", [])
+    )
+
     # Remove components
     for component in manifest.get("remove_components", []):
         try:
@@ -402,6 +413,17 @@ def main():
     # Add new sources
     base_project.setdefault("source", []).extend(manifest.get("add_sources", []))
     base_project.setdefault("include", []).extend(manifest.get("add_includes", []))
+
+    # Add config files (e.g., ZAP files)
+    manifest_dir = args.manifest.parent
+    for config_file in manifest.get("config_file", []):
+        src_path = manifest_dir / config_file["path"]
+        dst_path = build_template_path / config_file["path"]
+        dst_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(src_path, dst_path)
+        LOGGER.info("Copied config file: %s", config_file["path"])
+
+    base_project.setdefault("config_file", []).extend(manifest.get("config_file", []))
 
     # Extend configuration and C defines
     for input_config, output_config in [
@@ -438,6 +460,11 @@ def main():
     # Next, generate a chip-specific project from the modified base project
     LOGGER.info(f"Generating project for {manifest['device']}")
 
+    env = os.environ.copy()
+
+    if args.zap_path:
+        env["STUDIO_ADAPTER_PACK_PATH"] = str(args.zap_path)
+
     # fmt: off
     subprocess_run_verbose(
         SLC
@@ -454,9 +481,7 @@ def main():
             "--output-type", args.build_system,
         ],
         "slc generate",
-        env={
-            **os.environ,
-        },
+        env=env,
     )
     # fmt: on
 
@@ -597,10 +622,12 @@ def main():
         )
 
     # Fix LTO parallel compilation issue with paths containing spaces.
-    # `-flto=auto` spawns make sub-processes that fail with spaces in toolchain paths.
+    # `-flto=auto` and `-flto` spawn make sub-processes that fail with spaces in paths.
     project_mak = args.build_dir / f"{base_project_name}.project.mak"
     if project_mak.exists():
-        project_mak.write_text(project_mak.read_text().replace("-flto=auto", "-flto=1"))
+        mak_content = project_mak.read_text()
+        mak_content = re.sub(r"-flto(?:=\w+)?", "-flto=1", mak_content)
+        project_mak.write_text(mak_content)
 
     # Remove absolute paths from the build for reproducibility
     build_flags["C_FLAGS"] += [
@@ -664,6 +691,8 @@ def main():
         env={
             "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}",
             "SOURCE_DATE_EPOCH": str(int(args.build_timestamp.timestamp())),
+            # Force lto-wrapper to use serial LTRANS (parallel breaks with spaced paths)
+            "MAKE": "",
         }
     )
     # fmt: on

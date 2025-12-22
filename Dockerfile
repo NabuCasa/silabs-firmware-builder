@@ -32,14 +32,14 @@ RUN \
     && unzip -q -d gecko_sdk_4.5.0 gecko_sdk_4.5.0.zip \
     && rm gecko_sdk_4.5.0.zip
 
-# ZCL Advanced Platform (ZAP) v2024.09.27 (architecture-specific)
+# ZCL Advanced Platform (ZAP) v2025.12.02 (architecture-specific)
 RUN \
     if [ "$TARGETARCH" = "arm64" ]; then \
         ZAP_ARCH="arm64"; \
     else \
         ZAP_ARCH="x64"; \
     fi \
-    && curl -o zap.zip -L "https://github.com/project-chip/zap/releases/download/v2024.09.27/zap-linux-${ZAP_ARCH}.zip" \
+    && curl -o zap.zip -L "https://github.com/project-chip/zap/releases/download/v2025.12.02/zap-linux-${ZAP_ARCH}.zip" \
     && unzip -q -d /opt/zap zap.zip \
     && rm zap.zip
 
