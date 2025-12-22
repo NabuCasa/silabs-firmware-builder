@@ -601,6 +601,22 @@
               "reportableChange": 0
             },
             {
+              "name": "start up on off",
+              "code": 16387,
+              "mfgCode": null,
+              "side": "server",
+              "type": "enum8",
+              "included": 1,
+              "storageOption": "NVM",
+              "singleton": 0,
+              "bounded": 0,
+              "defaultValue": "0xFF",
+              "reportable": 0,
+              "minInterval": 1,
+              "maxInterval": 65534,
+              "reportableChange": 0
+            },
+            {
               "name": "cluster revision",
               "code": 65533,
               "mfgCode": null,
