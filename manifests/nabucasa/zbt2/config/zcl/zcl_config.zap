@@ -929,6 +929,22 @@
               "reportableChange": 0
             },
             {
+              "name": "color capabilities",
+              "code": 16394,
+              "mfgCode": null,
+              "side": "server",
+              "type": "bitmap16",
+              "included": 1,
+              "storageOption": "RAM",
+              "singleton": 0,
+              "bounded": 0,
+              "defaultValue": "0x0018",
+              "reportable": 0,
+              "minInterval": 1,
+              "maxInterval": 65534,
+              "reportableChange": 0
+            },
+            {
               "name": "color temp physical min",
               "code": 16395,
               "mfgCode": null,
