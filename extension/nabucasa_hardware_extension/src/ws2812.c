@@ -61,6 +61,23 @@ static void precompute_ws2812_patterns(void)
         ws2812_lookup[i] = spi_pattern;
     }
 }
+
+// Temporal dithering: rapidly flicker between two 8-bit values, keeping track of the
+// running error in `accum`. Returns the dithered 8-bit value.
+static uint8_t dither_channel(uint16_t value, uint8_t *accum)
+{
+    uint8_t base = value >> 8;
+    uint8_t frac = value & 0xFF;
+
+    uint8_t prev = *accum;
+    *accum += frac;
+
+    // On overflow, output base + 1
+    if (*accum < prev) {
+        return base < 255 ? base + 1 : 255;
+    }
+
+    return base;
 }
 
 // Internal context type
@@ -68,6 +85,11 @@ typedef struct {
     uint16_t red;
     uint16_t green;
     uint16_t blue;
+
+    uint8_t dither_accum_red;
+    uint8_t dither_accum_green;
+    uint8_t dither_accum_blue;
+
     sl_led_state_t state;
 } ws2812_context_t;
 
@@ -75,6 +97,9 @@ static ws2812_context_t ws2812_context = {
     .red = 19275,    // ~75/255 * 65535, dim white default
     .green = 19275,
     .blue = 19275,
+    .dither_accum_red = 0,
+    .dither_accum_green = 0,
+    .dither_accum_blue = 0,
     .state = SL_LED_CURRENT_STATE_OFF
 };
 
@@ -83,9 +108,9 @@ static void ws2812_led_apply_color(ws2812_context_t *ctx)
     uint8_t r, g, b;
 
     if (ctx->state == SL_LED_CURRENT_STATE_ON) {
-        r = ctx->red >> 8;
-        g = ctx->green >> 8;
-        b = ctx->blue >> 8;
+        r = dither_channel(ctx->red, &ctx->dither_accum_red);
+        g = dither_channel(ctx->green, &ctx->dither_accum_green);
+        b = dither_channel(ctx->blue, &ctx->dither_accum_blue);
     } else {
         r = 0;
         g = 0;
