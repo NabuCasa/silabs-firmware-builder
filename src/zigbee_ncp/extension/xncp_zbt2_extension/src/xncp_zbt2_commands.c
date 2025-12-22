@@ -9,6 +9,7 @@
 #include "ws2812.h"
 #include "qma6100p.h"
 #include "led_effects.h"
+#include "led_manager.h"
 #include "sl_i2cspm_instances.h"
 #include "sl_simple_rgb_pwm_led.h"
 #include "ember.h"
@@ -37,25 +38,22 @@ const xncp_command_def_t xncp_zbt2_commands[] = {
 
 static bool handle_set_led_state(xncp_context_t *ctx)
 {
-    uint16_t r, g, b;
+    rgb_t color;
 
     if (ctx->payload_length == 3) {
-        r = (uint16_t)ctx->payload[0] << 8;
-        g = (uint16_t)ctx->payload[1] << 8;
-        b = (uint16_t)ctx->payload[2] << 8;
+        color.r = (uint16_t)ctx->payload[0] << 8;
+        color.g = (uint16_t)ctx->payload[1] << 8;
+        color.b = (uint16_t)ctx->payload[2] << 8;
     } else if (ctx->payload_length == 6) {
-        r = ((uint16_t)ctx->payload[0] << 8) | ctx->payload[1];
-        g = ((uint16_t)ctx->payload[2] << 8) | ctx->payload[3];
-        b = ((uint16_t)ctx->payload[4] << 8) | ctx->payload[5];
+        color.r = ((uint16_t)ctx->payload[0] << 8) | ctx->payload[1];
+        color.g = ((uint16_t)ctx->payload[2] << 8) | ctx->payload[3];
+        color.b = ((uint16_t)ctx->payload[4] << 8) | ctx->payload[5];
     } else {
         *ctx->status = EMBER_BAD_ARGUMENT;
         return true;
     }
 
-    // Manual LED control via XNCP overrides autonomous pulsing
-    led_effects_stop_all();
-    sl_led_set_rgb_color(&sl_led_ws2812, r, g, b);
-    sl_led_turn_on(&sl_led_ws2812.led_common);
+    led_manager_set_color(LED_PRIORITY_MANUAL, color);
 
     *ctx->status = EMBER_SUCCESS;
     return true;

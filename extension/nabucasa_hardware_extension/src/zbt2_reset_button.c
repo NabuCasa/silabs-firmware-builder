@@ -7,25 +7,16 @@
 
 #include "zbt2_reset_button.h"
 #include "zbt2_reset_button_config.h"
-#include "led_effects.h"
-#include "ws2812.h"
-#include "sl_simple_rgb_pwm_led.h"
+#include "led_manager.h"
 
-#include "nvm3_default.h"
-
-#include "psa/crypto.h"
 #include "em_core.h"
 #include "sl_sleeptimer.h"
 
 #include "sl_button.h"
 #include "sl_simple_button_instances.h"
 
-#define COLOR_RED_R    (255 * 257)
-#define COLOR_RED_G    (0 * 257)
-#define COLOR_RED_B    (0 * 257)
-#define COLOR_AMBER_R  (255 * 257)
-#define COLOR_AMBER_G  (40 * 257)
-#define COLOR_AMBER_B  (0 * 257)
+#include "nvm3_default.h"
+#include "psa/crypto.h"
 
 #define ZB_PSA_KEY_ID_MIN  0x00030000
 #define ZB_PSA_KEY_ID_MAX  0x0003FFFF
@@ -43,9 +34,8 @@ static void blink_task(sl_sleeptimer_timer_handle_t *handle, void *data);
 // Resets network settings and reboots the adapter
 static void reset_adapter(void)
 {
-    // Set the LED to red to indicate that the reset is in progress.
-    sl_led_set_rgb_color(&sl_led_ws2812, COLOR_RED_R, COLOR_RED_G, COLOR_RED_B);
-    sl_led_turn_on(&sl_led_ws2812.led_common);
+    // Full NVM3 erase
+    led_manager_set_color(LED_PRIORITY_CRITICAL, LED_COLOR_RESET_RED);
 
     nvm3_initDefault();
     nvm3_eraseAll(nvm3_defaultHandle);
@@ -73,9 +63,9 @@ static void blink_task(sl_sleeptimer_timer_handle_t *handle, void *data)
     (void)handle;
     (void)data;
 
-    // If the LED is on, turn it off
+    // If the LED is on, turn it off (clear the layer to reveal previous state)
     if (led_on) {
-        sl_led_turn_off(&sl_led_ws2812.led_common);
+        led_manager_clear_pattern(LED_PRIORITY_CRITICAL);
         led_on = false;
 
         // If we have blinked enough times, then start the next reset cycle
@@ -90,9 +80,7 @@ static void blink_task(sl_sleeptimer_timer_handle_t *handle, void *data)
             sl_sleeptimer_start_timer_ms(&blink_timer, ZBT2_RESET_BUTTON_BLINK_OFF_MS, blink_task, NULL, 0, 0);
         }
     } else {
-        // If the LED is off, turn it on
-        sl_led_set_rgb_color(&sl_led_ws2812, COLOR_AMBER_R, COLOR_AMBER_G, COLOR_AMBER_B);
-        sl_led_turn_on(&sl_led_ws2812.led_common);
+        led_manager_set_color(LED_PRIORITY_CRITICAL, LED_COLOR_RESET_ORANGE);
         led_on = true;
         blink_count++;
         sl_sleeptimer_start_timer_ms(&blink_timer, ZBT2_RESET_BUTTON_BLINK_ON_MS, blink_task, NULL, 0, 0);
@@ -107,19 +95,18 @@ void zbt2_reset_button_handle_state(bool pressed)
 
     if (pressed) {
         // Reset state and start the cycle, this is hit only when the button is initially pressed
-        led_effects_stop_all();
         reset_cycle = 0;
         blink_count = 0;
         led_on = false;
 
         sl_sleeptimer_start_timer_ms(&reset_timer, ZBT2_RESET_BUTTON_CYCLE_DELAY_MS, reset_timer_callback, NULL, 0, 0);
     } else {
-        // This is the release and will only be hit if we cancel early
-        led_effects_set_network_state(device_has_stored_network_settings());
+        // This is the release and will only be hit if we cancel early.
+        led_manager_clear_pattern(LED_PRIORITY_CRITICAL);
+        led_on = false;
     }
 }
 
-// SDK callback: button state changed
 void sl_button_on_change(const sl_button_t *handle)
 {
     if (handle == &sl_button_pin_hole_button) {
