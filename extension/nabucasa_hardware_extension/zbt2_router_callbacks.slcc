@@ -29,7 +29,3 @@ template_contribution:
     value:
       callback_type: stack_status
       function_name: zbt2_router_stack_status_cb
-  - name: zigbee_af_callback
-    value:
-      callback_type: nwk_steering_complete
-      function_name: zbt2_router_network_steering_complete_cb
