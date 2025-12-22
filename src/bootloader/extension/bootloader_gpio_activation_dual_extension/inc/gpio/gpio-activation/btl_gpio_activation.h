@@ -1,5 +1,5 @@
-#ifndef BTL_GPIO_ACTIVATION_DUAL_H
-#define BTL_GPIO_ACTIVATION_DUAL_H
+#ifndef BTL_GPIO_ACTIVATION_H
+#define BTL_GPIO_ACTIVATION_H
 
 /***************************************************************************//**
  * @addtogroup Components
@@ -28,4 +28,4 @@ bool gpio_enterBootloader(void);
 /** @} (end addtogroup GpioActivation) */
 /** @} (end addtogroup Components) */
 
-#endif // BTL_GPIO_ACTIVATION_DUAL_H
+#endif // BTL_GPIO_ACTIVATION_H
