@@ -11,7 +11,7 @@ source:
 include:
   - path: inc
     file_list:
-    - path: btl_gpio_activation_dual.h
+    - path: gpio/gpio-activation/btl_gpio_activation.h
 config_file:
   - path: inc/btl_gpio_activation_dual_cfg.h
     file_id: btl_gpio_activation_cfg

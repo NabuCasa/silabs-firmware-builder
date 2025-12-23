@@ -15,11 +15,15 @@
 #include "sl_button.h"
 #include "sl_simple_button_instances.h"
 
+#if ZBT2_RESET_BUTTON_ERASE_COUNTERS
 #include "nvm3_default.h"
 #include "psa/crypto.h"
 
 #define ZB_PSA_KEY_ID_MIN  0x00030000
 #define ZB_PSA_KEY_ID_MAX  0x0003FFFF
+#else
+#include "stack-info.h"
+#endif
 
 static sl_sleeptimer_timer_handle_t reset_timer;
 static sl_sleeptimer_timer_handle_t blink_timer;
@@ -34,6 +38,7 @@ static void blink_task(sl_sleeptimer_timer_handle_t *handle, void *data);
 // Resets network settings and reboots the adapter
 static void reset_adapter(void)
 {
+#if ZBT2_RESET_BUTTON_ERASE_COUNTERS
     // Full NVM3 erase
     led_manager_set_color(LED_PRIORITY_CRITICAL, LED_COLOR_RESET_RED);
 
@@ -43,6 +48,12 @@ static void reset_adapter(void)
     for (psa_key_id_t key_id = ZB_PSA_KEY_ID_MIN; key_id <= ZB_PSA_KEY_ID_MAX; key_id++) {
         psa_destroy_key(key_id);
     }
+#else
+    led_manager_set_color(LED_PRIORITY_CRITICAL, LED_COLOR_RESET_ORANGE);
+
+    // Zigbee token reset - preserves frame counters and boot counter
+    sl_zigbee_token_factory_reset(true, true);
+#endif
 
     NVIC_SystemReset();
 }

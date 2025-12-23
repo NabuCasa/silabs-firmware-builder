@@ -1,0 +1,16 @@
+id: router_beacon_filter
+label: Router Beacon Filter
+package: custom
+description: Filters out beacons from problematic networks during network scanning
+category: Zigbee|Router
+quality: production
+source:
+  - path: src/router_beacon_filter.c
+provides:
+  - name: router_beacon_filter
+requires:
+  - name: zigbee_pro_stack
+  - name: zigbee_debug_print
+toolchain_settings:
+  - option: gcc_linker_option
+    value: "-Wl,--wrap=sli_zigbee_stack_get_stored_beacon"
