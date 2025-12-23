@@ -203,6 +203,9 @@ class IntelHex:
         else:
             raise ValueError("No end-of-file record found")
 
+        if self.records[index + 1 :]:
+            raise ValueError("Records found after end-of-file record")
+
         # Validate that the flashed regions do not overlap
         contiguous_extents = []
 
