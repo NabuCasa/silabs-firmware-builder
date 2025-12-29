@@ -5,6 +5,8 @@ import pathlib
 import enum
 import dataclasses
 
+from universal_silabs_flasher.firmware import GBLImage, GBLTagId
+
 
 @dataclasses.dataclass(frozen=True)
 class ManufacturingToken:
@@ -40,13 +42,41 @@ MANUFACTURING_TOKENS = {
 # fmt: on
 
 
-def make_padded_string(text):
+def make_padded_string(text: str) -> bytes:
     assert len(text.encode("utf-8")) <= 16
 
     result = (text.encode("utf-8") + b"\x00").ljust(16, b"\xff")[:16]
     assert len(result) == 16
 
     return result
+
+
+def hexdump(
+    data: bytes, start: int = 0, first: int | None = None, last: int | None = None
+) -> list[str]:
+    lines = []
+
+    def add_lines(sub_data: bytes, sub_start: int) -> None:
+        offset = 0
+        while offset < len(sub_data):
+            chunk = sub_data[offset : offset + 16]
+            hex_values = " ".join(f"{byte:02x}" for byte in chunk)
+            ascii_values = bytes(
+                byte if 32 <= byte <= 126 else b"."[0] for byte in chunk
+            ).decode("ascii")
+            lines.append(
+                f"{sub_start + offset:08X}  {hex_values:<48}  |{ascii_values}|"
+            )
+            offset += 16
+
+    if first is not None and last is not None and len(data) > first + last:
+        add_lines(data[:first], start)
+        lines.append("...")
+        add_lines(data[len(data) - last :], start + len(data) - last)
+    else:
+        add_lines(data, start)
+
+    return lines
 
 
 class RecordType(enum.IntEnum):
@@ -66,8 +96,9 @@ class Record:
 
 
 class IntelHex:
-    def __init__(self):
+    def __init__(self, *, record_size: int = 16):
         self.records = []
+        self.record_size = record_size
 
     @classmethod
     def from_bytes(cls, text):
@@ -87,6 +118,13 @@ class IntelHex:
                     type=RecordType(line_data[3]),
                     data=line_data[4:-1],
                 )
+            )
+
+        record_sizes = {len(record.data) for record in instance.records}
+
+        if max(record_sizes) > 16:
+            raise ValueError(
+                f"Inconsistent record sizes in HEX file: {record_sizes}, expected just 16"
             )
 
         return instance
@@ -109,6 +147,98 @@ class IntelHex:
 
         return "".join(lines).encode("ascii")
 
+    def flash_data(self, address: int, data: bytes) -> None:
+        offset = 0
+        extended_linear_address = float("-inf")
+
+        while True:
+            chunk = data[offset : offset + self.record_size]
+
+            if not chunk:
+                break
+
+            # We always emit an extended linear address record, even if it is not
+            # necessary. Otherwise, we cannot be sure if the DATA records we append
+            # will inherit a previously set extended linear address base.
+            if (address + offset) - extended_linear_address > 0xFFFF:
+                self.records.append(
+                    Record(
+                        address=0,
+                        type=RecordType.EXTENDED_LINEAR_ADDRESS,
+                        data=((address + offset) >> 16).to_bytes(2, "big"),
+                    )
+                )
+                extended_linear_address = (address + offset) & 0xFFFF0000
+
+            self.records.append(
+                Record(
+                    address=(address + offset) - extended_linear_address,
+                    type=RecordType.DATA,
+                    data=chunk,
+                )
+            )
+
+            offset += len(chunk)
+
+    def validate(self) -> list[tuple[int, int, bytes]]:
+        flashed_extents = []
+        base_address = 0x00000000
+
+        for index, record in enumerate(self.records):
+            if len(record.data) > self.record_size:
+                raise ValueError(f"Unexpected record size: {record}")
+
+            if record.type is RecordType.EXTENDED_LINEAR_ADDRESS:
+                base_address = int.from_bytes(record.data, "big") << 16
+            elif record.type is RecordType.DATA:
+                absolute_address = base_address + record.address
+                current_start = absolute_address
+                current_end = absolute_address + len(record.data)
+
+                flashed_extents.append((current_start, current_end, record.data))
+            elif record.type is RecordType.END_OF_FILE:
+                break
+            else:
+                raise ValueError(f"Unsupported record type: {record.type}")
+        else:
+            raise ValueError("No end-of-file record found")
+
+        if self.records[index + 1 :]:
+            raise ValueError("Records found after end-of-file record")
+
+        # Validate that the flashed regions do not overlap
+        contiguous_extents = []
+
+        for start, end, data in sorted(flashed_extents):
+            if not contiguous_extents:
+                contiguous_extents.append((start, end, data))
+                continue
+
+            last_start, last_end, last_data = contiguous_extents[-1]
+
+            if start < last_end:
+                raise ValueError(
+                    f"Flashed regions overlap: 0x{last_start:08X}-0x{last_end:08X} and 0x{start:08X}-0x{end:08X}"
+                )
+
+            if last_end == start:
+                # Extend the last region if it is contiguous
+                contiguous_extents[-1] = (last_start, end, last_data + data)
+            else:
+                # Otherwise, start a new one
+                contiguous_extents.append((start, end, data))
+
+        return contiguous_extents
+
+    def finalize(self) -> None:
+        self.records.append(
+            Record(
+                address=0,
+                type=RecordType.END_OF_FILE,
+                data=b"",
+            )
+        )
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -118,13 +248,13 @@ def main() -> None:
         "--bootloader",
         type=pathlib.Path,
         required=True,
-        help="Path to the bootloader HEX file.",
+        help="Path to the bootloader GBL file.",
     )
     parser.add_argument(
         "--application",
         type=pathlib.Path,
         required=True,
-        help="Path to the application HEX file.",
+        help="Path to the application GBL file.",
     )
     parser.add_argument(
         "--tokens",
@@ -140,19 +270,27 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    bootloader_hex = IntelHex.from_bytes(args.bootloader.read_bytes())
-    application_hex = IntelHex.from_bytes(args.application.read_bytes())
-    tokens_json = json.loads(args.tokens.read_text())
+    output_hex = IntelHex()
 
-    # Create a HEX file for the manufacturing tokens
-    tokens_hex = IntelHex()
-    tokens_hex.records.append(
-        Record(
-            address=0,
-            type=RecordType.EXTENDED_LINEAR_ADDRESS,
-            data=b"\x0f\xe0",  # User Data is mapped to 2kB at USERDATA_BASE (0x0FE00000-0x0FE007FF)
-        )
-    )
+    # Flash the bootloader
+    bootloader_gbl = GBLImage.from_bytes(args.bootloader.read_bytes())
+    bootloader_data = bootloader_gbl.get_first_tag(GBLTagId.BOOTLOADER)
+    bootloader_hdr, bootloader = bootloader_data[:8], bootloader_data[8:]
+    _bootloader_version = int.from_bytes(bootloader_hdr[0:4], "little")
+    bootloader_base_addr = int.from_bytes(bootloader_hdr[4:8], "little")
+
+    output_hex.flash_data(address=bootloader_base_addr, data=bootloader)
+
+    # Flash the application
+    application_gbl = GBLImage.from_bytes(args.application.read_bytes())
+    application_data = application_gbl.get_first_tag(GBLTagId.PROGRAM_DATA2)
+    application_hdr, application = application_data[:4], application_data[4:]
+    application_base_addr = int.from_bytes(application_hdr[0:4], "little")
+
+    output_hex.flash_data(address=application_base_addr, data=application)
+
+    # Flash USERDATA tokens
+    tokens_json = json.loads(args.tokens.read_text())
 
     for token, value in tokens_json["znet"].items():
         token_info = MANUFACTURING_TOKENS[token]
@@ -164,42 +302,28 @@ def main() -> None:
 
         assert len(token_data) == token_info.size
 
-        tokens_hex.records.append(
-            Record(
-                address=token_info.address,
-                type=RecordType.DATA,
-                data=token_data,
-            )
+        output_hex.flash_data(
+            # User Data is mapped to 2kB at USERDATA_BASE (0x0FE00000-0x0FE007FF)
+            address=0x0FE00000 | token_info.address,
+            data=token_data,
         )
-
-    tokens_hex.records.append(
-        Record(
-            address=0,
-            type=RecordType.END_OF_FILE,
-            data=b"",
-        )
-    )
-
-    # Combine all three
-    output_hex = IntelHex()
-    output_hex.records = (
-        bootloader_hex.records + application_hex.records + tokens_hex.records
-    )
-
-    # Strip out any existing end-of-file records and add a new one
-    output_hex.records = [
-        r for r in output_hex.records if r.type != RecordType.END_OF_FILE
-    ]
-    output_hex.records.append(
-        Record(
-            address=0,
-            type=RecordType.END_OF_FILE,
-            data=b"",
-        )
-    )
 
     # Write the output
+    output_hex.finalize()
+    flashed_regions = output_hex.validate()
+
     args.output.write_bytes(output_hex.to_bytes())
+
+    # Print information about the flashed regions
+    print("Flashed regions:")
+    for start, end, data in flashed_regions:
+        print(f"  0x{start:08X}-0x{end:08X}  ({end - start:>7,} bytes)")
+
+        for line in hexdump(data, start=start, first=128, last=128):
+            print(f"    {line}")
+
+        print()
+        print()
 
 
 if __name__ == "__main__":
