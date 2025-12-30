@@ -39,26 +39,26 @@
 #define SPI_BUFFER_SIZE_BYTES  (RESET_SIGNAL_BYTES + (3 * (WS2812_NUM_LEDS * WS2812_BITS)))
 
 SL_ALIGN(4) static uint8_t spi_tx_buffer[SPI_BUFFER_SIZE_BYTES] = {0};
-SL_ALIGN(4) static uint32_t ws2812_lookup[256];
+
+// While an array of `uint32_t`s is possible, creating multiple EUSART instances causes
+// issues with bit ordering during SPI transfer. This may be due to LDMA word/byte
+// configuration differences. For simplicity, we just use bytes here.
+static uint8_t ws2812_lookup[256][4];
 
 
 // Look up table for bit patterns, to avoid computing them at runtime
 static void precompute_ws2812_patterns(void)
 {
     for (int i = 0; i < 256; i++) {
-        uint32_t spi_pattern = 0x00000000;
+        for (int byte = 0; byte < 4; byte++) {
+            int bit_h = 7 - (2 * byte);
+            int bit_l = bit_h - 1;
 
-        for (int bit = 7; bit >= 0; bit--) {
-            spi_pattern <<= WS2812_BITS;
+            uint8_t code_h = (i & (1 << bit_h)) ? WS2812_BIT_1 : WS2812_BIT_0;
+            uint8_t code_l = (i & (1 << bit_l)) ? WS2812_BIT_1 : WS2812_BIT_0;
 
-            if (i & (1 << bit)) {
-                spi_pattern |= WS2812_BIT_1;
-            } else {
-                spi_pattern |= WS2812_BIT_0;
-            }
+            ws2812_lookup[i][byte] = (code_h << 4) | (code_l << 0);
         }
-
-        ws2812_lookup[i] = __builtin_bswap32(spi_pattern);
     }
 }
 
@@ -118,12 +118,17 @@ static void ws2812_led_apply_color(ws2812_context_t *ctx)
     }
 
     // First `RESET_SIGNAL_BYTES` bytes are reserved for reset signal
-    uint32_t *spi_ptr = (uint32_t*)&spi_tx_buffer[RESET_SIGNAL_BYTES];
+    uint8_t *spi_ptr = &spi_tx_buffer[RESET_SIGNAL_BYTES];
 
     for (int i = 0; i < WS2812_NUM_LEDS; i++) {
-        *spi_ptr++ = ws2812_lookup[g];
-        *spi_ptr++ = ws2812_lookup[r];
-        *spi_ptr++ = ws2812_lookup[b];
+        memcpy(spi_ptr, ws2812_lookup[g], 4);
+        spi_ptr += 4;
+
+        memcpy(spi_ptr, ws2812_lookup[r], 4);
+        spi_ptr += 4;
+
+        memcpy(spi_ptr, ws2812_lookup[b], 4);
+        spi_ptr += 4;
     }
 
     SPIDRV_MTransmit(sl_spidrv_eusart_ws2812_handle, spi_tx_buffer, SPI_BUFFER_SIZE_BYTES, NULL);
