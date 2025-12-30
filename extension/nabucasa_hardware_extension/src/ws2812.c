@@ -58,7 +58,7 @@ static void precompute_ws2812_patterns(void)
             }
         }
 
-        ws2812_lookup[i] = spi_pattern;
+        ws2812_lookup[i] = __builtin_bswap32(spi_pattern);
     }
 }
 
