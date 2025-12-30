@@ -7,6 +7,14 @@
 
 // <<< sl:start pin_tool >>>
 
+// <q ZBT2_RESET_BUTTON_ERASE_COUNTERS> Erase frame counters on reset
+// <i> If enabled, performs full NVM3 erase (for OpenThread).
+// <i> If disabled, uses Zigbee token reset preserving frame counters.
+// <d> 1
+#ifndef ZBT2_RESET_BUTTON_ERASE_COUNTERS
+#define ZBT2_RESET_BUTTON_ERASE_COUNTERS    1
+#endif
+
 // <o ZBT2_RESET_BUTTON_CYCLES> Reset cycles required
 // <i> Number of blink cycles the button must be held to trigger reset
 // <d> 4

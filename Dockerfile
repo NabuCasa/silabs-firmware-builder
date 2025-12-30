@@ -70,11 +70,11 @@ RUN \
     && unzip -q -d gecko_sdk_4.5.0 gecko_sdk_4.5.0.zip \
     && rm gecko_sdk_4.5.0.zip
 
-# ZCL Advanced Platform (ZAP) v2024.09.27
+# ZCL Advanced Platform (ZAP) v2025.12.02
 RUN \
-    curl -o zap_2024.09.27.zip -L https://github.com/project-chip/zap/releases/download/v2024.09.27/zap-linux-x64.zip \
-    && unzip -q -d /opt/zap zap_2024.09.27.zip \
-    && rm zap_2024.09.27.zip
+    curl -o zap_2025.12.02.zip -L https://github.com/project-chip/zap/releases/download/v2025.12.02/zap-linux-x64.zip \
+    && unzip -q -d /opt/zap zap_2025.12.02.zip \
+    && rm zap_2025.12.02.zip
 
 ENV STUDIO_ADAPTER_PACK_PATH="/opt/zap"
 

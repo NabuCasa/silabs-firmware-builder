@@ -1,0 +1,44 @@
+id: router_bootloader_cli
+label: Router Bootloader CLI
+package: custom
+description: CLI commands for viewing bootloader info and triggering a reboot into the bootloader
+category: Zigbee|Router
+quality: production
+source:
+  - path: src/router_bootloader_cli.c
+include:
+  - path: inc
+    file_list:
+    - path: router_bootloader_cli.h
+provides:
+  - name: router_bootloader_cli
+requires:
+  - name: bootloader_interface
+  - name: cli
+template_contribution:
+  - name: cli_command
+    value:
+      name: version
+      handler: sli_zigbee_cli_version_command
+      help: Shows the version of the software.
+    unless:
+      # This command exists solely to allow us to exclude the main `zigbee_core_cli` and
+      # still have a usable CLI interface with the three bare minimum commands to probe
+      # firmware info and to reboot a device into its bootloader.
+      - zigbee_core_cli
+  - name: cli_group
+    value:
+      name: bootloader
+      help: Bootloader commands.
+  - name: cli_command
+    value:
+      group: bootloader
+      name: info
+      handler: router_bootloader_cli_info
+      help: Prints bootloader info.
+  - name: cli_command
+    value:
+      group: bootloader
+      name: reboot
+      handler: router_bootloader_cli_reboot
+      help: Reboots into the bootloader.

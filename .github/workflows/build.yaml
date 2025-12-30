@@ -149,6 +149,7 @@ jobs:
           /opt/venv/bin/python3 tools/build_project.py \
             $sdk_args \
             $toolchain_args \
+            --zap-path /opt/zap \
             --manifest "${{ matrix.manifest }}" \
             --build-dir build \
             --build-system makefile \
