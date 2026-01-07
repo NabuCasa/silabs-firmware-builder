@@ -107,7 +107,7 @@ RUN \
     else \
         PYTHON_ARCH="x86_64"; \
     fi \
-    && curl -L -o /tmp/python3.10.tar.gz "https://github.com/astral-sh/python-build-standalone/releases/download/20251217/cpython-3.10.19+20251217-${PYTHON_ARCH}-unknown-linux-gnu-install_only.tar.gz" \
+    && curl -L -o /tmp/python3.10.tar.gz "https://github.com/astral-sh/python-build-standalone/releases/download/20251217/cpython-3.10.19%2B20251217-${PYTHON_ARCH}-unknown-linux-gnu-install_only.tar.gz" \
     && mkdir -p /opt/slc_python \
     && tar -xzf /tmp/python3.10.tar.gz -C /opt/slc_python --strip-components=1 \
     && rm /tmp/python3.10.tar.gz \
