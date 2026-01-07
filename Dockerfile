@@ -77,6 +77,7 @@ RUN \
        libglib2.0-0 \
        make \
        default-jre-headless \
+       default-jdk-headless \
        patch \
        python3 \
        python3-pip \
@@ -88,6 +89,27 @@ RUN \
        qemu-user-static \
     && rm -rf /var/lib/apt/lists/*
 
+# On ARM64, install Python 3.10 and JEP for slc-cli template generation
+# (slc-cli bundles x86_64 Python/JEP which won't work on ARM64)
+RUN \
+    if [ "$TARGETARCH" = "arm64" ]; then \
+        apt-get update \
+        && apt-get install -y --no-install-recommends build-essential clang \
+        && curl -L -o /tmp/python3.10.tar.gz "https://github.com/astral-sh/python-build-standalone/releases/download/20251217/cpython-3.10.19+20251217-aarch64-unknown-linux-gnu-install_only.tar.gz" \
+        && mkdir -p /opt/slc_python \
+        && tar -xzf /tmp/python3.10.tar.gz -C /opt/slc_python --strip-components=1 \
+        && rm /tmp/python3.10.tar.gz \
+        && /opt/slc_python/bin/python3.10 -m pip install --no-cache-dir "setuptools<69" wheel \
+        && JAVA_HOME=/usr/lib/jvm/default-java LIBRARY_PATH=/opt/slc_python/lib /opt/slc_python/bin/python3.10 -m pip install --no-cache-dir --no-build-isolation jep==4.1.1 numpy scipy jinja2 pyyaml \
+        && mkdir -p /opt/slc_python/jep \
+        && ls -la /opt/slc_python/lib/libpython* \
+        && ls -la /opt/slc_python/lib/python3.10/site-packages/jep/ \
+        && ln -sf /opt/slc_python/lib/python3.10/site-packages/jep/jep.cpython-310-aarch64-linux-gnu.so /opt/slc_python/jep/jep.so \
+        && ln -sf /opt/slc_python/lib/libpython3.10.so.1.0 /opt/slc_python/bin/libpython3.10.so.1.0 \
+        && ls -la /opt/slc_python/jep/ /opt/slc_python/bin/libpython* \
+        && apt-get purge -y build-essential && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*; \
+    fi
+
 COPY requirements.txt /tmp/
 
 RUN \
@@ -97,11 +119,12 @@ RUN \
 
 ENV PATH="$PATH:/opt/commander:/opt/slc_cli"
 ENV STUDIO_ADAPTER_PACK_PATH="/opt/zap"
-ENV STUDIO_PYTHON3_PATH="/usr"
+ENV STUDIO_PYTHON3_PATH="/opt/slc_python"
+ENV LD_LIBRARY_PATH="/opt/slc_python/lib"
 ENV SILABS_FIRMWARE_BUILD_CONTAINER=1
 
 # Create a wrapper script to run slc via Eclipse Equinox launcher (bypass x86_64 native launcher)
-RUN printf '#!/bin/sh\nexec java -jar /opt/slc_cli/bin/slc-cli/plugins/org.eclipse.equinox.launcher_*.jar "$@"\n' > /usr/local/bin/slc \
+RUN printf '#!/bin/sh\nexec java -jar /opt/slc_cli/bin/slc-cli/plugins/org.eclipse.equinox.launcher_*.jar -consoleLog "$@"\n' > /usr/local/bin/slc \
     && chmod +x /usr/local/bin/slc
 
 ARG USERNAME=builder
