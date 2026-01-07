@@ -30,6 +30,7 @@ RUN \
     && curl -L -O --compressed -H 'User-Agent: Firefox/143' -H 'Accept-Language: *' https://www.silabs.com/documents/public/software/SimplicityCommander-Linux.zip \
     && unzip -q SimplicityCommander-Linux.zip \
     && tar -C /opt -xjf SimplicityCommander-Linux/Commander-cli_linux_${COMMANDER_ARCH}_*.tar.bz \
+    && ln -s /opt/commander-cli/commander-cli /opt/commander-cli/commander \
     && rm -r SimplicityCommander-Linux \
     && rm SimplicityCommander-Linux.zip
 
@@ -134,7 +135,7 @@ RUN \
 
 # Signal to the firmware builder script that we are running within Docker
 ENV SILABS_FIRMWARE_BUILD_CONTAINER=1
-ENV PATH="$PATH:/opt/commander:/opt/slc_cli"
+ENV PATH="$PATH:/opt/commander-cli:/opt/slc_cli"
 ENV STUDIO_ADAPTER_PACK_PATH="/opt/zap"
 ENV STUDIO_PYTHON3_PATH="/opt/slc_python"
 
