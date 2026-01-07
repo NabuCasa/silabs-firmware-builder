@@ -23,7 +23,7 @@ from datetime import datetime, timezone
 from ruamel.yaml import YAML
 
 
-SLC = ["slc", "--daemon", "--daemon-timeout", "1"]
+SLC = ["/usr/local/bin/slc"]
 
 LOGGER = logging.getLogger(__name__)
 
@@ -424,7 +424,9 @@ def main():
         "slc generate",
         env={
             **os.environ,
-        }
+            # Speed up JVM startup (especially under emulation)
+            #"JAVA_TOOL_OPTIONS": "-Xint -XX:+UseSerialGC",
+        },
     )
     # fmt: on
 
