@@ -77,6 +77,7 @@ RUN \
     && rm zap_2024.09.27.zip
 
 ENV STUDIO_ADAPTER_PACK_PATH="/opt/zap"
+ENV SILABS_FIRMWARE_BUILD_CONTAINER=1
 
 ARG USERNAME=builder
 ARG USER_UID=1000
@@ -87,4 +88,6 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME
 
 USER $USERNAME
-WORKDIR /build
+WORKDIR /repo
+
+ENTRYPOINT ["/opt/venv/bin/python3", "tools/build_project.py"]

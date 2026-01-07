@@ -49,6 +49,11 @@ def ensure_folder(path: str | pathlib.Path) -> pathlib.Path:
     return path
 
 
+def is_running_in_docker() -> bool:
+    """Check if we're running inside the Docker build container."""
+    return os.environ.get("SILABS_FIRMWARE_BUILD_CONTAINER") == "1"
+
+
 def get_toolchain_default_paths() -> list[pathlib.Path]:
     """Return the path to the toolchain."""
     if sys.platform == "darwin":
@@ -58,6 +63,9 @@ def get_toolchain_default_paths() -> list[pathlib.Path]:
             ).glob("*")
         )
 
+    if is_running_in_docker():
+        return list(pathlib.Path("/opt").glob("*arm-none-eabi*"))
+
     return []
 
 
@@ -65,6 +73,9 @@ def get_sdk_default_paths() -> list[pathlib.Path]:
     """Return the path to the SDK."""
     if sys.platform == "darwin":
         return list(pathlib.Path("~/SimplicityStudio/SDKs").expanduser().glob("*_sdk*"))
+
+    if is_running_in_docker():
+        return list(pathlib.Path("/").glob("*_sdk_*"))
 
     return []
 
