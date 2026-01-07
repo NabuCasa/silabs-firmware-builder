@@ -1,4 +1,4 @@
-FROM debian:trixie
+FROM --platform=linux/amd64 debian:trixie
 
 ARG DEBIAN_FRONTEND=noninteractive
 
