@@ -17,13 +17,16 @@ The easiest way to build firmware is using Docker. The container image includes 
 required SDKs, toolchains, and tools pre-installed.
 
 ```bash
+git clone https://github.com/NabuCasa/silabs-firmware-builder
+cd silabs-firmware-builder
+
 docker run --rm -v $(pwd):/repo ghcr.io/nabucasa/silabs-firmware-builder \
     --manifest manifests/nabucasa/skyconnect_zigbee_ncp.yaml \
     --output gbl \
-    --output-dir output
+    --output-dir artifacts
 ```
 
-Once the build is complete, the firmware will be in the `output` directory.
+Once the build is complete, the firmware will be in the `artifacts` directory.
 
 # Development
 ## Setting up Simplicity Studio (for development)
