@@ -20,39 +20,6 @@ RUN \
        unzip \
        xz-utils
 
-# Install Simplicity Commander CLI
-RUN \
-    if [ "$TARGETARCH" = "arm64" ]; then \
-        COMMANDER_ARCH="aarch64"; \
-    else \
-        COMMANDER_ARCH="x86_64"; \
-    fi \
-    && curl -L -O --compressed -H 'User-Agent: Firefox/143' -H 'Accept-Language: *' https://www.silabs.com/documents/public/software/SimplicityCommander-Linux.zip \
-    && unzip -q SimplicityCommander-Linux.zip \
-    && tar -C /opt -xjf SimplicityCommander-Linux/Commander-cli_linux_${COMMANDER_ARCH}_*.tar.bz \
-    && chmod -R a+rX /opt/commander-cli \
-    && ln -s /opt/commander-cli/commander-cli /opt/commander-cli/commander \
-    && rm -r SimplicityCommander-Linux \
-    && rm SimplicityCommander-Linux.zip
-
-# Install Silicon Labs Configurator (slc)
-RUN \
-    curl -L -O --compressed -H 'User-Agent: Firefox/143' -H 'Accept-Language: *' https://www.silabs.com/documents/public/software/slc_cli_linux.zip \
-    && unzip -q -d /opt slc_cli_linux.zip \
-    && rm slc_cli_linux.zip
-
-# GCC Embedded Toolchain 12.2.rel1
-RUN \
-    if [ "$TARGETARCH" = "arm64" ]; then \
-        TOOLCHAIN_ARCH="aarch64"; \
-    else \
-        TOOLCHAIN_ARCH="x86_64"; \
-    fi \
-    && curl -O "https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-${TOOLCHAIN_ARCH}-arm-none-eabi.tar.xz" \
-    && tar -C /opt -xf arm-gnu-toolchain-12.2.rel1-${TOOLCHAIN_ARCH}-arm-none-eabi.tar.xz \
-    && rm arm-gnu-toolchain-12.2.rel1-${TOOLCHAIN_ARCH}-arm-none-eabi.tar.xz \
-    && ln -s /opt/arm-gnu-toolchain-12.2.rel1-${TOOLCHAIN_ARCH}-arm-none-eabi /opt/arm-gnu-toolchain-12.2.rel1-arm-none-eabi
-
 # Simplicity SDK 2025.6.2
 RUN \
     curl -o simplicity_sdk_2025.6.2.zip -L https://github.com/SiliconLabs/simplicity_sdk/releases/download/v2025.6.2/simplicity-sdk.zip \
@@ -75,6 +42,39 @@ RUN \
     && curl -o zap.zip -L "https://github.com/project-chip/zap/releases/download/v2024.09.27/zap-linux-${ZAP_ARCH}.zip" \
     && unzip -q -d /opt/zap zap.zip \
     && rm zap.zip
+
+# GCC Embedded Toolchain 12.2.rel1
+RUN \
+    if [ "$TARGETARCH" = "arm64" ]; then \
+        TOOLCHAIN_ARCH="aarch64"; \
+    else \
+        TOOLCHAIN_ARCH="x86_64"; \
+    fi \
+    && curl -O "https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-${TOOLCHAIN_ARCH}-arm-none-eabi.tar.xz" \
+    && tar -C /opt -xf arm-gnu-toolchain-12.2.rel1-${TOOLCHAIN_ARCH}-arm-none-eabi.tar.xz \
+    && rm arm-gnu-toolchain-12.2.rel1-${TOOLCHAIN_ARCH}-arm-none-eabi.tar.xz \
+    && ln -s /opt/arm-gnu-toolchain-12.2.rel1-${TOOLCHAIN_ARCH}-arm-none-eabi /opt/arm-gnu-toolchain-12.2.rel1-arm-none-eabi
+
+# Install Simplicity Commander CLI
+RUN \
+    if [ "$TARGETARCH" = "arm64" ]; then \
+        COMMANDER_ARCH="aarch64"; \
+    else \
+        COMMANDER_ARCH="x86_64"; \
+    fi \
+    && curl -L -O --compressed -H 'User-Agent: Firefox/143' -H 'Accept-Language: *' https://www.silabs.com/documents/public/software/SimplicityCommander-Linux.zip \
+    && unzip -q SimplicityCommander-Linux.zip \
+    && tar -C /opt -xjf SimplicityCommander-Linux/Commander-cli_linux_${COMMANDER_ARCH}_*.tar.bz \
+    && chmod -R a+rX /opt/commander-cli \
+    && ln -s /opt/commander-cli/commander-cli /opt/commander-cli/commander \
+    && rm -r SimplicityCommander-Linux \
+    && rm SimplicityCommander-Linux.zip
+
+# Install Silicon Labs Configurator (slc)
+RUN \
+    curl -L -O --compressed -H 'User-Agent: Firefox/143' -H 'Accept-Language: *' https://www.silabs.com/documents/public/software/slc_cli_linux.zip \
+    && unzip -q -d /opt slc_cli_linux.zip \
+    && rm slc_cli_linux.zip
 
 # Now install remaining packages
 RUN \
