@@ -17,11 +17,16 @@ RUN \
        unzip \
        xz-utils
 
-# Install Simplicity Commander (x86_64 only, runs under QEMU on ARM64)
+# Install Simplicity Commander CLI
 RUN \
-    curl -L -O --compressed -H 'User-Agent: Firefox/143' -H 'Accept-Language: *' https://www.silabs.com/documents/public/software/SimplicityCommander-Linux.zip \
+    if [ "$TARGETARCH" = "arm64" ]; then \
+        COMMANDER_ARCH="aarch64"; \
+    else \
+        COMMANDER_ARCH="x86_64"; \
+    fi \
+    && curl -L -O --compressed -H 'User-Agent: Firefox/143' -H 'Accept-Language: *' https://www.silabs.com/documents/public/software/SimplicityCommander-Linux.zip \
     && unzip -q SimplicityCommander-Linux.zip \
-    && tar -C /opt -xjf SimplicityCommander-Linux/Commander_linux_x86_64_*.tar.bz \
+    && tar -C /opt -xjf SimplicityCommander-Linux/Commander-cli_linux_${COMMANDER_ARCH}_*.tar.bz \
     && rm -r SimplicityCommander-Linux \
     && rm SimplicityCommander-Linux.zip
 
@@ -86,20 +91,7 @@ RUN \
        python3-scipy \
        python3-jinja2 \
        python3-yaml \
-       qemu-user-static \
     && rm -rf /var/lib/apt/lists/*
-
-# Simplicity Commander can be run on ARM64 via QEMU
-RUN \
-    if [ "$TARGETARCH" = "arm64" ]; then \
-        dpkg --add-architecture amd64 \
-        && apt-get update \
-        && apt-get install -y --no-install-recommends \
-           libc6:amd64 libstdc++6:amd64 zlib1g:amd64 \
-           libqt5core5t64:amd64 libqt5network5t64:amd64 libqt5serialport5:amd64 \
-           libqt5gui5t64:amd64 libqt5widgets5t64:amd64 qttranslations5-l10n \
-        && rm -rf /var/lib/apt/lists/*; \
-    fi
 
 # slc-cli requires a tiny bit of native code for Jinja2 template generation.
 # Unfortunately, slc-cli does not support ARM64. We can fix this.
