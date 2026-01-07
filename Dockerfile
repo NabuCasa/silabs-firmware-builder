@@ -1,7 +1,10 @@
 FROM debian:trixie
 
-ARG DEBIAN_FRONTEND=noninteractive
 ARG TARGETARCH
+ARG DEBIAN_FRONTEND=noninteractive
+ARG USERNAME=builder
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
 
 # Simplicity SDK includes unicode characters in folder names and fails to unzip
 ENV LANG=C.UTF-8
@@ -93,28 +96,35 @@ RUN \
        python3-yaml \
     && rm -rf /var/lib/apt/lists/*
 
-# slc-cli requires a tiny bit of native code for Jinja2 template generation.
-# Unfortunately, slc-cli does not support ARM64. We can fix this.
+# slc-cli hardcodes architectures internally and does not properly support ARM64 despite
+# actually being fully compatible with it. It requires Python via JEP just for Jinja2
+# template generation so we can install a standalone Python 3.10 and use that for JEP.
+# For consistency across architectures, we compile and symlink on x86-64 even though it
+# is not necessary.
 RUN \
     if [ "$TARGETARCH" = "arm64" ]; then \
-        # Set up Python 3.10
-        curl -L -o /tmp/python3.10.tar.gz "https://github.com/astral-sh/python-build-standalone/releases/download/20251217/cpython-3.10.19+20251217-aarch64-unknown-linux-gnu-install_only.tar.gz" \
-        && mkdir -p /opt/slc_python \
-        && tar -xzf /tmp/python3.10.tar.gz -C /opt/slc_python --strip-components=1 \
-        && rm /tmp/python3.10.tar.gz \
-        # Build JEP
-        && apt-get update \
-        && apt-get install -y --no-install-recommends clang \
-        && /opt/slc_python/bin/python3.10 -m pip install --no-cache-dir "setuptools<69" wheel \
-        && JAVA_HOME=/usr/lib/jvm/default-java LIBRARY_PATH=/opt/slc_python/lib /opt/slc_python/bin/python3.10 -m pip install --no-cache-dir --no-build-isolation jep==4.1.1 numpy scipy jinja2 pyyaml \
-        && mkdir -p /opt/slc_python/jep \
-        # Symlink our local JEP to replace the bundled x86_64 one
-        && ln -sf /opt/slc_python/lib/python3.10/site-packages/jep/jep.cpython-310-aarch64-linux-gnu.so /opt/slc_python/jep/jep.so \
-        && ln -sf /opt/slc_python/lib/libpython3.10.so.1.0 /opt/slc_python/bin/libpython3.10.so.1.0 \
-        # Clean up apt
-        && apt-get purge -y clang && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*; \
-    fi
+        PYTHON_ARCH="aarch64"; \
+    else \
+        PYTHON_ARCH="x86_64"; \
+    fi \
+    && curl -L -o /tmp/python3.10.tar.gz "https://github.com/astral-sh/python-build-standalone/releases/download/20251217/cpython-3.10.19+20251217-${PYTHON_ARCH}-unknown-linux-gnu-install_only.tar.gz" \
+    && mkdir -p /opt/slc_python \
+    && tar -xzf /tmp/python3.10.tar.gz -C /opt/slc_python --strip-components=1 \
+    && rm /tmp/python3.10.tar.gz \
+    && apt-get update \
+    # JEP requires `clang` to build
+    && apt-get install -y --no-install-recommends clang \
+    # JEP also does not build with setuptools>=69
+    && /opt/slc_python/bin/python3.10 -m pip install --no-cache-dir "setuptools<69" wheel \
+    && JAVA_HOME=/usr/lib/jvm/default-java LIBRARY_PATH=/opt/slc_python/lib /opt/slc_python/bin/python3.10 -m pip install --no-cache-dir --no-build-isolation jep==4.1.1 numpy scipy jinja2 pyyaml \
+    && mkdir -p /opt/slc_python/jep \
+    # Create symlinks for JEP shared library and Python shared library
+    && ln -sf /opt/slc_python/lib/python3.10/site-packages/jep/jep.cpython-310-${PYTHON_ARCH}-linux-gnu.so /opt/slc_python/jep/jep.so \
+    && ln -sf /opt/slc_python/lib/libpython3.10.so.1.0 /opt/slc_python/bin/libpython3.10.so.1.0 \
+    # Clean up clang
+    && apt-get purge -y clang && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
+# Set up Python virtual environment for firmware builder script
 COPY requirements.txt /tmp/
 
 RUN \
@@ -126,18 +136,12 @@ RUN \
 ENV SILABS_FIRMWARE_BUILD_CONTAINER=1
 ENV PATH="$PATH:/opt/commander:/opt/slc_cli"
 ENV STUDIO_ADAPTER_PACK_PATH="/opt/zap"
-
-# slc-cli Python path for ARM64.
-# It will fall back to the bundled Python if this does not exist.
 ENV STUDIO_PYTHON3_PATH="/opt/slc_python"
 
-# We can run slc-cli without the native wrapper
+# We can run slc-cli without the native wrapper. For consistency across architectures,
+# we create the same wrapper script on both.
 RUN printf '#!/bin/sh\nexec java -Dorg.slf4j.simpleLogger.defaultLogLevel=off -jar /opt/slc_cli/bin/slc-cli/plugins/org.eclipse.equinox.launcher_*.jar -consoleLog "$@"\n' > /usr/local/bin/slc \
     && chmod +x /usr/local/bin/slc
-
-ARG USERNAME=builder
-ARG USER_UID=1000
-ARG USER_GID=$USER_UID
 
 # Create the user
 RUN groupadd --gid $USER_GID $USERNAME \
