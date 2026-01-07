@@ -23,8 +23,6 @@ from datetime import datetime, timezone
 from ruamel.yaml import YAML
 
 
-SLC = ["/usr/local/bin/slc"]
-
 LOGGER = logging.getLogger(__name__)
 
 
@@ -78,6 +76,14 @@ def get_sdk_default_paths() -> list[pathlib.Path]:
         return list(pathlib.Path("/").glob("*_sdk_*"))
 
     return []
+
+
+def get_default_slc_daemon_flag() -> bool:
+    """Return whether to use the SLC daemon by default."""
+    if is_running_in_docker():
+        return False
+
+    return True
 
 
 def parse_override(override: str) -> tuple[str, dict | list]:
@@ -277,8 +283,20 @@ def main():
         default=False,
         help="Do not shut down the SLC daemon after the build",
     )
+    parser.add_argument(
+        "--slc-daemon",
+        action="store_true",
+        dest="slc_daemon",
+        default=get_default_slc_daemon_flag(),
+        help="Whether to use the SLC daemon for the build",
+    )
 
     args = parser.parse_args()
+
+    if args.slc_daemon:
+        SLC = ["slc", "--daemon", "--daemon-timeout", "1"]
+    else:
+        SLC = ["slc"]
 
     if args.build_system != "makefile":
         LOGGER.warning("Only the `makefile` build system is currently supported")
@@ -424,8 +442,6 @@ def main():
         "slc generate",
         env={
             **os.environ,
-            # Speed up JVM startup (especially under emulation)
-            #"JAVA_TOOL_OPTIONS": "-Xint -XX:+UseSerialGC",
         },
     )
     # fmt: on
@@ -659,7 +675,7 @@ def main():
         with contextlib.suppress(OSError):
             shutil.rmtree(args.build_dir)
 
-    if not args.keep_slc_daemon:
+    if args.slc_daemon and not args.keep_slc_daemon:
         subprocess.run(SLC + ["daemon-shutdown"], check=True)
 
 
