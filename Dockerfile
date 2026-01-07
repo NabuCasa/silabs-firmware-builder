@@ -30,6 +30,7 @@ RUN \
     && curl -L -O --compressed -H 'User-Agent: Firefox/143' -H 'Accept-Language: *' https://www.silabs.com/documents/public/software/SimplicityCommander-Linux.zip \
     && unzip -q SimplicityCommander-Linux.zip \
     && tar -C /opt -xjf SimplicityCommander-Linux/Commander-cli_linux_${COMMANDER_ARCH}_*.tar.bz \
+    && chmod -R a+rX /opt/commander-cli \
     && ln -s /opt/commander-cli/commander-cli /opt/commander-cli/commander \
     && rm -r SimplicityCommander-Linux \
     && rm SimplicityCommander-Linux.zip
@@ -84,6 +85,7 @@ RUN \
        yq \
        libgl1 \
        libglib2.0-0 \
+       libpcre2-16-0 \
        make \
        default-jre-headless \
        default-jdk-headless \
