@@ -94,6 +94,10 @@ RUN \
        python3-virtualenv \
     && rm -rf /var/lib/apt/lists/*
 
+# Patch ZAP apack.json to add missing linux.aarch64 executable definitions
+RUN jq '.executable["zap:linux.aarch64"] = {"exe": "zap", "optional": true} | .executable["zap-cli:linux.aarch64"] = {"exe": "zap-cli", "optional": true}' \
+    /opt/zap/apack.json > /tmp/apack.json && mv /tmp/apack.json /opt/zap/apack.json
+
 # slc-cli hardcodes architectures internally and does not properly support ARM64 despite
 # actually being fully compatible with it. It requires Python via JEP just for Jinja2
 # template generation so we can install a standalone Python 3.10 and use that for JEP.

@@ -296,12 +296,6 @@ def main():
         help="Path to a GCC toolchain",
     )
     parser.add_argument(
-        "--zap-path",
-        type=pathlib.Path,
-        required=False,
-        help="Path to unzipped ZAP adapter pack",
-    )
-    parser.add_argument(
         "--postbuild",
         default=pathlib.Path(__file__).parent / "create_gbl.py",
         required=False,
@@ -494,11 +488,6 @@ def main():
     # Next, generate a chip-specific project from the modified base project
     LOGGER.info(f"Generating project for {manifest['device']}")
 
-    env = os.environ.copy()
-
-    if args.zap_path:
-        env["STUDIO_ADAPTER_PACK_PATH"] = str(args.zap_path)
-
     # fmt: off
     subprocess_run_verbose(
         SLC
@@ -516,7 +505,9 @@ def main():
             "--output-type", args.build_system,
         ],
         "slc generate",
-        env=env,
+        env={
+            **os.environ,
+        },
     )
     # fmt: on
 
