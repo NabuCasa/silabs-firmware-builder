@@ -145,8 +145,14 @@ ENV STUDIO_PYTHON3_PATH="/opt/slc_python"
 
 # We can run slc-cli without the native wrapper. For consistency across architectures,
 # we create the same wrapper script on both.
-RUN printf '#!/bin/sh\nexec java -Dorg.slf4j.simpleLogger.defaultLogLevel=off -jar /opt/slc_cli/bin/slc-cli/plugins/org.eclipse.equinox.launcher_*.jar -consoleLog "$@"\n' > /usr/local/bin/slc \
-    && chmod +x /usr/local/bin/slc
+RUN cat <<'EOF' > /usr/local/bin/slc && chmod +x /usr/local/bin/slc
+#!/bin/sh
+exec java \
+    -jar /opt/slc_cli/bin/slc-cli/plugins/org.eclipse.equinox.launcher_*.jar \
+    -install /opt/slc_cli/bin/slc-cli \
+    -consoleLog \
+    "$@"
+EOF
 
 # Create the user
 RUN groupadd --gid $USER_GID $USERNAME \
