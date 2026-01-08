@@ -290,8 +290,22 @@ def main():
         default=get_default_slc_daemon_flag(),
         help="Whether to use the SLC daemon for the build",
     )
+    parser.add_argument(
+        "--build-timestamp",
+        dest="build_timestamp",
+        type=str,
+        default=None,
+        help="Build timestamp for reproducible builds (YYYYMMDDHHmmss format)",
+    )
 
     args = parser.parse_args()
+
+    if args.build_timestamp is not None:
+        args.build_timestamp = datetime.strptime(
+            args.build_timestamp, "%Y%m%d%H%M%S"
+        ).replace(tzinfo=timezone.utc)
+    else:
+        args.build_timestamp = datetime.now(timezone.utc)
 
     if args.slc_daemon:
         SLC = ["slc", "--daemon", "--daemon-timeout", "1"]
@@ -465,7 +479,7 @@ def main():
     value_template_env = {
         "git_repo_hash": get_git_commit_id(repo=pathlib.Path(__file__).parent.parent),
         "manifest_name": args.manifest.stem,
-        "now": datetime.now(timezone.utc),
+        "now": args.build_timestamp,
     }
 
     # Actually search for C defines within config
@@ -598,6 +612,9 @@ def main():
         }.items()
     ]
 
+    # Ensure deterministic linking order
+    build_flags["LD_FLAGS"] += ["-Wl,--sort-section=name"]
+
     # Enable errors
     build_flags["C_FLAGS"] += ["-Wall", "-Wextra", "-Werror"]
     build_flags["CXX_FLAGS"] = build_flags["C_FLAGS"]
@@ -645,7 +662,8 @@ def main():
         ],
         "make",
         env={
-            "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}"
+            "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}",
+            "SOURCE_DATE_EPOCH": str(int(args.build_timestamp.timestamp())),
         }
     )
     # fmt: on
