@@ -112,8 +112,8 @@ RUN \
     && apt-get update \
     && apt-get install -y --no-install-recommends clang default-jdk-headless \
     # JEP also does not build with setuptools>=69
-    && /opt/slc_python/bin/python3.10 -m pip install --no-cache-dir "setuptools<69" wheel \
-    && JAVA_HOME=/usr/lib/jvm/default-java LIBRARY_PATH=/opt/slc_python/lib /opt/slc_python/bin/python3.10 -m pip install --no-cache-dir --no-build-isolation jep==4.1.1 jinja2 pyyaml \
+    && /opt/slc_python/bin/python3.10 -m pip install --no-cache-dir setuptools==68.2.2 wheel==0.45.1 \
+    && JAVA_HOME=/usr/lib/jvm/default-java LIBRARY_PATH=/opt/slc_python/lib /opt/slc_python/bin/python3.10 -m pip install --no-cache-dir --no-build-isolation jep==4.1.1 jinja2==3.1.6 pyyaml==6.0.3 \
     && mkdir -p /opt/slc_python/jep \
     # Create symlinks for JEP shared library and Python shared library
     && ln -sf /opt/slc_python/lib/python3.10/site-packages/jep/jep.cpython-310-${PYTHON_ARCH}-linux-gnu.so /opt/slc_python/jep/jep.so \
