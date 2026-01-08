@@ -32,7 +32,7 @@ RUN \
     && unzip -q -d gecko_sdk_4.5.0 gecko_sdk_4.5.0.zip \
     && rm gecko_sdk_4.5.0.zip
 
-# ZCL Advanced Platform (ZAP) v2025.12.02 (architecture-specific)
+# ZCL Advanced Platform (ZAP) v2025.12.02
 RUN \
     if [ "$TARGETARCH" = "arm64" ]; then \
         ZAP_ARCH="arm64"; \
