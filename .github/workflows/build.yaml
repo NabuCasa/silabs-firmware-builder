@@ -31,18 +31,23 @@ jobs:
         run: |
           pre-commit run --show-diff-on-failure --color=always --all-files
 
-  build-container:
-    name: Create build container image
+  check-container:
+    name: Check if container build needed
     runs-on: ubuntu-latest
     permissions:
       packages: write
+    outputs:
+      tag_name: ${{ steps.read-repo-info.outputs.tag_name }}
+      image_name: ${{ steps.read-repo-info.outputs.image_name }}
+      container_name: ${{ steps.read-repo-info.outputs.container_name }}
+      build_image: ${{ steps.read-repo-info.outputs.build_image }}
     steps:
       - uses: actions/checkout@v4
       - name: Log in to the GitHub container registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ github.repository_owner }}
+          username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Read repository information
         id: read-repo-info
@@ -84,23 +89,63 @@ jobs:
           echo "tag_name=$tag_name" >> $GITHUB_OUTPUT
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
           echo "container_name=${{ env.REGISTRY }}/$image_name:$tag_name" >> $GITHUB_OUTPUT
+
+  build-container:
+    name: Build container (${{ matrix.arch }})
+    needs: check-container
+    if: needs.check-container.outputs.build_image == 'true'
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to the GitHub container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        if: steps.read-repo-info.outputs.build_image == 'true'
       - name: Build and Push
         uses: docker/build-push-action@v6
-        if: steps.read-repo-info.outputs.build_image == 'true'
         with:
           context: .
           file: Dockerfile
-          tags: ${{ env.REGISTRY }}/${{ steps.read-repo-info.outputs.image_name }}:${{ steps.read-repo-info.outputs.tag_name }}
-          cache-from: ${{ env.REGISTRY }}/${{ steps.read-repo-info.outputs.image_name }}:cache-${{ steps.read-repo-info.outputs.tag_name }}
-          cache-to: ${{ env.REGISTRY }}/${{ steps.read-repo-info.outputs.image_name }}:cache-${{ steps.read-repo-info.outputs.tag_name }}
+          platforms: linux/${{ matrix.arch }}
+          tags: ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${{ needs.check-container.outputs.tag_name }}-${{ matrix.arch }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:cache-${{ needs.check-container.outputs.tag_name }}-${{ matrix.arch }}
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:cache-${{ needs.check-container.outputs.tag_name }}-${{ matrix.arch }},mode=max
           push: true
-    outputs:
-      tag_name: ${{ steps.read-repo-info.outputs.tag_name }}
-      image_name: ${{ steps.read-repo-info.outputs.image_name }}
-      container_name: ${{ steps.read-repo-info.outputs.container_name }}
+
+  merge-container:
+    name: Create multi-arch manifest
+    needs: [check-container, build-container]
+    if: ${{ needs.build-container.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Log in to the GitHub container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Create and push manifest
+        run: |
+          docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${{ needs.check-container.outputs.tag_name }} \
+            ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${{ needs.check-container.outputs.tag_name }}-amd64 \
+            ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${{ needs.check-container.outputs.tag_name }}-arm64
 
 
   list-manifests:
@@ -116,10 +161,11 @@ jobs:
 
   build-firmwares:
     name: Firmware builder
-    needs: [list-manifests, build-container]
+    needs: [list-manifests, check-container, merge-container]
+    if: ${{ !cancelled() && (needs.check-container.outputs.build_image == 'false' || needs.merge-container.result == 'success') }}
     runs-on: ubuntu-latest
     container:
-      image: ${{ needs.build-container.outputs.container_name }}
+      image: ${{ needs.check-container.outputs.container_name }}
       options: --user root
     strategy:
       matrix:
@@ -133,25 +179,9 @@ jobs:
           # Fix `fatal: detected dubious ownership in repository at`
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-          # Pass all SDKs as consecutive `--sdk ...` arguments
-          sdk_args=""
-          for sdk_dir in /*_sdk*; do
-            sdk_args="$sdk_args --sdk $sdk_dir"
-          done
-
-          # Pass all toolchains as consecutive `--toolchain ...` arguments
-          toolchain_args=""
-          for toolchain_dir in /opt/*arm-none-eabi*; do
-            toolchain_args="$toolchain_args --toolchain $toolchain_dir"
-          done
-
-          # Build it
           /opt/venv/bin/python3 tools/build_project.py \
-            $sdk_args \
-            $toolchain_args \
             --manifest "${{ matrix.manifest }}" \
             --build-dir build \
-            --build-system makefile \
             --output-dir outputs \
             --output gbl \
             --output hex \
@@ -177,10 +207,10 @@ jobs:
 
   generate-manifest:
     name: Generate manifest
-    needs: [build-container, build-firmwares]
+    needs: [check-container, build-firmwares]
     runs-on: ubuntu-latest
     container:
-      image: ${{ needs.build-container.outputs.container_name }}
+      image: ${{ needs.check-container.outputs.container_name }}
       options: --user root
     steps:
       - uses: actions/checkout@v4

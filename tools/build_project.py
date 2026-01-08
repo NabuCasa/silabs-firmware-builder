@@ -23,8 +23,6 @@ from datetime import datetime, timezone
 from ruamel.yaml import YAML
 
 
-SLC = ["slc", "--daemon", "--daemon-timeout", "1"]
-
 LOGGER = logging.getLogger(__name__)
 
 
@@ -49,6 +47,11 @@ def ensure_folder(path: str | pathlib.Path) -> pathlib.Path:
     return path
 
 
+def is_running_in_docker() -> bool:
+    """Check if we're running inside the Docker build container."""
+    return os.environ.get("SILABS_FIRMWARE_BUILD_CONTAINER") == "1"
+
+
 def get_toolchain_default_paths() -> list[pathlib.Path]:
     """Return the path to the toolchain."""
     if sys.platform == "darwin":
@@ -58,6 +61,9 @@ def get_toolchain_default_paths() -> list[pathlib.Path]:
             ).glob("*")
         )
 
+    if is_running_in_docker():
+        return list(pathlib.Path("/opt").glob("*arm-none-eabi*"))
+
     return []
 
 
@@ -66,7 +72,18 @@ def get_sdk_default_paths() -> list[pathlib.Path]:
     if sys.platform == "darwin":
         return list(pathlib.Path("~/SimplicityStudio/SDKs").expanduser().glob("*_sdk*"))
 
+    if is_running_in_docker():
+        return list(pathlib.Path("/").glob("*_sdk_*"))
+
     return []
+
+
+def get_default_slc_daemon_flag() -> bool:
+    """Return whether to use the SLC daemon by default."""
+    if is_running_in_docker():
+        return False
+
+    return True
 
 
 def parse_override(override: str) -> tuple[str, dict | list]:
@@ -266,8 +283,34 @@ def main():
         default=False,
         help="Do not shut down the SLC daemon after the build",
     )
+    parser.add_argument(
+        "--slc-daemon",
+        action="store_true",
+        dest="slc_daemon",
+        default=get_default_slc_daemon_flag(),
+        help="Whether to use the SLC daemon for the build",
+    )
+    parser.add_argument(
+        "--build-timestamp",
+        dest="build_timestamp",
+        type=str,
+        default=None,
+        help="Build timestamp for reproducible builds (YYYYMMDDHHmmss format)",
+    )
 
     args = parser.parse_args()
+
+    if args.build_timestamp is not None:
+        args.build_timestamp = datetime.strptime(
+            args.build_timestamp, "%Y%m%d%H%M%S"
+        ).replace(tzinfo=timezone.utc)
+    else:
+        args.build_timestamp = datetime.now(timezone.utc)
+
+    if args.slc_daemon:
+        SLC = ["slc", "--daemon", "--daemon-timeout", "1"]
+    else:
+        SLC = ["slc"]
 
     if args.build_system != "makefile":
         LOGGER.warning("Only the `makefile` build system is currently supported")
@@ -413,7 +456,7 @@ def main():
         "slc generate",
         env={
             **os.environ,
-        }
+        },
     )
     # fmt: on
 
@@ -436,7 +479,7 @@ def main():
     value_template_env = {
         "git_repo_hash": get_git_commit_id(repo=pathlib.Path(__file__).parent.parent),
         "manifest_name": args.manifest.stem,
-        "now": datetime.now(timezone.utc),
+        "now": args.build_timestamp,
     }
 
     # Actually search for C defines within config
@@ -569,6 +612,9 @@ def main():
         }.items()
     ]
 
+    # Ensure deterministic linking order
+    build_flags["LD_FLAGS"] += ["-Wl,--sort-section=name"]
+
     # Enable errors
     build_flags["C_FLAGS"] += ["-Wall", "-Wextra", "-Werror"]
     build_flags["CXX_FLAGS"] = build_flags["C_FLAGS"]
@@ -616,7 +662,8 @@ def main():
         ],
         "make",
         env={
-            "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}"
+            "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}",
+            "SOURCE_DATE_EPOCH": str(int(args.build_timestamp.timestamp())),
         }
     )
     # fmt: on
@@ -646,7 +693,7 @@ def main():
         with contextlib.suppress(OSError):
             shutil.rmtree(args.build_dir)
 
-    if not args.keep_slc_daemon:
+    if args.slc_daemon and not args.keep_slc_daemon:
         subprocess.run(SLC + ["daemon-shutdown"], check=True)
 
 
