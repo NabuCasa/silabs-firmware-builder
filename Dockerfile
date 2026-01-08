@@ -88,15 +88,10 @@ RUN \
        libpcre2-16-0 \
        make \
        default-jre-headless \
-       default-jdk-headless \
        patch \
        python3 \
        python3-pip \
        python3-virtualenv \
-       python3-numpy \
-       python3-scipy \
-       python3-jinja2 \
-       python3-yaml \
     && rm -rf /var/lib/apt/lists/*
 
 # slc-cli hardcodes architectures internally and does not properly support ARM64 despite
@@ -115,17 +110,19 @@ RUN \
     && tar -xzf /tmp/python3.10.tar.gz -C /opt/slc_python --strip-components=1 \
     && rm /tmp/python3.10.tar.gz \
     && apt-get update \
-    # JEP requires `clang` to build
-    && apt-get install -y --no-install-recommends clang \
+    && apt-get install -y --no-install-recommends clang default-jdk-headless \
     # JEP also does not build with setuptools>=69
     && /opt/slc_python/bin/python3.10 -m pip install --no-cache-dir "setuptools<69" wheel \
-    && JAVA_HOME=/usr/lib/jvm/default-java LIBRARY_PATH=/opt/slc_python/lib /opt/slc_python/bin/python3.10 -m pip install --no-cache-dir --no-build-isolation jep==4.1.1 numpy scipy jinja2 pyyaml \
+    && JAVA_HOME=/usr/lib/jvm/default-java LIBRARY_PATH=/opt/slc_python/lib /opt/slc_python/bin/python3.10 -m pip install --no-cache-dir --no-build-isolation jep==4.1.1 jinja2 pyyaml \
     && mkdir -p /opt/slc_python/jep \
     # Create symlinks for JEP shared library and Python shared library
     && ln -sf /opt/slc_python/lib/python3.10/site-packages/jep/jep.cpython-310-${PYTHON_ARCH}-linux-gnu.so /opt/slc_python/jep/jep.so \
     && ln -sf /opt/slc_python/lib/libpython3.10.so.1.0 /opt/slc_python/bin/libpython3.10.so.1.0 \
-    # Clean up clang
-    && apt-get purge -y clang && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
+    && apt-get purge -y clang default-jdk-headless \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/* \
+    # Remove bundled Python from slc-cli (we provide our own via STUDIO_PYTHON3_PATH)
+    && rm -rf /opt/slc_cli/bin/slc-cli/developer/adapter_packs/python
 
 # Set up Python virtual environment for firmware builder script
 COPY requirements.txt /tmp/
