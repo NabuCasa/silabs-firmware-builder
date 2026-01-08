@@ -96,7 +96,8 @@ RUN \
 
 # Patch ZAP apack.json to add missing linux.aarch64 executable definitions
 # Remove once https://github.com/project-chip/zap/pull/1677 is merged
-RUN jq '.executable["zap:linux.aarch64"] = {"exe": "zap", "optional": true} | .executable["zap-cli:linux.aarch64"] = {"exe": "zap-cli", "optional": true}' \
+RUN jq '.executable["zap:linux.aarch64"]     = {"exe": "zap",     "optional": true} \
+      | .executable["zap-cli:linux.aarch64"] = {"exe": "zap-cli", "optional": true}' \
     /opt/zap/apack.json > /tmp/apack.json && mv /tmp/apack.json /opt/zap/apack.json
 
 # slc-cli hardcodes architectures internally and does not properly support ARM64 despite
