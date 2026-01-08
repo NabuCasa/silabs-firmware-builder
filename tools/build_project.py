@@ -661,14 +661,6 @@ def main():
             )
         )
 
-    # Fix LTO parallel compilation issue with paths containing spaces.
-    # `-flto=auto` and `-flto` spawn make sub-processes that fail with spaces in paths.
-    project_mak = args.build_dir / f"{base_project_name}.project.mak"
-    if project_mak.exists():
-        mak_content = project_mak.read_text()
-        mak_content = re.sub(r"-flto(?:=\w+)?", "-flto=1", mak_content)
-        project_mak.write_text(mak_content)
-
     # Remove absolute paths from the build for reproducibility
     build_flags["C_FLAGS"] += [
         f"-ffile-prefix-map={str(src.absolute())}={dst}"
@@ -731,8 +723,6 @@ def main():
         env={
             "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}",
             "SOURCE_DATE_EPOCH": str(int(args.build_timestamp.timestamp())),
-            # Force lto-wrapper to use serial LTRANS (parallel breaks with spaced paths)
-            "MAKE": "",
         }
     )
     # fmt: on
