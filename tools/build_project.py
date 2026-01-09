@@ -664,7 +664,12 @@ def main():
     build_flags["LD_FLAGS"] += ["-Wl,--sort-section=name"]
 
     # Enable errors
-    build_flags["C_FLAGS"] += ["-Wall", "-Wextra", "-Werror"]
+    build_flags["C_FLAGS"] += [
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wno-error=maybe-uninitialized",  # Linking fails due to a few SDK bugs
+    ]
     build_flags["CXX_FLAGS"] = build_flags["C_FLAGS"]
     cmake_dir = args.build_dir / f"{base_project_name}_cmake"
 
