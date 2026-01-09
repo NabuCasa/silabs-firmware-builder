@@ -1,7 +1,7 @@
 #include "config/btl_config.h"
 #include "em_device.h"
 #include "em_gpio.h"
-#include "btl_gpio_activation_dual.h"
+#include "gpio/gpio-activation/btl_gpio_activation.h"
 #include "btl_gpio_activation_dual_cfg.h"
 
 #define HIGH 0

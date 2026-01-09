@@ -1,0 +1,122 @@
+name: Home Assistant Connect ZBT-2 Zigbee Router
+device: EFR32MG24A420F1536IM40
+base_project: src/zigbee_router
+filename: "{manifest_name}_{sdk_version}"
+sdk: "simplicity_sdk:2025.6.2"
+toolchain: "12.2.1.20221205"
+
+gbl:
+  fw_type: zigbee_router
+  baudrate: 115200
+
+sdk_extension:
+  - id: nabucasa_hardware
+    version: 1.0.0
+
+config_file:
+  - path: config/zcl/zcl_config.zap
+    file_id: zap_configuration_file_id
+    directory: zcl
+
+add_components:
+- id: spidrv_eusart
+  instance: [ws2812]
+- id: emlib_i2c
+- id: i2cspm
+  instance: [inst]
+- id: simple_button
+  instance: [pin_hole_button]
+- id: ws2812_driver
+  from: nabucasa_hardware
+- id: qma6100p_driver
+  from: nabucasa_hardware
+- id: zbt2_reset_button
+  from: nabucasa_hardware
+- id: zbt2_router_callbacks
+  from: nabucasa_hardware
+# ZCL clusters for LED control
+- id: zigbee_groups_server
+- id: zigbee_color_control_server
+- id: zigbee_identify
+- id: zigbee_level_control
+- id: zigbee_on_off
+- id: zigbee_zll_on_off_server
+- id: zigbee_zll_identify_server
+- id: zigbee_zll_level_control_server
+- id: zigbee_scenes
+- id: zigbee_zll_scenes_server
+
+# SLC reads `configuration` during validation, before c_defines are patched
+configuration:
+  SL_SPIDRV_EUSART_WS2812_CS_CONTROL: spidrvCsControlApplication
+
+c_defines:
+  SL_ZIGBEE_APS_UNICAST_MESSAGE_COUNT: 32
+  SL_ZIGBEE_BINDING_TABLE_SIZE: 32
+  SL_ZIGBEE_BROADCAST_TABLE_SIZE: 64
+  # SL_ZIGBEE_KEY_TABLE_SIZE: 12
+  SL_ZIGBEE_MAX_END_DEVICE_CHILDREN: 32
+  # SL_ZIGBEE_PACKET_BUFFER_COUNT: 255
+  SL_ZIGBEE_SOURCE_ROUTE_TABLE_SIZE: 200
+
+  SL_ZIGBEE_CHILD_TABLE_SIZE:
+    type: c_flag
+    value: 32
+
+  SL_ZIGBEE_ROUTE_TABLE_SIZE:
+    type: c_flag
+    value: 250
+
+  SL_CLOCK_MANAGER_HFXO_FREQ: 39000000
+  SL_CLOCK_MANAGER_HFXO_PRECISION: 10
+  SL_CLOCK_MANAGER_HFXO_CTUNE: 108
+
+  SL_IOSTREAM_USART_VCOM_BAUDRATE: 115200
+  SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE: usartHwFlowControlCtsAndRts
+
+  SL_IOSTREAM_USART_VCOM_PERIPHERAL: USART0
+  SL_IOSTREAM_USART_VCOM_PERIPHERAL_NO: 0
+
+  SL_IOSTREAM_USART_VCOM_TX_PORT: SL_GPIO_PORT_A
+  SL_IOSTREAM_USART_VCOM_TX_PIN:  8
+  SL_IOSTREAM_USART_VCOM_RX_PORT: SL_GPIO_PORT_A
+  SL_IOSTREAM_USART_VCOM_RX_PIN:  7
+  SL_IOSTREAM_USART_VCOM_CTS_PORT: SL_GPIO_PORT_A
+  SL_IOSTREAM_USART_VCOM_CTS_PIN:  5
+  SL_IOSTREAM_USART_VCOM_RTS_PORT: SL_GPIO_PORT_A
+  SL_IOSTREAM_USART_VCOM_RTS_PIN:  0
+
+  SL_IOSTREAM_USART_VCOM_RX_BUFFER_SIZE: 128
+
+  # WS2812 LED driver
+  SL_SPIDRV_EUSART_WS2812_PERIPHERAL: EUSART1
+  SL_SPIDRV_EUSART_WS2812_PERIPHERAL_NO: 1
+  SL_SPIDRV_EUSART_WS2812_TX_PORT: SL_GPIO_PORT_C
+  SL_SPIDRV_EUSART_WS2812_TX_PIN: 2
+  SL_SPIDRV_EUSART_WS2812_RX_PORT: SL_GPIO_PORT_C
+  SL_SPIDRV_EUSART_WS2812_RX_PIN: 1
+  SL_SPIDRV_EUSART_WS2812_SCLK_PORT: SL_GPIO_PORT_D
+  SL_SPIDRV_EUSART_WS2812_SCLK_PIN: 2
+  SL_SPIDRV_EUSART_WS2812_CS_CONTROL: spidrvCsControlApplication
+  SL_SPIDRV_EUSART_WS2812_BITRATE: 3200000
+  SL_SPIDRV_EUSART_WS2812_BIT_ORDER: spidrvBitOrderMsbFirst
+  WS2812_EN_PORT: SL_GPIO_PORT_C
+  WS2812_EN_PIN: 3
+  WS2812_NUM_LEDS: 4
+
+  # I2C
+  SL_I2CSPM_INST_PERIPHERAL: I2C0
+  SL_I2CSPM_INST_SCL_PORT: SL_GPIO_PORT_C
+  SL_I2CSPM_INST_SCL_PIN: 6
+  SL_I2CSPM_INST_SDA_PORT: SL_GPIO_PORT_C
+  SL_I2CSPM_INST_SDA_PIN: 7
+
+  # Pinhole button
+  SL_SIMPLE_BUTTON_PIN_HOLE_BUTTON_PORT: SL_GPIO_PORT_C
+  SL_SIMPLE_BUTTON_PIN_HOLE_BUTTON_PIN: 5
+
+  # Reset button: preserve frame counters for Zigbee security
+  ZBT2_RESET_BUTTON_ERASE_COUNTERS: 0
+
+  # Product ID to prevent cross-flashing across devices
+  SL_APPLICATION_PRODUCT_ID: '{0xF4, 0x5E, 0x03, 0x17, 0xD5, 0x84, 0xAD, 0xA4, 0x7D, 0xDA, 0x6C, 0x95, 0x11, 0x2F, 0x24, 0xFA}'

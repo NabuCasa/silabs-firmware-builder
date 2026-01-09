@@ -32,14 +32,14 @@ RUN \
     && unzip -q -d gecko_sdk_4.5.0 gecko_sdk_4.5.0.zip \
     && rm gecko_sdk_4.5.0.zip
 
-# ZCL Advanced Platform (ZAP) v2024.09.27 (architecture-specific)
+# ZCL Advanced Platform (ZAP) v2025.12.02
 RUN \
     if [ "$TARGETARCH" = "arm64" ]; then \
         ZAP_ARCH="arm64"; \
     else \
         ZAP_ARCH="x64"; \
     fi \
-    && curl -o zap.zip -L "https://github.com/project-chip/zap/releases/download/v2024.09.27/zap-linux-${ZAP_ARCH}.zip" \
+    && curl -o zap.zip -L "https://github.com/project-chip/zap/releases/download/v2025.12.02/zap-linux-${ZAP_ARCH}.zip" \
     && unzip -q -d /opt/zap zap.zip \
     && rm zap.zip
 
@@ -94,6 +94,12 @@ RUN \
        python3-virtualenv \
     && rm -rf /var/lib/apt/lists/*
 
+# Patch ZAP apack.json to add missing linux.aarch64 executable definitions
+# Remove once https://github.com/project-chip/zap/pull/1677 is merged
+RUN jq '.executable["zap:linux.aarch64"]     = {"exe": "zap",     "optional": true} \
+      | .executable["zap-cli:linux.aarch64"] = {"exe": "zap-cli", "optional": true}' \
+    /opt/zap/apack.json > /tmp/apack.json && mv /tmp/apack.json /opt/zap/apack.json
+
 # slc-cli hardcodes architectures internally and does not properly support ARM64 despite
 # actually being fully compatible with it. It requires Python via JEP just for Jinja2
 # template generation so we can install a standalone Python 3.10 and use that for JEP.
@@ -140,8 +146,14 @@ ENV STUDIO_PYTHON3_PATH="/opt/slc_python"
 
 # We can run slc-cli without the native wrapper. For consistency across architectures,
 # we create the same wrapper script on both.
-RUN printf '#!/bin/sh\nexec java -Dorg.slf4j.simpleLogger.defaultLogLevel=off -jar /opt/slc_cli/bin/slc-cli/plugins/org.eclipse.equinox.launcher_*.jar -consoleLog "$@"\n' > /usr/local/bin/slc \
-    && chmod +x /usr/local/bin/slc
+RUN cat <<'EOF' > /usr/local/bin/slc && chmod +x /usr/local/bin/slc
+#!/bin/sh
+exec java \
+    -jar /opt/slc_cli/bin/slc-cli/plugins/org.eclipse.equinox.launcher_*.jar \
+    -install /opt/slc_cli/bin/slc-cli \
+    -consoleLog \
+    "$@"
+EOF
 
 # Create the user
 RUN groupadd --gid $USER_GID $USERNAME \

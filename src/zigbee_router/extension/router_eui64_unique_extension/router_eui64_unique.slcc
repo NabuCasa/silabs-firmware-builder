@@ -1,0 +1,15 @@
+id: router_eui64_unique
+label: Router EUI64 Unique
+package: custom
+description: Modifies the router's EUI64 by inverting octets to prevent conflicts when a former coordinator is used as a router
+category: Zigbee|Router
+quality: production
+source:
+  - path: src/router_eui64_unique.c
+provides:
+  - name: router_eui64_unique
+requires:
+  - name: token_manager
+toolchain_settings:
+  - option: gcc_linker_option
+    value: "-Wl,--wrap=sl_token_manager_get_data"
