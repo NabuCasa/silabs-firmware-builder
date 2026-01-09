@@ -17,7 +17,6 @@ import pathlib
 import argparse
 import contextlib
 import subprocess
-import multiprocessing
 from datetime import datetime, timezone
 
 from ruamel.yaml import YAML
@@ -192,7 +191,7 @@ def subprocess_run_verbose(command: list[str], prefix: str, **kwargs) -> None:
         command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, **kwargs
     ) as proc:
         for line in proc.stdout:
-            LOGGER.info("[%s] %r", prefix, line.decode("utf-8").strip())
+            LOGGER.info("[%s] %s", prefix, line.decode("utf-8").strip())
 
     if proc.returncode != 0:
         LOGGER.error("[%s] Error: %s", prefix, proc.returncode)
@@ -670,17 +669,16 @@ def main():
     cmake_dir = args.build_dir / f"{base_project_name}_cmake"
 
     # CMake expects a semicolon-separated list for the post-build command
-    post_build_command = ";".join(
+    # fmt: off
+    cmake_post_build_command = ";".join(
         [
-            str(args.postbuild),
-            "postbuild",
+            str(args.postbuild), "postbuild",
             str((args.build_dir / base_project_name).resolve()) + ".slpb",
-            "--parameter",
-            f"build_dir:{cmake_dir.resolve()}",
-            "--parameter",
-            f"sdk_dir:{sdk}",
+            "--parameter", f"build_dir:{cmake_dir.resolve()}",
+            "--parameter", f"sdk_dir:{sdk}",
         ]
     )
+    # fmt: on
 
     # fmt: off
     subprocess_run_verbose(
@@ -688,7 +686,7 @@ def main():
             "cmake",
             "-G", "Ninja",
             "-D", "CMAKE_TOOLCHAIN_FILE=toolchain.cmake",
-            "-D", f"post_build_command={post_build_command}",
+            "-D", f"post_build_command={cmake_post_build_command}",
             ".",
         ],
         "cmake",
@@ -703,18 +701,11 @@ def main():
     )
     # fmt: on
 
-    # fmt: off
     subprocess_run_verbose(
-        [
-            "cmake",
-            "--build", ".",
-            "--",
-            f"-j{multiprocessing.cpu_count()}",
-        ],
-        "cmake-build",
+        ["cmake", "--build", "."],
+        "cmake --build",
         cwd=cmake_dir,
     )
-    # fmt: on
 
     output_artifact = (cmake_dir / base_project_name).with_suffix(".gbl")
 
