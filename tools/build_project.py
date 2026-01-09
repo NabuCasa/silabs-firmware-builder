@@ -272,12 +272,6 @@ def main():
         help="Temporary build directory, generated based on the manifest by default",
     )
     parser.add_argument(
-        "--build-system",
-        choices=["cmake", "makefile"],
-        default="makefile",
-        help="Build system",
-    )
-    parser.add_argument(
         "--sdk",
         action="append",
         dest="sdks",
@@ -345,10 +339,6 @@ def main():
         SLC = ["slc", "--daemon", "--daemon-timeout", "1"]
     else:
         SLC = ["slc"]
-
-    if args.build_system != "makefile":
-        LOGGER.warning("Only the `makefile` build system is currently supported")
-        args.build_system = "makefile"
 
     if args.build_dir is None:
         args.build_dir = pathlib.Path(f"build/{time.time():.0f}_{args.manifest.stem}")
@@ -502,7 +492,7 @@ def main():
             "--new-project",
             "--toolchain", "toolchain_gcc",
             "--sdk", sdk,
-            "--output-type", args.build_system,
+            "--output-type", "vscode",
         ],
         "slc generate",
         env={
@@ -677,55 +667,56 @@ def main():
     # Enable errors
     build_flags["C_FLAGS"] += ["-Wall", "-Wextra", "-Werror"]
     build_flags["CXX_FLAGS"] = build_flags["C_FLAGS"]
+    cmake_dir = args.build_dir / f"{base_project_name}_cmake"
 
-    output_artifact = (args.build_dir / "build/debug" / base_project_name).with_suffix(
-        ".gbl"
+    # CMake expects a semicolon-separated list for the post-build command
+    post_build_command = ";".join(
+        [
+            str(args.postbuild),
+            "postbuild",
+            str((args.build_dir / base_project_name).resolve()) + ".slpb",
+            "--parameter",
+            f"build_dir:{cmake_dir.resolve()}",
+            "--parameter",
+            f"sdk_dir:{sdk}",
+        ]
     )
-
-    makefile = args.build_dir / f"{base_project_name}.Makefile"
-    makefile_contents = makefile.read_text()
-
-    # Inject a postbuild step into the makefile
-    makefile_contents += "\n"
-    makefile_contents += "post-build:\n"
-    makefile_contents += (
-        f"\t-{args.postbuild}"
-        f' postbuild "{(args.build_dir / base_project_name).resolve()}.slpb"'
-        f' --parameter build_dir:"{output_artifact.parent.resolve()}"'
-        f' --parameter sdk_dir:"{sdk}"'
-        "\n"
-    )
-    makefile_contents += "\t-@echo ' '"
-
-    for flag, flag_values in build_flags.items():
-        line = f"{flag:<17} = \n"
-        suffix = " ".join([f'"{m}"' for m in flag_values]) + "\n"
-        assert line in makefile_contents
-
-        makefile_contents = makefile_contents.replace(
-            line, f"{line.rstrip()} {suffix}\n"
-        )
-
-    makefile.write_text(makefile_contents)
 
     # fmt: off
     subprocess_run_verbose(
-        [   
-            "make",
-            "-C", args.build_dir,
-            "-f", f"{base_project_name}.Makefile",
-            f"-j{multiprocessing.cpu_count()}",
-            f"ARM_GCC_DIR={toolchain}",
-            f"POST_BUILD_EXE={args.postbuild}",
-            "VERBOSE=1",
+        [
+            "cmake",
+            "-G", "Ninja",
+            "-D", "CMAKE_TOOLCHAIN_FILE=toolchain.cmake",
+            "-D", f"post_build_command={post_build_command}",
+            ".",
         ],
-        "make",
+        "cmake",
         env={
             "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}",
+            "ARM_GCC_DIR": toolchain,
+            "NINJA_EXE_PATH": shutil.which("ninja"),
+            "POST_BUILD_EXE": args.postbuild,
             "SOURCE_DATE_EPOCH": str(int(args.build_timestamp.timestamp())),
-        }
+        },
+        cwd=cmake_dir,
     )
     # fmt: on
+
+    # fmt: off
+    subprocess_run_verbose(
+        [
+            "cmake",
+            "--build", ".",
+            "--",
+            f"-j{multiprocessing.cpu_count()}",
+        ],
+        "cmake-build",
+        cwd=cmake_dir,
+    )
+    # fmt: on
+
+    output_artifact = (cmake_dir / base_project_name).with_suffix(".gbl")
 
     # Verify that --wrap linker flags don't wrap weak stubs
     validate_linker_wrap_symbols(map_file=output_artifact.with_suffix(".map"))
