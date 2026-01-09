@@ -92,6 +92,8 @@ RUN \
        python3 \
        python3-pip \
        python3-virtualenv \
+       cmake \
+       ninja-build \
     && rm -rf /var/lib/apt/lists/*
 
 # Patch ZAP apack.json to add missing linux.aarch64 executable definitions

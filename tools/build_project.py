@@ -694,7 +694,6 @@ def main():
             "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}",
             "ARM_GCC_DIR": toolchain,
             "NINJA_EXE_PATH": shutil.which("ninja"),
-            "POST_BUILD_EXE": args.postbuild,
             "SOURCE_DATE_EPOCH": str(int(args.build_timestamp.timestamp())),
         },
         cwd=cmake_dir,
@@ -705,6 +704,9 @@ def main():
         ["cmake", "--build", "."],
         "cmake --build",
         cwd=cmake_dir,
+        env={
+            "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}",
+        },
     )
 
     output_artifact = (cmake_dir / base_project_name).with_suffix(".gbl")
