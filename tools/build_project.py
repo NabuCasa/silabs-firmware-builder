@@ -753,10 +753,8 @@ def main():
 
     # Verify that all source paths in the ELF have been remapped
     for path in get_elf_source_paths(output_artifact.with_suffix(".out")):
-        if not any(path.is_relative_to(r) for r in remapped_paths.values()):
-            raise RuntimeError(
-                f"Unreproducible source path in ELF: {path} is not relative to {remapped_paths}"
-            )
+        if not path.is_relative_to("/src"):
+            raise RuntimeError(f"Unreproducible source path in ELF: {path}")
 
     # Read the metadata extracted from the source and build trees
     extracted_gbl_metadata = json.loads(
