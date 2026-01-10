@@ -20,6 +20,7 @@ import subprocess
 from datetime import datetime, timezone
 
 from ruamel.yaml import YAML
+from elftools.elf.elffile import ELFFile
 
 
 LOGGER = logging.getLogger(__name__)
@@ -232,6 +233,33 @@ def validate_linker_wrap_symbols(map_file: pathlib.Path) -> None:
             )
 
 
+def get_elf_source_paths(elf_path: pathlib.Path) -> set[pathlib.PurePosixPath]:
+    """Gets the set of source paths in the given ELF file."""
+    paths = set()
+
+    with elf_path.open("rb") as f:
+        elf = ELFFile(f)
+        dwarf = elf.get_dwarf_info()
+
+        for cu in dwarf.iter_CUs():
+            line_program = dwarf.line_program_for_CU(cu)
+
+            for entry in line_program.get_entries():
+                state = entry.state
+                if state is None:
+                    continue
+
+                file_entry = line_program["file_entry"][state.file - 1]
+                directory = line_program["include_directory"][
+                    file_entry.dir_index - 1
+                ].decode("utf-8")
+                filename = file_entry.name.decode("utf-8")
+
+                paths.add(pathlib.PurePosixPath(f"{directory}/{filename}"))
+
+    return paths
+
+
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -353,10 +381,10 @@ def main():
 
     # Ensure we can load the correct SDK and toolchain
     sdks = load_sdks(args.sdks)
-    sdk, sdk_version = next(
+    sdk, sdk_and_version = next(
         (path, version) for path, version in sdks.items() if version == manifest["sdk"]
     )
-    sdk_name = sdk_version.split(":", 1)[0]
+    sdk_name, sdk_version = sdk_and_version.split(":", 1)
 
     toolchains = load_toolchains(args.toolchains)
     toolchain = next(
@@ -650,14 +678,17 @@ def main():
             )
         )
 
+    cmake_dir = args.build_dir / f"{base_project_name}_cmake"
+
     # Remove absolute paths from the build for reproducibility
+    remapped_paths = {
+        sdk.absolute(): f"/{sdk_name}_{sdk_version}",
+        args.build_dir.absolute(): "/src",
+        toolchain.absolute(): "/toolchain",
+        f"{cmake_dir.absolute()}/..": "/src",
+    }
     build_flags["C_FLAGS"] += [
-        f"-ffile-prefix-map={str(src.absolute())}={dst}"
-        for src, dst in {
-            sdk: f"/{sdk_name}",
-            args.build_dir: "/src",
-            toolchain: "/toolchain",
-        }.items()
+        f"-ffile-prefix-map={src}={dst}" for src, dst in remapped_paths.items()
     ]
 
     # Ensure deterministic linking order
@@ -671,7 +702,6 @@ def main():
         "-Wno-error=maybe-uninitialized",  # Linking fails due to a few SDK bugs
     ]
     build_flags["CXX_FLAGS"] = build_flags["C_FLAGS"]
-    cmake_dir = args.build_dir / f"{base_project_name}_cmake"
 
     # CMake expects a semicolon-separated list for the post-build command
     # fmt: off
@@ -721,6 +751,13 @@ def main():
 
     # Verify that --wrap linker flags don't wrap weak stubs
     validate_linker_wrap_symbols(map_file=output_artifact.with_suffix(".map"))
+
+    # Verify that all source paths in the ELF have been remapped
+    for path in get_elf_source_paths(output_artifact.with_suffix(".out")):
+        if not any(path.is_relative_to(r) for r in remapped_paths.values()):
+            raise RuntimeError(
+                f"Unreproducible source path in ELF: {path} is not relative to {remapped_paths}"
+            )
 
     # Read the metadata extracted from the source and build trees
     extracted_gbl_metadata = json.loads(
