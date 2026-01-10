@@ -79,21 +79,20 @@ RUN \
 # Now install remaining packages
 RUN \
     apt-get install -y --no-install-recommends \
-       git \
-       git-lfs \
-       jq \
-       yq \
-       libgl1 \
+       # For Simplicity Commander
        libglib2.0-0 \
        libpcre2-16-0 \
-       make \
+       # For SLC
        default-jre-headless \
-       patch \
+       cmake \
+       ninja-build \
+       # For build script
+       git \
        python3 \
        python3-pip \
        python3-virtualenv \
-       cmake \
-       ninja-build \
+       # For ZAP (temporary)
+       jq \
     && rm -rf /var/lib/apt/lists/*
 
 # Patch ZAP apack.json to add missing linux.aarch64 executable definitions
@@ -113,10 +112,10 @@ RUN \
     else \
         PYTHON_ARCH="x86_64"; \
     fi \
-    && curl -L -o /tmp/python3.10.tar.gz "https://github.com/astral-sh/python-build-standalone/releases/download/20251217/cpython-3.10.19%2B20251217-${PYTHON_ARCH}-unknown-linux-gnu-install_only.tar.gz" \
+    && curl -L -o python3.10.tar.gz "https://github.com/astral-sh/python-build-standalone/releases/download/20251217/cpython-3.10.19%2B20251217-${PYTHON_ARCH}-unknown-linux-gnu-install_only.tar.gz" \
     && mkdir -p /opt/slc_python \
-    && tar -xzf /tmp/python3.10.tar.gz -C /opt/slc_python --strip-components=1 \
-    && rm /tmp/python3.10.tar.gz \
+    && tar -xzf python3.10.tar.gz -C /opt/slc_python --strip-components=1 \
+    && rm python3.10.tar.gz \
     && apt-get update \
     && apt-get install -y --no-install-recommends clang default-jdk-headless \
     # JEP also does not build with setuptools>=69
