@@ -682,10 +682,9 @@ def main():
 
     # Remove absolute paths from the build for reproducibility
     remapped_paths = {
-        sdk.absolute(): f"/{sdk_name}_{sdk_version}",
         args.build_dir.absolute(): "/src",
-        toolchain.absolute(): "/toolchain",
         f"{cmake_dir.absolute()}/..": "/src",
+        "/home/buildengineer/jenkins/workspace/Gecko_Workspace/gsdk": f"/src/{sdk_name}_{sdk_version}",
     }
     build_flags["C_FLAGS"] += [
         f"-ffile-prefix-map={src}={dst}" for src, dst in remapped_paths.items()
