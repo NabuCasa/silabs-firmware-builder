@@ -17,10 +17,10 @@ import pathlib
 import argparse
 import contextlib
 import subprocess
-import multiprocessing
 from datetime import datetime, timezone
 
 from ruamel.yaml import YAML
+from elftools.elf.elffile import ELFFile
 
 
 LOGGER = logging.getLogger(__name__)
@@ -192,7 +192,7 @@ def subprocess_run_verbose(command: list[str], prefix: str, **kwargs) -> None:
         command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, **kwargs
     ) as proc:
         for line in proc.stdout:
-            LOGGER.info("[%s] %r", prefix, line.decode("utf-8").strip())
+            LOGGER.info("[%s] %s", prefix, line.decode("utf-8").strip())
 
     if proc.returncode != 0:
         LOGGER.error("[%s] Error: %s", prefix, proc.returncode)
@@ -233,6 +233,33 @@ def validate_linker_wrap_symbols(map_file: pathlib.Path) -> None:
             )
 
 
+def get_elf_source_paths(elf_path: pathlib.Path) -> set[pathlib.PurePosixPath]:
+    """Gets the set of source paths in the given ELF file."""
+    paths = set()
+
+    with elf_path.open("rb") as f:
+        elf = ELFFile(f)
+        dwarf = elf.get_dwarf_info()
+
+        for cu in dwarf.iter_CUs():
+            line_program = dwarf.line_program_for_CU(cu)
+
+            for entry in line_program.get_entries():
+                state = entry.state
+                if state is None:
+                    continue
+
+                file_entry = line_program["file_entry"][state.file - 1]
+                directory = line_program["include_directory"][
+                    file_entry.dir_index - 1
+                ].decode("utf-8")
+                filename = file_entry.name.decode("utf-8")
+
+                paths.add(pathlib.PurePosixPath(f"{directory}/{filename}"))
+
+    return paths
+
+
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -270,12 +297,6 @@ def main():
         type=pathlib.Path,
         default=None,
         help="Temporary build directory, generated based on the manifest by default",
-    )
-    parser.add_argument(
-        "--build-system",
-        choices=["cmake", "makefile"],
-        default="makefile",
-        help="Build system",
     )
     parser.add_argument(
         "--sdk",
@@ -346,10 +367,6 @@ def main():
     else:
         SLC = ["slc"]
 
-    if args.build_system != "makefile":
-        LOGGER.warning("Only the `makefile` build system is currently supported")
-        args.build_system = "makefile"
-
     if args.build_dir is None:
         args.build_dir = pathlib.Path(f"build/{time.time():.0f}_{args.manifest.stem}")
 
@@ -364,10 +381,10 @@ def main():
 
     # Ensure we can load the correct SDK and toolchain
     sdks = load_sdks(args.sdks)
-    sdk, sdk_version = next(
+    sdk, sdk_and_version = next(
         (path, version) for path, version in sdks.items() if version == manifest["sdk"]
     )
-    sdk_name = sdk_version.split(":", 1)[0]
+    sdk_name, sdk_version = sdk_and_version.split(":", 1)
 
     toolchains = load_toolchains(args.toolchains)
     toolchain = next(
@@ -502,7 +519,7 @@ def main():
             "--new-project",
             "--toolchain", "toolchain_gcc",
             "--sdk", sdk,
-            "--output-type", args.build_system,
+            "--output-type", "vscode",
         ],
         "slc generate",
         env={
@@ -661,74 +678,83 @@ def main():
             )
         )
 
+    cmake_dir = args.build_dir / f"{base_project_name}_cmake"
+
     # Remove absolute paths from the build for reproducibility
+    remapped_paths = {
+        args.build_dir.absolute(): "/src",
+        f"{cmake_dir.absolute()}/..": "/src",
+        "/home/buildengineer/jenkins/workspace/Gecko_Workspace/gsdk": f"/src/{sdk_name}_{sdk_version}",
+    }
     build_flags["C_FLAGS"] += [
-        f"-ffile-prefix-map={str(src.absolute())}={dst}"
-        for src, dst in {
-            sdk: f"/{sdk_name}",
-            args.build_dir: "/src",
-            toolchain: "/toolchain",
-        }.items()
+        f"-ffile-prefix-map={src}={dst}" for src, dst in remapped_paths.items()
     ]
 
     # Ensure deterministic linking order
     build_flags["LD_FLAGS"] += ["-Wl,--sort-section=name"]
 
     # Enable errors
-    build_flags["C_FLAGS"] += ["-Wall", "-Wextra", "-Werror"]
+    build_flags["C_FLAGS"] += [
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wno-error=maybe-uninitialized",  # Linking fails due to a few SDK bugs
+    ]
     build_flags["CXX_FLAGS"] = build_flags["C_FLAGS"]
 
-    output_artifact = (args.build_dir / "build/debug" / base_project_name).with_suffix(
-        ".gbl"
-    )
-
-    makefile = args.build_dir / f"{base_project_name}.Makefile"
-    makefile_contents = makefile.read_text()
-
-    # Inject a postbuild step into the makefile
-    makefile_contents += "\n"
-    makefile_contents += "post-build:\n"
-    makefile_contents += (
-        f"\t-{args.postbuild}"
-        f' postbuild "{(args.build_dir / base_project_name).resolve()}.slpb"'
-        f' --parameter build_dir:"{output_artifact.parent.resolve()}"'
-        f' --parameter sdk_dir:"{sdk}"'
-        "\n"
-    )
-    makefile_contents += "\t-@echo ' '"
-
-    for flag, flag_values in build_flags.items():
-        line = f"{flag:<17} = \n"
-        suffix = " ".join([f'"{m}"' for m in flag_values]) + "\n"
-        assert line in makefile_contents
-
-        makefile_contents = makefile_contents.replace(
-            line, f"{line.rstrip()} {suffix}\n"
-        )
-
-    makefile.write_text(makefile_contents)
-
+    # CMake expects a semicolon-separated list for the post-build command
     # fmt: off
-    subprocess_run_verbose(
-        [   
-            "make",
-            "-C", args.build_dir,
-            "-f", f"{base_project_name}.Makefile",
-            f"-j{multiprocessing.cpu_count()}",
-            f"ARM_GCC_DIR={toolchain}",
-            f"POST_BUILD_EXE={args.postbuild}",
-            "VERBOSE=1",
-        ],
-        "make",
-        env={
-            "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}",
-            "SOURCE_DATE_EPOCH": str(int(args.build_timestamp.timestamp())),
-        }
+    cmake_post_build_command = ";".join(
+        [
+            str(args.postbuild), "postbuild",
+            str((args.build_dir / base_project_name).resolve()) + ".slpb",
+            "--parameter", f"build_dir:{cmake_dir.resolve()}",
+            "--parameter", f"sdk_dir:{sdk}",
+        ]
     )
     # fmt: on
 
+    # fmt: off
+    subprocess_run_verbose(
+        [
+            "cmake",
+            "-G", "Ninja",
+            "-D", "CMAKE_TOOLCHAIN_FILE=toolchain.cmake",
+            "-D", f"CMAKE_C_FLAGS={' '.join(build_flags['C_FLAGS'])}",
+            "-D", f"CMAKE_CXX_FLAGS={' '.join(build_flags['CXX_FLAGS'])}",
+            "-D", f"CMAKE_EXE_LINKER_FLAGS={' '.join(build_flags['LD_FLAGS'])}",
+            "-D", f"post_build_command={cmake_post_build_command}",
+            ".",
+        ],
+        "cmake",
+        env={
+            "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}",
+            "ARM_GCC_DIR": toolchain,
+            "NINJA_EXE_PATH": shutil.which("ninja"),
+            "SOURCE_DATE_EPOCH": str(int(args.build_timestamp.timestamp())),
+        },
+        cwd=cmake_dir,
+    )
+    # fmt: on
+
+    subprocess_run_verbose(
+        ["cmake", "--build", "."],
+        "cmake --build",
+        cwd=cmake_dir,
+        env={
+            "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}",
+        },
+    )
+
+    output_artifact = (cmake_dir / base_project_name).with_suffix(".gbl")
+
     # Verify that --wrap linker flags don't wrap weak stubs
     validate_linker_wrap_symbols(map_file=output_artifact.with_suffix(".map"))
+
+    # Verify that all source paths in the ELF have been remapped
+    for path in get_elf_source_paths(output_artifact.with_suffix(".out")):
+        if not path.is_relative_to("/src"):
+            raise RuntimeError(f"Unreproducible source path in ELF: {path}")
 
     # Read the metadata extracted from the source and build trees
     extracted_gbl_metadata = json.loads(

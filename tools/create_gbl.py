@@ -214,7 +214,7 @@ def main():
     if "ezsp_version" in gbl_dynamic:
         gbl_dynamic.remove("ezsp_version")
 
-        elf = list((project_root / "build/debug/").glob("*.out"))[0]
+        elf = list(build_dir.glob("*.out"))[0]
         with elf.open("rb") as f:
             ember_version = read_elf_symbol(f, "emberVersion")
 
