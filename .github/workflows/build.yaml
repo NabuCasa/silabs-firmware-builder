@@ -146,6 +146,11 @@ jobs:
           docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${{ needs.check-container.outputs.tag_name }} \
             ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${{ needs.check-container.outputs.tag_name }}-amd64 \
             ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${{ needs.check-container.outputs.tag_name }}-arm64
+      - name: Tag with ref name
+        run: |
+          REF_TAG=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g')
+          docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${REF_TAG} \
+            ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${{ needs.check-container.outputs.tag_name }}
       - name: Tag as latest
         if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         run: |
