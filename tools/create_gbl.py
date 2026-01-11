@@ -296,7 +296,11 @@ def main():
             metadata["ot_rcp_version"] = openthread_config_h["PACKAGE_STRING"]
         elif ot_sdk_path.exists():
             openthread_package_info_h = parse_c_header_defines(ot_sdk_path.read_text())
-            metadata["ot_rcp_version"] = openthread_package_info_h["PACKAGE_VERSION"]
+            metadata["ot_rcp_version"] = (
+                openthread_package_info_h["PACKAGE_NAME"]
+                + "/"
+                + openthread_package_info_h["PACKAGE_VERSION"]
+            )
         else:
             raise FileNotFoundError("Could not find OpenThread package info")
 
