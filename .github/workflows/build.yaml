@@ -218,6 +218,7 @@ jobs:
   generate-manifest:
     name: Generate manifest
     needs: [check-container, build-firmwares]
+    if: ${{ !cancelled() && needs.build-firmwares.result == 'success' }}
     runs-on: ubuntu-latest
     container:
       image: ${{ needs.check-container.outputs.container_name }}
