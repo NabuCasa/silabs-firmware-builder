@@ -128,45 +128,58 @@ jobs:
   merge-container:
     name: Create multi-arch manifest
     needs: [check-container, build-container]
-    if: always()
+    if: needs.check-container.outputs.build_image == 'true'
     runs-on: ubuntu-latest
     permissions:
       packages: write
-    outputs:
-      container_name: ${{ needs.check-container.outputs.container_name }}
     steps:
-      - name: Check prerequisites
-        run: |
-          if [[ "${{ needs.check-container.result }}" != "success" ]]; then
-            exit 1
-          fi
       - name: Log in to the GitHub container registry
-        if: needs.build-container.result == 'success'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Docker Buildx
-        if: needs.build-container.result == 'success'
         uses: docker/setup-buildx-action@v3
       - name: Create and push manifest
-        if: needs.build-container.result == 'success'
         run: |
           docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${{ needs.check-container.outputs.tag_name }} \
             ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${{ needs.check-container.outputs.tag_name }}-amd64 \
             ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${{ needs.check-container.outputs.tag_name }}-arm64
       - name: Tag with ref name
-        if: needs.build-container.result == 'success'
         run: |
           REF_TAG=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g')
           docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${REF_TAG} \
             ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${{ needs.check-container.outputs.tag_name }}
       - name: Tag as latest
-        if: needs.build-container.result == 'success' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         run: |
           docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:latest \
             ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${{ needs.check-container.outputs.tag_name }}
+
+  container-ready:
+    name: Container ready
+    needs: [check-container, build-container, merge-container]
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      container_name: ${{ needs.check-container.outputs.container_name }}
+    steps:
+      - name: Check container is ready
+        run: |
+          if [[ "${{ needs.check-container.result }}" != "success" ]]; then
+            echo "check-container failed"
+            exit 1
+          fi
+
+          if [[ "${{ needs.check-container.outputs.build_image }}" == "true" ]]; then
+            if [[ "${{ needs.merge-container.result }}" != "success" ]]; then
+              echo "Container build required but merge-container failed"
+              exit 1
+            fi
+          fi
+
+          echo "Container is ready: ${{ needs.check-container.outputs.container_name }}"
 
 
   list-manifests:
@@ -182,10 +195,10 @@ jobs:
 
   build-firmwares:
     name: Firmware builder
-    needs: [list-manifests, merge-container]
+    needs: [list-manifests, container-ready]
     runs-on: ubuntu-latest
     container:
-      image: ${{ needs.merge-container.outputs.container_name }}
+      image: ${{ needs.container-ready.outputs.container_name }}
       options: --user root
     strategy:
       matrix:
@@ -227,10 +240,10 @@ jobs:
 
   generate-manifest:
     name: Generate manifest
-    needs: [merge-container, build-firmwares]
+    needs: [container-ready, build-firmwares]
     runs-on: ubuntu-latest
     container:
-      image: ${{ needs.merge-container.outputs.container_name }}
+      image: ${{ needs.container-ready.outputs.container_name }}
       options: --user root
     steps:
       - uses: actions/checkout@v4
