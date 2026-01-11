@@ -41,6 +41,7 @@ jobs:
       image_name: ${{ steps.read-repo-info.outputs.image_name }}
       container_name: ${{ steps.read-repo-info.outputs.container_name }}
       build_image: ${{ steps.read-repo-info.outputs.build_image }}
+      build_matrix: ${{ steps.read-repo-info.outputs.build_matrix }}
     steps:
       - uses: actions/checkout@v4
       - name: Log in to the GitHub container registry
@@ -90,31 +91,36 @@ jobs:
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
           echo "container_name=${{ env.REGISTRY }}/$image_name:$tag_name" >> $GITHUB_OUTPUT
 
+          if [[ "$build_image" == "true" ]]; then
+            echo 'build_matrix=[{"arch":"amd64","runner":"ubuntu-24.04"},{"arch":"arm64","runner":"ubuntu-24.04-arm"}]' >> $GITHUB_OUTPUT
+          else
+            echo 'build_matrix=[{"arch":"skipped","runner":"ubuntu-latest"}]' >> $GITHUB_OUTPUT
+          fi
+
   build-container:
     name: Build container (${{ matrix.arch }})
     needs: check-container
-    if: needs.check-container.outputs.build_image == 'true'
     runs-on: ${{ matrix.runner }}
     permissions:
       packages: write
     strategy:
       matrix:
-        include:
-          - arch: amd64
-            runner: ubuntu-24.04
-          - arch: arm64
-            runner: ubuntu-24.04-arm
+        include: ${{ fromJson(needs.check-container.outputs.build_matrix) }}
     steps:
       - uses: actions/checkout@v4
+        if: matrix.arch != 'skipped'
       - name: Log in to the GitHub container registry
+        if: matrix.arch != 'skipped'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Docker Buildx
+        if: matrix.arch != 'skipped'
         uses: docker/setup-buildx-action@v3
       - name: Build and Push
+        if: matrix.arch != 'skipped'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -128,34 +134,40 @@ jobs:
   merge-container:
     name: Create multi-arch manifest
     needs: [check-container, build-container]
-    if: ${{ needs.build-container.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       packages: write
+    outputs:
+      container_name: ${{ needs.check-container.outputs.container_name }}
     steps:
       - name: Log in to the GitHub container registry
+        if: needs.check-container.outputs.build_image == 'true'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Docker Buildx
+        if: needs.check-container.outputs.build_image == 'true'
         uses: docker/setup-buildx-action@v3
       - name: Create and push manifest
+        if: needs.check-container.outputs.build_image == 'true'
         run: |
           docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${{ needs.check-container.outputs.tag_name }} \
             ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${{ needs.check-container.outputs.tag_name }}-amd64 \
             ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${{ needs.check-container.outputs.tag_name }}-arm64
       - name: Tag with ref name
+        if: needs.check-container.outputs.build_image == 'true'
         run: |
           REF_TAG=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g')
           docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${REF_TAG} \
             ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${{ needs.check-container.outputs.tag_name }}
       - name: Tag as latest
-        if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && needs.check-container.outputs.build_image == 'true'
         run: |
           docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:latest \
             ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${{ needs.check-container.outputs.tag_name }}
+
 
 
   list-manifests:
@@ -171,11 +183,10 @@ jobs:
 
   build-firmwares:
     name: Firmware builder
-    needs: [list-manifests, check-container, merge-container]
-    if: ${{ !cancelled() && (needs.check-container.outputs.build_image == 'false' || needs.merge-container.result == 'success') }}
+    needs: [list-manifests, merge-container]
     runs-on: ubuntu-latest
     container:
-      image: ${{ needs.check-container.outputs.container_name }}
+      image: ${{ needs.merge-container.outputs.container_name }}
       options: --user root
     strategy:
       matrix:
@@ -217,11 +228,10 @@ jobs:
 
   generate-manifest:
     name: Generate manifest
-    needs: [check-container, build-firmwares]
-    if: ${{ !cancelled() && needs.build-firmwares.result == 'success' }}
+    needs: [merge-container, build-firmwares]
     runs-on: ubuntu-latest
     container:
-      image: ${{ needs.check-container.outputs.container_name }}
+      image: ${{ needs.merge-container.outputs.container_name }}
       options: --user root
     steps:
       - uses: actions/checkout@v4
