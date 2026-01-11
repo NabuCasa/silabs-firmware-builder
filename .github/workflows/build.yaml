@@ -217,22 +217,27 @@ jobs:
 
   build-status:
     name: Build status
-    needs: [build-firmwares]
+    needs: [check-container, build-firmwares]
     if: always()
     runs-on: ubuntu-latest
     outputs:
-      result: ${{ needs.build-firmwares.result }}
+      container_name: ${{ needs.check-container.outputs.container_name }}
     steps:
       - run: |
-          echo "Build firmwares result: ${{ needs.build-firmwares.result }}"
+          if [[ "${{ needs.check-container.result }}" != "success" ]]; then
+            exit 1
+          fi
+
+          if [[ "${{ needs.build-firmwares.result }}" != "success" ]]; then
+            exit 1
+          fi
 
   generate-manifest:
     name: Generate manifest
-    needs: [check-container, build-status]
-    if: needs.build-status.outputs.result == 'success'
+    needs: [build-status]
     runs-on: ubuntu-latest
     container:
-      image: ${{ needs.check-container.outputs.container_name }}
+      image: ${{ needs.build-status.outputs.container_name }}
       options: --user root
     steps:
       - uses: actions/checkout@v4
