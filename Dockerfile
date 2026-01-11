@@ -123,8 +123,8 @@ RUN \
        jep==4.1.1 jinja2==3.1.6 pyyaml==6.0.3 \
     && mkdir -p /opt/slc_python/jep \
     # Create symlinks for JEP shared library and Python shared library
-    && ln -sf /opt/slc_python/lib/python3.10/site-packages/jep/jep.cpython-310-*-linux-gnu.so /opt/slc_python/jep/jep.so \
     && ln -sf /opt/slc_python/lib/libpython3.10.so.1.0 /opt/slc_python/bin/libpython3.10.so.1.0 \
+    && ln -sf /opt/slc_python/lib/python3.10/site-packages/jep/jep.cpython-310-*-linux-gnu.so /opt/slc_python/jep/jep.so \
     && apt-get purge -y clang default-jdk-headless \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/* \
