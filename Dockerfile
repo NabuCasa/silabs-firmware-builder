@@ -79,21 +79,18 @@ RUN \
 # Now install remaining packages
 RUN \
     apt-get install -y --no-install-recommends \
-       git \
-       git-lfs \
-       jq \
-       yq \
-       libgl1 \
+       # For Simplicity Commander
        libglib2.0-0 \
        libpcre2-16-0 \
-       make \
+       # For SLC
        default-jre-headless \
-       patch \
-       python3 \
-       python3-pip \
-       python3-virtualenv \
        cmake \
        ninja-build \
+       # For build script
+       git \
+       # For ZAP (temporary)
+       jq \
+    && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/bin" sh \
     && rm -rf /var/lib/apt/lists/*
 
 # Patch ZAP apack.json to add missing linux.aarch64 executable definitions
@@ -102,30 +99,32 @@ RUN jq '.executable["zap:linux.aarch64"]     = {"exe": "zap",     "optional": tr
       | .executable["zap-cli:linux.aarch64"] = {"exe": "zap-cli", "optional": true}' \
     /opt/zap/apack.json > /tmp/apack.json && mv /tmp/apack.json /opt/zap/apack.json
 
+# uv will try to install into /root/, which is not accessible from the builder user
+ENV UV_PYTHON_INSTALL_DIR=/opt/pythons
+
 # slc-cli hardcodes architectures internally and does not properly support ARM64 despite
 # actually being fully compatible with it. It requires Python via JEP just for Jinja2
 # template generation so we can install a standalone Python 3.10 and use that for JEP.
 # For consistency across architectures, we compile and symlink on x86-64 even though it
 # is not necessary.
 RUN \
-    if [ "$TARGETARCH" = "arm64" ]; then \
-        PYTHON_ARCH="aarch64"; \
-    else \
-        PYTHON_ARCH="x86_64"; \
-    fi \
-    && curl -L -o /tmp/python3.10.tar.gz "https://github.com/astral-sh/python-build-standalone/releases/download/20251217/cpython-3.10.19%2B20251217-${PYTHON_ARCH}-unknown-linux-gnu-install_only.tar.gz" \
-    && mkdir -p /opt/slc_python \
-    && tar -xzf /tmp/python3.10.tar.gz -C /opt/slc_python --strip-components=1 \
-    && rm /tmp/python3.10.tar.gz \
-    && apt-get update \
+    apt-get update \
     && apt-get install -y --no-install-recommends clang default-jdk-headless \
-    # JEP also does not build with setuptools>=69
-    && /opt/slc_python/bin/python3.10 -m pip install --no-cache-dir setuptools==68.2.2 wheel==0.45.1 \
-    && JAVA_HOME=/usr/lib/jvm/default-java LIBRARY_PATH=/opt/slc_python/lib /opt/slc_python/bin/python3.10 -m pip install --no-cache-dir --no-build-isolation jep==4.1.1 jinja2==3.1.6 pyyaml==6.0.3 \
+    && uv python install 3.10 --no-cache \
+    && cp -R /opt/pythons/cpython-3.10.* /opt/slc_python  \
+    && echo "setuptools<69" > /opt/slc_python/uv_constraints.txt \
+    && JAVA_HOME=/usr/lib/jvm/default-java \
+       LIBRARY_PATH=/opt/slc_python/lib \
+       uv pip install \
+       --python /opt/slc_python \
+       --break-system-packages \
+       --build-constraint /opt/slc_python/uv_constraints.txt \
+       --no-cache \
+       jep==4.1.1 jinja2==3.1.6 pyyaml==6.0.3 \
     && mkdir -p /opt/slc_python/jep \
     # Create symlinks for JEP shared library and Python shared library
-    && ln -sf /opt/slc_python/lib/python3.10/site-packages/jep/jep.cpython-310-${PYTHON_ARCH}-linux-gnu.so /opt/slc_python/jep/jep.so \
     && ln -sf /opt/slc_python/lib/libpython3.10.so.1.0 /opt/slc_python/bin/libpython3.10.so.1.0 \
+    && ln -sf /opt/slc_python/lib/python3.10/site-packages/jep/jep.cpython-310-*-linux-gnu.so /opt/slc_python/jep/jep.so \
     && apt-get purge -y clang default-jdk-headless \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/* \
@@ -136,8 +135,8 @@ RUN \
 COPY requirements.txt /tmp/
 
 RUN \
-    virtualenv /opt/venv \
-    && /opt/venv/bin/pip install -r /tmp/requirements.txt \
+    uv venv -p 3.13 /opt/venv --no-cache \
+    && uv pip install --python /opt/venv -r /tmp/requirements.txt \
     && rm /tmp/requirements.txt
 
 # Signal to the firmware builder script that we are running within Docker
