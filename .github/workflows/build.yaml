@@ -221,7 +221,7 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     outputs:
-      success: ${{ needs.build-firmwares.result == 'success' }}
+      result: ${{ needs.build-firmwares.result }}
     steps:
       - run: |
           echo "Build firmwares result: ${{ needs.build-firmwares.result }}"
@@ -229,7 +229,7 @@ jobs:
   generate-manifest:
     name: Generate manifest
     needs: [check-container, build-status]
-    if: needs.build-status.outputs.success == 'true'
+    if: needs.build-status.outputs.result == 'success'
     runs-on: ubuntu-latest
     container:
       image: ${{ needs.check-container.outputs.container_name }}
