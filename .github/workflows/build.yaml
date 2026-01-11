@@ -215,10 +215,21 @@ jobs:
           compression-level: 9
           if-no-files-found: error
 
+  build-status:
+    name: Build status
+    needs: [build-firmwares]
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      success: ${{ needs.build-firmwares.result == 'success' }}
+    steps:
+      - run: |
+          echo "Build firmwares result: ${{ needs.build-firmwares.result }}"
+
   generate-manifest:
     name: Generate manifest
-    needs: [check-container, build-firmwares]
-    if: ${{ !cancelled() && needs.build-firmwares.result == 'success' }}
+    needs: [check-container, build-status]
+    if: needs.build-status.outputs.success == 'true'
     runs-on: ubuntu-latest
     container:
       image: ${{ needs.check-container.outputs.container_name }}
