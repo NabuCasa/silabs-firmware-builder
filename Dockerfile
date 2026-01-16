@@ -75,8 +75,7 @@ RUN curl -L -O --compressed -H 'User-Agent: Firefox/143' -H 'Accept-Language: *'
 # slc-cli hardcodes architectures internally and does not properly support ARM64 despite
 # actually being fully compatible with it. It requires Python via JEP just for Jinja2
 # template generation so we can install a standalone Python 3.10 and use that for JEP.
-# For consistency across architectures, we compile and symlink on x86-64 even though it
-# is not necessary.
+# For consistency across architectures, we compile on x86-64 even though it is not necessary.
 FROM debian:trixie AS slc-python
 RUN \
     apt-get update \
@@ -109,11 +108,20 @@ RUN \
     && cp /out/lib/python3.10/site-packages/jep/*.py /out/jep/ \
     && cp /out/lib/python3.10/site-packages/jep/jep.cpython-310-*-linux-gnu.so /out/jep/jep.so
 
+# Python virtual environment for the firmware builder script
+FROM debian:trixie AS builder-venv
+COPY requirements.txt /tmp/
+RUN \
+    apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/bin" sh \
+    && uv venv -p 3.13 /out --no-cache \
+    && uv pip install --python /out -r /tmp/requirements.txt
+
 # ============ Final image ============
 
 FROM debian:trixie
 
-ARG TARGETARCH
 ARG DEBIAN_FRONTEND=noninteractive
 ARG USERNAME=builder
 ARG USER_UID=1000
@@ -131,13 +139,12 @@ COPY --from=gcc-embedded-toolchain /out /opt
 COPY --from=commander /out /opt
 COPY --from=slc-cli /out /opt
 COPY --from=slc-python /out /opt/slc_cli/bin/slc-cli/developer/adapter_packs/python
+COPY --from=builder-venv /out /opt/venv
 
 # Install runtime packages
 RUN \
     apt-get update \
     && apt-get install -y --no-install-recommends \
-       ca-certificates \
-       curl \
        # For Simplicity Commander
        libglib2.0-0 \
        libpcre2-16-0 \
@@ -147,19 +154,7 @@ RUN \
        ninja-build \
        # For build script
        git \
-    && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/bin" sh \
     && rm -rf /var/lib/apt/lists/*
-
-# Set up Python virtual environment for firmware builder script
-COPY requirements.txt /tmp/
-
-# uv will try to install into /root/, which is not accessible from the builder user
-ENV UV_PYTHON_INSTALL_DIR=/opt/pythons
-
-RUN \
-    uv venv -p 3.13 /opt/venv --no-cache \
-    && uv pip install --python /opt/venv -r /tmp/requirements.txt \
-    && rm /tmp/requirements.txt
 
 # Signal to the firmware builder script that we are running within Docker
 ENV SILABS_FIRMWARE_BUILD_CONTAINER=1
