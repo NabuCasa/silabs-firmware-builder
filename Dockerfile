@@ -113,8 +113,8 @@ RUN \
     apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl \
     && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/bin" sh \
-    && uv venv -p 3.13 /out --no-cache \
-    && uv pip install --python /out -r /tmp/requirements.txt
+    && UV_PYTHON_INSTALL_DIR=/opt/pythons uv venv -p 3.13 /opt/venv --no-cache \
+    && uv pip install --python /opt/venv -r /tmp/requirements.txt
 
 # ============ Final image ============
 
@@ -128,7 +128,8 @@ COPY --from=gcc-embedded-toolchain /out /opt
 COPY --from=commander /out /opt
 COPY --from=slc-cli /out /opt
 COPY --from=slc-python /out /opt/slc_cli/bin/slc-cli/developer/adapter_packs/python
-COPY --from=builder-venv /out /opt/venv
+COPY --from=builder-venv /opt/venv /opt/venv
+COPY --from=builder-venv /opt/pythons /opt/pythons
 
 # Install runtime packages
 RUN \
