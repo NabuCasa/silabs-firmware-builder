@@ -62,6 +62,36 @@ FROM base-downloader AS slc-cli
 RUN curl -L -O --compressed -H 'User-Agent: Firefox/143' -H 'Accept-Language: *' https://www.silabs.com/documents/public/software/slc_cli_linux.zip \
     && unzip -q -d /out slc_cli_linux.zip
 
+# slc-cli hardcodes architectures internally and does not properly support ARM64 despite
+# actually being fully compatible with it. It requires Python via JEP just for Jinja2
+# template generation so we can install a standalone Python 3.10 and use that for JEP.
+# For consistency across architectures, we compile and symlink on x86-64 even though it
+# is not necessary.
+FROM debian:trixie AS slc-python
+RUN \
+    apt-get update \
+    && apt-get install -y --no-install-recommends \
+       ca-certificates \
+       curl \
+       clang \
+       default-jdk-headless \
+    && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/bin" sh \
+    && uv python install 3.10 --no-cache \
+    && cp -R /root/.local/share/uv/python/cpython-3.10.* /out \
+    && echo "setuptools<69" > /out/uv_constraints.txt \
+    && JAVA_HOME=/usr/lib/jvm/default-java \
+       LIBRARY_PATH=/out/lib \
+       uv pip install \
+       --python /out \
+       --break-system-packages \
+       --build-constraint /out/uv_constraints.txt \
+       --no-cache \
+       jep==4.1.1 jinja2==3.1.6 pyyaml==6.0.3 \
+    && mkdir -p /out/jep \
+    # Create symlinks for JEP shared library and Python shared library
+    && ln -sf /out/lib/libpython3.10.so.1.0 /out/bin/libpython3.10.so.1.0 \
+    && ln -sf /out/lib/python3.10/site-packages/jep/jep.cpython-310-*-linux-gnu.so /out/jep/jep.so
+
 # ============ Final image ============
 
 FROM debian:trixie
@@ -83,6 +113,7 @@ COPY --from=zap /out /opt/zap
 COPY --from=toolchain /out /opt
 COPY --from=commander /out /opt
 COPY --from=slc-cli /out /opt
+COPY --from=slc-python /out /opt/slc_python
 
 # Install runtime packages
 RUN \
@@ -110,40 +141,14 @@ RUN jq '.executable["zap:linux.aarch64"]     = {"exe": "zap",     "optional": tr
       | .executable["zap-cli:linux.aarch64"] = {"exe": "zap-cli", "optional": true}' \
     /opt/zap/apack.json > /tmp/apack.json && mv /tmp/apack.json /opt/zap/apack.json
 
-# uv will try to install into /root/, which is not accessible from the builder user
-ENV UV_PYTHON_INSTALL_DIR=/opt/pythons
-
-# slc-cli hardcodes architectures internally and does not properly support ARM64 despite
-# actually being fully compatible with it. It requires Python via JEP just for Jinja2
-# template generation so we can install a standalone Python 3.10 and use that for JEP.
-# For consistency across architectures, we compile and symlink on x86-64 even though it
-# is not necessary.
-RUN \
-    apt-get update \
-    && apt-get install -y --no-install-recommends clang default-jdk-headless \
-    && uv python install 3.10 --no-cache \
-    && cp -R /opt/pythons/cpython-3.10.* /opt/slc_python  \
-    && echo "setuptools<69" > /opt/slc_python/uv_constraints.txt \
-    && JAVA_HOME=/usr/lib/jvm/default-java \
-       LIBRARY_PATH=/opt/slc_python/lib \
-       uv pip install \
-       --python /opt/slc_python \
-       --break-system-packages \
-       --build-constraint /opt/slc_python/uv_constraints.txt \
-       --no-cache \
-       jep==4.1.1 jinja2==3.1.6 pyyaml==6.0.3 \
-    && mkdir -p /opt/slc_python/jep \
-    # Create symlinks for JEP shared library and Python shared library
-    && ln -sf /opt/slc_python/lib/libpython3.10.so.1.0 /opt/slc_python/bin/libpython3.10.so.1.0 \
-    && ln -sf /opt/slc_python/lib/python3.10/site-packages/jep/jep.cpython-310-*-linux-gnu.so /opt/slc_python/jep/jep.so \
-    && apt-get purge -y clang default-jdk-headless \
-    && apt-get autoremove -y \
-    && rm -rf /var/lib/apt/lists/* \
-    # Remove bundled Python from slc-cli (we provide our own via STUDIO_PYTHON3_PATH)
-    && rm -rf /opt/slc_cli/bin/slc-cli/developer/adapter_packs/python
+# Remove bundled Python from slc-cli (we provide our own via STUDIO_PYTHON3_PATH)
+RUN rm -rf /opt/slc_cli/bin/slc-cli/developer/adapter_packs/python
 
 # Set up Python virtual environment for firmware builder script
 COPY requirements.txt /tmp/
+
+# uv will try to install into /root/, which is not accessible from the builder user
+ENV UV_PYTHON_INSTALL_DIR=/opt/pythons
 
 RUN \
     uv venv -p 3.13 /opt/venv --no-cache \
