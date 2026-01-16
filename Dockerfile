@@ -1,12 +1,11 @@
-FROM debian:trixie AS base-downloader
+FROM alpine:3.23 AS base-downloader
 ARG TARGETARCH
 
 # Simplicity SDK includes unicode characters in folder names and fails to unzip
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    bzip2 ca-certificates curl unzip xz-utils
+RUN apk add --no-cache bzip2 ca-certificates curl unzip xz
 
 # ============ Parallel download stages ============
 
@@ -24,7 +23,7 @@ RUN curl -o sdk.zip -L https://github.com/SiliconLabs/gecko_sdk/releases/downloa
 FROM base-downloader AS zap
 ARG TARGETARCH
 RUN \
-    apt-get install -y --no-install-recommends jq \
+    apk add --no-cache jq \
     && if [ "$TARGETARCH" = "arm64" ]; then \
         ARCH="arm64"; \
     else \
@@ -76,7 +75,7 @@ RUN curl -L -O --compressed -H 'User-Agent: Firefox/143' -H 'Accept-Language: *'
 # actually being fully compatible with it. It requires Python via JEP just for Jinja2
 # template generation so we can install a standalone Python 3.10 and use that for JEP.
 # For consistency across architectures, we compile on x86-64 even though it is not necessary.
-FROM debian:trixie AS slc-python
+FROM debian:trixie-slim AS slc-python
 RUN \
     apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -109,7 +108,7 @@ RUN \
     && cp /out/lib/python3.10/site-packages/jep/jep.cpython-310-*-linux-gnu.so /out/jep/jep.so
 
 # Python virtual environment for the firmware builder script
-FROM debian:trixie AS builder-venv
+FROM debian:trixie-slim AS builder-venv
 COPY requirements.txt /tmp/
 RUN \
     apt-get update \
@@ -120,16 +119,11 @@ RUN \
 
 # ============ Final image ============
 
-FROM debian:trixie
+FROM alpine:3.23
 
-ARG DEBIAN_FRONTEND=noninteractive
 ARG USERNAME=builder
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
-
-# Simplicity SDK includes unicode characters in folder names
-ENV LANG=C.UTF-8
-ENV LC_ALL=C.UTF-8
 
 # Copy all downloaded artifacts from parallel stages
 COPY --from=simplicity-sdk-v2025.6.2 /out /simplicity_sdk_2025.6.2
@@ -142,19 +136,20 @@ COPY --from=slc-python /out /opt/slc_cli/bin/slc-cli/developer/adapter_packs/pyt
 COPY --from=builder-venv /out /opt/venv
 
 # Install runtime packages
-RUN \
-    apt-get update \
-    && apt-get install -y --no-install-recommends \
+RUN apk add --no-cache \
+       # For glibc binaries (toolchain, commander, python)
+       gcompat \
+       libstdc++ \
        # For Simplicity Commander
-       libglib2.0-0 \
-       libpcre2-16-0 \
+       glib \
+       pcre2 \
+       zlib \
        # For SLC
-       default-jre-headless \
+       openjdk21-jre-headless \
        cmake \
-       ninja-build \
+       ninja \
        # For build script
-       git \
-    && rm -rf /var/lib/apt/lists/*
+       git
 
 # Signal to the firmware builder script that we are running within Docker
 ENV SILABS_FIRMWARE_BUILD_CONTAINER=1
@@ -173,8 +168,8 @@ exec java \
 EOF
 
 # Create the user
-RUN groupadd --gid $USER_GID $USERNAME \
-    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME
+RUN addgroup -g $USER_GID $USERNAME \
+    && adduser -u $USER_UID -G $USERNAME -D $USERNAME
 
 USER $USERNAME
 WORKDIR /repo
