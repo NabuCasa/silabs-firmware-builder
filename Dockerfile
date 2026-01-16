@@ -11,12 +11,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ============ Parallel download stages ============
 
 # Simplicity SDK 2025.6.2
-FROM base-downloader AS simplicity-sdk
+FROM base-downloader AS simplicity-sdk-v2025.6.2
 RUN curl -o sdk.zip -L https://github.com/SiliconLabs/simplicity_sdk/releases/download/v2025.6.2/simplicity-sdk.zip \
     && unzip -q -d /out sdk.zip
 
 # Gecko SDK 4.5.0
-FROM base-downloader AS gecko-sdk
+FROM base-downloader AS gecko-sdk-v4.5.0
 RUN curl -o sdk.zip -L https://github.com/SiliconLabs/gecko_sdk/releases/download/v4.5.0/gecko-sdk.zip \
     && unzip -q -d /out sdk.zip
 
@@ -39,7 +39,7 @@ RUN \
         /out/apack.json > /tmp/apack.json && mv /tmp/apack.json /out/apack.json
 
 # GCC Embedded Toolchain 12.2.rel1
-FROM base-downloader AS toolchain
+FROM base-downloader AS gcc-embedded-toolchain
 ARG TARGETARCH
 RUN \
     if [ "$TARGETARCH" = "arm64" ]; then \
@@ -117,10 +117,10 @@ ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
 # Copy all downloaded artifacts from parallel stages
-COPY --from=simplicity-sdk /out /simplicity_sdk_2025.6.2
-COPY --from=gecko-sdk /out /gecko_sdk_4.5.0
+COPY --from=simplicity-sdk-v2025.6.2 /out /simplicity_sdk_2025.6.2
+COPY --from=gecko-sdk-v4.5.0 /out /gecko_sdk_4.5.0
 COPY --from=zap /out /opt/zap
-COPY --from=toolchain /out /opt
+COPY --from=gcc-embedded-toolchain /out /opt
 COPY --from=commander /out /opt
 COPY --from=slc-cli /out /opt
 COPY --from=slc-python /out /opt/slc_python
