@@ -6,8 +6,7 @@ ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    bzip2 ca-certificates curl unzip xz-utils \
-    && rm -rf /var/lib/apt/lists/*
+    bzip2 ca-certificates curl unzip xz-utils
 
 # ============ Parallel download stages ============
 
@@ -25,7 +24,7 @@ RUN curl -o sdk.zip -L https://github.com/SiliconLabs/gecko_sdk/releases/downloa
 FROM base-downloader AS zap
 ARG TARGETARCH
 RUN \
-    apt-get update && apt-get install -y --no-install-recommends jq \
+    apt-get install -y --no-install-recommends jq \
     && if [ "$TARGETARCH" = "arm64" ]; then \
         ARCH="arm64"; \
     else \
