@@ -1,5 +1,10 @@
 FROM debian:trixie AS base-downloader
 ARG TARGETARCH
+
+# Simplicity SDK includes unicode characters in folder names and fails to unzip
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bzip2 ca-certificates curl unzip xz-utils \
     && rm -rf /var/lib/apt/lists/*
@@ -108,7 +113,7 @@ ARG USERNAME=builder
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
-# Simplicity SDK includes unicode characters in folder names and fails to unzip
+# Simplicity SDK includes unicode characters in folder names
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
