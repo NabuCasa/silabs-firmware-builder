@@ -87,20 +87,27 @@ RUN \
        default-jdk-headless \
     && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/bin" sh \
     && uv python install 3.10 --no-cache \
-    && cp -R /root/.local/share/uv/python/cpython-3.10.* /out \
-    && echo "setuptools<69" > /out/uv_constraints.txt \
+    && mkdir -p /out/bin /out/lib \
+    # Copy Python binary and stdlib
+    && cp /root/.local/share/uv/python/cpython-3.10.*/bin/python3.10 /out/bin/python3 \
+    && cp -R /root/.local/share/uv/python/cpython-3.10.*/lib/libpython3.10.so.1.0 /out/lib/ \
+    && cp -R /root/.local/share/uv/python/cpython-3.10.*/lib/python3.10 /out/lib/ \
+    # Python binary needs libpython in the same directory
+    && cp /out/lib/libpython3.10.so.1.0 /out/bin/ \
+    # Install JEP and dependencies (setuptools<69 required for JEP build)
+    && echo "setuptools<69" > /tmp/uv_constraints.txt \
     && JAVA_HOME=/usr/lib/jvm/default-java \
        LIBRARY_PATH=/out/lib \
        uv pip install \
-       --python /out \
+       --python /out/bin/python3 \
        --break-system-packages \
-       --build-constraint /out/uv_constraints.txt \
+       --build-constraint /tmp/uv_constraints.txt \
        --no-cache \
        jep==4.1.1 jinja2==3.1.6 pyyaml==6.0.3 \
+    # Mirror expected slc-cli folder structure
     && mkdir -p /out/jep \
-    # Create symlinks for JEP shared library and Python shared library
-    && ln -sf /out/lib/libpython3.10.so.1.0 /out/bin/libpython3.10.so.1.0 \
-    && ln -sf /out/lib/python3.10/site-packages/jep/jep.cpython-310-*-linux-gnu.so /out/jep/jep.so
+    && cp /out/lib/python3.10/site-packages/jep/*.py /out/jep/ \
+    && cp /out/lib/python3.10/site-packages/jep/jep.cpython-310-*-linux-gnu.so /out/jep/jep.so
 
 # ============ Final image ============
 
@@ -123,7 +130,7 @@ COPY --from=zap /out /opt/zap
 COPY --from=gcc-embedded-toolchain /out /opt
 COPY --from=commander /out /opt
 COPY --from=slc-cli /out /opt
-COPY --from=slc-python /out /opt/slc_python
+COPY --from=slc-python /out /opt/slc_cli/bin/slc-cli/developer/adapter_packs/python
 
 # Install runtime packages
 RUN \
@@ -141,9 +148,6 @@ RUN \
     && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/bin" sh \
     && rm -rf /var/lib/apt/lists/*
 
-# Remove bundled Python from slc-cli (we provide our own via STUDIO_PYTHON3_PATH)
-RUN rm -rf /opt/slc_cli/bin/slc-cli/developer/adapter_packs/python
-
 # Set up Python virtual environment for firmware builder script
 COPY requirements.txt /tmp/
 
@@ -159,7 +163,6 @@ RUN \
 ENV SILABS_FIRMWARE_BUILD_CONTAINER=1
 ENV PATH="$PATH:/opt/commander-cli:/opt/slc_cli"
 ENV STUDIO_ADAPTER_PACK_PATH="/opt/zap"
-ENV STUDIO_PYTHON3_PATH="/opt/slc_python"
 
 # We can run slc-cli without the native wrapper. For consistency across architectures,
 # we create the same wrapper script on both.
