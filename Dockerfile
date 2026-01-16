@@ -20,13 +20,19 @@ RUN curl -o sdk.zip -L https://github.com/SiliconLabs/gecko_sdk/releases/downloa
 FROM base-downloader AS zap
 ARG TARGETARCH
 RUN \
-    if [ "$TARGETARCH" = "arm64" ]; then \
+    apt-get update && apt-get install -y --no-install-recommends jq \
+    && if [ "$TARGETARCH" = "arm64" ]; then \
         ARCH="arm64"; \
     else \
         ARCH="x64"; \
     fi \
     && curl -o zap.zip -L "https://github.com/project-chip/zap/releases/download/v2025.12.02/zap-linux-${ARCH}.zip" \
-    && unzip -q -d /out zap.zip
+    && unzip -q -d /out zap.zip \
+    # Patch ZAP apack.json to add missing linux.aarch64 executable definitions
+    # Remove once https://github.com/project-chip/zap/pull/1677 is merged
+    && jq '.executable["zap:linux.aarch64"]     = {"exe": "zap",     "optional": true} \
+         | .executable["zap-cli:linux.aarch64"] = {"exe": "zap-cli", "optional": true}' \
+        /out/apack.json > /tmp/apack.json && mv /tmp/apack.json /out/apack.json
 
 # GCC Embedded Toolchain 12.2.rel1
 FROM base-downloader AS toolchain
@@ -119,8 +125,6 @@ COPY --from=slc-python /out /opt/slc_python
 RUN \
     apt-get update \
     && apt-get install -y --no-install-recommends \
-       ca-certificates \
-       curl \
        # For Simplicity Commander
        libglib2.0-0 \
        libpcre2-16-0 \
@@ -130,16 +134,8 @@ RUN \
        ninja-build \
        # For build script
        git \
-       # For ZAP (temporary)
-       jq \
     && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/bin" sh \
     && rm -rf /var/lib/apt/lists/*
-
-# Patch ZAP apack.json to add missing linux.aarch64 executable definitions
-# Remove once https://github.com/project-chip/zap/pull/1677 is merged
-RUN jq '.executable["zap:linux.aarch64"]     = {"exe": "zap",     "optional": true} \
-      | .executable["zap-cli:linux.aarch64"] = {"exe": "zap-cli", "optional": true}' \
-    /opt/zap/apack.json > /tmp/apack.json && mv /tmp/apack.json /opt/zap/apack.json
 
 # Remove bundled Python from slc-cli (we provide our own via STUDIO_PYTHON3_PATH)
 RUN rm -rf /opt/slc_cli/bin/slc-cli/developer/adapter_packs/python
