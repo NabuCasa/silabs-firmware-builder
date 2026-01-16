@@ -1,3 +1,69 @@
+FROM debian:trixie AS base-downloader
+ARG TARGETARCH
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bzip2 ca-certificates curl unzip xz-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+# ============ Parallel download stages ============
+
+# Simplicity SDK 2025.6.2
+FROM base-downloader AS simplicity-sdk
+RUN curl -o sdk.zip -L https://github.com/SiliconLabs/simplicity_sdk/releases/download/v2025.6.2/simplicity-sdk.zip \
+    && unzip -q -d /out sdk.zip
+
+# Gecko SDK 4.5.0
+FROM base-downloader AS gecko-sdk
+RUN curl -o sdk.zip -L https://github.com/SiliconLabs/gecko_sdk/releases/download/v4.5.0/gecko-sdk.zip \
+    && unzip -q -d /out sdk.zip
+
+# ZCL Advanced Platform (ZAP) v2025.12.02
+FROM base-downloader AS zap
+ARG TARGETARCH
+RUN \
+    if [ "$TARGETARCH" = "arm64" ]; then \
+        ARCH="arm64"; \
+    else \
+        ARCH="x64"; \
+    fi \
+    && curl -o zap.zip -L "https://github.com/project-chip/zap/releases/download/v2025.12.02/zap-linux-${ARCH}.zip" \
+    && unzip -q -d /out zap.zip
+
+# GCC Embedded Toolchain 12.2.rel1
+FROM base-downloader AS toolchain
+ARG TARGETARCH
+RUN \
+    if [ "$TARGETARCH" = "arm64" ]; then \
+        ARCH="aarch64"; \
+    else \
+        ARCH="x86_64"; \
+    fi \
+    && curl -O "https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-${ARCH}-arm-none-eabi.tar.xz" \
+    && mkdir /out \
+    && tar -C /out -xf arm-gnu-toolchain-12.2.rel1-${ARCH}-arm-none-eabi.tar.xz \
+    && ln -s /out/arm-gnu-toolchain-12.2.rel1-${ARCH}-arm-none-eabi /out/arm-gnu-toolchain-12.2.rel1-arm-none-eabi
+
+# Simplicity Commander CLI
+FROM base-downloader AS commander
+ARG TARGETARCH
+RUN \
+    if [ "$TARGETARCH" = "arm64" ]; then \
+        ARCH="aarch64"; \
+    else \
+        ARCH="x86_64"; \
+    fi \
+    && curl -L -O --compressed -H 'User-Agent: Firefox/143' -H 'Accept-Language: *' https://www.silabs.com/documents/public/software/SimplicityCommander-Linux.zip \
+    && unzip -q SimplicityCommander-Linux.zip \
+    && mkdir /out \
+    && tar -C /out -xjf SimplicityCommander-Linux/Commander-cli_linux_${ARCH}_*.tar.bz \
+    && ln -s /out/commander-cli/commander-cli /out/commander-cli/commander
+
+# Silicon Labs Configurator (slc)
+FROM base-downloader AS slc-cli
+RUN curl -L -O --compressed -H 'User-Agent: Firefox/143' -H 'Accept-Language: *' https://www.silabs.com/documents/public/software/slc_cli_linux.zip \
+    && unzip -q -d /out slc_cli_linux.zip
+
+# ============ Final image ============
+
 FROM debian:trixie
 
 ARG TARGETARCH
@@ -10,75 +76,20 @@ ARG USER_GID=$USER_UID
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
-# Install minimal packages needed for downloading
+# Copy all downloaded artifacts from parallel stages
+COPY --from=simplicity-sdk /out /simplicity_sdk_2025.6.2
+COPY --from=gecko-sdk /out /gecko_sdk_4.5.0
+COPY --from=zap /out /opt/zap
+COPY --from=toolchain /out /opt
+COPY --from=commander /out /opt
+COPY --from=slc-cli /out /opt
+
+# Install runtime packages
 RUN \
     apt-get update \
     && apt-get install -y --no-install-recommends \
-       bzip2 \
        ca-certificates \
        curl \
-       unzip \
-       xz-utils
-
-# Simplicity SDK 2025.6.2
-RUN \
-    curl -o simplicity_sdk_2025.6.2.zip -L https://github.com/SiliconLabs/simplicity_sdk/releases/download/v2025.6.2/simplicity-sdk.zip \
-    && unzip -q -d simplicity_sdk_2025.6.2 simplicity_sdk_2025.6.2.zip \
-    && rm simplicity_sdk_2025.6.2.zip
-
-# Gecko SDK 4.5.0
-RUN \
-    curl -o gecko_sdk_4.5.0.zip -L https://github.com/SiliconLabs/gecko_sdk/releases/download/v4.5.0/gecko-sdk.zip \
-    && unzip -q -d gecko_sdk_4.5.0 gecko_sdk_4.5.0.zip \
-    && rm gecko_sdk_4.5.0.zip
-
-# ZCL Advanced Platform (ZAP) v2025.12.02
-RUN \
-    if [ "$TARGETARCH" = "arm64" ]; then \
-        ZAP_ARCH="arm64"; \
-    else \
-        ZAP_ARCH="x64"; \
-    fi \
-    && curl -o zap.zip -L "https://github.com/project-chip/zap/releases/download/v2025.12.02/zap-linux-${ZAP_ARCH}.zip" \
-    && unzip -q -d /opt/zap zap.zip \
-    && rm zap.zip
-
-# GCC Embedded Toolchain 12.2.rel1
-RUN \
-    if [ "$TARGETARCH" = "arm64" ]; then \
-        TOOLCHAIN_ARCH="aarch64"; \
-    else \
-        TOOLCHAIN_ARCH="x86_64"; \
-    fi \
-    && curl -O "https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-${TOOLCHAIN_ARCH}-arm-none-eabi.tar.xz" \
-    && tar -C /opt -xf arm-gnu-toolchain-12.2.rel1-${TOOLCHAIN_ARCH}-arm-none-eabi.tar.xz \
-    && rm arm-gnu-toolchain-12.2.rel1-${TOOLCHAIN_ARCH}-arm-none-eabi.tar.xz \
-    && ln -s /opt/arm-gnu-toolchain-12.2.rel1-${TOOLCHAIN_ARCH}-arm-none-eabi /opt/arm-gnu-toolchain-12.2.rel1-arm-none-eabi
-
-# Install Simplicity Commander CLI
-RUN \
-    if [ "$TARGETARCH" = "arm64" ]; then \
-        COMMANDER_ARCH="aarch64"; \
-    else \
-        COMMANDER_ARCH="x86_64"; \
-    fi \
-    && curl -L -O --compressed -H 'User-Agent: Firefox/143' -H 'Accept-Language: *' https://www.silabs.com/documents/public/software/SimplicityCommander-Linux.zip \
-    && unzip -q SimplicityCommander-Linux.zip \
-    && tar -C /opt -xjf SimplicityCommander-Linux/Commander-cli_linux_${COMMANDER_ARCH}_*.tar.bz \
-    && chmod -R a+rX /opt/commander-cli \
-    && ln -s /opt/commander-cli/commander-cli /opt/commander-cli/commander \
-    && rm -r SimplicityCommander-Linux \
-    && rm SimplicityCommander-Linux.zip
-
-# Install Silicon Labs Configurator (slc)
-RUN \
-    curl -L -O --compressed -H 'User-Agent: Firefox/143' -H 'Accept-Language: *' https://www.silabs.com/documents/public/software/slc_cli_linux.zip \
-    && unzip -q -d /opt slc_cli_linux.zip \
-    && rm slc_cli_linux.zip
-
-# Now install remaining packages
-RUN \
-    apt-get install -y --no-install-recommends \
        # For Simplicity Commander
        libglib2.0-0 \
        libpcre2-16-0 \
