@@ -49,8 +49,7 @@ RUN \
     fi \
     && curl -O "https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-${ARCH}-arm-none-eabi.tar.xz" \
     && mkdir /out \
-    && tar -C /out -xf arm-gnu-toolchain-12.2.rel1-${ARCH}-arm-none-eabi.tar.xz \
-    && ln -s /out/arm-gnu-toolchain-12.2.rel1-${ARCH}-arm-none-eabi /out/arm-gnu-toolchain-12.2.rel1-arm-none-eabi
+    && tar -C /out -xf arm-gnu-toolchain-12.2.rel1-${ARCH}-arm-none-eabi.tar.xz
 
 # Simplicity Commander CLI
 FROM base-downloader AS commander
@@ -65,7 +64,8 @@ RUN \
     && unzip -q SimplicityCommander-Linux.zip \
     && mkdir /out \
     && tar -C /out -xjf SimplicityCommander-Linux/Commander-cli_linux_${ARCH}_*.tar.bz \
-    && ln -s /out/commander-cli/commander-cli /out/commander-cli/commander
+    && chmod -R a+rX /out/commander-cli \
+    && ln -s commander-cli /out/commander-cli/commander
 
 # Silicon Labs Configurator (slc)
 FROM base-downloader AS slc-cli
@@ -136,6 +136,8 @@ COPY --from=slc-python /out /opt/slc_cli/bin/slc-cli/developer/adapter_packs/pyt
 RUN \
     apt-get update \
     && apt-get install -y --no-install-recommends \
+       ca-certificates \
+       curl \
        # For Simplicity Commander
        libglib2.0-0 \
        libpcre2-16-0 \
