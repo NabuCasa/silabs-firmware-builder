@@ -63,7 +63,6 @@ RUN \
     && unzip -q SimplicityCommander-Linux.zip \
     && mkdir /out \
     && tar -C /out -xjf SimplicityCommander-Linux/Commander-cli_linux_${ARCH}_*.tar.bz \
-    && chmod -R a+rX /out/commander-cli \
     && ln -s commander-cli /out/commander-cli/commander
 
 # Silicon Labs Configurator (slc)
@@ -121,10 +120,6 @@ RUN \
 
 FROM debian:trixie-slim
 
-ARG USERNAME=builder
-ARG USER_UID=1000
-ARG USER_GID=$USER_UID
-
 # Copy all downloaded artifacts from parallel stages
 COPY --from=simplicity-sdk-v2025.6.2 /out /simplicity_sdk_2025.6.2
 COPY --from=gecko-sdk-v4.5.0 /out /gecko_sdk_4.5.0
@@ -166,11 +161,6 @@ exec java \
     "$@"
 EOF
 
-# Create the user
-RUN groupadd --gid $USER_GID $USERNAME \
-    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME
-
-USER $USERNAME
 WORKDIR /repo
 
 ENTRYPOINT ["/opt/venv/bin/python3", "tools/build_project.py"]
