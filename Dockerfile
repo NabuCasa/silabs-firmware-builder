@@ -119,7 +119,7 @@ RUN \
 
 # ============ Final image ============
 
-FROM alpine:3.23
+FROM debian:trixie-slim
 
 ARG USERNAME=builder
 ARG USER_UID=1000
@@ -136,20 +136,19 @@ COPY --from=slc-python /out /opt/slc_cli/bin/slc-cli/developer/adapter_packs/pyt
 COPY --from=builder-venv /out /opt/venv
 
 # Install runtime packages
-RUN apk add --no-cache \
-       # For glibc binaries (toolchain, commander, python)
-       gcompat \
-       libstdc++ \
+RUN \
+    apt-get update \
+    && apt-get install -y --no-install-recommends \
        # For Simplicity Commander
-       glib \
-       pcre2 \
-       zlib \
+       libglib2.0-0 \
+       libpcre2-16-0 \
        # For SLC
-       openjdk21-jre-headless \
+       default-jre-headless \
        cmake \
-       ninja \
+       ninja-build \
        # For build script
-       git
+       git \
+    && rm -rf /var/lib/apt/lists/*
 
 # Signal to the firmware builder script that we are running within Docker
 ENV SILABS_FIRMWARE_BUILD_CONTAINER=1
@@ -168,8 +167,8 @@ exec java \
 EOF
 
 # Create the user
-RUN addgroup -g $USER_GID $USERNAME \
-    && adduser -u $USER_UID -G $USERNAME -D $USERNAME
+RUN groupadd --gid $USER_GID $USERNAME \
+    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME
 
 USER $USERNAME
 WORKDIR /repo
