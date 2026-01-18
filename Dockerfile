@@ -73,7 +73,8 @@ RUN curl -L -O --compressed -H 'User-Agent: Firefox/143' -H 'Accept-Language: *'
 # slc-cli hardcodes architectures internally and does not properly support ARM64 despite
 # actually being fully compatible with it. It requires Python via JEP just for Jinja2
 # template generation so we can install a standalone Python 3.10 and use that for JEP.
-# For consistency across architectures, we compile on x86-64 even though it is not necessary.
+# For consistency across architectures, we compile and replace on x86-64 even though it
+# is not necessary.
 FROM debian:trixie-slim AS slc-python
 RUN \
     apt-get update \
