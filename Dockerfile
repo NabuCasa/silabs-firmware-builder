@@ -12,12 +12,14 @@ RUN apk add --no-cache bzip2 ca-certificates curl unzip xz
 # Simplicity SDK 2025.6.2
 FROM base-downloader AS simplicity-sdk-v2025.6.2
 RUN curl -o sdk.zip -L https://github.com/SiliconLabs/simplicity_sdk/releases/download/v2025.6.2/simplicity-sdk.zip \
-    && unzip -q -d /out sdk.zip
+    && unzip -q -d /out sdk.zip \
+    && rm sdk.zip
 
 # Gecko SDK 4.5.0
 FROM base-downloader AS gecko-sdk-v4.5.0
 RUN curl -o sdk.zip -L https://github.com/SiliconLabs/gecko_sdk/releases/download/v4.5.0/gecko-sdk.zip \
-    && unzip -q -d /out sdk.zip
+    && unzip -q -d /out sdk.zip \
+    && rm sdk.zip
 
 # ZCL Advanced Platform (ZAP) v2025.12.02
 FROM base-downloader AS zap
@@ -31,6 +33,7 @@ RUN \
     fi \
     && curl -o zap.zip -L "https://github.com/project-chip/zap/releases/download/v2025.12.02/zap-linux-${ARCH}.zip" \
     && unzip -q -d /out zap.zip \
+    && rm zap.zip \
     # Patch ZAP apack.json to add missing linux.aarch64 executable definitions
     # Remove once https://github.com/project-chip/zap/pull/1677 is merged
     && jq '.executable["zap:linux.aarch64"]     = {"exe": "zap",     "optional": true} \
@@ -48,7 +51,8 @@ RUN \
     fi \
     && curl -O "https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-${ARCH}-arm-none-eabi.tar.xz" \
     && mkdir /out \
-    && tar -C /out -xf arm-gnu-toolchain-12.2.rel1-${ARCH}-arm-none-eabi.tar.xz
+    && tar -C /out -xf arm-gnu-toolchain-12.2.rel1-${ARCH}-arm-none-eabi.tar.xz \
+    && rm arm-gnu-toolchain-12.2.rel1-${ARCH}-arm-none-eabi.tar.xz
 
 # Simplicity Commander CLI
 FROM base-downloader AS commander
@@ -63,12 +67,14 @@ RUN \
     && unzip -q SimplicityCommander-Linux.zip \
     && mkdir /out \
     && tar -C /out -xjf SimplicityCommander-Linux/Commander-cli_linux_${ARCH}_*.tar.bz \
+    && rm -r SimplicityCommander-Linux SimplicityCommander-Linux.zip \
     && ln -s commander-cli /out/commander-cli/commander
 
 # Silicon Labs Configurator (slc)
 FROM base-downloader AS slc-cli
 RUN curl -L -O --compressed -H 'User-Agent: Firefox/143' -H 'Accept-Language: *' https://www.silabs.com/documents/public/software/slc_cli_linux.zip \
-    && unzip -q -d /out slc_cli_linux.zip
+    && unzip -q -d /out slc_cli_linux.zip \
+    && rm slc_cli_linux.zip
 
 # slc-cli hardcodes architectures internally and does not properly support ARM64 despite
 # actually being fully compatible with it. It requires Python via JEP just for Jinja2
