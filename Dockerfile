@@ -127,17 +127,6 @@ RUN \
 
 FROM debian:trixie-slim
 
-# Copy all downloaded artifacts from parallel stages
-COPY --from=simplicity-sdk-v2025.6.2 /out /simplicity_sdk_2025.6.2
-COPY --from=gecko-sdk-v4.5.0 /out /gecko_sdk_4.5.0
-COPY --from=zap /out /opt/zap
-COPY --from=gcc-embedded-toolchain /out /opt
-COPY --from=commander /out /opt
-COPY --from=slc-cli /out /opt
-COPY --from=slc-python /out /opt/slc_cli/bin/slc-cli/developer/adapter_packs/python
-COPY --from=builder-venv /opt/venv /opt/venv
-COPY --from=builder-venv /opt/pythons /opt/pythons
-
 # Install runtime packages
 RUN \
     apt-get update \
@@ -153,10 +142,16 @@ RUN \
        git \
     && rm -rf /var/lib/apt/lists/*
 
-# Signal to the firmware builder script that we are running within Docker
-ENV SILABS_FIRMWARE_BUILD_CONTAINER=1
-ENV PATH="$PATH:/opt/commander-cli:/opt/slc_cli"
-ENV STUDIO_ADAPTER_PACK_PATH="/opt/zap"
+# Copy all downloaded artifacts from parallel stages
+COPY --from=gcc-embedded-toolchain /out /opt
+COPY --from=commander /out /opt
+COPY --from=simplicity-sdk-v2025.6.2 /out /simplicity_sdk_2025.6.2
+COPY --from=gecko-sdk-v4.5.0 /out /gecko_sdk_4.5.0
+COPY --from=zap /out /opt/zap
+COPY --from=slc-cli /out /opt
+COPY --from=slc-python /out /opt/slc_cli/bin/slc-cli/developer/adapter_packs/python
+COPY --from=builder-venv /opt/venv /opt/venv
+COPY --from=builder-venv /opt/pythons /opt/pythons
 
 # We can run slc-cli without the native wrapper. For consistency across architectures,
 # we create the same wrapper script on both.
@@ -168,6 +163,11 @@ exec java \
     -consoleLog \
     "$@"
 EOF
+
+# Signal to the firmware builder script that we are running within Docker
+ENV SILABS_FIRMWARE_BUILD_CONTAINER=1
+ENV PATH="$PATH:/opt/commander-cli:/opt/slc_cli"
+ENV STUDIO_ADAPTER_PACK_PATH="/opt/zap"
 
 WORKDIR /repo
 
