@@ -5,6 +5,7 @@ ARG TARGETARCH
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
+SHELL ["/bin/sh", "-o", "pipefail", "-c"]
 RUN apk add --no-cache bzip2 ca-certificates curl libarchive-tools xz
 
 # ============ Parallel download stages ============
@@ -24,8 +25,7 @@ RUN mkdir /out \
 # ZCL Advanced Platform (ZAP) v2025.12.02
 FROM base-downloader AS zap
 ARG TARGETARCH
-RUN \
-    apk add --no-cache jq \
+RUN apk add --no-cache jq \
     && if [ "$TARGETARCH" = "arm64" ]; then \
         ARCH="arm64"; \
     else \
@@ -44,8 +44,7 @@ RUN \
 # GCC Embedded Toolchain 12.2.rel1
 FROM base-downloader AS gcc-embedded-toolchain
 ARG TARGETARCH
-RUN \
-    if [ "$TARGETARCH" = "arm64" ]; then \
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
         ARCH="aarch64"; \
     else \
         ARCH="x86_64"; \
@@ -57,8 +56,7 @@ RUN \
 # Simplicity Commander CLI
 FROM base-downloader AS commander
 ARG TARGETARCH
-RUN \
-    if [ "$TARGETARCH" = "arm64" ]; then \
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
         ARCH="aarch64"; \
     else \
         ARCH="x86_64"; \
@@ -82,8 +80,8 @@ RUN mkdir /out \
 # For consistency across architectures, we compile and replace on x86-64 even though it
 # is not necessary.
 FROM debian:trixie-slim AS slc-python
-RUN \
-    apt-get update \
+RUN set -o pipefail \
+    && apt-get update \
     && apt-get install -y --no-install-recommends \
        ca-certificates \
        curl \
@@ -116,8 +114,8 @@ RUN \
 # Python virtual environment for the firmware builder script
 FROM debian:trixie-slim AS builder-venv
 COPY requirements.txt /tmp/
-RUN \
-    apt-get update \
+RUN set -o pipefail \
+    && apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl \
     && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/bin" sh \
     && UV_PYTHON_INSTALL_DIR=/opt/pythons uv venv -p 3.13 /opt/venv --no-cache \
@@ -128,8 +126,7 @@ RUN \
 FROM debian:trixie-slim
 
 # Install runtime packages
-RUN \
-    apt-get update \
+RUN apt-get update \
     && apt-get install -y --no-install-recommends \
        # For Simplicity Commander
        libglib2.0-0 \
