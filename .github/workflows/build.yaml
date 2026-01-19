@@ -127,8 +127,6 @@ jobs:
           file: Dockerfile
           platforms: linux/${{ matrix.arch }}
           tags: ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${{ needs.check-container.outputs.tag_name }}-${{ matrix.arch }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
           push: true
 
   merge-container:
