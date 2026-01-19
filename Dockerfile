@@ -5,21 +5,21 @@ ARG TARGETARCH
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
-RUN apk add --no-cache bzip2 ca-certificates curl unzip xz
+RUN apk add --no-cache bzip2 ca-certificates curl libarchive-tools xz
 
 # ============ Parallel download stages ============
 
 # Simplicity SDK 2025.6.2
 FROM base-downloader AS simplicity-sdk-v2025.6.2
-RUN curl -o sdk.zip -L https://github.com/SiliconLabs/simplicity_sdk/releases/download/v2025.6.2/simplicity-sdk.zip \
-    && unzip -q -d /out sdk.zip \
-    && rm sdk.zip
+RUN mkdir /out \
+    && curl -L https://github.com/SiliconLabs/simplicity_sdk/releases/download/v2025.6.2/simplicity-sdk.zip \
+       | bsdtar -xf - -C /out
 
 # Gecko SDK 4.5.0
 FROM base-downloader AS gecko-sdk-v4.5.0
-RUN curl -o sdk.zip -L https://github.com/SiliconLabs/gecko_sdk/releases/download/v4.5.0/gecko-sdk.zip \
-    && unzip -q -d /out sdk.zip \
-    && rm sdk.zip
+RUN mkdir /out \
+    && curl -L https://github.com/SiliconLabs/gecko_sdk/releases/download/v4.5.0/gecko-sdk.zip \
+       | bsdtar -xf - -C /out
 
 # ZCL Advanced Platform (ZAP) v2025.12.02
 FROM base-downloader AS zap
@@ -31,9 +31,9 @@ RUN \
     else \
         ARCH="x64"; \
     fi \
-    && curl -o zap.zip -L "https://github.com/project-chip/zap/releases/download/v2025.12.02/zap-linux-${ARCH}.zip" \
-    && unzip -q -d /out zap.zip \
-    && rm zap.zip \
+    && mkdir /out \
+    && curl -L "https://github.com/project-chip/zap/releases/download/v2025.12.02/zap-linux-${ARCH}.zip" \
+       | bsdtar -xf - -C /out \
     && chmod +x /out/zap /out/zap-cli \
     # Patch ZAP apack.json to add missing linux.aarch64 executable definitions
     # Remove once https://github.com/project-chip/zap/pull/1677 is merged
@@ -50,10 +50,9 @@ RUN \
     else \
         ARCH="x86_64"; \
     fi \
-    && curl -O "https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-${ARCH}-arm-none-eabi.tar.xz" \
     && mkdir /out \
-    && tar -C /out -xf arm-gnu-toolchain-12.2.rel1-${ARCH}-arm-none-eabi.tar.xz \
-    && rm arm-gnu-toolchain-12.2.rel1-${ARCH}-arm-none-eabi.tar.xz
+    && curl -L "https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-${ARCH}-arm-none-eabi.tar.xz" \
+       | tar -C /out -xJf -
 
 # Simplicity Commander CLI
 FROM base-downloader AS commander
@@ -64,18 +63,18 @@ RUN \
     else \
         ARCH="x86_64"; \
     fi \
-    && curl -L -O --compressed -H 'User-Agent: Firefox/143' -H 'Accept-Language: *' https://www.silabs.com/documents/public/software/SimplicityCommander-Linux.zip \
-    && unzip -q SimplicityCommander-Linux.zip \
+    && curl -L --compressed -H 'User-Agent: Firefox/143' -H 'Accept-Language: *' https://www.silabs.com/documents/public/software/SimplicityCommander-Linux.zip \
+       | bsdtar -xf - \
     && mkdir /out \
     && tar -C /out -xjf SimplicityCommander-Linux/Commander-cli_linux_${ARCH}_*.tar.bz \
-    && rm -r SimplicityCommander-Linux SimplicityCommander-Linux.zip \
+    && rm -r SimplicityCommander-Linux \
     && ln -s commander-cli /out/commander-cli/commander
 
 # Silicon Labs Configurator (slc)
 FROM base-downloader AS slc-cli
-RUN curl -L -O --compressed -H 'User-Agent: Firefox/143' -H 'Accept-Language: *' https://www.silabs.com/documents/public/software/slc_cli_linux.zip \
-    && unzip -q -d /out slc_cli_linux.zip \
-    && rm slc_cli_linux.zip
+RUN mkdir /out \
+    && curl -L --compressed -H 'User-Agent: Firefox/143' -H 'Accept-Language: *' https://www.silabs.com/documents/public/software/slc_cli_linux.zip \
+       | bsdtar -xf - -C /out
 
 # slc-cli hardcodes architectures internally and does not properly support ARM64 despite
 # actually being fully compatible with it. It requires Python via JEP just for Jinja2
