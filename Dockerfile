@@ -34,6 +34,7 @@ RUN \
     && mkdir /out \
     && curl -L "https://github.com/project-chip/zap/releases/download/v2025.12.02/zap-linux-${ARCH}.zip" \
        | bsdtar -xf - -C /out \
+    && chmod +x /out/zap /out/zap-cli \
     # Patch ZAP apack.json to add missing linux.aarch64 executable definitions
     # Remove once https://github.com/project-chip/zap/pull/1677 is merged
     && jq '.executable["zap:linux.aarch64"]     = {"exe": "zap",     "optional": true} \
