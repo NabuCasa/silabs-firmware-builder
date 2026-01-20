@@ -5,7 +5,12 @@ ARG TARGETARCH
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
-RUN apk add --no-cache aria2 bzip2 ca-certificates libarchive-tools xz
+RUN apk add --no-cache \
+    aria2 \
+    bzip2 \
+    ca-certificates \
+    libarchive-tools \
+    xz
 
 # ============ Parallel download stages ============
 
