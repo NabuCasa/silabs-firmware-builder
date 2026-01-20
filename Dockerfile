@@ -5,22 +5,23 @@ ARG TARGETARCH
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
-SHELL ["/bin/sh", "-o", "pipefail", "-c"]
-RUN apk add --no-cache bzip2 ca-certificates curl libarchive-tools xz
+RUN apk add --no-cache aria2 bzip2 ca-certificates libarchive-tools xz
 
 # ============ Parallel download stages ============
 
 # Simplicity SDK 2025.6.2
 FROM base-downloader AS simplicity-sdk-v2025.6.2
-RUN mkdir /out \
-    && curl -L https://github.com/SiliconLabs/simplicity_sdk/releases/download/v2025.6.2/simplicity-sdk.zip \
-       | bsdtar -xf - -C /out
+RUN aria2c --checksum=sha-256=463021f42ab1b4eeb1ca69660d3e8fccda4db76bd95b9cccec2c2bcba87550de -o /tmp/sdk.zip \
+        https://github.com/SiliconLabs/simplicity_sdk/releases/download/v2025.6.2/simplicity-sdk.zip \
+    && mkdir /out && bsdtar -xf /tmp/sdk.zip -C /out \
+    && rm /tmp/sdk.zip
 
 # Gecko SDK 4.5.0
 FROM base-downloader AS gecko-sdk-v4.5.0
-RUN mkdir /out \
-    && curl -L https://github.com/SiliconLabs/gecko_sdk/releases/download/v4.5.0/gecko-sdk.zip \
-       | bsdtar -xf - -C /out
+RUN aria2c --checksum=sha-256=b5b2b2410eac0c9e2a72320f46605ecac0d376910cafded5daca9c1f78e966c8 -o /tmp/sdk.zip \
+        https://github.com/SiliconLabs/gecko_sdk/releases/download/v4.5.0/gecko-sdk.zip \
+    && mkdir /out && bsdtar -xf /tmp/sdk.zip -C /out \
+    && rm /tmp/sdk.zip
 
 # ZCL Advanced Platform (ZAP) v2025.12.02
 FROM base-downloader AS zap
@@ -28,12 +29,14 @@ ARG TARGETARCH
 RUN apk add --no-cache jq \
     && if [ "$TARGETARCH" = "arm64" ]; then \
         ARCH="arm64"; \
+        CHECKSUM="b9e64d4c3bd1796205bd2729ed8d6900f60b675c2d3fd94b6339713f8a1df1e6"; \
     else \
         ARCH="x64"; \
+        CHECKSUM="0f6d66a1cecfb053b02de5951911ea4b596c417007cf48a903590e31823d44fa"; \
     fi \
-    && mkdir /out \
-    && curl -L "https://github.com/project-chip/zap/releases/download/v2025.12.02/zap-linux-${ARCH}.zip" \
-       | bsdtar -xf - -C /out \
+    && aria2c --checksum=sha-256=$CHECKSUM -o /tmp/zap.zip \
+        "https://github.com/project-chip/zap/releases/download/v2025.12.02/zap-linux-${ARCH}.zip" \
+    && mkdir /out && bsdtar -xf /tmp/zap.zip -C /out && rm /tmp/zap.zip \
     && chmod +x /out/zap /out/zap-cli \
     # Patch ZAP apack.json to add missing linux.aarch64 executable definitions
     # Remove once https://github.com/project-chip/zap/pull/1677 is merged
@@ -46,12 +49,15 @@ FROM base-downloader AS gcc-embedded-toolchain
 ARG TARGETARCH
 RUN if [ "$TARGETARCH" = "arm64" ]; then \
         ARCH="aarch64"; \
+        CHECKSUM="7ee332f7558a984e239e768a13aed86c6c3ac85c90b91d27f4ed38d7ec6b3e8c"; \
     else \
         ARCH="x86_64"; \
+        CHECKSUM="84be93d0f9e96a15addd490b6e237f588c641c8afdf90e7610a628007fc96867"; \
     fi \
-    && mkdir /out \
-    && curl -L "https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-${ARCH}-arm-none-eabi.tar.xz" \
-       | tar -C /out -xJf -
+    && aria2c --checksum=sha-256=$CHECKSUM -o /tmp/toolchain.tar.xz \
+        "https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-${ARCH}-arm-none-eabi.tar.xz" \
+    && mkdir /out && tar -C /out -xJf /tmp/toolchain.tar.xz \
+    && rm /tmp/toolchain.tar.xz
 
 # Simplicity Commander CLI
 FROM base-downloader AS commander
@@ -61,8 +67,9 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
     else \
         ARCH="x86_64"; \
     fi \
-    && curl -L --compressed -H 'User-Agent: Firefox/143' -H 'Accept-Language: *' https://www.silabs.com/documents/public/software/SimplicityCommander-Linux.zip \
-       | bsdtar -xf - \
+    && aria2c --checksum=sha-256=13a46f16edce4a9854df13a6226a978b43f958abfeb23bb5871580e6481ed775 -o /tmp/commander.zip \
+        "https://www.silabs.com/documents/public/software/SimplicityCommander-Linux.zip" \
+    && bsdtar -xf /tmp/commander.zip && rm /tmp/commander.zip \
     && mkdir /out \
     && tar -C /out -xjf SimplicityCommander-Linux/Commander-cli_linux_${ARCH}_*.tar.bz \
     && rm -r SimplicityCommander-Linux \
@@ -70,9 +77,10 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
 
 # Silicon Labs Configurator (slc)
 FROM base-downloader AS slc-cli
-RUN mkdir /out \
-    && curl -L --compressed -H 'User-Agent: Firefox/143' -H 'Accept-Language: *' https://www.silabs.com/documents/public/software/slc_cli_linux.zip \
-       | bsdtar -xf - -C /out
+RUN aria2c --checksum=sha-256=923107bb6aa477324efe8bc698a769be0ca5a26e2b7341f6177f5d3586453158 -o /tmp/slc.zip \
+        "https://www.silabs.com/documents/public/software/slc_cli_linux.zip" \
+    && mkdir /out && bsdtar -xf /tmp/slc.zip -C /out \
+    && rm /tmp/slc.zip
 
 # slc-cli hardcodes architectures internally and does not properly support ARM64 despite
 # actually being fully compatible with it. It requires Python via JEP just for Jinja2
