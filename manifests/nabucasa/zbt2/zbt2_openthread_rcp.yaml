@@ -13,8 +13,10 @@ gbl:
 sdk_extension:
   - id: nabucasa_hardware
     version: 1.0.0
+    vendor: nabucasa
   - id: led_effects_openthread
     version: 1.0.0
+    vendor: nabucasa
 
 add_components:
 - id: spidrv_eusart
@@ -25,13 +27,17 @@ add_components:
 - id: simple_button
   instance: [pin_hole_button]
 - id: ws2812_driver
-  from: nabucasa_hardware
+  vendor: nabucasa
+  package: nabucasa_hardware
 - id: qma6100p_driver
-  from: nabucasa_hardware
+  vendor: nabucasa
+  package: nabucasa_hardware
 - id: led_effects_openthread
-  from: led_effects_openthread
+  vendor: nabucasa
+  package: led_effects_openthread
 - id: zbt2_reset_button
-  from: nabucasa_hardware
+  vendor: nabucasa
+  package: nabucasa_hardware
 
 # SLC reads `configuration` during validation, before c_defines are patched
 configuration:

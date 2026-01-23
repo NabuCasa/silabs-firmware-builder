@@ -510,6 +510,7 @@ def main():
         SLC
         + [
             "generate",
+            "--verbose", "DEBUG",
             "--trust-totality",
             "--with", manifest["device"],
             "--project-file", base_project_slcp.resolve(),
@@ -678,7 +679,7 @@ def main():
             )
         )
 
-    cmake_dir = args.build_dir / f"{base_project_name}_cmake"
+    cmake_dir = args.build_dir / "cmake_gcc"
 
     # Remove absolute paths from the build for reproducibility
     remapped_paths = {

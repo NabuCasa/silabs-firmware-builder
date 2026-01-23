@@ -1,6 +1,6 @@
 id: bootloader_gpio_activation_dual
 label: GPIO activation (dual pin)
-package: bootloader
+package: bootloader_gpio_activation_dual
 description: >
   The Bootloader GPIO activation component provides entry to bootloader firmware upgrade mode
   if either of two GPIOs has a given state at reset. The GPIO state is configurable.

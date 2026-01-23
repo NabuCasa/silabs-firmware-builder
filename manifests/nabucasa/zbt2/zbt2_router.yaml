@@ -27,13 +27,17 @@ add_components:
 - id: simple_button
   instance: [pin_hole_button]
 - id: ws2812_driver
-  from: nabucasa_hardware
+  vendor: nabucasa
+  package: nabucasa_hardware
 - id: qma6100p_driver
-  from: nabucasa_hardware
+  vendor: nabucasa
+  package: nabucasa_hardware
 - id: zbt2_reset_button
-  from: nabucasa_hardware
+  vendor: nabucasa
+  package: nabucasa_hardware
 - id: zbt2_router_callbacks
-  from: nabucasa_hardware
+  vendor: nabucasa
+  package: nabucasa_hardware
 # ZCL clusters for LED control
 - id: zigbee_groups_server
 - id: zigbee_color_control_server

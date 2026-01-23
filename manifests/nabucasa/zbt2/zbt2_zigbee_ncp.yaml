@@ -12,14 +12,19 @@ gbl:
 
 sdk_extension:
   - id: nabucasa_hardware
+    vendor: nabucasa
     version: 1.0.0
   - id: xncp
+    vendor: nabucasa
     version: 1.0.0
   - id: xncp_common
+    vendor: nabucasa
     version: 1.0.0
   - id: xncp_zbt2
+    vendor: nabucasa
     version: 1.0.0
   - id: led_effects_zigbee
+    vendor: nabucasa
     version: 1.0.0
 
 add_components:
@@ -31,19 +36,26 @@ add_components:
 - id: simple_button
   instance: [pin_hole_button]
 - id: ws2812_driver
-  from: nabucasa_hardware
+  vendor: nabucasa
+  package: nabucasa_hardware
 - id: qma6100p_driver
-  from: nabucasa_hardware
+  vendor: nabucasa
+  package: nabucasa_hardware
 - id: led_effects_zigbee
-  from: led_effects_zigbee
+  vendor: nabucasa
+  package: led_effects_zigbee
 - id: zbt2_reset_button
-  from: nabucasa_hardware
+  vendor: nabucasa
+  package: nabucasa_hardware
 - id: xncp_core
-  from: xncp
+  vendor: nabucasa
+  package: xncp
 - id: xncp_common_commands
-  from: xncp_common
+  vendor: nabucasa
+  package: xncp_common
 - id: xncp_zbt2_commands
-  from: xncp_zbt2
+  vendor: nabucasa
+  package: xncp_zbt2
 
 # SLC reads `configuration` during validation, before c_defines are patched
 configuration:

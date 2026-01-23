@@ -55,13 +55,17 @@ component:
   - id: toolchain_gcc_lto
   # Custom router components
   - id: router_nvram_reset
-    from: router_nvram_reset
+    vendor: nabucasa
+    package: router_nvram_reset
   - id: router_eui64_unique
-    from: router_eui64_unique
+    vendor: nabucasa
+    package: router_eui64_unique
   - id: router_beacon_filter
-    from: router_beacon_filter
+    vendor: nabucasa
+    package: router_beacon_filter
   - id: router_bootloader_cli
-    from: router_bootloader_cli
+    vendor: nabucasa
+    package: router_bootloader_cli
 
 configuration:
   - name: SL_BOARD_ENABLE_VCOM

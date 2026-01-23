@@ -114,10 +114,9 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
 # Silicon Labs Configurator (slc) via slt
 FROM slt-downloader AS slc-cli
 RUN slt install slc-cli \
-    && mkdir -p /out \
-    && cp -r "$(slt where slc-cli)" /out/slc_cli \
-    && cp -r "$(slt where python)" /out/python \
-    && cp -r "$(slt where java21)" /out/java21
+    && ln -s "$(slt where slc-cli)" /root/.silabs/slc_cli \
+    && ln -s "$(slt where java21)" /root/.silabs/java21 \
+    && ln -s "$(slt where python)" /root/.silabs/python
 
 # Python virtual environment for the firmware builder script
 FROM debian:trixie-slim AS builder-venv
@@ -152,13 +151,13 @@ COPY --from=commander /out /opt
 COPY --from=simplicity-sdk-v2025.6.2 /out/sdk /simplicity_sdk_2025.6.2
 COPY --from=gecko-sdk-v4.5.0 /out /gecko_sdk_4.5.0
 COPY --from=zap /out /opt/zap
-COPY --from=slc-cli /out /opt
+COPY --from=slc-cli /root/.silabs /root/.silabs
 COPY --from=builder-venv /opt/venv /opt/venv
 COPY --from=builder-venv /opt/pythons /opt/pythons
 
 # Signal to the firmware builder script that we are running within Docker
 ENV SILABS_FIRMWARE_BUILD_CONTAINER=1
-ENV PATH="$PATH:/opt/commander-cli:/opt/slc_cli:/opt/java21/jre/bin"
+ENV PATH="$PATH:/opt/commander-cli:/root/.silabs/slc_cli:/root/.silabs/java21/jre/bin"
 ENV STUDIO_ADAPTER_PACK_PATH="/opt/zap"
 
 WORKDIR /repo

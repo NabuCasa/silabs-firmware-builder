@@ -18,9 +18,11 @@ sdk_extension:
 
 add_components:
 - id: xncp_core
-  from: xncp
+  vendor: nabucasa
+  package: xncp
 - id: xncp_common_commands
-  from: xncp_common
+  vendor: nabucasa
+  package: xncp_common
 
 c_defines:
   XNCP_MFG_MANUF_NAME: '"Nabu Casa"'
