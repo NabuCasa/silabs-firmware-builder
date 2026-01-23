@@ -103,49 +103,13 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
     && rm -r SimplicityCommander-Linux \
     && ln -s commander-cli /out/commander-cli/commander
 
-# Silicon Labs Configurator (slc)
+# Silicon Labs Configurator (slc) via slt
 FROM slt-downloader AS slc-cli
-RUN aria2c --checksum=sha-256=923107bb6aa477324efe8bc698a769be0ca5a26e2b7341f6177f5d3586453158 -o /tmp/slc.zip \
-        "https://www.silabs.com/documents/public/software/slc_cli_linux.zip" \
-    && mkdir /out && bsdtar -xf /tmp/slc.zip -C /out \
-    && rm /tmp/slc.zip
-
-# slc-cli hardcodes architectures internally and does not properly support ARM64 despite
-# actually being fully compatible with it. It requires Python via JEP just for Jinja2
-# template generation so we can install a standalone Python 3.10 and use that for JEP.
-# For consistency across architectures, we compile and replace on x86-64 even though it
-# is not necessary.
-FROM debian:trixie-slim AS slc-python
-RUN set -o pipefail \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends \
-       ca-certificates \
-       curl \
-       clang \
-       default-jdk-headless \
-    && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/bin" sh \
-    && uv python install 3.10 --no-cache \
-    && mkdir -p /out/bin /out/lib \
-    # Copy Python binary and stdlib
-    && cp /root/.local/share/uv/python/cpython-3.10.*/bin/python3.10 /out/bin/python3 \
-    && cp -R /root/.local/share/uv/python/cpython-3.10.*/lib/libpython3.10.so.1.0 /out/lib/ \
-    && cp -R /root/.local/share/uv/python/cpython-3.10.*/lib/python3.10 /out/lib/ \
-    # Python binary needs libpython in the same directory
-    && cp /out/lib/libpython3.10.so.1.0 /out/bin/ \
-    # Install JEP and dependencies (setuptools<69 required for JEP build)
-    && echo "setuptools<69" > /tmp/uv_constraints.txt \
-    && JAVA_HOME=/usr/lib/jvm/default-java \
-       LIBRARY_PATH=/out/lib \
-       uv pip install \
-       --python /out/bin/python3 \
-       --break-system-packages \
-       --build-constraint /tmp/uv_constraints.txt \
-       --no-cache \
-       jep==4.1.1 jinja2==3.1.6 pyyaml==6.0.3 \
-    # Mirror expected slc-cli folder structure
-    && mkdir -p /out/jep \
-    && cp /out/lib/python3.10/site-packages/jep/*.py /out/jep/ \
-    && cp /out/lib/python3.10/site-packages/jep/jep.cpython-310-*-linux-gnu.so /out/jep/jep.so
+RUN slt help install slc-cli \
+    && mkdir -p /out \
+    && cp -r "$(slt help where slc-cli)" /out/slc_cli \
+    && cp -r "$(slt help where python)" /out/python \
+    && cp -r "$(slt help where java21)" /out/java21
 
 # Python virtual environment for the firmware builder script
 FROM debian:trixie-slim AS builder-venv
@@ -168,7 +132,6 @@ RUN apt-get update \
        libglib2.0-0 \
        libpcre2-16-0 \
        # For SLC
-       default-jre-headless \
        cmake \
        ninja-build \
        # For build script
@@ -182,24 +145,12 @@ COPY --from=simplicity-sdk-v2025.6.2 /out /simplicity_sdk_2025.6.2
 COPY --from=gecko-sdk-v4.5.0 /out /gecko_sdk_4.5.0
 COPY --from=zap /out /opt/zap
 COPY --from=slc-cli /out /opt
-COPY --from=slc-python /out /opt/slc_cli/bin/slc-cli/developer/adapter_packs/python
 COPY --from=builder-venv /opt/venv /opt/venv
 COPY --from=builder-venv /opt/pythons /opt/pythons
 
-# We can run slc-cli without the native wrapper. For consistency across architectures,
-# we create the same wrapper script on both.
-RUN cat <<'EOF' > /usr/local/bin/slc && chmod +x /usr/local/bin/slc
-#!/bin/sh
-exec java \
-    -jar /opt/slc_cli/bin/slc-cli/plugins/org.eclipse.equinox.launcher_*.jar \
-    -install /opt/slc_cli/bin/slc-cli \
-    -consoleLog \
-    "$@"
-EOF
-
 # Signal to the firmware builder script that we are running within Docker
 ENV SILABS_FIRMWARE_BUILD_CONTAINER=1
-ENV PATH="$PATH:/opt/commander-cli:/opt/slc_cli"
+ENV PATH="$PATH:/opt/commander-cli:/opt/slc_cli:/opt/java21/jre/bin"
 ENV STUDIO_ADAPTER_PACK_PATH="/opt/zap"
 
 WORKDIR /repo
