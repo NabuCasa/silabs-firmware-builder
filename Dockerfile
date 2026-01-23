@@ -1,37 +1,60 @@
-FROM alpine:3.23 AS base-downloader
+FROM debian:trixie-slim AS slt-downloader
 ARG TARGETARCH
 
 # Simplicity SDK includes unicode characters in folder names and fails to unzip
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
-RUN apk add --no-cache \
-    aria2 \
-    bzip2 \
-    ca-certificates \
-    libarchive-tools \
-    xz
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        aria2 \
+        bzip2 \
+        ca-certificates \
+        curl \
+        libarchive-tools \
+        unzip \
+        xz-utils \
+    && rm -rf /var/lib/apt/lists/* \
+    # Download slt-cli (x64 only, runs under QEMU on ARM64)
+    && curl -sL -o /tmp/slt.zip "https://www.silabs.com/documents/public/software/slt-cli-1.1.0-linux-x64.zip" \
+    && unzip -q /tmp/slt.zip -d /usr/bin && chmod +x /usr/bin/slt && rm /tmp/slt.zip \
+    && if [ "$TARGETARCH" = "arm64" ]; then \
+        # Patch slt to select ARM64 packages instead of x86_64
+        sed -i 's/amd6/arm6/g' /usr/bin/slt \
+        # Install x86_64 libraries and QEMU for running slt under emulation
+        && dpkg --add-architecture amd64 \
+        && apt-get update \
+        && apt-get install -y --no-install-recommends libc6:amd64 zlib1g:amd64 \
+        # Newer QEMU versions have Go runtime bugs, use 7.0.0 directly
+        && curl -sL https://github.com/tonistiigi/binfmt/releases/download/deploy%2Fv7.0.0-28/qemu_v7.0.0_linux-arm64.tar.gz \
+            | tar -xz -C /usr/bin qemu-x86_64 \
+        && chmod +x /usr/bin/qemu-x86_64 \
+        && rm -rf /var/lib/apt/lists/* \
+        # Create wrapper script for transparent QEMU invocation
+        && mv /usr/bin/slt /usr/bin/slt-bin \
+        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64 /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
+        && chmod +x /usr/bin/slt; \
+    fi
 
 # ============ Parallel download stages ============
 
 # Simplicity SDK 2025.6.2
-FROM base-downloader AS simplicity-sdk-v2025.6.2
+FROM slt-downloader AS simplicity-sdk-v2025.6.2
 RUN aria2c --checksum=sha-256=463021f42ab1b4eeb1ca69660d3e8fccda4db76bd95b9cccec2c2bcba87550de -o /tmp/sdk.zip \
         https://github.com/SiliconLabs/simplicity_sdk/releases/download/v2025.6.2/simplicity-sdk.zip \
     && mkdir /out && bsdtar -xf /tmp/sdk.zip -C /out \
     && rm /tmp/sdk.zip
 
 # Gecko SDK 4.5.0
-FROM base-downloader AS gecko-sdk-v4.5.0
+FROM slt-downloader AS gecko-sdk-v4.5.0
 RUN aria2c --checksum=sha-256=b5b2b2410eac0c9e2a72320f46605ecac0d376910cafded5daca9c1f78e966c8 -o /tmp/sdk.zip \
         https://github.com/SiliconLabs/gecko_sdk/releases/download/v4.5.0/gecko-sdk.zip \
     && mkdir /out && bsdtar -xf /tmp/sdk.zip -C /out \
     && rm /tmp/sdk.zip
 
 # ZCL Advanced Platform (ZAP) v2025.12.02
-FROM base-downloader AS zap
+FROM slt-downloader AS zap
 ARG TARGETARCH
-RUN apk add --no-cache jq \
+RUN apt-get update && apt-get install -y --no-install-recommends jq && rm -rf /var/lib/apt/lists/* \
     && if [ "$TARGETARCH" = "arm64" ]; then \
         ARCH="arm64"; \
         CHECKSUM="b9e64d4c3bd1796205bd2729ed8d6900f60b675c2d3fd94b6339713f8a1df1e6"; \
@@ -50,7 +73,7 @@ RUN apk add --no-cache jq \
         /out/apack.json > /tmp/apack.json && mv /tmp/apack.json /out/apack.json
 
 # GCC Embedded Toolchain 12.2.rel1
-FROM base-downloader AS gcc-embedded-toolchain
+FROM slt-downloader AS gcc-embedded-toolchain
 ARG TARGETARCH
 RUN if [ "$TARGETARCH" = "arm64" ]; then \
         ARCH="aarch64"; \
@@ -65,7 +88,7 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
     && rm /tmp/toolchain.tar.xz
 
 # Simplicity Commander CLI
-FROM base-downloader AS commander
+FROM slt-downloader AS commander
 ARG TARGETARCH
 RUN if [ "$TARGETARCH" = "arm64" ]; then \
         ARCH="aarch64"; \
@@ -81,7 +104,7 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
     && ln -s commander-cli /out/commander-cli/commander
 
 # Silicon Labs Configurator (slc)
-FROM base-downloader AS slc-cli
+FROM slt-downloader AS slc-cli
 RUN aria2c --checksum=sha-256=923107bb6aa477324efe8bc698a769be0ca5a26e2b7341f6177f5d3586453158 -o /tmp/slc.zip \
         "https://www.silabs.com/documents/public/software/slc_cli_linux.zip" \
     && mkdir /out && bsdtar -xf /tmp/slc.zip -C /out \
