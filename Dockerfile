@@ -18,10 +18,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && curl -sL -o /tmp/slt.zip "https://www.silabs.com/documents/public/software/slt-cli-1.1.0-linux-x64.zip" \
     && unzip -q /tmp/slt.zip -d /usr/bin && chmod +x /usr/bin/slt && rm /tmp/slt.zip \
     && if [ "$TARGETARCH" = "arm64" ]; then \
-        # Patch slt to select ARM64 packages instead of x86_64
-        sed -i 's/amd6/arm6/g' /usr/bin/slt \
         # Install x86_64 libraries and QEMU for running slt under emulation
-        && dpkg --add-architecture amd64 \
+        dpkg --add-architecture amd64 \
         && apt-get update \
         && apt-get install -y --no-install-recommends libc6:amd64 zlib1g:amd64 \
         # Newer QEMU versions have Go runtime bugs, use 7.0.0 directly
@@ -29,20 +27,30 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
             | tar -xz -C /usr/bin qemu-x86_64 \
         && chmod +x /usr/bin/qemu-x86_64 \
         && rm -rf /var/lib/apt/lists/* \
-        # Create wrapper script for transparent QEMU invocation
+        # Create wrapper script for transparent QEMU invocation of slt
         && mv /usr/bin/slt /usr/bin/slt-bin \
-        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64 /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
-        && chmod +x /usr/bin/slt; \
+        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64 /usr/bin/slt-bin . "$@"\n' > /usr/bin/slt \
+        && chmod +x /usr/bin/slt \
+        # Install conan engine (x86_64) before patching slt for ARM64
+        && slt install conan \
+        # Wrap conan binaries to run under QEMU
+        && CONAN_PATH="$(slt where conan)" \
+        && mv "$CONAN_PATH/conan" "$CONAN_PATH/conan-dir" \
+        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64 %s/conan-dir/conan . "$@"\n' "$CONAN_PATH" > "$CONAN_PATH/conan" \
+        && chmod +x "$CONAN_PATH/conan" \
+        && mv "$CONAN_PATH/conan_engine" "$CONAN_PATH/conan_engine-bin" \
+        && printf '#!/bin/sh\nexport PATH="%s:$PATH"\nexec /usr/bin/qemu-x86_64 %s/conan_engine-bin . "$@"\n' "$CONAN_PATH" "$CONAN_PATH" > "$CONAN_PATH/conan_engine" \
+        && chmod +x "$CONAN_PATH/conan_engine" \
+        # Now patch slt to select ARM64 packages
+        && sed -i 's/amd6/arm6/g' /usr/bin/slt-bin; \
     fi
 
 # ============ Parallel download stages ============
 
 # Simplicity SDK 2025.6.2
 FROM slt-downloader AS simplicity-sdk-v2025.6.2
-RUN aria2c --checksum=sha-256=463021f42ab1b4eeb1ca69660d3e8fccda4db76bd95b9cccec2c2bcba87550de -o /tmp/sdk.zip \
-        https://github.com/SiliconLabs/simplicity_sdk/releases/download/v2025.6.2/simplicity-sdk.zip \
-    && mkdir /out && bsdtar -xf /tmp/sdk.zip -C /out \
-    && rm /tmp/sdk.zip
+RUN slt install simplicity-sdk/2025.6.2 \
+    && mkdir /out && cp -r "$(slt where simplicity-sdk)" /out/sdk
 
 # Gecko SDK 4.5.0
 FROM slt-downloader AS gecko-sdk-v4.5.0
@@ -105,11 +113,11 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
 
 # Silicon Labs Configurator (slc) via slt
 FROM slt-downloader AS slc-cli
-RUN slt help install slc-cli \
+RUN slt install slc-cli \
     && mkdir -p /out \
-    && cp -r "$(slt help where slc-cli)" /out/slc_cli \
-    && cp -r "$(slt help where python)" /out/python \
-    && cp -r "$(slt help where java21)" /out/java21
+    && cp -r "$(slt where slc-cli)" /out/slc_cli \
+    && cp -r "$(slt where python)" /out/python \
+    && cp -r "$(slt where java21)" /out/java21
 
 # Python virtual environment for the firmware builder script
 FROM debian:trixie-slim AS builder-venv
@@ -141,7 +149,7 @@ RUN apt-get update \
 # Copy all downloaded artifacts from parallel stages
 COPY --from=gcc-embedded-toolchain /out /opt
 COPY --from=commander /out /opt
-COPY --from=simplicity-sdk-v2025.6.2 /out /simplicity_sdk_2025.6.2
+COPY --from=simplicity-sdk-v2025.6.2 /out/sdk /simplicity_sdk_2025.6.2
 COPY --from=gecko-sdk-v4.5.0 /out /gecko_sdk_4.5.0
 COPY --from=zap /out /opt/zap
 COPY --from=slc-cli /out /opt
