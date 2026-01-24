@@ -1,5 +1,4 @@
-# This can be removed once we migrate away from Gecko SDK
-FROM debian:trixie-slim AS gecko-sdk-v4.5.0
+FROM debian:bookworm-slim AS gecko-sdk-v4.5.0
 RUN apt-get update && apt-get install -y --no-install-recommends aria2 ca-certificates libarchive-tools \
     && rm -rf /var/lib/apt/lists/* \
     && aria2c --checksum=sha-256=b5b2b2410eac0c9e2a72320f46605ecac0d376910cafded5daca9c1f78e966c8 -o /tmp/sdk.zip \
@@ -7,15 +6,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends aria2 ca-certif
     && mkdir /out && bsdtar -xf /tmp/sdk.zip -C /out \
     && rm /tmp/sdk.zip
 
-# Main builder, which includes slt and the entire toolchain
-FROM debian:trixie-slim
+# Note: we are intentionally using bookworm instead of trixie because of an incompatibility
+# between recent QEMU releases and Go: https://github.com/golang/go/issues/69255
+FROM debian:bookworm-slim
 ARG TARGETARCH
 
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
 # Set up slt and conan
-RUN set -o pipefail \
+RUN set -e \
     && apt-get update && apt-get install -y --no-install-recommends \
         aria2 \
         bzip2 \
@@ -30,35 +30,31 @@ RUN set -o pipefail \
     && if [ "$TARGETARCH" = "arm64" ]; then \
         dpkg --add-architecture amd64 \
         && apt-get update \
-        && apt-get install -y --no-install-recommends libc6:amd64 zlib1g:amd64 \
-        # Newer QEMU versions have Go runtime bugs so we use 7.0.0 directly
-        && curl -sL https://github.com/tonistiigi/binfmt/releases/download/deploy%2Fv7.0.0-28/qemu_v7.0.0_linux-arm64.tar.gz \
-            | tar -xz -C /usr/bin qemu-x86_64 \
-        && chmod +x /usr/bin/qemu-x86_64 \
+        && apt-get install -y --no-install-recommends libc6:amd64 zlib1g:amd64 qemu-user-static \
         && rm -rf /var/lib/apt/lists/* \
-        # Create wrapper script for transparent QEMU invocation of slt
+        # Wrapper script for transparent QEMU emulation of slt
         && mv /usr/bin/slt /usr/bin/slt-bin \
-        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64 /usr/bin/slt-bin . "$@"\n' > /usr/bin/slt \
+        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
         && chmod +x /usr/bin/slt \
-        # conan is also x64 but emulates fine
+        # Install conan with the emulated slt
         && slt install conan \
-        && CONAN_PATH="$(slt where conan)" \
-        && mv "$CONAN_PATH/conan/conan" "$CONAN_PATH/conan/conan-bin" \
-        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64 %s/conan/conan-bin . "$@"\n' "$CONAN_PATH" > "$CONAN_PATH/conan/conan" \
-        && chmod +x "$CONAN_PATH/conan/conan" \
-        && mv "$CONAN_PATH/conan_engine" "$CONAN_PATH/conan_engine-bin" \
-        && printf '#!/bin/sh\nexport PATH="%s:$PATH"\nexec /usr/bin/qemu-x86_64 %s/conan_engine-bin . "$@"\n' "$CONAN_PATH" "$CONAN_PATH" > "$CONAN_PATH/conan_engine" \
-        && chmod +x "$CONAN_PATH/conan_engine" \
-        # Finally, patch the slt binary to fix the harcoded `GOARCH`
+        # Wrapper script for transparent QEMU emulation of conan
+        && mv /root/.silabs/slt/engines/conan/conan_engine /root/.silabs/slt/engines/conan/conan_engine-bin \
+        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static /root/.silabs/slt/engines/conan/conan_engine-bin "$@"\n' > /root/.silabs/slt/engines/conan/conan_engine \
+        && chmod +x /root/.silabs/slt/engines/conan/conan_engine \
+        && mv /root/.silabs/slt/engines/conan/conan/conan /root/.silabs/slt/engines/conan/conan/conan-bin \
+        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static /root/.silabs/slt/engines/conan/conan/conan-bin "$@"\n' > /root/.silabs/slt/engines/conan/conan/conan \
+        && chmod +x /root/.silabs/slt/engines/conan/conan/conan \
+        # Patch slt to select ARM64 packages for subsequent installs
         && sed -i 's/amd6/arm6/g' /usr/bin/slt-bin \
-        # Force conan to use the ARM64 profile for downloading, since we emulate it
+        # Force conan to use the ARM64 profile for downloading packages
         && cp /root/.silabs/slt/installs/conan/profiles/linux_arm64 /root/.silabs/slt/installs/conan/profiles/default; \
     else \
         slt install conan; \
     fi
 
 # Install toolchain via slt
-RUN set -o pipefail \
+RUN set -e \
     && apt-get update && apt-get install -y --no-install-recommends jq && rm -rf /var/lib/apt/lists/* \
     && slt install \
         simplicity-sdk/2025.6.2 \
@@ -89,7 +85,7 @@ RUN set -o pipefail \
 
 # Python virtual environment for the firmware builder script
 COPY requirements.txt /tmp/
-RUN set -o pipefail \
+RUN set -e \
     && apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl \
     && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/bin" sh \
@@ -103,7 +99,7 @@ RUN apt-get update \
        git \
        libstdc++6 \
        libgl1 \
-       libpng16-16t64 \
+       libpng16-16 \
        libpcre2-16-0 \
        libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
