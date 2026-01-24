@@ -14,7 +14,7 @@
 # emulation entirely from userspace. The patched QEMU build from Balena.io solves both
 # of these problems at once. We can remove this once SiLabs releases builds of `slt` and
 # `conan` for ARM64 Linux.
-FROM --platform=$BUILDPLATFORM debian:trixie-slim AS qemu-execve-builder
+FROM --platform=$BUILDPLATFORM debian:bookworm-slim AS qemu-execve-builder
 ARG TARGETARCH
 WORKDIR /usr/src
 RUN if [ "$TARGETARCH" = "arm64" ]; then \
