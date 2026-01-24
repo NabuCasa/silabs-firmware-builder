@@ -1,3 +1,25 @@
+# Build QEMU with execve interception patch for running x86_64 binaries on ARM64.
+# This patched QEMU intercepts execve() syscalls and wraps child processes with QEMU,
+# which is necessary because binfmt_misc is not available during Docker builds.
+# https://github.com/balena-io/qemu
+FROM debian:bookworm AS qemu-execve-builder
+RUN apt-get -q update \
+    && apt-get -qqy install \
+        build-essential \
+        zlib1g-dev \
+        libpixman-1-dev \
+        python3 \
+        libglib2.0-dev \
+        pkg-config \
+        ninja-build \
+        git \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /usr/src
+RUN git clone --depth 1 --branch balena-7.0.0 https://github.com/balena-io/qemu.git \
+    && cd qemu \
+    && ./configure --target-list=x86_64-linux-user --static --disable-pie \
+    && make -j $(nproc)
+
 FROM debian:bookworm-slim AS gecko-sdk-v4.5.0
 RUN apt-get update && apt-get install -y --no-install-recommends aria2 ca-certificates libarchive-tools \
     && rm -rf /var/lib/apt/lists/* \
@@ -13,6 +35,9 @@ ARG TARGETARCH
 
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
+
+# Copy patched QEMU with execve interception (only used on ARM64)
+COPY --from=qemu-execve-builder /usr/src/qemu/build/qemu-x86_64 /usr/bin/qemu-x86_64-static
 
 # Set up slt and conan
 RUN set -e \
@@ -30,36 +55,17 @@ RUN set -e \
     && if [ "$TARGETARCH" = "arm64" ]; then \
         dpkg --add-architecture amd64 \
         && apt-get update \
-        && apt-get install -y --no-install-recommends libc6:amd64 zlib1g:amd64 qemu-user-static \
+        && apt-get install -y --no-install-recommends libc6:amd64 zlib1g:amd64 \
         && rm -rf /var/lib/apt/lists/* \
-        # Detect if we're on a native ARM64 host or x86_64 host emulating ARM64.
-        # On x86_64 hosts (buildx), x86_64 binaries run natively without QEMU wrappers.
-        # On native ARM64 hosts, we need QEMU to run x86_64 binaries like slt and conan.
-        && if [ -f /proc/sys/fs/binfmt_misc/qemu-aarch64 ]; then \
-            echo "x86_64 host detected (buildx), x86_64 binaries will run natively"; \
-        else \
-            echo "Native ARM64 host detected, setting up QEMU wrappers for x86_64 binaries" \
-            && mv /usr/bin/slt /usr/bin/slt-bin \
-            && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
-            && chmod +x /usr/bin/slt; \
-        fi \
+        # slt-cli and conan are x86_64 only, need QEMU on ARM64
+        # The -execve flag tells QEMU to intercept execve() and wrap child processes
+        && mv /usr/bin/slt /usr/bin/slt-bin \
+        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static -execve /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
+        && chmod +x /usr/bin/slt \
         # Install conan
         && slt install conan \
-        # Wrap conan binaries with QEMU for subsequent RUN steps (only needed on native ARM64)
-        && if [ ! -f /proc/sys/fs/binfmt_misc/qemu-aarch64 ]; then \
-            mv /root/.silabs/slt/engines/conan/conan_engine /root/.silabs/slt/engines/conan/conan_engine-bin \
-            && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static /root/.silabs/slt/engines/conan/conan_engine-bin "$@"\n' > /root/.silabs/slt/engines/conan/conan_engine \
-            && chmod +x /root/.silabs/slt/engines/conan/conan_engine \
-            && mv /root/.silabs/slt/engines/conan/conan/conan /root/.silabs/slt/engines/conan/conan/conan-bin \
-            && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static /root/.silabs/slt/engines/conan/conan/conan-bin "$@"\n' > /root/.silabs/slt/engines/conan/conan/conan \
-            && chmod +x /root/.silabs/slt/engines/conan/conan/conan; \
-        fi \
         # Patch slt to select ARM64 packages for subsequent installs
-        && if [ -f /usr/bin/slt-bin ]; then \
-            sed -i 's/amd6/arm6/g' /usr/bin/slt-bin; \
-        else \
-            sed -i 's/amd6/arm6/g' /usr/bin/slt; \
-        fi \
+        && sed -i 's/amd6/arm6/g' /usr/bin/slt-bin \
         # Force conan to use the ARM64 profile for downloading packages
         && cp /root/.silabs/slt/installs/conan/profiles/linux_arm64 /root/.silabs/slt/installs/conan/profiles/default; \
     else \
