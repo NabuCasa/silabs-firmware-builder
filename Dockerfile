@@ -153,6 +153,7 @@ ENV LC_ALL=C.UTF-8
 # Install only runtime packages
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
+       ca-certificates \
        git \
        libstdc++6 \
        libgl1 \
