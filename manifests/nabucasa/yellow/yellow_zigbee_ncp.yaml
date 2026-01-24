@@ -12,10 +12,13 @@ gbl:
 
 sdk_extension:
   - id: xncp
+    vendor: nabucasa
     version: 1.0.0
   - id: xncp_common
+    vendor: nabucasa
     version: 1.0.0
   - id: board_activity
+    vendor: nabucasa
     version: 1.0.0
 
 add_components:
