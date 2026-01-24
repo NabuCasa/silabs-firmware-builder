@@ -64,6 +64,15 @@ RUN set -e \
         && chmod +x /usr/bin/slt \
         # Install conan
         && slt install conan \
+        # Wrap conan binaries with explicit QEMU for subsequent RUN steps
+        && mv /root/.silabs/slt/engines/conan/conan_engine /root/.silabs/slt/engines/conan/conan_engine-bin \
+        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static /root/.silabs/slt/engines/conan/conan_engine-bin "$@"\n' > /root/.silabs/slt/engines/conan/conan_engine \
+        && chmod +x /root/.silabs/slt/engines/conan/conan_engine \
+        && mv /root/.silabs/slt/engines/conan/conan/conan /root/.silabs/slt/engines/conan/conan/conan-bin \
+        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static /root/.silabs/slt/engines/conan/conan/conan-bin "$@"\n' > /root/.silabs/slt/engines/conan/conan/conan \
+        && chmod +x /root/.silabs/slt/engines/conan/conan/conan \
+        # Remove -execve from slt wrapper so native tools (tar, etc.) run without QEMU
+        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
         # Patch slt to select ARM64 packages for subsequent installs
         && sed -i 's/amd6/arm6/g' /usr/bin/slt-bin \
         # Force conan to use the ARM64 profile for downloading packages
