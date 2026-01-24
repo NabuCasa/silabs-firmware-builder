@@ -64,13 +64,10 @@ RUN set -e \
         && chmod +x /usr/bin/slt \
         # Install conan
         && slt install conan \
-        # Wrap conan binaries with explicit QEMU for subsequent RUN steps
+        # Only wrap conan_engine with QEMU -execve; it will handle running conan via execve interception
         && mv /root/.silabs/slt/engines/conan/conan_engine /root/.silabs/slt/engines/conan/conan_engine-bin \
-        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static /root/.silabs/slt/engines/conan/conan_engine-bin "$@"\n' > /root/.silabs/slt/engines/conan/conan_engine \
+        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static -execve /root/.silabs/slt/engines/conan/conan_engine-bin "$@"\n' > /root/.silabs/slt/engines/conan/conan_engine \
         && chmod +x /root/.silabs/slt/engines/conan/conan_engine \
-        && mv /root/.silabs/slt/engines/conan/conan/conan /root/.silabs/slt/engines/conan/conan/conan-bin \
-        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static /root/.silabs/slt/engines/conan/conan/conan-bin "$@"\n' > /root/.silabs/slt/engines/conan/conan/conan \
-        && chmod +x /root/.silabs/slt/engines/conan/conan/conan \
         # Remove -execve from slt wrapper so native tools (tar, etc.) run without QEMU
         && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
         # Patch slt to select ARM64 packages for subsequent installs
@@ -85,11 +82,11 @@ RUN set -e \
 RUN set -e \
     && apt-get update && apt-get install -y --no-install-recommends jq && rm -rf /var/lib/apt/lists/* \
     && slt install \
-        simplicity-sdk/2025.6.2 \
-        commander/1.22.0 \
-        slc-cli/6.0.15 \
         cmake/3.30.2 \
         ninja/1.12.1 \
+        commander/1.22.0 \
+        slc-cli/6.0.15 \
+        simplicity-sdk/2025.6.2 \
         zap/2025.12.02 \
     # Patch ZAP apack.json to add missing linux.aarch64 executable definitions
     # Remove once zap is bumped to 2026.x.x
