@@ -1,8 +1,20 @@
 # Build QEMU with execve interception patch for running x86_64 binaries on ARM64.
 # This patched QEMU intercepts execve() syscalls and wraps child processes with QEMU,
 # which is necessary because binfmt_misc is not available during Docker builds.
-# https://github.com/balena-io/qemu
-FROM --platform=$BUILDPLATFORM debian:bookworm-slim AS qemu-execve-builder
+# See https://github.com/balena-io/qemu for more info.
+#
+# The purpose of this patch is to allow us to emulate `slt` and `conan`, the new Silicon
+# Labs tooling for setting up development tools. These tools are not available for ARM64
+# Linux but strangely all other packages are, meaning we can just emulate the downloading
+# part and still have native performance for all compilation.
+#
+# Recent QEMU releases have an issue with the Go version used to compile the SiLabs
+# tooling (https://github.com/golang/go/issues/69255). QEMU also does not intercept the
+# `execve` syscall by default, preventing us from using a specific QEMU version for
+# emulation entirely from userspace. The patched QEMU build from Balena.io solves both
+# of these problems at once. We can remove this once SiLabs releases builds of `slt` and
+# `conan` for ARM64 Linux.
+FROM --platform=$BUILDPLATFORM debian:trixie-slim AS qemu-execve-builder
 ARG TARGETARCH
 WORKDIR /usr/src
 RUN if [ "$TARGETARCH" = "arm64" ]; then \
@@ -36,7 +48,8 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
         mkdir -p /usr/src/qemu/build && touch /usr/src/qemu/build/qemu-x86_64; \
     fi
 
-FROM debian:bookworm-slim AS gecko-sdk-v4.5.0
+# The new `slt` tool does not provide Gecko SDK builds so we have to download it ourselves.
+FROM debian:trixie-slim AS gecko-sdk-v4.5.0
 RUN apt-get update && apt-get install -y --no-install-recommends aria2 ca-certificates libarchive-tools \
     && rm -rf /var/lib/apt/lists/* \
     && aria2c --checksum=sha-256=b5b2b2410eac0c9e2a72320f46605ecac0d376910cafded5daca9c1f78e966c8 -o /tmp/sdk.zip \
@@ -44,9 +57,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends aria2 ca-certif
     && mkdir /out && bsdtar -xf /tmp/sdk.zip -C /out \
     && rm /tmp/sdk.zip
 
-# Note: we are intentionally using bookworm instead of trixie because of an incompatibility
-# between recent QEMU releases and Go: https://github.com/golang/go/issues/69255
-FROM debian:bookworm-slim
+# Now, we can build the main firmware build environment image
+FROM debian:trixie-slim
 ARG TARGETARCH
 
 ENV LANG=C.UTF-8
@@ -114,7 +126,7 @@ RUN set -e \
     && rm -rf /root/.silabs/slt/installs/archive/*.zip \
               /root/.silabs/slt/installs/archive/*.tar.* \
               /root/.silabs/slt/installs/conan/p/*/d/ \
-    # Create stable symlinks/wrappers for PATH using slt where
+    # Create stable symlinks and wrappers to make the tools available in PATH
     && mkdir -p /root/.silabs/slt/bin \
     && ln -s "$(slt where java21)/jre/bin/java" /root/.silabs/slt/bin/java \
     && ln -s "$(slt where commander)/commander" /root/.silabs/slt/bin/commander \
