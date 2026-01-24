@@ -59,13 +59,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends aria2 ca-certif
 
 # Python virtual environment for the firmware builder script
 FROM debian:trixie-slim AS python-venv
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/bin/
 COPY requirements.txt /tmp/
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/bin" bash \
-    && UV_PYTHON_INSTALL_DIR=/opt/pythons uv venv -p 3.13 /opt/venv --no-cache \
+RUN UV_PYTHON_INSTALL_DIR=/opt/pythons uv venv -p 3.13 /opt/venv --no-cache \
     && uv pip install --python /opt/venv -r /tmp/requirements.txt
 
 # Install slt and all toolchain packages (depends on QEMU for ARM64)
@@ -79,15 +75,16 @@ COPY --from=qemu-execve-builder /usr/src/qemu/build/qemu-x86_64 /usr/bin/qemu-x8
 RUN set -e \
     && apt-get update && apt-get install -y --no-install-recommends \
         aria2 \
-        bzip2 \
         ca-certificates \
-        curl \
+        # Required by conan
         libarchive-tools \
+        bzip2 \
         unzip \
     && rm -rf /var/lib/apt/lists/* \
     # slt-cli is x64 only but runs fine with QEMU
-    && curl -sL -o /tmp/slt.zip "https://www.silabs.com/documents/public/software/slt-cli-1.1.0-linux-x64.zip" \
-    && unzip -q /tmp/slt.zip -d /usr/bin && chmod +x /usr/bin/slt && rm /tmp/slt.zip \
+    && aria2c --checksum=sha-256=8c2dd5091c15d5dd7b8fc978a512c49d9b9c5da83d4d0b820cfe983b38ef3612 -o /tmp/slt.zip \
+        https://www.silabs.com/documents/public/software/slt-cli-1.1.0-linux-x64.zip \
+    && bsdtar -xf /tmp/slt.zip -C /usr/bin && chmod +x /usr/bin/slt && rm /tmp/slt.zip \
     && if [ "$TARGETARCH" = "arm64" ]; then \
         dpkg --add-architecture amd64 \
         && apt-get update \
