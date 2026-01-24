@@ -2,23 +2,39 @@
 # This patched QEMU intercepts execve() syscalls and wraps child processes with QEMU,
 # which is necessary because binfmt_misc is not available during Docker builds.
 # https://github.com/balena-io/qemu
-FROM debian:bookworm AS qemu-execve-builder
-RUN apt-get -q update \
-    && apt-get -qqy install \
-        build-essential \
-        zlib1g-dev \
-        libpixman-1-dev \
-        python3 \
-        libglib2.0-dev \
-        pkg-config \
-        ninja-build \
-        git \
-    && rm -rf /var/lib/apt/lists/*
+FROM --platform=$BUILDPLATFORM debian:bookworm-slim AS qemu-execve-builder
+ARG TARGETARCH
 WORKDIR /usr/src
-RUN git clone --depth 1 --branch balena-7.0.0 https://github.com/balena-io/qemu.git \
-    && cd qemu \
-    && ./configure --target-list=x86_64-linux-user --static --disable-pie \
-    && make -j $(nproc)
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+        apt-get -q update \
+        && apt-get -qqy install \
+            build-essential \
+            zlib1g-dev \
+            libpixman-1-dev \
+            python3 \
+            libglib2.0-dev \
+            pkg-config \
+            ninja-build \
+            git \
+        && rm -rf /var/lib/apt/lists/* \
+        && git clone --depth 1 https://github.com/balena-io/qemu.git \
+        && cd qemu \
+        && git fetch --depth 1 origin 639d1d8903f65d74eb04c49e0df7a4b2f014cd86 \
+        && git checkout 639d1d8903f65d74eb04c49e0df7a4b2f014cd86 \
+        && ./configure \
+            --target-list=x86_64-linux-user \
+            --static \
+            --disable-pie \
+            --disable-docs \
+            --disable-tools \
+            --disable-capstone \
+            --disable-guest-agent \
+            --disable-blobs \
+        && make -j $(nproc); \
+    else \
+        # Dummy file to copy for x86_64
+        mkdir -p /usr/src/qemu/build && touch /usr/src/qemu/build/qemu-x86_64; \
+    fi
 
 FROM debian:bookworm-slim AS gecko-sdk-v4.5.0
 RUN apt-get update && apt-get install -y --no-install-recommends aria2 ca-certificates libarchive-tools \
