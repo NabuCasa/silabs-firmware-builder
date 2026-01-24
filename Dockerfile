@@ -143,12 +143,21 @@ RUN set -e \
 
 # Final image
 FROM debian:trixie-slim
+ARG TARGETARCH
 
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
 # Install only runtime packages
-RUN apt-get update \
+RUN set -e \
+    # Install x86_64 libraries for QEMU on ARM64
+    && if [ "$TARGETARCH" = "arm64" ]; then \
+        dpkg --add-architecture amd64 \
+        && apt-get update \
+        && apt-get install -y --no-install-recommends libc6:amd64 zlib1g:amd64; \
+    else \
+        apt-get update; \
+    fi \
     && apt-get install -y --no-install-recommends \
        ca-certificates \
        git \
