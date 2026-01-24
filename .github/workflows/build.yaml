@@ -107,16 +107,6 @@ jobs:
       matrix:
         include: ${{ fromJson(needs.check-container.outputs.build_matrix) }}
     steps:
-      - name: Free up disk space
-        if: matrix.arch != 'skipped'
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /opt/hostedtoolcache/CodeQL
-      - name: Check free disk space
-        run: |
-          df -h
       - uses: actions/checkout@v4
         if: matrix.arch != 'skipped'
       - name: Log in to the GitHub container registry
@@ -129,6 +119,14 @@ jobs:
       - name: Set up Docker Buildx
         if: matrix.arch != 'skipped'
         uses: docker/setup-buildx-action@v3
+      - name: Free up disk space
+        if: matrix.arch != 'skipped'
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          df -h
       - name: Build and Push
         if: matrix.arch != 'skipped'
         uses: docker/build-push-action@v6
