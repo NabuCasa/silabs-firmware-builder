@@ -79,7 +79,7 @@ RUN set -e \
         && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static -execve /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
         && chmod +x /usr/bin/slt \
         # Install conan
-        && slt install conan \
+        && slt --non-interactive install conan \
         # Only wrap conan_engine with QEMU -execve; it will handle running conan via execve interception
         && mv /root/.silabs/slt/engines/conan/conan_engine /root/.silabs/slt/engines/conan/conan_engine-bin \
         && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static -execve /root/.silabs/slt/engines/conan/conan_engine-bin "$@"\n' > /root/.silabs/slt/engines/conan/conan_engine \
@@ -91,13 +91,13 @@ RUN set -e \
         # Force conan to use the ARM64 profile for downloading packages
         && cp /root/.silabs/slt/installs/conan/profiles/linux_arm64 /root/.silabs/slt/installs/conan/profiles/default; \
     else \
-        slt install conan; \
+        slt --non-interactive install conan; \
     fi
 
 # Install toolchain via slt
 RUN set -e \
     && apt-get update && apt-get install -y --no-install-recommends jq && rm -rf /var/lib/apt/lists/* \
-    && slt install \
+    && slt --non-interactive install \
         cmake/3.30.2 \
         ninja/1.12.1 \
         commander/1.22.0 \
