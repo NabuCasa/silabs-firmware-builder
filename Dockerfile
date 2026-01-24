@@ -57,12 +57,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends aria2 ca-certif
     && mkdir /out && bsdtar -xf /tmp/sdk.zip -C /out \
     && rm /tmp/sdk.zip
 
-# Now, we can build the main firmware build environment image
-FROM debian:trixie-slim
-ARG TARGETARCH
+# Python virtual environment for the firmware builder script
+FROM debian:trixie-slim AS python-venv
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+COPY requirements.txt /tmp/
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/bin" bash \
+    && UV_PYTHON_INSTALL_DIR=/opt/pythons uv venv -p 3.13 /opt/venv --no-cache \
+    && uv pip install --python /opt/venv -r /tmp/requirements.txt
 
-ENV LANG=C.UTF-8
-ENV LC_ALL=C.UTF-8
+# Install slt and all toolchain packages (depends on QEMU for ARM64)
+FROM debian:trixie-slim AS slt-toolchain
+ARG TARGETARCH
 
 # Copy patched QEMU with execve interception (only used on ARM64)
 COPY --from=qemu-execve-builder /usr/src/qemu/build/qemu-x86_64 /usr/bin/qemu-x86_64-static
@@ -136,17 +144,13 @@ RUN set -e \
     && printf '#!/bin/sh\nexec "%s/slc" "$@"\n' "$(slt where slc-cli)" > /root/.silabs/slt/bin/slc \
     && chmod +x /root/.silabs/slt/bin/slc
 
-# Python virtual environment for the firmware builder script
-COPY requirements.txt /tmp/
-RUN set -e \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates curl \
-    && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/bin" sh \
-    && UV_PYTHON_INSTALL_DIR=/opt/pythons uv venv -p 3.13 /opt/venv --no-cache \
-    && uv pip install --python /opt/venv -r /tmp/requirements.txt \
-    && rm -rf /var/lib/apt/lists/*
+# Final image
+FROM debian:trixie-slim
 
-# Install runtime packages
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+
+# Install only runtime packages
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
        git \
@@ -157,8 +161,13 @@ RUN apt-get update \
        libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy Gecko SDK from the independent downloader stage
+# Copy from parallel stages
 COPY --from=gecko-sdk-v4.5.0 /out /gecko_sdk_4.5.0
+COPY --from=python-venv /opt/pythons /opt/pythons
+COPY --from=python-venv /opt/venv /opt/venv
+COPY --from=slt-toolchain /usr/bin/slt* /usr/bin/
+COPY --from=slt-toolchain /usr/bin/qemu-x86_64-static /usr/bin/
+COPY --from=slt-toolchain /root/.silabs /root/.silabs
 
 # Signal to the firmware builder script that we are running within Docker
 ENV SILABS_FIRMWARE_BUILD_CONTAINER=1
