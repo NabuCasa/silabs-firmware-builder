@@ -43,9 +43,9 @@ RUN set -o pipefail \
         # conan is also x64 but emulates fine
         && slt install conan \
         && CONAN_PATH="$(slt where conan)" \
-        && mv "$CONAN_PATH/conan/conan" "$CONAN_PATH/conan-bin" \
-        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64 %s/conan/conan-bin . "$@"\n' "$CONAN_PATH" > "$CONAN_PATH/conan" \
-        && chmod +x "$CONAN_PATH/conan" \
+        && mv "$CONAN_PATH/conan/conan" "$CONAN_PATH/conan/conan-bin" \
+        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64 %s/conan/conan-bin . "$@"\n' "$CONAN_PATH" > "$CONAN_PATH/conan/conan" \
+        && chmod +x "$CONAN_PATH/conan/conan" \
         && mv "$CONAN_PATH/conan_engine" "$CONAN_PATH/conan_engine-bin" \
         && printf '#!/bin/sh\nexport PATH="%s:$PATH"\nexec /usr/bin/qemu-x86_64 %s/conan_engine-bin . "$@"\n' "$CONAN_PATH" "$CONAN_PATH" > "$CONAN_PATH/conan_engine" \
         && chmod +x "$CONAN_PATH/conan_engine" \
