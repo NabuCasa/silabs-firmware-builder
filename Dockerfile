@@ -103,6 +103,7 @@ RUN apt-get update \
        git \
        libstdc++6 \
        libgl1 \
+       libpng16-16t64 \
        libpcre2-16-0 \
        libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
