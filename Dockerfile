@@ -62,11 +62,18 @@ RUN set -o pipefail \
 
 # Install toolchain via slt
 RUN set -o pipefail \
+    && apt-get update && apt-get install -y --no-install-recommends jq && rm -rf /var/lib/apt/lists/* \
     && slt install \
         simplicity-sdk/2025.6.2 \
         commander/1.22.0 \
         slc-cli/6.0.15 \
         zap/2025.12.02 \
+    # Patch ZAP apack.json to add missing linux.aarch64 executable definitions
+    # Remove once https://github.com/project-chip/zap/pull/1677 is merged
+    && ZAP_PATH="$(slt where zap)" \
+    && jq '.executable["zap:linux.aarch64"]     = {"exe": "zap",     "optional": true} \
+         | .executable["zap-cli:linux.aarch64"] = {"exe": "zap-cli", "optional": true}' \
+        "$ZAP_PATH/apack.json" > /tmp/apack.json && mv /tmp/apack.json "$ZAP_PATH/apack.json" \
     # Clean up download caches to reduce image size
     && rm -rf /root/.silabs/slt/installs/archive/*.zip \
               /root/.silabs/slt/installs/archive/*.tar.* \

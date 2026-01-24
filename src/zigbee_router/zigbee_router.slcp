@@ -8,12 +8,16 @@ author: Nabu Casa
 
 sdk_extension:
   - id: router_nvram_reset
+    vendor: nabucasa
     version: 1.0.0
   - id: router_eui64_unique
+    vendor: nabucasa
     version: 1.0.0
   - id: router_beacon_filter
+    vendor: nabucasa
     version: 1.0.0
   - id: router_bootloader_cli
+    vendor: nabucasa
     version: 1.0.0
 
 component:
