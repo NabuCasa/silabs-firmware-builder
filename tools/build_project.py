@@ -62,9 +62,7 @@ def get_toolchain_default_paths() -> list[pathlib.Path]:
         )
 
     if is_running_in_docker():
-        return list(
-            pathlib.Path("~/.silabs/slt/installs/conan/p").expanduser().glob("gcc-*/p")
-        )
+        return list(pathlib.Path("/root/.silabs/slt/installs/conan/p").glob("gcc-*/p"))
 
     return []
 
@@ -77,9 +75,7 @@ def get_sdk_default_paths() -> list[pathlib.Path]:
     if is_running_in_docker():
         paths = list(pathlib.Path("/").glob("*_sdk_*"))
         paths += list(
-            pathlib.Path("~/.silabs/slt/installs/conan/p")
-            .expanduser()
-            .glob("simple*/p")
+            pathlib.Path("/root/.silabs/slt/installs/conan/p").glob("simpl*/p")
         )
         return paths
 
