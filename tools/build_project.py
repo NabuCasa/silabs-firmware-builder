@@ -62,7 +62,11 @@ def get_toolchain_default_paths() -> list[pathlib.Path]:
         )
 
     if is_running_in_docker():
-        return list(pathlib.Path("/opt").glob("*arm-none-eabi*"))
+        paths = list(pathlib.Path("/opt").glob("*arm-none-eabi*"))
+        # slt installs toolchains to ~/.silabs/slt/installs/conan/p/gcc-*/p
+        slt_conan = pathlib.Path("~/.silabs/slt/installs/conan/p").expanduser()
+        paths += list(slt_conan.glob("gcc-*/p"))
+        return paths
 
     return []
 
@@ -73,7 +77,11 @@ def get_sdk_default_paths() -> list[pathlib.Path]:
         return list(pathlib.Path("~/SimplicityStudio/SDKs").expanduser().glob("*_sdk*"))
 
     if is_running_in_docker():
-        return list(pathlib.Path("/").glob("*_sdk_*"))
+        paths = list(pathlib.Path("/").glob("*_sdk_*"))
+        # slt installs SDKs to ~/.silabs/slt/installs/conan/p/simple*/p
+        slt_conan = pathlib.Path("~/.silabs/slt/installs/conan/p").expanduser()
+        paths += list(slt_conan.glob("simple*/p"))
+        return paths
 
     return []
 
@@ -729,6 +737,7 @@ def main():
         ],
         "cmake",
         env={
+            "HOME": os.environ["HOME"],
             "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}",
             "ARM_GCC_DIR": toolchain,
             "NINJA_EXE_PATH": shutil.which("ninja"),
@@ -743,6 +752,7 @@ def main():
         "cmake --build",
         cwd=cmake_dir,
         env={
+            "HOME": os.environ["HOME"],
             "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}",
         },
     )
