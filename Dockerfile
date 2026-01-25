@@ -97,9 +97,8 @@ RUN set -e \
         && chmod +x /usr/bin/slt \
         # Install conan
         && slt --non-interactive install conan \
-        # Only wrap conan_engine with QEMU -execve; it will handle running conan via execve interception
         && mv /root/.silabs/slt/engines/conan/conan_engine /root/.silabs/slt/engines/conan/conan_engine-bin \
-        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static -execve /root/.silabs/slt/engines/conan/conan_engine-bin "$@"\n' > /root/.silabs/slt/engines/conan/conan_engine \
+        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static /root/.silabs/slt/engines/conan/conan_engine-bin "$@"\n' > /root/.silabs/slt/engines/conan/conan_engine \
         && chmod +x /root/.silabs/slt/engines/conan/conan_engine \
         # Remove -execve from slt wrapper so native tools (tar, etc.) run without QEMU
         && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
@@ -107,6 +106,13 @@ RUN set -e \
         && sed -i 's/amd6/arm6/g' /usr/bin/slt-bin \
         # Force conan to use the ARM64 profile for downloading packages
         && cp /root/.silabs/slt/installs/conan/profiles/linux_arm64 /root/.silabs/slt/installs/conan/profiles/default; \
+        # Replace bundled conan with native conan 2.21.0, it uses Python to extract archives which is slow to emulate
+        && aria2c --checksum=sha-256=2f356826c4c633f24355f4cb1d54a980a23c1912c0bcab54a771913af3b753b5 -o /tmp/conan-2.21.0.tgz \
+            https://github.com/conan-io/conan/releases/download/2.21.0/conan-2.21.0-linux-aarch64.tgz \
+        && rm -rf /root/.silabs/slt/engines/conan/conan \
+        && mkdir /root/.silabs/slt/engines/conan/conan \
+        && bsdtar -xf /tmp/conan-2.21.0.tgz --strip-components=1 -C /root/.silabs/slt/engines/conan/conan \
+        && rm /tmp/conan-2.21.0.tgz
     else \
         slt --non-interactive install conan; \
     fi
@@ -172,8 +178,8 @@ RUN set -e \
 COPY --from=gecko-sdk-v4.5.0 /out /gecko_sdk_4.5.0
 COPY --from=python-venv /opt/pythons /opt/pythons
 COPY --from=python-venv /opt/venv /opt/venv
+COPY --from=qemu-execve-builder /usr/src/qemu/build/qemu-x86_64 /usr/bin/qemu-x86_64-static
 COPY --from=slt-toolchain /usr/bin/slt* /usr/bin/
-COPY --from=slt-toolchain /usr/bin/qemu-x86_64-static /usr/bin/
 COPY --from=slt-toolchain /root/.silabs /root/.silabs
 
 # Signal to the firmware builder script that we are running within Docker
