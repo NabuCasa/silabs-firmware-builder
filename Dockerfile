@@ -29,6 +29,12 @@ RUN set -e \
 RUN <<EOF
 if [ "$TARGETARCH" = "arm64" ]; then
     cd /box64 && git apply --unidiff-zero <<'PATCH'
+diff --git a/src/custommem.c b/src/custommem.c
+--- a/src/custommem.c
++++ b/src/custommem.c
+@@ -2718,2 +2717,0 @@
+-            if(s>0x7fff00000000LL)
+-                have48bits = 1;
 diff --git a/src/wrapped/wrappedlibc_private.h b/src/wrapped/wrappedlibc_private.h
 --- a/src/wrapped/wrappedlibc_private.h
 +++ b/src/wrapped/wrappedlibc_private.h
@@ -102,13 +108,13 @@ RUN set -e \
         && rm -rf /var/lib/apt/lists/* \
         # slt-cli and conan are x86_64 only, need box64 on ARM64
         && mv /usr/bin/slt /usr/bin/slt-bin \
-        && printf '#!/bin/sh\nBOX64_LOG=0 BOX64_RESERVE_HIGH=1 BOX64_PROFILE=safest exec /usr/bin/box64 /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
+        && printf '#!/bin/sh\nBOX64_LOG=0 BOX64_PROFILE=safe exec /usr/bin/box64 /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
         && chmod +x /usr/bin/slt \
         # Install conan
         && slt --non-interactive install conan \
         # Wrap conan_engine with box64
         && mv /root/.silabs/slt/engines/conan/conan_engine /root/.silabs/slt/engines/conan/conan_engine-bin \
-        && printf '#!/bin/sh\nBOX64_LOG=0 BOX64_RESERVE_HIGH=1 BOX64_PROFILE=safest exec /usr/bin/box64 /root/.silabs/slt/engines/conan/conan_engine-bin "$@"\n' > /root/.silabs/slt/engines/conan/conan_engine \
+        && printf '#!/bin/sh\nBOX64_LOG=0 BOX64_PROFILE=safe exec /usr/bin/box64 /root/.silabs/slt/engines/conan/conan_engine-bin "$@"\n' > /root/.silabs/slt/engines/conan/conan_engine \
         && chmod +x /root/.silabs/slt/engines/conan/conan_engine \
         # Patch slt to select ARM64 packages for subsequent installs
         && sed -i 's/amd6/arm6/g' /usr/bin/slt-bin \
