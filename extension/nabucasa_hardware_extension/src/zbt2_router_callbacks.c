@@ -192,6 +192,7 @@ static void sync_light_state(uint8_t endpoint)
 // Commissioning event handler - starts network steering
 static void commissioning_retry_event_handler(sl_zigbee_af_event_t *event)
 {
+  (void)event;
   if (sl_zigbee_af_network_state() != SL_ZIGBEE_JOINED_NETWORK) {
     // Switch from white pulse (ready) to blue pulse (searching)
     led_pattern_t search_pattern = {
@@ -248,6 +249,9 @@ void sl_zigbee_af_network_steering_complete_cb(sl_status_t status,
                                                uint8_t joinAttempts,
                                                uint8_t finalState)
 {
+  (void)totalBeacons;
+  (void)joinAttempts;
+  (void)finalState;
   sl_zigbee_app_debug_println("Network steering complete: 0x%X", status);
 
   if (status != SL_STATUS_OK) {
@@ -268,6 +272,10 @@ void sl_zigbee_af_post_attribute_change_cb(uint8_t endpoint,
                                            uint8_t size,
                                            uint8_t* value)
 {
+  (void)manufacturerCode;
+  (void)type;
+  (void)size;
+  (void)value;
   if (mask != CLUSTER_MASK_SERVER) {
     return;
   }
