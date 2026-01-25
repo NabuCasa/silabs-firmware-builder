@@ -60,10 +60,10 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
 FROM debian:trixie-slim AS gecko-sdk-v4.5.0
 RUN apt-get update && apt-get install -y --no-install-recommends aria2 ca-certificates libarchive-tools \
     && rm -rf /var/lib/apt/lists/* \
-    && aria2c --checksum=sha-256=b5b2b2410eac0c9e2a72320f46605ecac0d376910cafded5daca9c1f78e966c8 -o /tmp/sdk.zip \
+    && aria2c --checksum=sha-256=b5b2b2410eac0c9e2a72320f46605ecac0d376910cafded5daca9c1f78e966c8 -o sdk.zip \
         https://github.com/SiliconLabs/gecko_sdk/releases/download/v4.5.0/gecko-sdk.zip \
-    && mkdir /out && bsdtar -xf /tmp/sdk.zip -C /out \
-    && rm /tmp/sdk.zip
+    && mkdir /out && bsdtar -xf sdk.zip -C /out \
+    && rm sdk.zip
 
 # Python virtual environment for the firmware builder script
 FROM debian:trixie-slim AS python-venv
@@ -90,9 +90,10 @@ RUN set -e \
         unzip \
     && rm -rf /var/lib/apt/lists/* \
     # slt-cli is x64 only but runs fine with QEMU
-    && aria2c --checksum=sha-256=8c2dd5091c15d5dd7b8fc978a512c49d9b9c5da83d4d0b820cfe983b38ef3612 -o /tmp/slt.zip \
+    && aria2c --checksum=sha-256=8c2dd5091c15d5dd7b8fc978a512c49d9b9c5da83d4d0b820cfe983b38ef3612 -o slt.zip \
         https://www.silabs.com/documents/public/software/slt-cli-1.1.0-linux-x64.zip \
-    && bsdtar -xf /tmp/slt.zip -C /usr/bin && chmod +x /usr/bin/slt && rm /tmp/slt.zip \
+    && bsdtar -xf slt.zip -C /usr/bin && rm slt.zip \
+    && chmod +x /usr/bin/slt \
     && if [ "$TARGETARCH" = "arm64" ]; then \
         dpkg --add-architecture amd64 \
         && apt-get update \
@@ -115,12 +116,12 @@ RUN set -e \
         # Force conan to use the ARM64 profile for downloading packages
         && cp /root/.silabs/slt/installs/conan/profiles/linux_arm64 /root/.silabs/slt/installs/conan/profiles/default \
         # Replace bundled conan with native conan 2.21.0, it uses Python to extract archives which is slow to emulate
-        && aria2c --checksum=sha-256=2f356826c4c633f24355f4cb1d54a980a23c1912c0bcab54a771913af3b753b5 -o /tmp/conan-2.21.0.tgz \
+        && aria2c --checksum=sha-256=2f356826c4c633f24355f4cb1d54a980a23c1912c0bcab54a771913af3b753b5 -o conan-2.21.0.tgz \
             https://github.com/conan-io/conan/releases/download/2.21.0/conan-2.21.0-linux-aarch64.tgz \
         && rm -rf /root/.silabs/slt/engines/conan/conan \
         && mkdir /root/.silabs/slt/engines/conan/conan \
-        && bsdtar -xf /tmp/conan-2.21.0.tgz --strip-components=1 -C /root/.silabs/slt/engines/conan/conan \
-        && rm /tmp/conan-2.21.0.tgz; \
+        && bsdtar -xf conan-2.21.0.tgz --strip-components=1 -C /root/.silabs/slt/engines/conan/conan \
+        && rm conan-2.21.0.tgz; \
     else \
         slt --non-interactive install conan; \
     fi
