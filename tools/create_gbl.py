@@ -287,9 +287,7 @@ def main():
         gbl_dynamic.remove("ot_rcp_version")
 
         ot_proj_path = project_root / "config/sl_openthread_generic_config.h"
-        ot_sdk_path = (
-            gsdk_path / "protocol/openthread/include/sl_openthread_package_info.h"
-        )
+        ot_sdk_path = gsdk_path / "openthread/include/sl_openthread_package_info.h"
 
         if ot_proj_path.exists():
             openthread_config_h = parse_c_header_defines(ot_proj_path.read_text())

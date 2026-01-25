@@ -704,6 +704,8 @@ def main():
         "-Wextra",
         "-Werror",
         "-Wno-error=maybe-uninitialized",  # Linking fails due to a few SDK bugs
+        # simplicity_sdk_2025.12.0/security_mbedtls_source/library/ssl_tls.c:2801:13: error: 'mbedtls_ssl_get_hostname_pointer' defined but not used
+        "-Wno-error=unused-function",
     ]
     build_flags["CXX_FLAGS"] = build_flags["C_FLAGS"]
 
