@@ -62,7 +62,7 @@ def get_toolchain_default_paths() -> list[pathlib.Path]:
         )
 
     if is_running_in_docker():
-        return list(pathlib.Path("/opt").glob("*arm-none-eabi*"))
+        return list(pathlib.Path("/root/.silabs/slt/installs/conan/p").glob("gcc-*/p"))
 
     return []
 
@@ -73,7 +73,11 @@ def get_sdk_default_paths() -> list[pathlib.Path]:
         return list(pathlib.Path("~/SimplicityStudio/SDKs").expanduser().glob("*_sdk*"))
 
     if is_running_in_docker():
-        return list(pathlib.Path("/").glob("*_sdk_*"))
+        paths = list(pathlib.Path("/").glob("*_sdk_*"))
+        paths += list(
+            pathlib.Path("/root/.silabs/slt/installs/conan/p").glob("simpl*/p")
+        )
+        return paths
 
     return []
 
@@ -510,6 +514,7 @@ def main():
         SLC
         + [
             "generate",
+            "--verbose", "DEBUG",
             "--trust-totality",
             "--with", manifest["device"],
             "--project-file", base_project_slcp.resolve(),
@@ -678,7 +683,7 @@ def main():
             )
         )
 
-    cmake_dir = args.build_dir / f"{base_project_name}_cmake"
+    cmake_dir = args.build_dir / "cmake_gcc"
 
     # Remove absolute paths from the build for reproducibility
     remapped_paths = {
@@ -728,6 +733,7 @@ def main():
         ],
         "cmake",
         env={
+            "HOME": os.environ["HOME"],
             "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}",
             "ARM_GCC_DIR": toolchain,
             "NINJA_EXE_PATH": shutil.which("ninja"),
@@ -742,6 +748,7 @@ def main():
         "cmake --build",
         cwd=cmake_dir,
         env={
+            "HOME": os.environ["HOME"],
             "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}",
         },
     )

@@ -12,6 +12,7 @@ gbl:
 
 sdk_extension:
   - id: bootloader_gpio_activation_dual
+    vendor: nabucasa
     version: 1.0.0
 
 remove_components:
@@ -19,7 +20,6 @@ remove_components:
 
 add_components:
   - id: bootloader_gpio_activation_dual
-    from: bootloader_gpio_activation_dual
 
 c_defines:
   SL_SERIAL_UART_FLOW_CONTROL: 1

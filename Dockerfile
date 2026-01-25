@@ -1,183 +1,185 @@
-FROM alpine:3.23 AS base-downloader
+# Build QEMU with execve interception patch for running x86_64 binaries on ARM64.
+# This patched QEMU intercepts execve() syscalls and wraps child processes with QEMU,
+# which is necessary because binfmt_misc is not available during Docker builds.
+# See https://github.com/balena-io/qemu for more info.
+#
+# The purpose of this patch is to allow us to emulate `slt` and `conan`, the new Silicon
+# Labs tooling for setting up development tools. These tools are not available for ARM64
+# Linux but strangely all other packages are, meaning we can just emulate the downloading
+# part and still have native performance for all compilation.
+#
+# Recent QEMU releases have an issue with the Go version used to compile the SiLabs
+# tooling (https://github.com/golang/go/issues/69255). QEMU also does not intercept the
+# `execve` syscall by default, preventing us from using a specific QEMU version for
+# emulation entirely from userspace. The patched QEMU build from Balena.io solves both
+# of these problems at once. We can remove this once SiLabs releases builds of `slt` and
+# `conan` for ARM64 Linux.
+FROM --platform=$BUILDPLATFORM debian:bookworm-slim AS qemu-execve-builder
 ARG TARGETARCH
+WORKDIR /usr/src
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+        apt-get -q update \
+        && apt-get -qqy install \
+            build-essential \
+            zlib1g-dev \
+            libpixman-1-dev \
+            python3 \
+            libglib2.0-dev \
+            pkg-config \
+            ninja-build \
+            git \
+        && rm -rf /var/lib/apt/lists/* \
+        && git clone --depth 1 https://github.com/balena-io/qemu.git \
+        && cd qemu \
+        && git fetch --depth 1 origin 639d1d8903f65d74eb04c49e0df7a4b2f014cd86 \
+        && git checkout 639d1d8903f65d74eb04c49e0df7a4b2f014cd86 \
+        && ./configure \
+            --target-list=x86_64-linux-user \
+            --static \
+            --disable-pie \
+            --disable-docs \
+            --disable-tools \
+            --disable-capstone \
+            --disable-guest-agent \
+            --disable-blobs \
+        && make -j $(nproc); \
+    else \
+        # Dummy file to copy for x86_64
+        mkdir -p /usr/src/qemu/build && touch /usr/src/qemu/build/qemu-x86_64; \
+    fi
 
-# Simplicity SDK includes unicode characters in folder names and fails to unzip
-ENV LANG=C.UTF-8
-ENV LC_ALL=C.UTF-8
-
-RUN apk add --no-cache \
-    aria2 \
-    bzip2 \
-    ca-certificates \
-    libarchive-tools \
-    xz
-
-# ============ Parallel download stages ============
-
-# Simplicity SDK 2025.6.2
-FROM base-downloader AS simplicity-sdk-v2025.6.2
-RUN aria2c --checksum=sha-256=463021f42ab1b4eeb1ca69660d3e8fccda4db76bd95b9cccec2c2bcba87550de -o /tmp/sdk.zip \
-        https://github.com/SiliconLabs/simplicity_sdk/releases/download/v2025.6.2/simplicity-sdk.zip \
-    && mkdir /out && bsdtar -xf /tmp/sdk.zip -C /out \
-    && rm /tmp/sdk.zip
-
-# Gecko SDK 4.5.0
-FROM base-downloader AS gecko-sdk-v4.5.0
-RUN aria2c --checksum=sha-256=b5b2b2410eac0c9e2a72320f46605ecac0d376910cafded5daca9c1f78e966c8 -o /tmp/sdk.zip \
+# The new `slt` tool does not provide Gecko SDK builds so we have to download it ourselves.
+FROM debian:trixie-slim AS gecko-sdk-v4.5.0
+RUN apt-get update && apt-get install -y --no-install-recommends aria2 ca-certificates libarchive-tools \
+    && rm -rf /var/lib/apt/lists/* \
+    && aria2c --checksum=sha-256=b5b2b2410eac0c9e2a72320f46605ecac0d376910cafded5daca9c1f78e966c8 -o /tmp/sdk.zip \
         https://github.com/SiliconLabs/gecko_sdk/releases/download/v4.5.0/gecko-sdk.zip \
     && mkdir /out && bsdtar -xf /tmp/sdk.zip -C /out \
     && rm /tmp/sdk.zip
 
-# ZCL Advanced Platform (ZAP) v2025.12.02
-FROM base-downloader AS zap
-ARG TARGETARCH
-RUN apk add --no-cache jq \
-    && if [ "$TARGETARCH" = "arm64" ]; then \
-        ARCH="arm64"; \
-        CHECKSUM="b9e64d4c3bd1796205bd2729ed8d6900f60b675c2d3fd94b6339713f8a1df1e6"; \
-    else \
-        ARCH="x64"; \
-        CHECKSUM="0f6d66a1cecfb053b02de5951911ea4b596c417007cf48a903590e31823d44fa"; \
-    fi \
-    && aria2c --checksum=sha-256=$CHECKSUM -o /tmp/zap.zip \
-        "https://github.com/project-chip/zap/releases/download/v2025.12.02/zap-linux-${ARCH}.zip" \
-    && mkdir /out && bsdtar -xf /tmp/zap.zip -C /out && rm /tmp/zap.zip \
-    && chmod +x /out/zap /out/zap-cli \
-    # Patch ZAP apack.json to add missing linux.aarch64 executable definitions
-    # Remove once https://github.com/project-chip/zap/pull/1677 is merged
-    && jq '.executable["zap:linux.aarch64"]     = {"exe": "zap",     "optional": true} \
-         | .executable["zap-cli:linux.aarch64"] = {"exe": "zap-cli", "optional": true}' \
-        /out/apack.json > /tmp/apack.json && mv /tmp/apack.json /out/apack.json
-
-# GCC Embedded Toolchain 12.2.rel1
-FROM base-downloader AS gcc-embedded-toolchain
-ARG TARGETARCH
-RUN if [ "$TARGETARCH" = "arm64" ]; then \
-        ARCH="aarch64"; \
-        CHECKSUM="7ee332f7558a984e239e768a13aed86c6c3ac85c90b91d27f4ed38d7ec6b3e8c"; \
-    else \
-        ARCH="x86_64"; \
-        CHECKSUM="84be93d0f9e96a15addd490b6e237f588c641c8afdf90e7610a628007fc96867"; \
-    fi \
-    && aria2c --checksum=sha-256=$CHECKSUM -o /tmp/toolchain.tar.xz \
-        "https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/12.2.rel1/binrel/arm-gnu-toolchain-12.2.rel1-${ARCH}-arm-none-eabi.tar.xz" \
-    && mkdir /out && tar -C /out -xJf /tmp/toolchain.tar.xz \
-    && rm /tmp/toolchain.tar.xz
-
-# Simplicity Commander CLI
-FROM base-downloader AS commander
-ARG TARGETARCH
-RUN if [ "$TARGETARCH" = "arm64" ]; then \
-        ARCH="aarch64"; \
-    else \
-        ARCH="x86_64"; \
-    fi \
-    && aria2c --checksum=sha-256=13a46f16edce4a9854df13a6226a978b43f958abfeb23bb5871580e6481ed775 -o /tmp/commander.zip \
-        "https://www.silabs.com/documents/public/software/SimplicityCommander-Linux.zip" \
-    && bsdtar -xf /tmp/commander.zip && rm /tmp/commander.zip \
-    && mkdir /out \
-    && tar -C /out -xjf SimplicityCommander-Linux/Commander-cli_linux_${ARCH}_*.tar.bz \
-    && rm -r SimplicityCommander-Linux \
-    && ln -s commander-cli /out/commander-cli/commander
-
-# Silicon Labs Configurator (slc)
-FROM base-downloader AS slc-cli
-RUN aria2c --checksum=sha-256=923107bb6aa477324efe8bc698a769be0ca5a26e2b7341f6177f5d3586453158 -o /tmp/slc.zip \
-        "https://www.silabs.com/documents/public/software/slc_cli_linux.zip" \
-    && mkdir /out && bsdtar -xf /tmp/slc.zip -C /out \
-    && rm /tmp/slc.zip
-
-# slc-cli hardcodes architectures internally and does not properly support ARM64 despite
-# actually being fully compatible with it. It requires Python via JEP just for Jinja2
-# template generation so we can install a standalone Python 3.10 and use that for JEP.
-# For consistency across architectures, we compile and replace on x86-64 even though it
-# is not necessary.
-FROM debian:trixie-slim AS slc-python
-RUN set -o pipefail \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends \
-       ca-certificates \
-       curl \
-       clang \
-       default-jdk-headless \
-    && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/bin" sh \
-    && uv python install 3.10 --no-cache \
-    && mkdir -p /out/bin /out/lib \
-    # Copy Python binary and stdlib
-    && cp /root/.local/share/uv/python/cpython-3.10.*/bin/python3.10 /out/bin/python3 \
-    && cp -R /root/.local/share/uv/python/cpython-3.10.*/lib/libpython3.10.so.1.0 /out/lib/ \
-    && cp -R /root/.local/share/uv/python/cpython-3.10.*/lib/python3.10 /out/lib/ \
-    # Python binary needs libpython in the same directory
-    && cp /out/lib/libpython3.10.so.1.0 /out/bin/ \
-    # Install JEP and dependencies (setuptools<69 required for JEP build)
-    && echo "setuptools<69" > /tmp/uv_constraints.txt \
-    && JAVA_HOME=/usr/lib/jvm/default-java \
-       LIBRARY_PATH=/out/lib \
-       uv pip install \
-       --python /out/bin/python3 \
-       --break-system-packages \
-       --build-constraint /tmp/uv_constraints.txt \
-       --no-cache \
-       jep==4.1.1 jinja2==3.1.6 pyyaml==6.0.3 \
-    # Mirror expected slc-cli folder structure
-    && mkdir -p /out/jep \
-    && cp /out/lib/python3.10/site-packages/jep/*.py /out/jep/ \
-    && cp /out/lib/python3.10/site-packages/jep/jep.cpython-310-*-linux-gnu.so /out/jep/jep.so
-
 # Python virtual environment for the firmware builder script
-FROM debian:trixie-slim AS builder-venv
+FROM debian:trixie-slim AS python-venv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/bin/
 COPY requirements.txt /tmp/
-RUN set -o pipefail \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates curl \
-    && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/bin" sh \
-    && UV_PYTHON_INSTALL_DIR=/opt/pythons uv venv -p 3.13 /opt/venv --no-cache \
+RUN UV_PYTHON_INSTALL_DIR=/opt/pythons uv venv -p 3.13 /opt/venv --no-cache \
     && uv pip install --python /opt/venv -r /tmp/requirements.txt
 
-# ============ Final image ============
+# Install slt and all toolchain packages (depends on QEMU for ARM64)
+FROM debian:trixie-slim AS slt-toolchain
+ARG TARGETARCH
 
+# Copy patched QEMU with execve interception (only used on ARM64)
+COPY --from=qemu-execve-builder /usr/src/qemu/build/qemu-x86_64 /usr/bin/qemu-x86_64-static
+
+# Set up slt and conan
+RUN set -e \
+    && apt-get update && apt-get install -y --no-install-recommends \
+        aria2 \
+        ca-certificates \
+        # Required by conan
+        libarchive-tools \
+        bzip2 \
+        unzip \
+    && rm -rf /var/lib/apt/lists/* \
+    # slt-cli is x64 only but runs fine with QEMU
+    && aria2c --checksum=sha-256=8c2dd5091c15d5dd7b8fc978a512c49d9b9c5da83d4d0b820cfe983b38ef3612 -o /tmp/slt.zip \
+        https://www.silabs.com/documents/public/software/slt-cli-1.1.0-linux-x64.zip \
+    && bsdtar -xf /tmp/slt.zip -C /usr/bin && chmod +x /usr/bin/slt && rm /tmp/slt.zip \
+    && if [ "$TARGETARCH" = "arm64" ]; then \
+        dpkg --add-architecture amd64 \
+        && apt-get update \
+        && apt-get install -y --no-install-recommends libc6:amd64 zlib1g:amd64 \
+        && rm -rf /var/lib/apt/lists/* \
+        # slt-cli and conan are x86_64 only, need QEMU on ARM64
+        # The -execve flag tells QEMU to intercept execve() and wrap child processes
+        && mv /usr/bin/slt /usr/bin/slt-bin \
+        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static -execve /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
+        && chmod +x /usr/bin/slt \
+        # Install conan
+        && slt --non-interactive install conan \
+        # Only wrap conan_engine with QEMU -execve; it will handle running conan via execve interception
+        && mv /root/.silabs/slt/engines/conan/conan_engine /root/.silabs/slt/engines/conan/conan_engine-bin \
+        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static -execve /root/.silabs/slt/engines/conan/conan_engine-bin "$@"\n' > /root/.silabs/slt/engines/conan/conan_engine \
+        && chmod +x /root/.silabs/slt/engines/conan/conan_engine \
+        # Remove -execve from slt wrapper so native tools (tar, etc.) run without QEMU
+        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
+        # Patch slt to select ARM64 packages for subsequent installs
+        && sed -i 's/amd6/arm6/g' /usr/bin/slt-bin \
+        # Force conan to use the ARM64 profile for downloading packages
+        && cp /root/.silabs/slt/installs/conan/profiles/linux_arm64 /root/.silabs/slt/installs/conan/profiles/default; \
+    else \
+        slt --non-interactive install conan; \
+    fi
+
+# Install toolchain via slt
+RUN set -e \
+    && apt-get update && apt-get install -y --no-install-recommends jq && rm -rf /var/lib/apt/lists/* \
+    && slt --non-interactive install \
+        cmake/3.30.2 \
+        ninja/1.12.1 \
+        commander/1.22.0 \
+        slc-cli/6.0.15 \
+        simplicity-sdk/2025.6.2 \
+        zap/2025.12.02 \
+    # Patch ZAP apack.json to add missing linux.aarch64 executable definitions
+    # Remove once zap is bumped to 2026.x.x
+    && ZAP_PATH="$(slt where zap)" \
+    && jq '.executable["zap:linux.aarch64"]     = {"exe": "zap",     "optional": true} \
+         | .executable["zap-cli:linux.aarch64"] = {"exe": "zap-cli", "optional": true}' \
+        "$ZAP_PATH/apack.json" > /tmp/apack.json && mv /tmp/apack.json "$ZAP_PATH/apack.json" \
+    # Clean up download caches to reduce image size
+    && rm -rf /root/.silabs/slt/installs/archive/*.zip \
+              /root/.silabs/slt/installs/archive/*.tar.* \
+              /root/.silabs/slt/installs/conan/p/*/d/ \
+    # Create stable symlinks and wrappers to make the tools available in PATH
+    && mkdir -p /root/.silabs/slt/bin \
+    && ln -s "$(slt where java21)/jre/bin/java" /root/.silabs/slt/bin/java \
+    && ln -s "$(slt where commander)/commander" /root/.silabs/slt/bin/commander \
+    && ln -s "$(slt where cmake)/bin/cmake" /root/.silabs/slt/bin/cmake \
+    && ln -s "$(slt where ninja)/ninja" /root/.silabs/slt/bin/ninja \
+    # slc needs a wrapper script because it uses $(dirname "$0") to find slc.jar
+    && printf '#!/bin/sh\nexec "%s/slc" "$@"\n' "$(slt where slc-cli)" > /root/.silabs/slt/bin/slc \
+    && chmod +x /root/.silabs/slt/bin/slc
+
+# Final image
 FROM debian:trixie-slim
+ARG TARGETARCH
 
-# Install runtime packages
-RUN apt-get update \
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+
+# Install only runtime packages
+RUN set -e \
+    # Install x86_64 libraries for QEMU on ARM64
+    && if [ "$TARGETARCH" = "arm64" ]; then \
+        dpkg --add-architecture amd64 \
+        && apt-get update \
+        && apt-get install -y --no-install-recommends libc6:amd64 zlib1g:amd64; \
+    else \
+        apt-get update; \
+    fi \
     && apt-get install -y --no-install-recommends \
-       # For Simplicity Commander
-       libglib2.0-0 \
-       libpcre2-16-0 \
-       # For SLC
-       default-jre-headless \
-       cmake \
-       ninja-build \
-       # For build script
+       ca-certificates \
        git \
+       libstdc++6 \
+       libgl1 \
+       libpng16-16 \
+       libpcre2-16-0 \
+       libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy all downloaded artifacts from parallel stages
-COPY --from=gcc-embedded-toolchain /out /opt
-COPY --from=commander /out /opt
-COPY --from=simplicity-sdk-v2025.6.2 /out /simplicity_sdk_2025.6.2
+# Copy from parallel stages
 COPY --from=gecko-sdk-v4.5.0 /out /gecko_sdk_4.5.0
-COPY --from=zap /out /opt/zap
-COPY --from=slc-cli /out /opt
-COPY --from=slc-python /out /opt/slc_cli/bin/slc-cli/developer/adapter_packs/python
-COPY --from=builder-venv /opt/venv /opt/venv
-COPY --from=builder-venv /opt/pythons /opt/pythons
-
-# We can run slc-cli without the native wrapper. For consistency across architectures,
-# we create the same wrapper script on both.
-RUN cat <<'EOF' > /usr/local/bin/slc && chmod +x /usr/local/bin/slc
-#!/bin/sh
-exec java \
-    -jar /opt/slc_cli/bin/slc-cli/plugins/org.eclipse.equinox.launcher_*.jar \
-    -install /opt/slc_cli/bin/slc-cli \
-    -consoleLog \
-    "$@"
-EOF
+COPY --from=python-venv /opt/pythons /opt/pythons
+COPY --from=python-venv /opt/venv /opt/venv
+COPY --from=slt-toolchain /usr/bin/slt* /usr/bin/
+COPY --from=slt-toolchain /usr/bin/qemu-x86_64-static /usr/bin/
+COPY --from=slt-toolchain /root/.silabs /root/.silabs
 
 # Signal to the firmware builder script that we are running within Docker
 ENV SILABS_FIRMWARE_BUILD_CONTAINER=1
-ENV PATH="$PATH:/opt/commander-cli:/opt/slc_cli"
-ENV STUDIO_ADAPTER_PACK_PATH="/opt/zap"
+ENV HOME=/root
+ENV PATH="$PATH:/root/.silabs/slt/bin"
 
 WORKDIR /repo
 
