@@ -1,67 +1,51 @@
-# Build box64 for running x86_64 binaries on ARM64.
+# Build QEMU with execve interception patch for running x86_64 binaries on ARM64.
+# This patched QEMU intercepts execve() syscalls and wraps child processes with QEMU,
+# which is necessary because binfmt_misc is not available during Docker builds.
+# See https://github.com/balena-io/qemu for more info.
 #
-# The purpose of this is to emulate `slt` and `conan`, the new Silicon Labs tooling for
-# setting up development tools. These tools are not available for ARM64 Linux but
-# strangely all other packages are, meaning we can just emulate the downloading part
-# and still have native performance for all compilation.
+# The purpose of this patch is to allow us to emulate `slt` and `conan`, the new Silicon
+# Labs tooling for setting up development tools. These tools are not available for ARM64
+# Linux but strangely all other packages are, meaning we can just emulate the downloading
+# part and still have native performance for all compilation.
 #
-# box64 is significantly faster than QEMU for this workload (~4x). However, both QEMU and
-# box64 are affected by a Go runtime issue (https://github.com/golang/go/issues/69255)
-# where Go assumes AMD64's 48-bit sign-extended addresses, but ARM64 can allocate
-# addresses up to the full 48-bit range. We patch box64 to force 47-bit address mode,
-# constraining allocations to the canonical AMD64 low-half address space.
-#
-# We can remove this emulation layer once SiLabs releases ARM64 Linux builds of `slt`
-# and `conan`.
-FROM debian:trixie-slim AS box64-builder
+# Recent QEMU releases have an issue with the Go version used to compile the SiLabs
+# tooling (https://github.com/golang/go/issues/69255). QEMU also does not intercept the
+# `execve` syscall by default, preventing us from using a specific QEMU version for
+# emulation entirely from userspace. The patched QEMU build from Balena.io solves both
+# of these problems at once. We can remove this once SiLabs releases builds of `slt` and
+# `conan` for ARM64 Linux.
+FROM --platform=$BUILDPLATFORM debian:bookworm-slim AS qemu-execve-builder
 ARG TARGETARCH
-
-RUN set -e \
-    && if [ "$TARGETARCH" = "arm64" ]; then \
-        apt-get update && apt-get install -y git cmake gcc g++ make python3 \
+WORKDIR /usr/src
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+        apt-get -q update \
+        && apt-get -qqy install \
+            build-essential \
+            zlib1g-dev \
+            libpixman-1-dev \
+            python3 \
+            libglib2.0-dev \
+            pkg-config \
+            ninja-build \
+            git \
         && rm -rf /var/lib/apt/lists/* \
-        && git clone https://github.com/ptitSeb/box64 /box64 && cd /box64 \
-        && git checkout 0eb0f9decb0b7e560005b30c11e019f18805eec2; \
-    fi
-
-# Fix __pread64_chk/__xmknod/__xmknodat missing for static builds
-# Force 47-bit address space to fix Go runtime issue (https://github.com/golang/go/issues/69255)
-RUN <<EOF
-if [ "$TARGETARCH" = "arm64" ]; then
-    cd /box64 && git apply --unidiff-zero <<'PATCH'
-diff --git a/src/custommem.c b/src/custommem.c
---- a/src/custommem.c
-+++ b/src/custommem.c
-@@ -2718,2 +2717,0 @@
--            if(s>0x7fff00000000LL)
--                have48bits = 1;
-diff --git a/src/wrapped/wrappedlibc_private.h b/src/wrapped/wrappedlibc_private.h
---- a/src/wrapped/wrappedlibc_private.h
-+++ b/src/wrapped/wrappedlibc_private.h
-@@ -1529 +1528,0 @@
--#ifdef LA64
-@@ -1531,3 +1529,0 @@
--#else
--GO(__pread64_chk, lFipLlL)
--#endif
-@@ -2633,4 +2628,0 @@
--#ifdef STATICBUILD
--//GO(__xmknod, iFipup)
--//GO(__xmknodat, iFiipup)
--#else
-@@ -2639 +2630,0 @@
--#endif
-PATCH
-fi
-EOF
-
-RUN set -e \
-    && if [ "$TARGETARCH" = "arm64" ]; then \
-        mkdir -p /box64/build && cd /box64/build \
-        && cmake .. -DARM64=1 -DSTATICBUILD=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-        && make -j$(nproc); \
+        && git clone --depth 1 https://github.com/balena-io/qemu.git \
+        && cd qemu \
+        && git fetch --depth 1 origin 639d1d8903f65d74eb04c49e0df7a4b2f014cd86 \
+        && git checkout 639d1d8903f65d74eb04c49e0df7a4b2f014cd86 \
+        && ./configure \
+            --target-list=x86_64-linux-user \
+            --static \
+            --disable-pie \
+            --disable-docs \
+            --disable-tools \
+            --disable-capstone \
+            --disable-guest-agent \
+            --disable-blobs \
+        && make -j $(nproc); \
     else \
-        mkdir -p /box64/build && touch /box64/build/box64; \
+        # Dummy file to copy for x86_64
+        mkdir -p /usr/src/qemu/build && touch /usr/src/qemu/build/qemu-x86_64; \
     fi
 
 # The new `slt` tool does not provide Gecko SDK builds so we have to download it ourselves.
@@ -80,12 +64,12 @@ COPY requirements.txt /tmp/
 RUN UV_PYTHON_INSTALL_DIR=/opt/pythons uv venv -p 3.13 /opt/venv --no-cache \
     && uv pip install --python /opt/venv -r /tmp/requirements.txt
 
-# Install slt and all toolchain packages (depends on box64 for ARM64)
+# Install slt and all toolchain packages (depends on QEMU for ARM64)
 FROM debian:trixie-slim AS slt-toolchain
 ARG TARGETARCH
 
-# Copy box64 for x86_64 emulation (only used on ARM64)
-COPY --from=box64-builder /box64/build/box64 /usr/bin/box64
+# Copy patched QEMU with execve interception (only used on ARM64)
+COPY --from=qemu-execve-builder /usr/src/qemu/build/qemu-x86_64 /usr/bin/qemu-x86_64-static
 
 # Set up slt and conan
 RUN set -e \
@@ -97,7 +81,7 @@ RUN set -e \
         bzip2 \
         unzip \
     && rm -rf /var/lib/apt/lists/* \
-    # slt-cli is x64 only but runs fine with box64
+    # slt-cli is x64 only but runs fine with QEMU
     && aria2c --checksum=sha-256=8c2dd5091c15d5dd7b8fc978a512c49d9b9c5da83d4d0b820cfe983b38ef3612 -o /tmp/slt.zip \
         https://www.silabs.com/documents/public/software/slt-cli-1.1.0-linux-x64.zip \
     && bsdtar -xf /tmp/slt.zip -C /usr/bin && chmod +x /usr/bin/slt && rm /tmp/slt.zip \
@@ -106,16 +90,19 @@ RUN set -e \
         && apt-get update \
         && apt-get install -y --no-install-recommends libc6:amd64 zlib1g:amd64 \
         && rm -rf /var/lib/apt/lists/* \
-        # slt-cli and conan are x86_64 only, need box64 on ARM64
+        # slt-cli and conan are x86_64 only, need QEMU on ARM64
+        # The -execve flag tells QEMU to intercept execve() and wrap child processes
         && mv /usr/bin/slt /usr/bin/slt-bin \
-        && printf '#!/bin/sh\nBOX64_LOG=0 BOX64_PROFILE=safe exec /usr/bin/box64 /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
+        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static -execve /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
         && chmod +x /usr/bin/slt \
         # Install conan
         && slt --non-interactive install conan \
-        # Wrap conan_engine with box64
+        # Only wrap conan_engine with QEMU -execve; it will handle running conan via execve interception
         && mv /root/.silabs/slt/engines/conan/conan_engine /root/.silabs/slt/engines/conan/conan_engine-bin \
-        && printf '#!/bin/sh\nBOX64_LOG=0 BOX64_PROFILE=safe exec /usr/bin/box64 /root/.silabs/slt/engines/conan/conan_engine-bin "$@"\n' > /root/.silabs/slt/engines/conan/conan_engine \
+        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static -execve /root/.silabs/slt/engines/conan/conan_engine-bin "$@"\n' > /root/.silabs/slt/engines/conan/conan_engine \
         && chmod +x /root/.silabs/slt/engines/conan/conan_engine \
+        # Remove -execve from slt wrapper so native tools (tar, etc.) run without QEMU
+        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
         # Patch slt to select ARM64 packages for subsequent installs
         && sed -i 's/amd6/arm6/g' /usr/bin/slt-bin \
         # Force conan to use the ARM64 profile for downloading packages
@@ -163,7 +150,7 @@ ENV LC_ALL=C.UTF-8
 
 # Install only runtime packages
 RUN set -e \
-    # Install x86_64 libraries for box64 on ARM64
+    # Install x86_64 libraries for QEMU on ARM64
     && if [ "$TARGETARCH" = "arm64" ]; then \
         dpkg --add-architecture amd64 \
         && apt-get update \
@@ -186,7 +173,7 @@ COPY --from=gecko-sdk-v4.5.0 /out /gecko_sdk_4.5.0
 COPY --from=python-venv /opt/pythons /opt/pythons
 COPY --from=python-venv /opt/venv /opt/venv
 COPY --from=slt-toolchain /usr/bin/slt* /usr/bin/
-COPY --from=slt-toolchain /usr/bin/box64 /usr/bin/
+COPY --from=slt-toolchain /usr/bin/qemu-x86_64-static /usr/bin/
 COPY --from=slt-toolchain /root/.silabs /root/.silabs
 
 # Signal to the firmware builder script that we are running within Docker
