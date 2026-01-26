@@ -690,6 +690,7 @@ def main():
         args.build_dir.absolute(): "/src",
         f"{cmake_dir.absolute()}/..": "/src",
         "/home/buildengineer/jenkins/workspace/Gecko_Workspace/gsdk": f"/src/{sdk_name}_{sdk_version}",
+        "/__w/zigbee": f"/src/{sdk_name}_{sdk_version}",
     }
     build_flags["C_FLAGS"] += [
         f"-ffile-prefix-map={src}={dst}" for src, dst in remapped_paths.items()
@@ -704,6 +705,8 @@ def main():
         "-Wextra",
         "-Werror",
         "-Wno-error=maybe-uninitialized",  # Linking fails due to a few SDK bugs
+        # simplicity_sdk_2025.12.0/security_mbedtls_source/library/ssl_tls.c:2801:13: error: 'mbedtls_ssl_get_hostname_pointer' defined but not used
+        "-Wno-error=unused-function",
     ]
     build_flags["CXX_FLAGS"] = build_flags["C_FLAGS"]
 
