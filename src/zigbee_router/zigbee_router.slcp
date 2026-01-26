@@ -53,7 +53,14 @@ component:
   - id: zigbee_basic
   - id: zigbee_scan_dispatch
   - id: zigbee_update_tc_link_key
+  - id: zigbee_update_app_link_key
+  - id: zigbee_security_link_keys
   - id: clock_manager
+  - id: zigbee_dynamic_commissioning
+  - id: zigbee_trust_center_keepalive
+  - id: zigbee_poll_control_client
+  - id: zigbee_bdb_3dot1_rejoin_algorithm
+  - id: zigbee_bdb_3dot1_trust_center_extension
   - id: zigbee_application_bootloader
   # Platform - enable LTO for gcc
   - id: toolchain_gcc_lto
@@ -87,7 +94,7 @@ configuration:
   - name: SLI_ZIGBEE_PRIMARY_NETWORK_DEVICE_TYPE
     value: SLI_ZIGBEE_NETWORK_DEVICE_TYPE_ROUTER
   - name: SLI_ZIGBEE_PRIMARY_NETWORK_SECURITY_TYPE
-    value: SLI_ZIGBEE_NETWORK_SECURITY_TYPE_3_0
+    value: SLI_ZIGBEE_NETWORK_SECURITY_TYPE_4_0
   - name: SL_CLI_PROMPT_STRING
     value: "\"zigbee_router>\""
   - name: NVM3_DEFAULT_NVM_SIZE
@@ -165,6 +172,12 @@ configuration:
     value: 2000
     condition:
       - device_series_3
+  - name: SL_ZIGBEE_AF_PLUGIN_NETWORK_STEERING_ENABLE_AUTOSTART
+    value: 0
+  - name: SL_ZIGBEE_AF_PLUGIN_TRUST_CENTER_KEEPALIVE_DEFAULT_BASE_PERIOD_MINUTES
+    value: 1
+  - name: SL_ZIGBEE_AF_PLUGIN_TRUST_CENTER_KEEPALIVE_DEFAULT_JITTER_PERIOD_SECONDS
+    value: 30
 
 source:
   - path: main.c
