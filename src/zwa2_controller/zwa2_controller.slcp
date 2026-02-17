@@ -129,9 +129,12 @@ define:
   value: <application_properties_config.h>
 config_file:
 - path: keys/vendor_encrypt.key
-  directory: sample_keys
+  directory: keys
 - path: keys/vendor_sign.key
-  directory: sample_keys
+  directory: keys
+- path: config/zaf_config.h
+  file_id: zaf_config
+  condition: [device_series_2]
 template_contribution:
 - name: rodata_sections
   priority: 0
@@ -194,6 +197,3 @@ ui_hints:
   highlight:
   - path: README.md
     focus: true
-post_build:
-- path: zwa2_controller.slpb
-  profile: zwave_application

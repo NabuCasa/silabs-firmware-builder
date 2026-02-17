@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import re
 import ast
 import sys
 import json
@@ -278,10 +279,20 @@ def main():
 
     if "zwave_version" in gbl_dynamic:
         gbl_dynamic.remove("zwave_version")
-        zwave_props = parse_properties_file(
-            next((gsdk_path / "protocol/z-wave/").glob("*.properties")).read_text()
+        cmake = (build_dir / f"{project_name}.cmake").read_text()
+        cmake_definitions = {}
+
+        for key in ("SDK_VERSION_MAJOR", "SDK_VERSION_MINOR", "SDK_VERSION_PATCH"):
+            match = re.search(rf'"{key}=(\d+)"', cmake)
+            cmake_definitions[key] = match.group(1)
+
+        metadata["zwave_version"] = ".".join(
+            [
+                cmake_definitions["SDK_VERSION_MAJOR"],
+                cmake_definitions["SDK_VERSION_MINOR"],
+                cmake_definitions["SDK_VERSION_PATCH"],
+            ]
         )
-        metadata["zwave_version"] = zwave_props["version"][0]
 
     if "ot_rcp_version" in gbl_dynamic:
         gbl_dynamic.remove("ot_rcp_version")
