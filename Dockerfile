@@ -136,6 +136,10 @@ RUN set -e \
         slc-cli/6.0.15 \
         simplicity-sdk/2025.6.2 \
         zap/2025.12.02 \
+    # conan cannot resolve two copies of the same package
+    # even with different versions in a single command
+    && slt --non-interactive install \
+        simplicity-sdk/2025.12.1 \
     # Patch ZAP apack.json to add missing linux.aarch64 executable definitions
     # Remove once zap is bumped to 2026.x.x
     && ZAP_PATH="$(slt where zap)" \

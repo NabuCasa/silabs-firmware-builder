@@ -1,0 +1,26 @@
+id: ws2812_driver
+label: WS2812 LED Driver
+package: custom
+description: WS2812 addressable RGB LED driver using raw EUSART + LDMA
+category: Platform|Driver|LED
+quality: production
+source:
+  - path: src/ws2812.c
+include:
+  - path: inc
+    file_list:
+    - path: ws2812.h
+config_file:
+  - path: config/ws2812_config.h
+    file_id: ws2812_config
+provides:
+  - name: ws2812_driver
+requires:
+  - name: emlib_gpio
+  - name: simple_rgb_pwm_led_core
+template_contribution:
+  - name: event_handler
+    value:
+      event: driver_init
+      include: ws2812.h
+      handler: ws2812_led_driver_init

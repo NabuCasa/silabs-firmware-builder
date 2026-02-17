@@ -1,0 +1,17 @@
+id: zwa2_button
+label: ZWA-2 Button
+package: custom
+description: Pin-hole button handler with weak callback for application use
+category: Platform|Driver|Button
+quality: production
+source:
+  - path: src/zwa2_button.c
+include:
+  - path: inc
+    file_list:
+    - path: zwa2_button.h
+provides:
+  - name: zwa2_button
+requires:
+  - name: app_button_press
+  - name: sl_common

@@ -1,0 +1,56 @@
+name: Home Assistant Connect ZWA-2 Z-Wave Controller
+device: EFR32ZG23A020F512GM40
+base_project: src/zwa2_controller
+filename: "{manifest_name}_{zwave_version}"
+sdk: "simplicity_sdk:2025.12.1"
+toolchain: "12.2.1.20221205"
+sample_app: zwave_sample_app/zwave_ncp_serial_api
+
+gbl:
+  fw_type: zwave_ncp
+  zwave_version: dynamic
+
+sdk_extension:
+  - id: nabucasa_zwa2
+    vendor: nabucasa
+    version: 1.0.0
+
+add_components:
+  - id: led_effects_base
+    vendor: nabucasa
+    package: nabucasa_zwa2
+
+c_defines:
+  # Z-Wave device identity
+  ZAF_CONFIG_MANUFACTURER_ID: '0x0466'
+  ZAF_CONFIG_PRODUCT_TYPE_ID: '0x0001'
+  ZAF_CONFIG_PRODUCT_ID: '0x0001'
+
+  # Firmware version (reported in SERIALAPI_CAPABILITIES)
+  USER_APP_VERSION: 1
+  USER_APP_REVISION: 2
+  USER_APP_PATCH: 0
+
+  # USART0 serial API pins
+  SERIAL_API_TX_PORT: gpioPortA
+  SERIAL_API_TX_PIN: 8
+  SERIAL_API_RX_PORT: gpioPortA
+  SERIAL_API_RX_PIN: 7
+
+  # WS2812 LED driver (raw EUSART+LDMA)
+  WS2812_SPI_PERIPHERAL: EUSART1
+  WS2812_SPI_PERIPHERAL_NO: 1
+  WS2812_SPI_TX_PORT: gpioPortC
+  WS2812_SPI_TX_PIN: 2
+  WS2812_SPI_SCLK_PORT: gpioPortC
+  WS2812_SPI_SCLK_PIN: 1
+  WS2812_EN_PORT: gpioPortC
+  WS2812_EN_PIN: 3
+  WS2812_NUM_LEDS: 4
+
+  # QMA6100P I2C
+  QMA6100P_I2C_PERIPHERAL: I2C0
+  QMA6100P_I2C_SCL_PORT: gpioPortC
+  QMA6100P_I2C_SCL_PIN: 6
+  QMA6100P_I2C_SDA_PORT: gpioPortC
+  QMA6100P_I2C_SDA_PIN: 7
