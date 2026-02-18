@@ -94,7 +94,7 @@ add_components:
     package: nabucasa_hardware
   - id: ws2812_driver
     vendor: nabucasa
-    package: nabucasa_zwa2
+    package: nabucasa_hardware
   - id: led_effects_base
     vendor: nabucasa
     package: nabucasa_zwa2
@@ -119,6 +119,7 @@ c_defines:
   # WS2812 LED driver (raw EUSART+LDMA)
   WS2812_SPI_PERIPHERAL: EUSART1
   WS2812_SPI_PERIPHERAL_NO: 1
+  WS2812_SPI_LDMA_SIGNAL: ldmaPeripheralSignal_EUSART1_TXFL
   WS2812_SPI_TX_PORT: gpioPortC
   WS2812_SPI_TX_PIN: 2
   WS2812_SPI_SCLK_PORT: gpioPortC

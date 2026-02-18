@@ -28,8 +28,6 @@ sdk_extension:
     version: 1.0.0
 
 add_components:
-- id: spidrv_eusart
-  instance: [ws2812]
 - id: simple_button
   instance: [pin_hole_button]
 - id: ws2812_driver
@@ -53,10 +51,6 @@ add_components:
 - id: xncp_zbt2_commands
   vendor: nabucasa
   package: xncp_zbt2
-
-# SLC reads `configuration` during validation, before c_defines are patched
-configuration:
-  SL_SPIDRV_EUSART_WS2812_CS_CONTROL: spidrvCsControlApplication
 
 c_defines:
   XNCP_MFG_MANUF_NAME: '"Nabu Casa"'
@@ -106,17 +100,13 @@ c_defines:
   SL_IOSTREAM_USART_VCOM_RX_BUFFER_SIZE: 128
 
   # WS2812 LED driver
-  SL_SPIDRV_EUSART_WS2812_PERIPHERAL: EUSART1
-  SL_SPIDRV_EUSART_WS2812_PERIPHERAL_NO: 1
-  SL_SPIDRV_EUSART_WS2812_TX_PORT: gpioPortC
-  SL_SPIDRV_EUSART_WS2812_TX_PIN: 2
-  SL_SPIDRV_EUSART_WS2812_RX_PORT: gpioPortC
-  SL_SPIDRV_EUSART_WS2812_RX_PIN: 1
-  SL_SPIDRV_EUSART_WS2812_SCLK_PORT: gpioPortD
-  SL_SPIDRV_EUSART_WS2812_SCLK_PIN: 2
-  SL_SPIDRV_EUSART_WS2812_CS_CONTROL: spidrvCsControlApplication
-  SL_SPIDRV_EUSART_WS2812_BITRATE: 3200000
-  SL_SPIDRV_EUSART_WS2812_BIT_ORDER: spidrvBitOrderMsbFirst
+  WS2812_SPI_PERIPHERAL: EUSART1
+  WS2812_SPI_PERIPHERAL_NO: 1
+  WS2812_SPI_LDMA_SIGNAL: ldmaPeripheralSignal_EUSART1_TXFL
+  WS2812_SPI_TX_PORT: gpioPortC
+  WS2812_SPI_TX_PIN: 2
+  WS2812_SPI_SCLK_PORT: gpioPortD
+  WS2812_SPI_SCLK_PIN: 2
   WS2812_EN_PORT: gpioPortC
   WS2812_EN_PIN: 3
   WS2812_NUM_LEDS: 4
