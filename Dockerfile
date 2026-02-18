@@ -136,6 +136,10 @@ RUN set -e \
         slc-cli/6.0.15 \
         simplicity-sdk/2025.6.2 \
         zap/2025.12.02 \
+    # conan cannot resolve two copies of the same package
+    # even with different versions in a single command
+    && slt --non-interactive install \
+        simplicity-sdk/2025.12.1 \
     # Patch ZAP apack.json to add missing linux.aarch64 executable definitions
     # Remove once zap is bumped to 2026.x.x
     && ZAP_PATH="$(slt where zap)" \
@@ -181,7 +185,9 @@ RUN set -e \
        libpng16-16 \
        libpcre2-16-0 \
        libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    # Fix git permission error when building locally
+    && git config --global --add safe.directory '*'
 
 # Copy from parallel stages
 COPY --from=gecko-sdk-v4.5.0 /out /gecko_sdk_4.5.0

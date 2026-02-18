@@ -1,7 +1,7 @@
 id: qma6100p_driver
 label: QMA6100P Accelerometer Driver
 package: custom
-description: QMA6100P 3-axis accelerometer driver using I2CSPM
+description: QMA6100P 3-axis accelerometer driver using polled emlib I2C
 category: Platform|Driver|Sensor
 quality: production
 source:
@@ -10,10 +10,16 @@ include:
   - path: inc
     file_list:
     - path: qma6100p.h
+config_file:
+  - path: config/qma6100p_config.h
+    file_id: qma6100p_config
 provides:
   - name: qma6100p_driver
 requires:
-  - name: i2cspm
+  - name: emlib_i2c
+  - name: emlib_gpio
+  - name: emlib_cmu
+  - name: udelay
 template_contribution:
   - name: event_handler
     value:

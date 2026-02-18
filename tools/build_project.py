@@ -427,6 +427,20 @@ def main():
         ],
     )
 
+    # Copy SDK files into the build template (e.g. unmodified sample app sources).
+    # Files already present in the project (customized) are not overwritten.
+    for sdk_file in manifest.get("copy_sdk_files", []):
+        src = sdk / sdk_file["source"]
+        dst = build_template_path / sdk_file["path"]
+
+        if dst.exists():
+            LOGGER.info("Skipping SDK file (already in project): %s", sdk_file["path"])
+            continue
+
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(src, dst)
+        LOGGER.info("Copied SDK file: %s -> %s", sdk_file["source"], sdk_file["path"])
+
     # We extend the base project with the manifest, since added components could have
     # extra dependencies
     (base_project_slcp,) = build_template_path.glob("*.slcp")
@@ -690,6 +704,11 @@ def main():
         args.build_dir.absolute(): "/src",
         f"{cmake_dir.absolute()}/..": "/src",
         "/home/buildengineer/jenkins/workspace/Gecko_Workspace/gsdk": f"/src/{sdk_name}_{sdk_version}",
+        "/home/buildengineer/.silabs/slt/installs/conan/p/cmsisfb920dbb6ad42/p": "/src/vendor/cmsis",
+        "/home/buildengineer/.silabs/slt/installs/conan/p/platf85e95225bc406/p": f"/src/{sdk_name}_{sdk_version}/platform_core",
+        # The Z-Wave SDK isn't part of the Simplicity SDK but is still referenced. If we
+        # ever decide to compile it as part of CI, we can change this remap.
+        "/opt/github/runner/_work/z-wave/z-wave": "/src/vendor/zwave",
     }
     build_flags["C_FLAGS"] += [
         f"-ffile-prefix-map={src}={dst}" for src, dst in remapped_paths.items()
@@ -759,9 +778,15 @@ def main():
     validate_linker_wrap_symbols(map_file=output_artifact.with_suffix(".map"))
 
     # Verify that all source paths in the ELF have been remapped
-    for path in get_elf_source_paths(output_artifact.with_suffix(".out")):
-        if not path.is_relative_to("/src"):
-            raise RuntimeError(f"Unreproducible source path in ELF: {path}")
+    unreproducible_paths = [
+        path
+        for path in get_elf_source_paths(output_artifact.with_suffix(".out"))
+        if not path.is_relative_to("/src")
+    ]
+    if unreproducible_paths:
+        raise RuntimeError(
+            f"Unreproducible source paths in ELF: {'\n - '.join(map(str, unreproducible_paths))}"
+        )
 
     # Read the metadata extracted from the source and build trees
     extracted_gbl_metadata = json.loads(

@@ -1,0 +1,140 @@
+name: Home Assistant Connect ZWA-2 Z-Wave Controller
+device: EFR32ZG23A020F512GM40
+base_project: src/zwa2_controller
+filename: "{manifest_name}_{zwave_version}"
+sdk: "simplicity_sdk:2025.12.1"
+toolchain: "12.2.1.20221205"
+gbl:
+  fw_type: zwave_ncp
+  zwave_version: dynamic
+  encrypt_key: config/keys/vendor_encrypt.key
+  sign_key: config/keys/vendor_sign.key
+  compression: lzma
+
+copy_sdk_files:
+  # Z-Wave Serial API source files (unmodified from SDK sample app)
+  - source: zwave_sample_app/zwave_ncp_serial_api/app_node_info.c
+    path: app_node_info.c
+  - source: zwave_sample_app/zwave_ncp_serial_api/cmd_handlers_invoker.c
+    path: cmd_handlers_invoker.c
+  - source: zwave_sample_app/zwave_ncp_serial_api/cmd_handlers.c
+    path: cmd_handlers.c
+  - source: zwave_sample_app/zwave_ncp_serial_api/cmds_management.c
+    path: cmds_management.c
+  - source: zwave_sample_app/zwave_ncp_serial_api/cmds_rf.c
+    path: cmds_rf.c
+  - source: zwave_sample_app/zwave_ncp_serial_api/cmds_security.c
+    path: cmds_security.c
+  - source: zwave_sample_app/zwave_ncp_serial_api/comm_interface.c
+    path: comm_interface.c
+  - source: zwave_sample_app/zwave_ncp_serial_api/nvm_backup_restore.c
+    path: nvm_backup_restore.c
+  - source: zwave_sample_app/zwave_ncp_serial_api/serialapi_file.c
+    path: serialapi_file.c
+  - source: zwave_sample_app/zwave_ncp_serial_api/utils.c
+    path: utils.c
+  - source: zwave_sample_app/zwave_ncp_serial_api/virtual_slave_node_info.c
+    path: virtual_slave_node_info.c
+  - source: zwave_sample_app/zwave_ncp_serial_api/silabs/sl_dcdc_cmd_handlers.c
+    path: silabs/sl_dcdc_cmd_handlers.c
+  - source: zwave_sample_app/zwave_ncp_serial_api/silabs/sl_debug_cmd_handlers.c
+    path: silabs/sl_debug_cmd_handlers.c
+
+  # Z-Wave Serial API header files (unmodified from SDK sample app)
+  - source: zwave_sample_app/zwave_ncp_serial_api/app_node_info.h
+    path: app_node_info.h
+  - source: zwave_sample_app/zwave_ncp_serial_api/app.h
+    path: app.h
+  - source: zwave_sample_app/zwave_ncp_serial_api/cmd_handlers.h
+    path: cmd_handlers.h
+  - source: zwave_sample_app/zwave_ncp_serial_api/cmds_management.h
+    path: cmds_management.h
+  - source: zwave_sample_app/zwave_ncp_serial_api/cmds_rf.h
+    path: cmds_rf.h
+  - source: zwave_sample_app/zwave_ncp_serial_api/cmds_security.h
+    path: cmds_security.h
+  - source: zwave_sample_app/zwave_ncp_serial_api/comm_interface.h
+    path: comm_interface.h
+  - source: zwave_sample_app/zwave_ncp_serial_api/controller_supported_func.h
+    path: controller_supported_func.h
+  - source: zwave_sample_app/zwave_ncp_serial_api/nvm_backup_restore.h
+    path: nvm_backup_restore.h
+  - source: zwave_sample_app/zwave_ncp_serial_api/serialapi_file.h
+    path: serialapi_file.h
+  - source: zwave_sample_app/zwave_ncp_serial_api/SerialAPI.h
+    path: SerialAPI.h
+  - source: zwave_sample_app/zwave_ncp_serial_api/common_supported_func.h
+    path: common_supported_func.h
+  - source: zwave_sample_app/zwave_ncp_serial_api/slave_supported_func.h
+    path: slave_supported_func.h
+  - source: zwave_sample_app/zwave_ncp_serial_api/utils.h
+    path: utils.h
+  - source: zwave_sample_app/zwave_ncp_serial_api/virtual_slave_node_info.h
+    path: virtual_slave_node_info.h
+
+  # Z-Wave Application Framework config (not provided by any included component)
+  - source: zwave_sample_app/config/zw_zaf/s2/zaf_config.h
+    path: config/zaf_config.h
+
+  # README
+  - source: zwave_sample_app/zwave_ncp_serial_api/README.md
+    path: README.md
+
+sdk_extension:
+  - id: nabucasa_hardware
+    vendor: nabucasa
+    version: 1.0.0
+  - id: nabucasa_zwa2
+    vendor: nabucasa
+    version: 1.0.0
+
+add_components:
+  - id: qma6100p_driver
+    vendor: nabucasa
+    package: nabucasa_hardware
+  - id: ws2812_driver
+    vendor: nabucasa
+    package: nabucasa_hardware
+  - id: led_effects_zwa2
+    vendor: nabucasa
+    package: nabucasa_zwa2
+  - id: cmds_proprietary_zwa2
+    vendor: nabucasa
+    package: nabucasa_zwa2
+
+c_defines:
+  # Z-Wave device identity
+  ZAF_CONFIG_MANUFACTURER_ID: '0x0466'
+  ZAF_CONFIG_PRODUCT_TYPE_ID: '0x0001'
+  ZAF_CONFIG_PRODUCT_ID: '0x0001'
+
+  # Firmware version (reported in SERIALAPI_CAPABILITIES)
+  # See src/zwa2_controller/README.md for versioning scheme details.
+  USER_APP_VERSION: 1
+  USER_APP_REVISION: 2
+  USER_APP_PATCH: 0
+
+  # USART0 serial API pins
+  SERIAL_API_TX_PORT: gpioPortA
+  SERIAL_API_TX_PIN: 8
+  SERIAL_API_RX_PORT: gpioPortA
+  SERIAL_API_RX_PIN: 7
+
+  # WS2812 LED driver (raw EUSART+LDMA)
+  WS2812_SPI_PERIPHERAL: EUSART1
+  WS2812_SPI_PERIPHERAL_NO: 1
+  WS2812_SPI_LDMA_SIGNAL: ldmaPeripheralSignal_EUSART1_TXFL
+  WS2812_SPI_TX_PORT: gpioPortC
+  WS2812_SPI_TX_PIN: 2
+  WS2812_SPI_SCLK_PORT: gpioPortC
+  WS2812_SPI_SCLK_PIN: 1
+  WS2812_EN_PORT: gpioPortC
+  WS2812_EN_PIN: 3
+  WS2812_NUM_LEDS: 4
+
+  # I2C (QMA6100P accelerometer)
+  QMA6100P_I2C_PERIPHERAL: I2C0
+  QMA6100P_I2C_SCL_PORT: gpioPortC
+  QMA6100P_I2C_SCL_PIN: 6
+  QMA6100P_I2C_SDA_PORT: gpioPortC
+  QMA6100P_I2C_SDA_PIN: 7

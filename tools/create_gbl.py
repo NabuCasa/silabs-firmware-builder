@@ -278,10 +278,17 @@ def main():
 
     if "zwave_version" in gbl_dynamic:
         gbl_dynamic.remove("zwave_version")
-        zwave_props = parse_properties_file(
-            next((gsdk_path / "protocol/z-wave/").glob("*.properties")).read_text()
+        zw_version_config_h = parse_c_header_defines(
+            (project_root / "config/zw_version_config.h").read_text()
         )
-        metadata["zwave_version"] = zwave_props["version"][0]
+
+        metadata["zwave_version"] = ".".join(
+            [
+                str(zw_version_config_h["USER_APP_VERSION"]),
+                str(zw_version_config_h["USER_APP_REVISION"]),
+                str(zw_version_config_h["USER_APP_PATCH"]),
+            ]
+        )
 
     if "ot_rcp_version" in gbl_dynamic:
         gbl_dynamic.remove("ot_rcp_version")

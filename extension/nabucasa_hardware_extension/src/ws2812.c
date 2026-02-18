@@ -1,15 +1,22 @@
 /*
  * ws2812.c
  *
- * WS2812 addressable RGB LED driver using SPIDRV
+ * WS2812 addressable RGB LED driver using raw EUSART + LDMA
  */
 
 #pragma GCC optimize ("Ofast")
 
 #include "ws2812.h"
 #include <string.h>
+#include "em_cmu.h"
 #include "em_gpio.h"
-#include "sl_spidrv_instances.h"
+#include "em_eusart.h"
+#include "em_ldma.h"
+
+// LDMA channel for SPI TX
+#define TX_LDMA_CHANNEL  1
+
+#define WS2812_SPI_BITRATE  3200000
 
 /*
  * T0H =   350ns +/- 150ns HIGH
@@ -45,6 +52,8 @@ SL_ALIGN(4) static uint8_t spi_tx_buffer[SPI_BUFFER_SIZE_BYTES] = {0};
 // configuration differences. For simplicity, we just use bytes here.
 static uint8_t ws2812_lookup[256][4];
 
+static LDMA_Descriptor_t ldma_tx_descriptor;
+static LDMA_TransferCfg_t ldma_tx_config;
 
 // Look up table for bit patterns, to avoid computing them at runtime
 static void precompute_ws2812_patterns(void)
@@ -131,13 +140,54 @@ static void ws2812_led_apply_color(ws2812_context_t *ctx)
         spi_ptr += 4;
     }
 
-    SPIDRV_MTransmit(sl_spidrv_eusart_ws2812_handle, spi_tx_buffer, SPI_BUFFER_SIZE_BYTES, NULL);
+    LDMA_StartTransfer(TX_LDMA_CHANNEL, &ldma_tx_config, &ldma_tx_descriptor);
+}
+
+static void initEUSART(void)
+{
+    CMU_ClockEnable(cmuClock_GPIO, true);
+    CMU_ClockEnable(cmuClock_EUSART0 + EUSART_NUM(WS2812_SPI_PERIPHERAL), true);
+
+    GPIO_PinModeSet(WS2812_SPI_TX_PORT, WS2812_SPI_TX_PIN, gpioModePushPull, 1);
+    GPIO_PinModeSet(WS2812_SPI_SCLK_PORT, WS2812_SPI_SCLK_PIN, gpioModePushPull, 1);
+
+    GPIO->EUSARTROUTE[EUSART_NUM(WS2812_SPI_PERIPHERAL)].TXROUTE =
+        (WS2812_SPI_TX_PORT << _GPIO_EUSART_TXROUTE_PORT_SHIFT)
+        | (WS2812_SPI_TX_PIN << _GPIO_EUSART_TXROUTE_PIN_SHIFT);
+    GPIO->EUSARTROUTE[EUSART_NUM(WS2812_SPI_PERIPHERAL)].SCLKROUTE =
+        (WS2812_SPI_SCLK_PORT << _GPIO_EUSART_SCLKROUTE_PORT_SHIFT)
+        | (WS2812_SPI_SCLK_PIN << _GPIO_EUSART_SCLKROUTE_PIN_SHIFT);
+    GPIO->EUSARTROUTE[EUSART_NUM(WS2812_SPI_PERIPHERAL)].ROUTEEN =
+        GPIO_EUSART_ROUTEEN_TXPEN | GPIO_EUSART_ROUTEEN_SCLKPEN;
+
+    EUSART_SpiAdvancedInit_TypeDef advancedInit = EUSART_SPI_ADVANCED_INIT_DEFAULT;
+    advancedInit.msbFirst = true;
+    advancedInit.autoCsEnable = false;
+
+    EUSART_SpiInit_TypeDef init = EUSART_SPI_MASTER_INIT_DEFAULT_HF;
+    init.bitRate = WS2812_SPI_BITRATE;
+    init.advancedSettings = &advancedInit;
+    EUSART_SpiInit(WS2812_SPI_PERIPHERAL, &init);
+}
+
+static void initLDMA(void)
+{
+    LDMA_Init_t ldmaInit = LDMA_INIT_DEFAULT;
+    LDMA_Init(&ldmaInit);
+
+    ldma_tx_descriptor = (LDMA_Descriptor_t)LDMA_DESCRIPTOR_SINGLE_M2P_BYTE(
+        spi_tx_buffer, &(WS2812_SPI_PERIPHERAL->TXDATA), SPI_BUFFER_SIZE_BYTES);
+
+    ldma_tx_config = (LDMA_TransferCfg_t)LDMA_TRANSFER_CFG_PERIPHERAL(
+        WS2812_SPI_LDMA_SIGNAL);
 }
 
 static sl_status_t ws2812_led_init(void *context)
 {
     (void)context;
     GPIO_PinModeSet(WS2812_EN_PORT, WS2812_EN_PIN, gpioModePushPull, 1);
+    initEUSART();
+    initLDMA();
     return SL_STATUS_OK;
 }
 
