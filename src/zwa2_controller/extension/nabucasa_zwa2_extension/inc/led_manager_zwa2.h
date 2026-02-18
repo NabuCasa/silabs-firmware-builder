@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "led_manager_colors.h"
+#include "led_manager_colors_zwa2.h"
 
 // Priorities for LED control (Higher value = Higher priority)
 typedef enum {

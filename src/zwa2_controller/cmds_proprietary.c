@@ -12,9 +12,9 @@
 #include <ZAF_nvm_app.h>
 #include "cmd_handlers.h"
 #include "SerialAPI.h"
-#include "led_manager.h"
-#include "led_manager_colors.h"
-#include "led_effects.h"
+#include "led_manager_zwa2.h"
+#include "led_manager_colors_zwa2.h"
+#include "led_effects_zwa2.h"
 
 #define BYTE_INDEX(x) (x / 8)
 #define BYTE_OFFSET(x) (1 << (x % 8))

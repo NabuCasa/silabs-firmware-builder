@@ -1,6 +1,6 @@
 /***************************************************************************//**
  * @file
- * @brief Configuration header for LED Effects
+ * @brief Configuration header for LED Effects (ZWA-2)
  ******************************************************************************/
 #ifndef LED_EFFECTS_CONFIG_H_
 #define LED_EFFECTS_CONFIG_H_

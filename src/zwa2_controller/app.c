@@ -42,8 +42,8 @@
 #endif
 
 #include <assert.h>
-#include "led_effects.h"
-#include "led_manager.h"
+#include "led_effects_zwa2.h"
+#include "led_manager_zwa2.h"
 #include "cmds_proprietary.h"
 #include <ZAF_nvm_app.h>
 

@@ -1,5 +1,5 @@
-#include "led_manager.h"
-#include "led_effects_config.h"
+#include "led_manager_zwa2.h"
+#include "led_effects_config_zwa2.h"
 #include "ws2812.h"
 #include "sl_sleeptimer.h"
 #include "sl_led.h"

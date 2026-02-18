@@ -1,5 +1,5 @@
 /*
- * led_effects.h
+ * led_effects_zwa2.h
  *
  * LED System Behaviors for ZWA-2 Z-Wave Controller
  * High-level control for autonomous LED behaviors (Network Status, Tilt)
