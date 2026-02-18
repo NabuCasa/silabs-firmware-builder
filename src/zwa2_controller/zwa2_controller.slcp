@@ -34,7 +34,6 @@ source:
 - path: utils.c
 - path: virtual_slave_node_info.c
 - path: silabs/sl_debug_cmd_handlers.c
-- path: cmds_proprietary.c
 tag:
 - prebuilt_demo
 - toolchain:gcc
@@ -57,7 +56,6 @@ include:
   - path: utils.h
   - path: virtual_slave_node_info.h
   - path: SerialAPI.h
-  - path: cmds_proprietary.h
 toolchain_settings: [
   ]
 component:

@@ -98,6 +98,9 @@ add_components:
   - id: led_effects_zwa2
     vendor: nabucasa
     package: nabucasa_zwa2
+  - id: cmds_proprietary_zwa2
+    vendor: nabucasa
+    package: nabucasa_zwa2
 
 c_defines:
   # Z-Wave device identity
