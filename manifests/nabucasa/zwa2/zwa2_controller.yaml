@@ -81,11 +81,20 @@ copy_sdk_files:
     path: README.md
 
 sdk_extension:
+  - id: nabucasa_hardware
+    vendor: nabucasa
+    version: 1.0.0
   - id: nabucasa_zwa2
     vendor: nabucasa
     version: 1.0.0
 
 add_components:
+  - id: qma6100p_driver
+    vendor: nabucasa
+    package: nabucasa_hardware
+  - id: ws2812_driver
+    vendor: nabucasa
+    package: nabucasa_zwa2
   - id: led_effects_base
     vendor: nabucasa
     package: nabucasa_zwa2
@@ -118,7 +127,7 @@ c_defines:
   WS2812_EN_PIN: 3
   WS2812_NUM_LEDS: 4
 
-  # QMA6100P I2C
+  # I2C (QMA6100P accelerometer)
   QMA6100P_I2C_PERIPHERAL: I2C0
   QMA6100P_I2C_SCL_PORT: gpioPortC
   QMA6100P_I2C_SCL_PIN: 6

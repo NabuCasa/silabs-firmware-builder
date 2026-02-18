@@ -21,9 +21,6 @@ sdk_extension:
 add_components:
 - id: spidrv_eusart
   instance: [ws2812]
-- id: emlib_i2c
-- id: i2cspm
-  instance: [inst]
 - id: simple_button
   instance: [pin_hole_button]
 - id: ws2812_driver
@@ -78,11 +75,11 @@ c_defines:
   WS2812_NUM_LEDS: 4
 
   # I2C
-  SL_I2CSPM_INST_PERIPHERAL: I2C0
-  SL_I2CSPM_INST_SCL_PORT: gpioPortC
-  SL_I2CSPM_INST_SCL_PIN: 6
-  SL_I2CSPM_INST_SDA_PORT: gpioPortC
-  SL_I2CSPM_INST_SDA_PIN: 7
+  QMA6100P_I2C_PERIPHERAL: I2C0
+  QMA6100P_I2C_SCL_PORT: gpioPortC
+  QMA6100P_I2C_SCL_PIN: 6
+  QMA6100P_I2C_SDA_PORT: gpioPortC
+  QMA6100P_I2C_SDA_PIN: 7
 
   # Pinhole button
   SL_SIMPLE_BUTTON_PIN_HOLE_BUTTON_PORT: gpioPortC
