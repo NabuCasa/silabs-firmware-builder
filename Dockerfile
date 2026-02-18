@@ -185,7 +185,9 @@ RUN set -e \
        libpng16-16 \
        libpcre2-16-0 \
        libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    # Fix git permission error when building locally
+    && git config --global --add safe.directory '*'
 
 # Copy from parallel stages
 COPY --from=gecko-sdk-v4.5.0 /out /gecko_sdk_4.5.0
