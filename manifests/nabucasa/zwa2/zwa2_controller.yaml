@@ -109,6 +109,7 @@ c_defines:
   ZAF_CONFIG_PRODUCT_ID: '0x0001'
 
   # Firmware version (reported in SERIALAPI_CAPABILITIES)
+  # See src/zwa2_controller/README.md for versioning scheme details.
   USER_APP_VERSION: 1
   USER_APP_REVISION: 2
   USER_APP_PATCH: 0
