@@ -23,7 +23,6 @@ requires:
   - name: ws2812_driver
   - name: qma6100p_driver
   - name: sleeptimer
-  - name: i2cspm
 template_contribution:
   - name: event_handler
     value:

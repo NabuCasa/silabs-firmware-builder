@@ -9,7 +9,7 @@
 #include "led_effects_config.h"
 #include "led_manager.h"
 #include "qma6100p.h"
-#include "sl_i2cspm_instances.h"
+#include "qma6100p_config.h"
 #include "sl_status.h"
 #include "sl_sleeptimer.h"
 #include <math.h>
@@ -28,7 +28,7 @@ static bool was_tilted = false;
 static float calculate_tilt_angle(void)
 {
   float xyz[3];
-  qma6100p_read_acc_xyz(sl_i2cspm_inst, xyz);
+  qma6100p_read_acc_xyz(QMA6100P_I2C_PERIPHERAL, xyz);
 
   float ax = xyz[0];
   float ay = xyz[1];

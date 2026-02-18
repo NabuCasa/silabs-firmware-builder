@@ -1,7 +1,7 @@
 id: ws2812_driver
 label: WS2812 LED Driver
 package: custom
-description: WS2812 addressable RGB LED driver using SPIDRV
+description: WS2812 addressable RGB LED driver using raw EUSART + LDMA
 category: Platform|Driver|LED
 quality: production
 source:
@@ -16,8 +16,10 @@ config_file:
 provides:
   - name: ws2812_driver
 requires:
-  - name: spidrv_instance
+  - name: emlib_eusart
   - name: emlib_gpio
+  - name: emlib_ldma
+  - name: emlib_cmu
   - name: simple_rgb_pwm_led_core
 template_contribution:
   - name: event_handler
