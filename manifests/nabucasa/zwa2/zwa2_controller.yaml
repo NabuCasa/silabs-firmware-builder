@@ -9,7 +9,7 @@ gbl:
   zwave_version: dynamic
   encrypt_key: config/keys/vendor_encrypt.key
   sign_key: config/keys/vendor_sign.key
-  # compression: lz4 ?
+  compression: lzma
 
 copy_sdk_files:
   # Z-Wave Serial API source files (unmodified from SDK sample app)
