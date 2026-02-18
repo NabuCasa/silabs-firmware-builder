@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import os
-import re
 import ast
 import sys
 import json
@@ -279,18 +278,15 @@ def main():
 
     if "zwave_version" in gbl_dynamic:
         gbl_dynamic.remove("zwave_version")
-        cmake = (build_dir / f"{project_name}.cmake").read_text()
-        cmake_definitions = {}
-
-        for key in ("SDK_VERSION_MAJOR", "SDK_VERSION_MINOR", "SDK_VERSION_PATCH"):
-            match = re.search(rf'"{key}=(\d+)"', cmake)
-            cmake_definitions[key] = match.group(1)
+        zw_version_config_h = parse_c_header_defines(
+            (project_root / "config/zw_version_config.h").read_text()
+        )
 
         metadata["zwave_version"] = ".".join(
             [
-                cmake_definitions["SDK_VERSION_MAJOR"],
-                cmake_definitions["SDK_VERSION_MINOR"],
-                cmake_definitions["SDK_VERSION_PATCH"],
+                str(zw_version_config_h["USER_APP_VERSION"]),
+                str(zw_version_config_h["USER_APP_REVISION"]),
+                str(zw_version_config_h["USER_APP_PATCH"]),
             ]
         )
 
