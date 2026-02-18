@@ -1,4 +1,4 @@
-id: led_effects_base_zwa2
+id: led_effects_zwa2
 label: LED Effects Base (ZWA-2)
 package: custom
 description: LED state machine for network status and tilt detection, ZWA-2 implementation

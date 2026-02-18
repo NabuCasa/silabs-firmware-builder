@@ -95,7 +95,7 @@ add_components:
   - id: ws2812_driver
     vendor: nabucasa
     package: nabucasa_hardware
-  - id: led_effects_base
+  - id: led_effects_zwa2
     vendor: nabucasa
     package: nabucasa_zwa2
 
