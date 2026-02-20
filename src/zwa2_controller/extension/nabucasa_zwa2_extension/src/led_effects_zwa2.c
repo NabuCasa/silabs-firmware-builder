@@ -15,8 +15,8 @@
 #include "led_effects_config_zwa2.h"
 #include "led_manager_zwa2.h"
 #include "qma6100p.h"
-#include "qma6100p_config.h"
 #include "sl_sleeptimer.h"
+#include "sl_i2cspm_instances.h"
 #include <math.h>
 
 #ifndef M_PI
@@ -57,7 +57,7 @@ static void tilt_monitor_callback(sl_sleeptimer_timer_handle_t *handle, void *da
 
   // Read raw accelerometer data
   int16_t reading[3];
-  qma6100p_read_raw_xyz(QMA6100P_I2C_PERIPHERAL, reading);
+  qma6100p_read_raw_xyz(sl_i2cspm_inst, reading);
 
   // Debounce: check if reading is stable compared to last
   int16_t dx = reading[0] - last_reading[0];
