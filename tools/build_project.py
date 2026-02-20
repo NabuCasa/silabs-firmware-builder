@@ -556,9 +556,14 @@ def main():
             patch_file = base_project_path / "sdk_patches" / patch_path
             LOGGER.info("Applying SDK patch: %s", patch_file.name)
             subprocess.run(
-                ["git", "apply", str(patch_file.resolve())],
+                [
+                    "git",
+                    "apply",
+                    f"--directory={copied_sdk_dir.resolve().relative_to(projects_root.resolve())}",
+                    str(patch_file.resolve()),
+                ],
                 check=True,
-                cwd=copied_sdk_dir,
+                cwd=projects_root,
             )
 
     # Make sure all extensions are valid (check both SDK and project extensions)

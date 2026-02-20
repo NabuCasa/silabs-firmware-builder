@@ -1,0 +1,22 @@
+id: zwave_ldma_wrap
+label: Z-Wave LDMA IRQ Handler Wrapper
+package: custom
+description: >
+  Wraps the Z-Wave SDK's LDMA_IRQHandler to coexist with DMADRV.
+  The Z-Wave ZPAL library provides its own LDMA_IRQHandler that only handles
+  channel 2 (UART TX DMA). This component wraps it so that DMADRV's handler
+  also runs, allowing I2C and SPI drivers that depend on DMADRV to function.
+category: Z-Wave|Platform
+quality: production
+source:
+  - path: src/zwave_ldma_wrap.c
+provides:
+  - name: zwave_ldma_wrap
+requires:
+  - name: dmadrv
+define:
+  - name: ZWAVE_LDMA_RESERVED_CHANNELS
+    value: "(1 << 2)"
+toolchain_settings:
+  - option: gcc_linker_option
+    value: "-Wl,--wrap=LDMA_IRQHandler"
