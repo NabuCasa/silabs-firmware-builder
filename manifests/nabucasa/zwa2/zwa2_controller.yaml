@@ -103,7 +103,7 @@ add_components:
   - id: ws2812_driver
     vendor: nabucasa
     package: nabucasa_hardware
-  - id: zwave_ldma_wrap
+  - id: zwave_dmadrv_compat
     vendor: nabucasa
     package: nabucasa_zwa2
   - id: led_effects_zwa2
