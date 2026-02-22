@@ -1,0 +1,13 @@
+diff --git a/platform_core/platform/emdrv/dmadrv/src/dmadrv.c b/platform_core/platform/emdrv/dmadrv/src/dmadrv.c
+index dd45751..06234c6 100755
+--- a/platform_core/platform/emdrv/dmadrv/src/dmadrv.c
++++ b/platform_core/platform/emdrv/dmadrv/src/dmadrv.c
+@@ -1036,7 +1042,7 @@ Ecode_t DMADRV_TransferRemainingCount(unsigned int channelId,
+  * @brief
+  *  An interrupt handler for LDMA.
+  ******************************************************************************/
+-void LDMA_IRQHandler(void)
++void dmadrv_LDMA_IRQHandler(void)
+ {
+   bool stop;
+   ChTable_t *ch;

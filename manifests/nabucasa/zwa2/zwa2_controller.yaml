@@ -80,6 +80,9 @@ copy_sdk_files:
   - source: zwave_sample_app/zwave_ncp_serial_api/README.md
     path: README.md
 
+sdk_patches:
+  - dmadrv-rename-ldma-irqhandler.patch
+
 sdk_extension:
   - id: nabucasa_hardware
     vendor: nabucasa
@@ -89,18 +92,30 @@ sdk_extension:
     version: 1.0.0
 
 add_components:
+  - id: spidrv_eusart
+    instance: [ws2812]
+  - id: emlib_i2c
+  - id: i2cspm
+    instance: [inst]
   - id: qma6100p_driver
     vendor: nabucasa
     package: nabucasa_hardware
   - id: ws2812_driver
     vendor: nabucasa
     package: nabucasa_hardware
+  - id: zwave_dmadrv_compat
+    vendor: nabucasa
+    package: nabucasa_zwa2
   - id: led_effects_zwa2
     vendor: nabucasa
     package: nabucasa_zwa2
   - id: cmds_proprietary_zwa2
     vendor: nabucasa
     package: nabucasa_zwa2
+
+# SLC reads `configuration` during validation, before c_defines are patched
+configuration:
+  SL_SPIDRV_EUSART_WS2812_CS_CONTROL: spidrvCsControlApplication
 
 c_defines:
   # Z-Wave device identity
@@ -120,21 +135,25 @@ c_defines:
   SERIAL_API_RX_PORT: gpioPortA
   SERIAL_API_RX_PIN: 7
 
-  # WS2812 LED driver (raw EUSART+LDMA)
-  WS2812_SPI_PERIPHERAL: EUSART1
-  WS2812_SPI_PERIPHERAL_NO: 1
-  WS2812_SPI_LDMA_SIGNAL: ldmaPeripheralSignal_EUSART1_TXFL
-  WS2812_SPI_TX_PORT: gpioPortC
-  WS2812_SPI_TX_PIN: 2
-  WS2812_SPI_SCLK_PORT: gpioPortC
-  WS2812_SPI_SCLK_PIN: 1
+  # WS2812 LED driver
+  SL_SPIDRV_EUSART_WS2812_PERIPHERAL: EUSART1
+  SL_SPIDRV_EUSART_WS2812_PERIPHERAL_NO: 1
+  SL_SPIDRV_EUSART_WS2812_TX_PORT: SL_GPIO_PORT_C
+  SL_SPIDRV_EUSART_WS2812_TX_PIN: 2
+  SL_SPIDRV_EUSART_WS2812_RX_PORT: SL_GPIO_PORT_C
+  SL_SPIDRV_EUSART_WS2812_RX_PIN: 1
+  SL_SPIDRV_EUSART_WS2812_SCLK_PORT: SL_GPIO_PORT_D
+  SL_SPIDRV_EUSART_WS2812_SCLK_PIN: 2
+  SL_SPIDRV_EUSART_WS2812_CS_CONTROL: spidrvCsControlApplication
+  SL_SPIDRV_EUSART_WS2812_BITRATE: 3200000
+  SL_SPIDRV_EUSART_WS2812_BIT_ORDER: spidrvBitOrderMsbFirst
   WS2812_EN_PORT: gpioPortC
   WS2812_EN_PIN: 3
   WS2812_NUM_LEDS: 4
 
-  # I2C (QMA6100P accelerometer)
-  QMA6100P_I2C_PERIPHERAL: I2C0
-  QMA6100P_I2C_SCL_PORT: gpioPortC
-  QMA6100P_I2C_SCL_PIN: 6
-  QMA6100P_I2C_SDA_PORT: gpioPortC
-  QMA6100P_I2C_SDA_PIN: 7
+  # I2C
+  SL_I2CSPM_INST_PERIPHERAL: I2C0
+  SL_I2CSPM_INST_SCL_PORT: gpioPortC
+  SL_I2CSPM_INST_SCL_PIN: 6
+  SL_I2CSPM_INST_SDA_PORT: gpioPortC
+  SL_I2CSPM_INST_SDA_PIN: 7
