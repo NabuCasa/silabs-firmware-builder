@@ -33,25 +33,4 @@
 
 // <<< sl:end pin_tool >>>
 
-// EUSART SPI pin assignments for WS2812 data output
-// TX = MOSI (data), SCLK = clock (active but unused by WS2812 protocol)
-#ifndef WS2812_SPI_PERIPHERAL
-#define WS2812_SPI_PERIPHERAL       EUSART1
-#define WS2812_SPI_PERIPHERAL_NO    1
-#endif
-
-#ifndef WS2812_SPI_LDMA_SIGNAL
-#define WS2812_SPI_LDMA_SIGNAL      ldmaPeripheralSignal_EUSART1_TXFL
-#endif
-
-#ifndef WS2812_SPI_TX_PORT
-#define WS2812_SPI_TX_PORT          gpioPortC
-#define WS2812_SPI_TX_PIN           2
-#endif
-
-#ifndef WS2812_SPI_SCLK_PORT
-#define WS2812_SPI_SCLK_PORT        gpioPortC
-#define WS2812_SPI_SCLK_PIN         1
-#endif
-
 #endif // WS2812_CONFIG_H_
