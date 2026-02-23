@@ -1,0 +1,31 @@
+id: zbt2_router_callbacks
+label: ZBT-2 Router Callbacks
+package: custom
+description: Zigbee router callbacks with LED feedback for ZBT-2 hardware
+category: Zigbee|Router
+quality: production
+source:
+  - path: src/zbt2_router_callbacks.c
+include:
+  - path: inc
+    file_list:
+    - path: zbt2_router_callbacks.h
+provides:
+  - name: zbt2_router_callbacks
+  - name: led_effects
+requires:
+  - name: led_effects_base
+  - name: ws2812_driver
+  - name: zigbee_network_steering
+  - name: zigbee_find_and_bind_target
+  - name: zigbee_identify
+  - name: zigbee_on_off
+template_contribution:
+  - name: zigbee_af_callback
+    value:
+      callback_type: event_init
+      function_name: zbt2_router_init
+  - name: zigbee_stack_callback
+    value:
+      callback_type: stack_status
+      function_name: zbt2_router_stack_status_cb

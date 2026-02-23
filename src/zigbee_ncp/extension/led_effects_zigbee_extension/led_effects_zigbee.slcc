@@ -1,0 +1,25 @@
+id: led_effects_zigbee
+label: LED Effects Zigbee
+package: custom
+description: LED state machine for network status and tilt detection, Zigbee implementation
+category: Zigbee|NCP
+quality: production
+source:
+  - path: src/led_effects_zigbee.c
+include:
+  - path: inc
+    file_list:
+    - path: led_effects_zigbee.h
+provides:
+  - name: led_effects
+requires:
+  - name: led_effects_base
+template_contribution:
+  - name: zigbee_af_callback
+    value:
+      callback_type: event_init
+      function_name: led_effects_system_init
+  - name: zigbee_stack_callback
+    value:
+      callback_type: stack_status
+      function_name: led_effects_stack_status_callback

@@ -1,0 +1,198 @@
+project_name: zigbee_router
+label: Zigbee - Router
+package: zigbee
+category: Zigbee Application
+quality: production
+description: Zigbee NCP firmware. Derived from the `zigbee_z3_light` example Gecko SDK project.
+author: Nabu Casa
+
+sdk_extension:
+  - id: router_nvram_reset
+    vendor: nabucasa
+    version: 1.0.0
+  - id: router_eui64_unique
+    vendor: nabucasa
+    version: 1.0.0
+  - id: router_beacon_filter
+    vendor: nabucasa
+    version: 1.0.0
+  - id: router_bootloader_cli
+    vendor: nabucasa
+    version: 1.0.0
+
+component:
+  - id: sl_main
+  - id: cli
+    instance:
+      - main
+  - id: iostream_usart
+    instance:
+      - vcom
+  - id: iostream_recommended_console
+  - id: zigbee_debug_basic
+  - id: zigbee_debug_print
+  - id: zigbee_pro_stack
+  - id: zigbee_source_route
+  - id: zigbee_stack_diagnostics
+  - id: zigbee_gp
+  - id: zigbee_zll
+  - id: zigbee_zcl_framework_core
+  - id: zigbee_zcl_cli
+  - id: zigbee_core_cli
+  - id: zigbee_groups_server
+  - id: zigbee_counters
+  - id: zigbee_find_and_bind_target
+  - id: zigbee_green_power_common
+  - id: zigbee_green_power_client
+  - id: zigbee_green_power_client_cli
+  - id: zigbee_interpan
+  - id: zigbee_zll_commissioning_common
+  - id: zigbee_zll_commissioning_server
+  - id: zigbee_network_steering
+  - id: zigbee_reporting
+  - id: zigbee_basic
+  - id: zigbee_scan_dispatch
+  - id: zigbee_update_tc_link_key
+  - id: clock_manager
+  - id: zigbee_application_bootloader
+  # Platform - enable LTO for gcc
+  - id: toolchain_gcc_lto
+  # Custom router components
+  - id: router_nvram_reset
+    vendor: nabucasa
+    package: router_nvram_reset
+  - id: router_eui64_unique
+    vendor: nabucasa
+    package: router_eui64_unique
+  - id: router_beacon_filter
+    vendor: nabucasa
+    package: router_beacon_filter
+  - id: router_bootloader_cli
+    vendor: nabucasa
+    package: router_bootloader_cli
+
+configuration:
+  - name: SL_BOARD_ENABLE_VCOM
+    value: 1
+  - name: SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE
+    value: usartHwFlowControlCtsAndRts
+    condition:
+      - iostream_usart
+  - name: SL_IOSTREAM_EUSART_VCOM_FLOW_CONTROL_TYPE
+    value: SL_IOSTREAM_EUSART_UART_FLOW_CTRL_CTS_RTS
+    condition:
+      - iostream_eusart
+  - name: SL_CLI_MAX_INPUT_ARGUMENTS
+    value: 16
+  - name: SLI_ZIGBEE_PRIMARY_NETWORK_DEVICE_TYPE
+    value: SLI_ZIGBEE_NETWORK_DEVICE_TYPE_ROUTER
+  - name: SLI_ZIGBEE_PRIMARY_NETWORK_SECURITY_TYPE
+    value: SLI_ZIGBEE_NETWORK_SECURITY_TYPE_3_0
+  - name: SL_CLI_PROMPT_STRING
+    value: "\"zigbee_router>\""
+  - name: NVM3_DEFAULT_NVM_SIZE
+    value: 32768
+    condition:
+      - device_series_2
+  # If using zigbee_secure_key_storage we do not need to support backwards
+  # compatibility because we have never deployed images with keys in PSA
+  # As a result, these lines end up saving some code space
+  - name: SL_PSA_ITS_SUPPORT_V1_DRIVER
+    value: 0
+  - name: SL_PSA_ITS_SUPPORT_V2_DRIVER
+    value: 0
+  - name: SL_PSA_ITS_SUPPORT_V3_DRIVER
+    value: 1
+  - name: SL_STACK_SIZE
+    value: 1024
+    condition:
+      - freertos
+      - device_series_2
+  - name: SL_STACK_SIZE
+    value: 16384
+    condition:
+      - device_series_3
+  - name: SL_STACK_SIZE
+    value: 512
+    condition:
+      - micriumos_kernel
+      - device_series_2
+  # Timer RTOS task priority needs to be one more than SL_BT_RTOS_LINK_LAYER_TASK_PRIORITY
+  # BT uses event flags that require the timer task to be higher priority than all other RTOS tasks
+  - name: configTIMER_TASK_PRIORITY
+    value: 53
+  - name: configMAX_TASK_NAME_LEN
+    value: 30
+  - name: SL_CLI_EXAMPLE_TASK_STACK_SIZE
+    value: 600
+    condition:
+      - cmsis_rtos2
+  # On series 3, the bootloader requires more stack to do context parsing of OTA images
+  - name: SL_CLI_EXAMPLE_TASK_STACK_SIZE
+    value: 1500
+    condition:
+      - device_series_3
+  - name: SL_ZIGBEE_STACK_RTOS_TASK_STACK_SIZE
+    value: 5800
+    condition:
+      - device_series_3
+  - name: SL_ZIGBEE_APP_FRAMEWORK_RTOS_TASK_STACK_SIZE
+    value: 6000
+    condition:
+      - device_series_3
+  # On series 3, IPC for big hdr phy packets requires bigger stack sizes 
+  - name: SL_CLI_EXAMPLE_TASK_STACK_SIZE
+    value: 1500
+    condition:
+      - zigbee_high_datarate_phy
+      - device_series_3
+  - name: SL_ZIGBEE_STACK_RTOS_TASK_STACK_SIZE
+    value: 5800
+    condition:
+      - zigbee_high_datarate_phy
+      - device_series_3
+  - name: SL_ZIGBEE_APP_FRAMEWORK_RTOS_TASK_STACK_SIZE
+    value: 6000
+    condition:
+      - zigbee_high_datarate_phy
+      - device_series_3
+  - name: SL_HDR_PHY_MAX_PACKET_SIZE
+    value: 2045
+    condition:
+      - zigbee_high_datarate_phy
+      - device_series_3
+  - name: SL_ZIGBEE_AF_PLUGIN_ZCL_CLUSTER_DEFER_ATTRIBUTE_WRITES_TO_NVM_MS
+    value: 2000
+    condition:
+      - device_series_3
+
+source:
+  - path: main.c
+    unless: [cmsis_rtos2]
+  - path: app.c
+
+config_file:
+  - path: config/zcl/zcl_config.zap
+    file_id: zap_configuration_file_id
+    directory: zcl
+
+include:
+  - path: ./
+
+# Use CUSTOM_TOKEN_HEADER macro to point to custom token definitions (optional)
+# - name: "CUSTOM_TOKEN_HEADER"
+#    value: "\"example_custom_tokens.h\""
+
+# Use CUSTOM_MFG_TOKEN_HEADER macro to point to custom manufacturing token
+# definitions (optional)
+# - name: "CUSTOM_MFG_TOKEN_HEADER"
+#    value: "\"example_custom_mfg_tokens.h\""
+
+filter:
+  - name: Wireless Technology
+    value: [Zigbee]
+  - name: Device Type
+    value: [SoC]
+  - name: Project Difficulty
+    value: [Beginner]
+

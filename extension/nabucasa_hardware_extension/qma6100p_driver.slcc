@@ -1,0 +1,22 @@
+id: qma6100p_driver
+label: QMA6100P Accelerometer Driver
+package: custom
+description: QMA6100P 3-axis accelerometer driver using I2CSPM
+category: Platform|Driver|Sensor
+quality: production
+source:
+  - path: src/qma6100p.c
+include:
+  - path: inc
+    file_list:
+    - path: qma6100p.h
+provides:
+  - name: qma6100p_driver
+requires:
+  - name: i2cspm
+template_contribution:
+  - name: event_handler
+    value:
+      event: stack_init
+      include: qma6100p.h
+      handler: qma6100p_system_init

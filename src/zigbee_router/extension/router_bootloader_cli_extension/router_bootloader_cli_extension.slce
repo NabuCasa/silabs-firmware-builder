@@ -1,0 +1,5 @@
+id: router_bootloader_cli
+vendor: nabucasa
+version: "1.0.0"
+component_path:
+  - path: "./"

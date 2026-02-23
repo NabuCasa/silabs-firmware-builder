@@ -214,7 +214,7 @@ def main():
     if "ezsp_version" in gbl_dynamic:
         gbl_dynamic.remove("ezsp_version")
 
-        elf = list((project_root / "build/debug/").glob("*.out"))[0]
+        elf = list(build_dir.glob("*.out"))[0]
         with elf.open("rb") as f:
             ember_version = read_elf_symbol(f, "emberVersion")
 
@@ -278,17 +278,38 @@ def main():
 
     if "zwave_version" in gbl_dynamic:
         gbl_dynamic.remove("zwave_version")
-        zwave_props = parse_properties_file(
-            next((gsdk_path / "protocol/z-wave/").glob("*.properties")).read_text()
+        zw_version_config_h = parse_c_header_defines(
+            (project_root / "config/zw_version_config.h").read_text()
         )
-        metadata["zwave_version"] = zwave_props["version"][0]
+
+        metadata["zwave_version"] = ".".join(
+            [
+                str(zw_version_config_h["USER_APP_VERSION"]),
+                str(zw_version_config_h["USER_APP_REVISION"]),
+                str(zw_version_config_h["USER_APP_PATCH"]),
+            ]
+        )
 
     if "ot_rcp_version" in gbl_dynamic:
         gbl_dynamic.remove("ot_rcp_version")
-        openthread_config_h = parse_c_header_defines(
-            (project_root / "config/sl_openthread_generic_config.h").read_text()
+
+        ot_proj_path = project_root / "config/sl_openthread_generic_config.h"
+        ot_sdk_path = (
+            gsdk_path / "protocol/openthread/include/sl_openthread_package_info.h"
         )
-        metadata["ot_rcp_version"] = openthread_config_h["PACKAGE_STRING"]
+
+        if ot_proj_path.exists():
+            openthread_config_h = parse_c_header_defines(ot_proj_path.read_text())
+            metadata["ot_rcp_version"] = openthread_config_h["PACKAGE_STRING"]
+        elif ot_sdk_path.exists():
+            openthread_package_info_h = parse_c_header_defines(ot_sdk_path.read_text())
+            metadata["ot_rcp_version"] = (
+                openthread_package_info_h["PACKAGE_NAME"]
+                + "/"
+                + openthread_package_info_h["PACKAGE_VERSION"]
+            )
+        else:
+            raise FileNotFoundError("Could not find OpenThread package info")
 
     if "gecko_bootloader_version" in gbl_dynamic:
         gbl_dynamic.remove("gecko_bootloader_version")

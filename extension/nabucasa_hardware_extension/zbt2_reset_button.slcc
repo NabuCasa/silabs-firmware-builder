@@ -1,0 +1,21 @@
+id: zbt2_reset_button
+label: ZBT-2 Reset Button
+package: custom
+description: Pin-hole reset button handler for factory reset with LED feedback
+category: Platform|Driver|Button
+quality: production
+source:
+  - path: src/zbt2_reset_button.c
+include:
+  - path: inc
+    file_list:
+    - path: zbt2_reset_button.h
+config_file:
+  - path: config/zbt2_reset_button_config.h
+    file_id: zbt2_reset_button_config
+provides:
+  - name: zbt2_reset_button
+requires:
+  - name: led_manager
+  - name: simple_button
+  - name: sleeptimer

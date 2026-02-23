@@ -1,0 +1,197 @@
+# Silicon Labs Project Configuration Tools: slcp, v0, Component selection file.
+project_name: zwa2_controller
+label: zwa2_controller
+description: |
+  The Serial Applications Programming Interface (Serial API) allows a host to communicate with a Z-Wave chip. The host may be a PC or a less powerful embedded host CPU, such as in a remote control or in a gateway device, and so on.
+category: Z-Wave|Apps
+filter:
+- name: Device Type
+  value:
+  - NCP
+- name: Project Difficulty
+  value:
+  - Beginner
+- name: Wireless Technology
+  value:
+  - Z-Wave
+package: zwave_sample_app
+quality: production
+readme:
+- path: README.md
+source:
+- path: app_node_info.c
+- path: cmd_handlers_invoker.c
+- path: cmd_handlers.c
+- path: cmd_get_capabilities.c
+- path: silabs/sl_dcdc_cmd_handlers.c
+- path: cmds_management.c
+- path: cmds_rf.c
+- path: cmds_security.c
+- path: comm_interface.c
+- path: nvm_backup_restore.c
+- path: serialapi_file.c
+- path: app.c
+- path: utils.c
+- path: virtual_slave_node_info.c
+- path: silabs/sl_debug_cmd_handlers.c
+tag:
+- prebuilt_demo
+- toolchain:gcc
+- hwfilter:device:device_supports_zwave
+include:
+- path: .
+  file_list:
+  - path: app_node_info.h
+  - path: cmd_handlers.h
+  - path: cmds_management.h
+  - path: cmds_rf.h
+  - path: cmds_security.h
+  - path: comm_interface.h
+  - path: controller_supported_func.h
+  - path: nvm_backup_restore.h
+  - path: serialapi_file.h
+  - path: app.h
+  - path: common_supported_func.h
+  - path: slave_supported_func.h
+  - path: utils.h
+  - path: virtual_slave_node_info.h
+  - path: SerialAPI.h
+toolchain_settings: [
+  ]
+component:
+- package: simplicity_sdk
+  vendor: silabs
+  id: ZW_MIGRATION_FROM_7_20
+- package: simplicity_sdk
+  vendor: silabs
+  id: clock_manager
+- package: simplicity_sdk
+  vendor: silabs
+  id: device_init
+- package: simplicity_sdk
+  vendor: silabs
+  id: emlib_letimer
+- package: simplicity_sdk
+  vendor: silabs
+  id: emlib_msc
+- package: simplicity_sdk
+  vendor: silabs
+  id: emlib_timer
+- package: simplicity_sdk
+  vendor: silabs
+  id: gpiointerrupt
+- package: simplicity_sdk
+  vendor: silabs
+  id: mpu
+- package: simplicity_sdk
+  vendor: silabs
+  id: power_manager_no_deepsleep
+- package: simplicity_sdk
+  vendor: silabs
+  id: rail_util_pti
+- package: simplicity_sdk
+  vendor: silabs
+  id: sl_main
+- package: simplicity_sdk
+  vendor: silabs
+  id: zaf_config_security_header
+- package: simplicity_sdk
+  vendor: silabs
+  id: zaf_ncp
+- package: simplicity_sdk
+  vendor: silabs
+  id: zw_api_controller
+- package: simplicity_sdk
+  vendor: silabs
+  id: zw_api_zw
+- package: simplicity_sdk
+  vendor: silabs
+  id: zw_app_timer_deep_sleep
+- package: simplicity_sdk
+  vendor: silabs
+  id: zw_appshw_serialapi
+- package: simplicity_sdk
+  vendor: silabs
+  id: zw_apputilities_minimal
+- package: simplicity_sdk
+  vendor: silabs
+  id: zw_core
+- package: simplicity_sdk
+  vendor: silabs
+  id: zw_dcdc_override
+- package: simplicity_sdk
+  vendor: silabs
+  id: zw_role_type_central_static_controller
+define:
+- name: APP_PROPERTIES_CONFIG_FILE
+  value: <application_properties_config.h>
+config_file:
+- path: keys/vendor_encrypt.key
+  directory: keys
+- path: keys/vendor_sign.key
+  directory: keys
+- path: config/zaf_config.h
+  file_id: zaf_config
+  condition: [device_series_2]
+template_contribution:
+- name: rodata_sections
+  priority: 0
+  value: zw_cmd_handlers
+provides:
+- name: zwave_sample_application
+- name: zwave_ncp_serial_api_controller
+configuration:
+- name: ZAF_CONFIG_GENERIC_TYPE
+  value: GENERIC_TYPE_STATIC_CONTROLLER
+- name: ZAF_CONFIG_SPECIFIC_TYPE
+  value: SPECIFIC_TYPE_PC_CONTROLLER
+- name: NVM3_DEFAULT_MAX_OBJECT_SIZE
+  value: '1900'
+- name: NVM3_DEFAULT_CACHE_SIZE
+  value: '100'
+- name: SL_BOARD_ENABLE_VCOM
+  value: '1'
+- name: SL_IOSTREAM_USART_VCOM_CONVERT_BY_DEFAULT_LF_TO_CRLF
+  value: '1'
+- name: SL_IOSTREAM_USART_VCOM_RESTRICT_ENERGY_MODE_TO_ALLOW_RECEPTION
+  value: '0'
+- name: SL_IOSTREAM_EUSART_VCOM_CONVERT_BY_DEFAULT_LF_TO_CRLF
+  value: '1'
+- name: SL_IOSTREAM_EUSART_VCOM_RESTRICT_ENERGY_MODE_TO_ALLOW_RECEPTION
+  value: '0'
+- name: configUSE_IDLE_HOOK
+  value: '1'
+- name: configTIMER_TASK_PRIORITY
+  value: '55'
+- condition:
+  - device_series_2
+  name: configMAX_SYSCALL_INTERRUPT_PRIORITY
+  value: '16'
+- condition:
+  - device_series_2
+  name: configKERNEL_INTERRUPT_PRIORITY
+  value: '112'
+- name: configTIMER_QUEUE_LENGTH
+  value: '8'
+- condition:
+  - device_series_2
+  - device_security_vault
+  name: SL_PSA_ITS_USER_MAX_FILES
+  value: '32'
+- condition:
+  - device_series_2
+  - device_security_vault
+  name: SL_PSA_KEY_USER_SLOT_COUNT
+  value: '14'
+- condition:
+  - device_series_2
+  name: SL_SLEEPTIMER_PERIPHERAL
+  value: SL_SLEEPTIMER_PERIPHERAL_BURTC
+- name: ZAF_CONFIG_INSTALLER_ICON_TYPE
+  value: '0'
+- name: ZAF_APP_NAME
+  value: '"serial_api_controller"'
+ui_hints:
+  highlight:
+  - path: README.md
+    focus: true

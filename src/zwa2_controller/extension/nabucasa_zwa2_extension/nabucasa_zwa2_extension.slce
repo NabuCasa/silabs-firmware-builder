@@ -1,0 +1,5 @@
+id: nabucasa_zwa2
+vendor: nabucasa
+version: "1.0.0"
+component_path:
+  - path: "./"

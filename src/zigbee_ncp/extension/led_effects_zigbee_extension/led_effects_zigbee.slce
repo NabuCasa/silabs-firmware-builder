@@ -1,0 +1,5 @@
+id: led_effects_zigbee
+vendor: nabucasa
+version: "1.0.0"
+component_path:
+  - path: "./"

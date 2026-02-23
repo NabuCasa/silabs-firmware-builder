@@ -1,3 +1,9 @@
+# SL-OPENTHREAD/2.7.2.0_GitHub-fb0446f53
+This beta release is built with Simplicity SDK 2025.6.2.
+
+# 2.4.7.0_GitHub-fb0446f53
+Beta release built with Gecko SDK 4.5.0.
+
 # 2.4.6.0_GitHub-bdb394eb3
 Beta release built with Gecko SDK 4.4.6.
 

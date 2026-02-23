@@ -30,6 +30,3 @@ component:
 configuration:
   - name: SL_VCOM_ENABLE
     value: 1
-
-post_build:
-  profile: bootloader_series_2

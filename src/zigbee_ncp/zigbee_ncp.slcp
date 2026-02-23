@@ -27,6 +27,7 @@ component:
   - id: zigbee_debug_extended
   - id: zigbee_xncp
   - id: rail_util_rssi
+  - id: legacy_hal_wdog
 
 define:
   - name: EMBER_CUSTOM_MAC_FILTER_TABLE_SIZE
@@ -58,22 +59,14 @@ configuration:
     value: 0
   - name: SL_PSA_ITS_SUPPORT_V3_DRIVER
     value: 1
-  # Custom config for the builder
-  - name: BUILDER_WRAPPED_STACK_FUNCTIONS
-    value: sli_zigbee_am_multicast_member
+  - name: EMBER_AF_PLUGIN_PACKET_HANDOFF_ALLOW_ALL_PACKETS
+    value: 1
+  - name: SL_LEGACY_HAL_DISABLE_WATCHDOG
+    value: 0
 
 source:
   - path: main.c
   - path: app.c
-
-config_file:
-  - path: config/xncp_config.h
-    file_id: xncp_config
-
-template_contribution:
-- name: zigbee_stack_callback
-  priority: -9999
-  value: {callback_type: override_append_source_route, function_name: nc_zigbee_override_append_source_route}
 
 filter:
   - name: Wireless Technology

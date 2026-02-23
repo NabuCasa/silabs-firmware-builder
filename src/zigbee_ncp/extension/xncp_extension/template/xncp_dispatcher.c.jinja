@@ -1,0 +1,41 @@
+/***************************************************************************//**
+ * @file xncp_dispatcher.c
+ * @brief Auto-generated XNCP command dispatcher
+ *******************************************************************************
+ * # License
+ * <b>Copyright 2024 Nabu Casa, Inc.</b>
+ ******************************************************************************/
+
+// <<< sl:start pin_tool >>>
+// This file is auto-generated. Do not edit manually.
+// <<< sl:end pin_tool >>>
+
+#include "xncp_dispatcher.h"
+#include "xncp_types.h"
+#include <stddef.h>
+
+{% for table in xncp_command_table %}
+extern const xncp_command_def_t {{ table.name }}[];
+{% endfor %}
+
+uint32_t xncp_get_supported_features(void)
+{
+    return 0
+{% for feature in xncp_feature %}
+        | {{ feature }}
+{% endfor %}
+    ;
+}
+
+bool xncp_dispatch_command(xncp_context_t *ctx)
+{
+{% for table in xncp_command_table %}
+    for (const xncp_command_def_t *cmd = {{ table.name }}; cmd->handler != NULL; cmd++) {
+        if (cmd->command_id == ctx->command_id) {
+            *ctx->response_id = ctx->command_id | XNCP_CMD_RESPONSE_BIT;
+            return cmd->handler(ctx);
+        }
+    }
+{% endfor %}
+    return false;
+}
