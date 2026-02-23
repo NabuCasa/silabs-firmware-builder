@@ -12,6 +12,23 @@ The project templates in this repository are configured and built for specific b
 using manifest files. For example, the [`skyconnect_zigbee_ncp.yaml`](https://github.com/NabuCasa/silabs-firmware-builder/blob/main/manifests/nabucasa/skyconnect_zigbee_ncp.yaml)
 manifest file configures the Zigbee firmware for the SkyConnect/Connect ZBT-1.
 
+# Building with Docker
+The easiest way to build firmware is using Docker. The container image includes all
+required SDKs, toolchains, and tools pre-installed.
+
+```bash
+git clone https://github.com/NabuCasa/silabs-firmware-builder
+cd silabs-firmware-builder
+
+docker run --rm -v $(pwd):/repo ghcr.io/nabucasa/silabs-firmware-builder \
+    --manifest manifests/nabucasa/skyconnect_zigbee_ncp.yaml \
+    --output gbl \
+    --output-dir artifacts
+```
+
+Once the build is complete, the firmware will be in the `artifacts` directory.
+
+# Development
 ## Setting up Simplicity Studio (for development)
 If you are going to be developing using Simplicity Studio, note that each project can
 potentially use a different Gecko SDK release. It is recommended to forego the typical
@@ -58,7 +75,6 @@ SDK extensions for every SDK you plan to use:
 
 ```bash
 slc signature trust --sdk ~/SimplicityStudio/SDKs/gecko_sdk_4.4.2
-slc signature trust --sdk ~/SimplicityStudio/SDKs/gecko_sdk_4.4.2 --extension-path ~/SimplicityStudio/SDKs/gecko_sdk_4.4.2/extension/nc_efr32_watchdog_extension
 ```
 
 `tools/build_project.py` is the main entry point for building firmwares. Provide paths

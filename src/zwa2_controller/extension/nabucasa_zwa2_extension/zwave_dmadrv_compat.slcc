@@ -1,0 +1,35 @@
+id: zwave_dmadrv_compat
+label: Z-Wave DMADRV Compatibility
+package: custom
+description: >
+  Reimplements the Z-Wave SDK's LDMA_IRQHandler on top of DMADRV.
+  The Z-Wave ZPAL library provides its own LDMA_IRQHandler that only handles
+  channel 2 (UART TX DMA). This component wraps it so that DMADRV's handler
+  also runs, allowing I2C and SPI drivers that depend on DMADRV to function.
+category: Z-Wave|Platform
+quality: production
+source:
+  - path: src/zwave_dmadrv_compat.c
+include:
+  - path: inc
+    file_list:
+    - path: zwave_dmadrv_compat.h
+provides:
+  - name: zwave_dmadrv_compat
+requires:
+  - name: dmadrv
+define:
+  - name: ZWAVE_LDMA_CHANNEL
+    value: "2"
+template_contribution:
+- name: event_handler
+  priority: -9999  # We want to register `ZWAVE_LDMA_CHANNEL` as early as possible
+  value:
+    event: driver_init
+    include: zwave_dmadrv_compat.h
+    handler: zwave_dmadrv_compat_init
+toolchain_settings:
+  - option: gcc_linker_option
+    value: "-Wl,--wrap=LDMA_IRQHandler"
+  - option: gcc_linker_option
+    value: "-Wl,--wrap=zpal_uart_utils_tx_transfer_start"

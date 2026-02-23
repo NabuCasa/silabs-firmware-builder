@@ -1,0 +1,31 @@
+id: led_effects_zwa2
+label: LED Effects Base (ZWA-2)
+package: custom
+description: LED state machine for network status and tilt detection, ZWA-2 implementation
+category: Platform|Driver|LED
+quality: production
+source:
+  - path: src/led_effects_zwa2.c
+  - path: src/led_manager_zwa2.c
+include:
+  - path: inc
+    file_list:
+    - path: led_effects_zwa2.h
+    - path: led_manager_zwa2.h
+    - path: led_manager_colors_zwa2.h
+config_file:
+  - path: config/led_effects_config_zwa2.h
+    file_id: led_effects_config_zwa2
+provides:
+  - name: led_effects_base
+  - name: led_manager
+requires:
+  - name: ws2812_driver
+  - name: qma6100p_driver
+  - name: sleeptimer
+template_contribution:
+  - name: event_handler
+    value:
+      event: service_process_action
+      include: led_manager_zwa2.h
+      handler: led_manager_process_action
