@@ -291,3 +291,49 @@ jobs:
           files: |
             artifacts/*.gbl
             artifacts/manifest.json
+
+  sync-releases-branch:
+    name: Sync releases branch
+    needs: [release-assets]
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout releases branch
+        uses: actions/checkout@v4
+        with:
+          ref: releases
+          path: releases_branch
+
+      - name: Download release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts_release
+          sleep 10
+          gh release download "${{ github.event.release.tag_name }}" \
+            --repo "${{ github.repository }}" \
+            --dir artifacts_release \
+            --clobber
+
+      - name: Sync files for release tag
+        run: |
+          set -euo pipefail
+          tag="${{ github.event.release.tag_name }}"
+          target="releases_branch/${tag}"
+          mkdir -p "$target"
+          find "$target" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          cp -a artifacts_release/. "$target/"
+
+      - name: Commit and push changes
+        run: |
+          set -euo pipefail
+          cd releases_branch
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${{ github.event.release.tag_name }}"
+          git commit --allow-empty -m "Sync release assets for ${{ github.event.release.tag_name }}"
+          git pull --rebase origin releases
+          git push origin HEAD:releases
