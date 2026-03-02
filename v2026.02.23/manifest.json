@@ -1,0 +1,164 @@
+{
+  "metadata": {
+    "created_at": "2026-02-24T01:01:40.894834+00:00"
+  },
+  "firmwares": [
+    {
+      "filename": "zwa2_controller_1.2.0.gbl",
+      "checksum": "sha3-256:696d5f2c982da28db57125b719132d93c6ebdc17cc446f59572a582fc262bfd8",
+      "size": 146492,
+      "metadata": null,
+      "release_notes": null,
+      "release_summary": null
+    },
+    {
+      "filename": "skyconnect_zigbee_ncp_7.5.1.0.gbl",
+      "checksum": "sha3-256:c70313622941e953f2691111170a080675bd5fa2c0a9f26c86fe540f50339c4b",
+      "size": 241512,
+      "metadata": {
+        "baudrate": 115200,
+        "ezsp_version": "7.5.1.0",
+        "fw_type": "zigbee_ncp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "sdk_version": "4.5.0"
+      },
+      "release_notes": "Built with Gecko SDK 4.5.0. This includes a new feature to restore routes on adapter startup, speeding up network responsiveness after a reset.\n\nZ2M users: please stop the Z2M app/container before starting the update. If the update fails, unplug the adapter and plug it back in.",
+      "release_summary": null
+    },
+    {
+      "filename": "zbt2_zigbee_ncp_7.5.1.0_None.gbl",
+      "checksum": "sha3-256:6a2c18980ee795dac2fd4aa101a8093845f314055df997f2f7ee49eed74ea0b7",
+      "size": 264012,
+      "metadata": {
+        "baudrate": 460800,
+        "ezsp_version": "7.5.1.0",
+        "fw_type": "zigbee_ncp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "sdk_version": "4.5.0"
+      },
+      "release_notes": "Built with Gecko SDK 4.5.0. This includes a new feature to restore routes on adapter startup, speeding up network responsiveness after a reset.\n\nZ2M users: please stop the Z2M app/container before starting the update. If the update fails, unplug the adapter and plug it back in.",
+      "release_summary": null
+    },
+    {
+      "filename": "zbt2_bootloader_2.4.4.gbl",
+      "checksum": "sha3-256:fbc5b6d3b312ebd22db7da326a62871b3595b65b8c8db6ab9e05809ce1417b26",
+      "size": 11868,
+      "metadata": {
+        "baudrate": 115200,
+        "fw_type": "gecko-bootloader",
+        "fw_variant": null,
+        "gecko_bootloader_version": "2.4.4",
+        "metadata_version": 2,
+        "sdk_version": "4.5.0"
+      },
+      "release_notes": null,
+      "release_summary": null
+    },
+    {
+      "filename": "skyconnect_openthread_rcp_2.7.2.0_GitHub-fb0446f53_gsdk_2025.6.2.gbl",
+      "checksum": "sha3-256:fbd12d3bbdd5a1eb04853dc891409953fcf93604ed79506a129c8eb4af9b05d2",
+      "size": 99952,
+      "metadata": {
+        "baudrate": 460800,
+        "fw_type": "openthread_rcp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "ot_rcp_version": "SL-OPENTHREAD/2.7.2.0_GitHub-fb0446f53",
+        "sdk_version": "2025.6.2"
+      },
+      "release_notes": "Built with Simplicity SDK 2025.6.2. This release resolves a few adapter stability problems seen with Gecko SDK.",
+      "release_summary": null
+    },
+    {
+      "filename": "zbt2_router_2025.6.2.gbl",
+      "checksum": "sha3-256:a02e91953c82706d43a17508bb43e3a38e592328e61054db4e65e3959bde4ee6",
+      "size": 328116,
+      "metadata": {
+        "baudrate": 115200,
+        "fw_type": "zigbee_router",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "sdk_version": "2025.6.2"
+      },
+      "release_notes": null,
+      "release_summary": null
+    },
+    {
+      "filename": "yellow_openthread_rcp_2.7.2.0_GitHub-fb0446f53_gsdk_2025.6.2.gbl",
+      "checksum": "sha3-256:2d40796760f2dfdb54ca1a1c2d9fca91c91f0a084d74a93c5b7fc3e77e2d60ff",
+      "size": 101164,
+      "metadata": {
+        "baudrate": 460800,
+        "fw_type": "openthread_rcp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "ot_rcp_version": "SL-OPENTHREAD/2.7.2.0_GitHub-fb0446f53",
+        "sdk_version": "2025.6.2"
+      },
+      "release_notes": "Built with Simplicity SDK 2025.6.2. This release resolves a few adapter stability problems seen with Gecko SDK.",
+      "release_summary": null
+    },
+    {
+      "filename": "yellow_zigbee_ncp_7.5.1.0.gbl",
+      "checksum": "sha3-256:ddf53003e4827688b8f084b6c279c2c1f543bbc976649ad4a6c7b9d4a6d342cf",
+      "size": 242660,
+      "metadata": {
+        "baudrate": 115200,
+        "ezsp_version": "7.5.1.0",
+        "fw_type": "zigbee_ncp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "sdk_version": "4.5.0"
+      },
+      "release_notes": "Built with Gecko SDK 4.5.0. This includes a new feature to restore routes on adapter startup, speeding up network responsiveness after a reset.\n\nZ2M users: please stop the Z2M app/container before starting the update.",
+      "release_summary": null
+    },
+    {
+      "filename": "zbt2_openthread_rcp_2.7.2.0_GitHub-fb0446f53_gsdk_2025.6.2.gbl",
+      "checksum": "sha3-256:8a7bb812d8043025e271da7e9983b45d023af10153443b9616494a15ee2035c3",
+      "size": 134288,
+      "metadata": {
+        "baudrate": 460800,
+        "fw_type": "openthread_rcp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "ot_rcp_version": "SL-OPENTHREAD/2.7.2.0_GitHub-fb0446f53",
+        "sdk_version": "2025.6.2"
+      },
+      "release_notes": "Built with Simplicity SDK 2025.6.2. This release resolves a few adapter stability problems seen with Gecko SDK.",
+      "release_summary": null
+    },
+    {
+      "filename": "skyconnect_bootloader_2.4.2.gbl",
+      "checksum": "sha3-256:f56372b35f6ab479c63618663c0225533e1dee2840ca96af16bc09264e4a545b",
+      "size": 11292,
+      "metadata": {
+        "baudrate": 115200,
+        "fw_type": "gecko-bootloader",
+        "fw_variant": null,
+        "gecko_bootloader_version": "2.4.2",
+        "metadata_version": 2,
+        "sdk_version": "4.5.0"
+      },
+      "release_notes": null,
+      "release_summary": null
+    },
+    {
+      "filename": "yellow_bootloader_2.4.2.gbl",
+      "checksum": "sha3-256:9cab0965fc2b1c4152f1d110feb63cf782fcbb1def6a5dc1c8e9e0646248191d",
+      "size": 11388,
+      "metadata": {
+        "baudrate": 115200,
+        "fw_type": "gecko-bootloader",
+        "fw_variant": null,
+        "gecko_bootloader_version": "2.4.2",
+        "metadata_version": 2,
+        "sdk_version": "4.5.0"
+      },
+      "release_notes": null,
+      "release_summary": null
+    }
+  ]
+}

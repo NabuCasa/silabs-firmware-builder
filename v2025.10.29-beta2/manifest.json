@@ -1,0 +1,150 @@
+{
+  "metadata": {
+    "created_at": "2025-10-29T17:45:46.839978+00:00"
+  },
+  "firmwares": [
+    {
+      "filename": "yellow_zigbee_ncp_7.4.4.5.gbl",
+      "checksum": "sha3-256:f547077a8d3986adc69344f2958c3e3a799aae40c6c81a93b8471c75c80d8af4",
+      "size": 241460,
+      "metadata": {
+        "baudrate": 115200,
+        "ezsp_version": "7.4.4.5",
+        "fw_type": "zigbee_ncp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "sdk_version": "4.4.4"
+      },
+      "release_notes": "Increase UART RX buffer size from 32 to 128 bytes to fix issues with OTA when using Z2M. For adapters with pinhole reset buttons, enable the reset button to wipe network settings. This is a bugfix re-release of 7.4.4.4.",
+      "release_summary": null
+    },
+    {
+      "filename": "skyconnect_zigbee_ncp_7.4.4.5.gbl",
+      "checksum": "sha3-256:30c44d6b610bd0e0a0a1cbbf89cb0fcf3761896256e0ec3add776827f31b57d9",
+      "size": 240300,
+      "metadata": {
+        "baudrate": 115200,
+        "ezsp_version": "7.4.4.5",
+        "fw_type": "zigbee_ncp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "sdk_version": "4.4.4"
+      },
+      "release_notes": "Increase UART RX buffer size from 32 to 128 bytes to fix issues with OTA when using Z2M. For adapters with pinhole reset buttons, enable the reset button to wipe network settings. This is a bugfix re-release of 7.4.4.4.",
+      "release_summary": null
+    },
+    {
+      "filename": "zwave_stick_7.22.2.0.gbl",
+      "checksum": "sha3-256:d4e37b25cb84b661d79fbb61064e13519f3d4f0982055f4e865b1a132d8815d4",
+      "size": 188376,
+      "metadata": null,
+      "release_notes": null,
+      "release_summary": null
+    },
+    {
+      "filename": "zbt2_zigbee_ncp_7.4.4.5.gbl",
+      "checksum": "sha3-256:680aae711509de6e00ce499e2aad93ce6987ca522215b57a83f27bb55cc7beec",
+      "size": 262640,
+      "metadata": {
+        "baudrate": 460800,
+        "ezsp_version": "7.4.4.5",
+        "fw_type": "zigbee_ncp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "sdk_version": "4.4.4"
+      },
+      "release_notes": "Increase UART RX buffer size from 32 to 128 bytes to fix issues with OTA when using Z2M. For adapters with pinhole reset buttons, enable the reset button to wipe network settings. This is a bugfix re-release of 7.4.4.4.",
+      "release_summary": null
+    },
+    {
+      "filename": "zbt2_bootloader_2.4.3.gbl",
+      "checksum": "sha3-256:d1dca31f71a680885b4fe2b58d397a1ed3b4e947e536ca1ba6e03e4e2450f26d",
+      "size": 11808,
+      "metadata": {
+        "baudrate": 115200,
+        "fw_type": "gecko-bootloader",
+        "fw_variant": null,
+        "gecko_bootloader_version": "2.4.3",
+        "metadata_version": 2,
+        "sdk_version": "4.4.4"
+      },
+      "release_notes": null,
+      "release_summary": null
+    },
+    {
+      "filename": "zbt2_openthread_rcp_2.4.4.0_GitHub-7074a43e4_gsdk_4.4.4.gbl",
+      "checksum": "sha3-256:47fb5ad9f6bf1ecf8df244da54c9421cbadb2a7e005b8426c92331acc16edb3f",
+      "size": 120404,
+      "metadata": {
+        "baudrate": 460800,
+        "fw_type": "openthread_rcp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "ot_rcp_version": "SL-OPENTHREAD/2.4.4.0_GitHub-7074a43e4",
+        "sdk_version": "4.4.4"
+      },
+      "release_notes": "Initial release with the new firmware builder. This firmware is identical to the firmware bundled with the OpenThread Border Router addon.",
+      "release_summary": null
+    },
+    {
+      "filename": "skyconnect_openthread_rcp_2.4.4.0_GitHub-7074a43e4_gsdk_4.4.4.gbl",
+      "checksum": "sha3-256:1c0e67ea19b736162dc29dd6cf46f4ede6dbf12c9ad6e7597098b5e9d5e3d77c",
+      "size": 107908,
+      "metadata": {
+        "baudrate": 460800,
+        "fw_type": "openthread_rcp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "ot_rcp_version": "SL-OPENTHREAD/2.4.4.0_GitHub-7074a43e4",
+        "sdk_version": "4.4.4"
+      },
+      "release_notes": "Initial release with the new firmware builder. This firmware is identical to the firmware bundled with the OpenThread Border Router addon.",
+      "release_summary": null
+    },
+    {
+      "filename": "yellow_openthread_rcp_2.4.4.0_GitHub-7074a43e4_gsdk_4.4.4.gbl",
+      "checksum": "sha3-256:3f7969fd82f7fe4e2f0a684839b0723f6abc3178cfac21bf0df3cd4d926f9b1d",
+      "size": 109048,
+      "metadata": {
+        "baudrate": 460800,
+        "fw_type": "openthread_rcp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "ot_rcp_version": "SL-OPENTHREAD/2.4.4.0_GitHub-7074a43e4",
+        "sdk_version": "4.4.4"
+      },
+      "release_notes": "Initial release with the new firmware builder. This firmware is identical to the firmware bundled with the OpenThread Border Router addon.",
+      "release_summary": null
+    },
+    {
+      "filename": "skyconnect_bootloader_2.4.2.gbl",
+      "checksum": "sha3-256:cca812ed7134a158da652ca856936323ded2a51851157a29d9a0080c91a29a32",
+      "size": 11264,
+      "metadata": {
+        "baudrate": 115200,
+        "fw_type": "gecko-bootloader",
+        "fw_variant": null,
+        "gecko_bootloader_version": "2.4.2",
+        "metadata_version": 2,
+        "sdk_version": "4.4.4"
+      },
+      "release_notes": null,
+      "release_summary": null
+    },
+    {
+      "filename": "yellow_bootloader_2.4.2.gbl",
+      "checksum": "sha3-256:cd68f72fcb5cbc4bd5f3b69a4b234616bba869f1dc307ec5851654a90642cd8d",
+      "size": 11392,
+      "metadata": {
+        "baudrate": 115200,
+        "fw_type": "gecko-bootloader",
+        "fw_variant": null,
+        "gecko_bootloader_version": "2.4.2",
+        "metadata_version": 2,
+        "sdk_version": "4.4.4"
+      },
+      "release_notes": null,
+      "release_summary": null
+    }
+  ]
+}

@@ -1,0 +1,156 @@
+{
+  "metadata": {
+    "created_at": "2026-01-11T17:53:54.531362+00:00"
+  },
+  "firmwares": [
+    {
+      "filename": "skyconnect_zigbee_ncp_7.5.1.0.gbl",
+      "checksum": "sha3-256:bb50d307dd1bc710fb3816c7d3f9872f525930315cb695e34e64b2e7f4192459",
+      "size": 241512,
+      "metadata": {
+        "baudrate": 115200,
+        "ezsp_version": "7.5.1.0",
+        "fw_type": "zigbee_ncp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "sdk_version": "4.5.0"
+      },
+      "release_notes": "Beta release built with Gecko SDK 4.5.0. This includes a new feature to restore routes on adapter startup, speeding up network responsiveness after a reset.",
+      "release_summary": null
+    },
+    {
+      "filename": "zbt2_zigbee_ncp_7.5.1.0_None.gbl",
+      "checksum": "sha3-256:2cf7e8349f05a691512873920bc5be15247b91ea0e75cda57acb63629be23f13",
+      "size": 264012,
+      "metadata": {
+        "baudrate": 460800,
+        "ezsp_version": "7.5.1.0",
+        "fw_type": "zigbee_ncp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "sdk_version": "4.5.0"
+      },
+      "release_notes": "Beta release built with Gecko SDK 4.5.0. This includes a new feature to restore routes on adapter startup, speeding up network responsiveness after a reset.",
+      "release_summary": null
+    },
+    {
+      "filename": "zbt2_bootloader_2.4.4.gbl",
+      "checksum": "sha3-256:fbc5b6d3b312ebd22db7da326a62871b3595b65b8c8db6ab9e05809ce1417b26",
+      "size": 11868,
+      "metadata": {
+        "baudrate": 115200,
+        "fw_type": "gecko-bootloader",
+        "fw_variant": null,
+        "gecko_bootloader_version": "2.4.4",
+        "metadata_version": 2,
+        "sdk_version": "4.5.0"
+      },
+      "release_notes": null,
+      "release_summary": null
+    },
+    {
+      "filename": "skyconnect_openthread_rcp_2.7.2.0_GitHub-fb0446f53_gsdk_2025.6.2.gbl",
+      "checksum": "sha3-256:793f1cc0d628d0929f20e22ced908b128e55c2a9f553be8b4db65ae26728b32b",
+      "size": 99952,
+      "metadata": {
+        "baudrate": 460800,
+        "fw_type": "openthread_rcp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "ot_rcp_version": "SL-OPENTHREAD/2.7.2.0_GitHub-fb0446f53",
+        "sdk_version": "2025.6.2"
+      },
+      "release_notes": "This beta release is built with Simplicity SDK 2025.6.2.",
+      "release_summary": null
+    },
+    {
+      "filename": "zbt2_router_2025.6.2.gbl",
+      "checksum": "sha3-256:a02e91953c82706d43a17508bb43e3a38e592328e61054db4e65e3959bde4ee6",
+      "size": 328116,
+      "metadata": {
+        "baudrate": 115200,
+        "fw_type": "zigbee_router",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "sdk_version": "2025.6.2"
+      },
+      "release_notes": null,
+      "release_summary": null
+    },
+    {
+      "filename": "yellow_openthread_rcp_2.7.2.0_GitHub-fb0446f53_gsdk_2025.6.2.gbl",
+      "checksum": "sha3-256:c21fead4d2cd40a270342bbfce5d30161f9eb07f84d1abc87524288321697e53",
+      "size": 101164,
+      "metadata": {
+        "baudrate": 460800,
+        "fw_type": "openthread_rcp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "ot_rcp_version": "SL-OPENTHREAD/2.7.2.0_GitHub-fb0446f53",
+        "sdk_version": "2025.6.2"
+      },
+      "release_notes": "This beta release is built with Simplicity SDK 2025.6.2.",
+      "release_summary": null
+    },
+    {
+      "filename": "yellow_zigbee_ncp_7.5.1.0.gbl",
+      "checksum": "sha3-256:08544da9f23f19be8061a62d2dc99ffb51d438a100d37c6c1d8a736c8a339610",
+      "size": 242660,
+      "metadata": {
+        "baudrate": 115200,
+        "ezsp_version": "7.5.1.0",
+        "fw_type": "zigbee_ncp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "sdk_version": "4.5.0"
+      },
+      "release_notes": "Beta release built with Gecko SDK 4.5.0. This includes a new feature to restore routes on adapter startup, speeding up network responsiveness after a reset.",
+      "release_summary": null
+    },
+    {
+      "filename": "zbt2_openthread_rcp_2.7.2.0_GitHub-fb0446f53_gsdk_2025.6.2.gbl",
+      "checksum": "sha3-256:ba3d524779464d21085281a740c4c3d0434546b27ea5b9f3499297fb6230fe68",
+      "size": 134288,
+      "metadata": {
+        "baudrate": 460800,
+        "fw_type": "openthread_rcp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "ot_rcp_version": "SL-OPENTHREAD/2.7.2.0_GitHub-fb0446f53",
+        "sdk_version": "2025.6.2"
+      },
+      "release_notes": "This beta release is built with Simplicity SDK 2025.6.2.",
+      "release_summary": null
+    },
+    {
+      "filename": "skyconnect_bootloader_2.4.2.gbl",
+      "checksum": "sha3-256:f56372b35f6ab479c63618663c0225533e1dee2840ca96af16bc09264e4a545b",
+      "size": 11292,
+      "metadata": {
+        "baudrate": 115200,
+        "fw_type": "gecko-bootloader",
+        "fw_variant": null,
+        "gecko_bootloader_version": "2.4.2",
+        "metadata_version": 2,
+        "sdk_version": "4.5.0"
+      },
+      "release_notes": null,
+      "release_summary": null
+    },
+    {
+      "filename": "yellow_bootloader_2.4.2.gbl",
+      "checksum": "sha3-256:9cab0965fc2b1c4152f1d110feb63cf782fcbb1def6a5dc1c8e9e0646248191d",
+      "size": 11388,
+      "metadata": {
+        "baudrate": 115200,
+        "fw_type": "gecko-bootloader",
+        "fw_variant": null,
+        "gecko_bootloader_version": "2.4.2",
+        "metadata_version": 2,
+        "sdk_version": "4.5.0"
+      },
+      "release_notes": null,
+      "release_summary": null
+    }
+  ]
+}

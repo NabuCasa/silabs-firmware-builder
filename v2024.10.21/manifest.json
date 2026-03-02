@@ -1,0 +1,98 @@
+{
+  "metadata": {
+    "created_at": "2024-11-11T22:00:15.039462+00:00"
+  },
+  "firmwares": [
+    {
+      "filename": "skyconnect_zigbee_ncp_7.4.4.0.gbl",
+      "checksum": "sha3-256:2547620a7836319849d85aa1f54b4b87e6c6de5c1567eae6327cbb634fbc4336",
+      "size": 240312,
+      "metadata": {
+        "baudrate": 115200,
+        "ezsp_version": "7.4.4.0",
+        "fw_type": "zigbee_ncp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "sdk_version": "4.4.4"
+      },
+      "release_notes": null
+    },
+    {
+      "filename": "skyconnect_bootloader_2.4.2.gbl",
+      "checksum": "sha3-256:cca812ed7134a158da652ca856936323ded2a51851157a29d9a0080c91a29a32",
+      "size": 11264,
+      "metadata": {
+        "baudrate": 115200,
+        "fw_type": "gecko-bootloader",
+        "fw_variant": null,
+        "gecko_bootloader_version": "2.4.2",
+        "metadata_version": 2,
+        "sdk_version": "4.4.4"
+      },
+      "release_notes": null
+    },
+    {
+      "filename": "yellow_zigbee_ncp_7.4.4.0.gbl",
+      "checksum": "sha3-256:94a297165528211addcadd8dc69f5172fc682d6009c9e7e35cd93945218538a8",
+      "size": 241480,
+      "metadata": {
+        "baudrate": 115200,
+        "ezsp_version": "7.4.4.0",
+        "fw_type": "zigbee_ncp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "sdk_version": "4.4.4"
+      },
+      "release_notes": null
+    },
+    {
+      "filename": "skyconnect_openthread_rcp_2.4.4.0_GitHub-7074a43e4_gsdk_4.4.4.gbl",
+      "checksum": "sha3-256:37f455c322ccdcfa150fd0f7b5dd0d8d9f81479a83bfa74807b483a16813b943",
+      "size": 107908,
+      "metadata": {
+        "baudrate": 460800,
+        "fw_type": "openthread_rcp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "ot_rcp_version": "SL-OPENTHREAD/2.4.4.0_GitHub-7074a43e4",
+        "sdk_version": "4.4.4"
+      },
+      "release_notes": null
+    },
+    {
+      "filename": "zwave_stick_7.22.2.0.gbl",
+      "checksum": "sha3-256:ed67c8f464716efa0ab3d045fe8af00986b61eaafd8420ed9c81d9ecc956ea69",
+      "size": 188376,
+      "metadata": null,
+      "release_notes": null
+    },
+    {
+      "filename": "yellow_openthread_rcp_2.4.4.0_GitHub-7074a43e4_gsdk_4.4.4.gbl",
+      "checksum": "sha3-256:5a0f5e2a20b77d4033f7deb1d772dfefba76c71e4aee7b9ed47ffccafa504b48",
+      "size": 109048,
+      "metadata": {
+        "baudrate": 460800,
+        "fw_type": "openthread_rcp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "ot_rcp_version": "SL-OPENTHREAD/2.4.4.0_GitHub-7074a43e4",
+        "sdk_version": "4.4.4"
+      },
+      "release_notes": null
+    },
+    {
+      "filename": "yellow_bootloader_2.4.2.gbl",
+      "checksum": "sha3-256:cd68f72fcb5cbc4bd5f3b69a4b234616bba869f1dc307ec5851654a90642cd8d",
+      "size": 11392,
+      "metadata": {
+        "baudrate": 115200,
+        "fw_type": "gecko-bootloader",
+        "fw_variant": null,
+        "gecko_bootloader_version": "2.4.2",
+        "metadata_version": 2,
+        "sdk_version": "4.4.4"
+      },
+      "release_notes": null
+    }
+  ]
+}

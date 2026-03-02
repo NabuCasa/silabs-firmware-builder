@@ -1,0 +1,150 @@
+{
+  "metadata": {
+    "created_at": "2025-09-17T16:49:28.673122+00:00"
+  },
+  "firmwares": [
+    {
+      "filename": "yellow_zigbee_ncp_7.4.4.2.gbl",
+      "checksum": "sha3-256:5fcdb4bfe4e16a2421dcc8ff00f433969e03824e281879ca4ba65ec5db89f16d",
+      "size": 241460,
+      "metadata": {
+        "baudrate": 115200,
+        "ezsp_version": "7.4.4.2",
+        "fw_type": "zigbee_ncp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "sdk_version": "4.4.4"
+      },
+      "release_notes": "Allow receiving events from devices using unregistered group IDs and increase routing and child table sizes.",
+      "release_summary": null
+    },
+    {
+      "filename": "yellow_openthread_rcp_2.4.4.0_GitHub-7074a43e4_gsdk_4.4.4.gbl",
+      "checksum": "sha3-256:04c71644f5f7269ef34752df4321cddd6d63c647412df9344c573f60a64a41c3",
+      "size": 109048,
+      "metadata": {
+        "baudrate": 460800,
+        "fw_type": "openthread_rcp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "ot_rcp_version": "SL-OPENTHREAD/2.4.4.0_GitHub-7074a43e4",
+        "sdk_version": "4.4.4"
+      },
+      "release_notes": "Initial release with the new firmware builder. This firmware is identical to the firmware bundled with the OpenThread Border Router addon.",
+      "release_summary": null
+    },
+    {
+      "filename": "skyconnect_openthread_rcp_2.4.4.0_GitHub-7074a43e4_gsdk_4.4.4.gbl",
+      "checksum": "sha3-256:ff8825969b4fd1d6ef976b96eacf8fc5070d31b654e44c8ef5088394bda3a5f4",
+      "size": 107908,
+      "metadata": {
+        "baudrate": 460800,
+        "fw_type": "openthread_rcp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "ot_rcp_version": "SL-OPENTHREAD/2.4.4.0_GitHub-7074a43e4",
+        "sdk_version": "4.4.4"
+      },
+      "release_notes": "Initial release with the new firmware builder. This firmware is identical to the firmware bundled with the OpenThread Border Router addon.",
+      "release_summary": null
+    },
+    {
+      "filename": "zbt2_bootloader_2.4.3.gbl",
+      "checksum": "sha3-256:d1dca31f71a680885b4fe2b58d397a1ed3b4e947e536ca1ba6e03e4e2450f26d",
+      "size": 11808,
+      "metadata": {
+        "baudrate": 115200,
+        "fw_type": "gecko-bootloader",
+        "fw_variant": null,
+        "gecko_bootloader_version": "2.4.3",
+        "metadata_version": 2,
+        "sdk_version": "4.4.4"
+      },
+      "release_notes": null,
+      "release_summary": null
+    },
+    {
+      "filename": "yellow_bootloader_2.4.2.gbl",
+      "checksum": "sha3-256:cd68f72fcb5cbc4bd5f3b69a4b234616bba869f1dc307ec5851654a90642cd8d",
+      "size": 11392,
+      "metadata": {
+        "baudrate": 115200,
+        "fw_type": "gecko-bootloader",
+        "fw_variant": null,
+        "gecko_bootloader_version": "2.4.2",
+        "metadata_version": 2,
+        "sdk_version": "4.4.4"
+      },
+      "release_notes": null,
+      "release_summary": null
+    },
+    {
+      "filename": "skyconnect_bootloader_2.4.2.gbl",
+      "checksum": "sha3-256:cca812ed7134a158da652ca856936323ded2a51851157a29d9a0080c91a29a32",
+      "size": 11264,
+      "metadata": {
+        "baudrate": 115200,
+        "fw_type": "gecko-bootloader",
+        "fw_variant": null,
+        "gecko_bootloader_version": "2.4.2",
+        "metadata_version": 2,
+        "sdk_version": "4.4.4"
+      },
+      "release_notes": null,
+      "release_summary": null
+    },
+    {
+      "filename": "skyconnect_zigbee_ncp_7.4.4.2.gbl",
+      "checksum": "sha3-256:fa746ab1721d445485b5d1b399065076f72aeb540cbb572daf30dacc0168f83c",
+      "size": 240300,
+      "metadata": {
+        "baudrate": 115200,
+        "ezsp_version": "7.4.4.2",
+        "fw_type": "zigbee_ncp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "sdk_version": "4.4.4"
+      },
+      "release_notes": "Allow receiving events from devices using unregistered group IDs and increase routing and child table sizes.",
+      "release_summary": null
+    },
+    {
+      "filename": "zbt2_zigbee_ncp_7.4.4.2_20250911_final.gbl",
+      "checksum": "sha3-256:89ae7bcf4113b7be8f5fc0bd8ae37fb91431d2ac192eedb82faa6db3018ab2fd",
+      "size": 258400,
+      "metadata": {
+        "baudrate": 460800,
+        "ezsp_version": "7.4.4.2",
+        "fw_type": "zigbee_ncp",
+        "fw_variant": "20250911_final",
+        "metadata_version": 2,
+        "sdk_version": "4.4.4"
+      },
+      "release_notes": "Allow receiving events from devices using unregistered group IDs and increase routing and child table sizes.",
+      "release_summary": null
+    },
+    {
+      "filename": "zwave_stick_7.22.2.0.gbl",
+      "checksum": "sha3-256:320882c42ab8880426b7ea9299c49a202d7f0fb8d46523d9deefcb16960ae0cb",
+      "size": 188376,
+      "metadata": null,
+      "release_notes": null,
+      "release_summary": null
+    },
+    {
+      "filename": "zbt2_openthread_rcp_2.4.4.0_GitHub-7074a43e4_gsdk_4.4.4.gbl",
+      "checksum": "sha3-256:6eb3645deba02eab63f8756e148af3cc8d0d6dd46b56662f83dc2c00f135a9e7",
+      "size": 120404,
+      "metadata": {
+        "baudrate": 460800,
+        "fw_type": "openthread_rcp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "ot_rcp_version": "SL-OPENTHREAD/2.4.4.0_GitHub-7074a43e4",
+        "sdk_version": "4.4.4"
+      },
+      "release_notes": "Initial release with the new firmware builder. This firmware is identical to the firmware bundled with the OpenThread Border Router addon.",
+      "release_summary": null
+    }
+  ]
+}
