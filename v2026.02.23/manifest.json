@@ -1,12 +1,28 @@
 {
   "metadata": {
-    "created_at": "2026-02-24T01:01:40.894834+00:00"
+    "created_at": "2026-03-23T21:01:53.940323+00:00"
   },
   "firmwares": [
     {
       "filename": "zwa2_controller_1.2.0.gbl",
       "checksum": "sha3-256:696d5f2c982da28db57125b719132d93c6ebdc17cc446f59572a582fc262bfd8",
       "size": 146492,
+      "metadata": null,
+      "release_notes": null,
+      "release_summary": null
+    },
+    {
+      "filename": "zwa2_repeater_1.0.0.gbl",
+      "checksum": "sha3-256:6900e1cb48bbbc77407d88213e7041a493e6accf94dec7911aeebfd1ab482aa4",
+      "size": 161756,
+      "metadata": null,
+      "release_notes": null,
+      "release_summary": null
+    },
+    {
+      "filename": "zwa2_zniffer_1.1.0.gbl",
+      "checksum": "sha3-256:6ca6a407a1dbdb87e3c6679c98734af49939ac2a655d67c41284496b130f77d4",
+      "size": 121396,
       "metadata": null,
       "release_notes": null,
       "release_summary": null
