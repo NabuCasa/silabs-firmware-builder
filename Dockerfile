@@ -30,15 +30,15 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
             ca-certificates \
             git \
         && rm -rf /var/lib/apt/lists/* \
-        # Download QEMU 10.2.0 source
-        && aria2c --checksum=sha-256=6d7046777ce992e5ce88c413ebe3d1f57b1833e7d8200724097c9b74507e196e -o qemu.tar.gz \
-            https://gitlab.com/qemu-project/qemu/-/archive/v10.2.0/qemu-v10.2.0.tar.gz \
+        # Download QEMU 11.0.0 source
+        && aria2c --checksum=sha-256=253fb688815c7ba4bf1a3ecb582bd4476cfa485deb759f5f641efcde0d4bfabd -o qemu.tar.gz \
+            https://gitlab.com/qemu-project/qemu/-/archive/v11.0.0/qemu-v11.0.0.tar.gz \
         && tar xzf qemu.tar.gz && rm qemu.tar.gz \
-        && mv qemu-v10.2.0 qemu \
+        && mv qemu-v11.0.0 qemu \
         && cd qemu \
         # Apply execve interception patch from conda-forge
         && aria2c -o execve.patch \
-            https://raw.githubusercontent.com/conda-forge/qemu-execve-feedstock/7d9a37bb5498831e0eb9a1cff5c0c6f3d49cb1f7/recipe/patches/apply-execve-JH.patch \
+            https://raw.githubusercontent.com/conda-forge/qemu-execve-feedstock/eaea9abfa56f859c98fb3938535a961465a58ae6/recipe/patches/execve/apply-execve-JH.patch \
         && patch -p1 < execve.patch && rm execve.patch \
         # Skip vsyscall page setup when reserved_va is enabled
         && sed -i '/Cannot allocate vsyscall page/{s/.*/        return true;/;n;d}' linux-user/x86_64/elfload.c \
