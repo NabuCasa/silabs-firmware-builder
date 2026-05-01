@@ -90,8 +90,8 @@ RUN set -e \
         unzip \
     && rm -rf /var/lib/apt/lists/* \
     # slt-cli is x64 only but runs fine with QEMU
-    && aria2c --checksum=sha-256=8c2dd5091c15d5dd7b8fc978a512c49d9b9c5da83d4d0b820cfe983b38ef3612 -o slt.zip \
-        https://www.silabs.com/documents/public/software/slt-cli-1.1.0-linux-x64.zip \
+    && aria2c --checksum=sha-256=2b9941216a3549aea6c5cc76565e2bc91ebfd9f41bec1e026341ce47c3aca1d0 -o slt.zip \
+        https://www.silabs.com/documents/public/software/slt-cli-1.1.2-linux-x64.zip \
     && bsdtar -xf slt.zip -C /usr/bin && rm slt.zip \
     && chmod +x /usr/bin/slt \
     && if [ "$TARGETARCH" = "arm64" ]; then \
@@ -100,17 +100,18 @@ RUN set -e \
         && apt-get install -y --no-install-recommends libc6:amd64 zlib1g:amd64 \
         && rm -rf /var/lib/apt/lists/* \
         # slt needs to be emulated. It executes conan_wrapper during installation so we need to use --execve to make it work
-        # -R limits address space to 47 bits, fixing Go binaries that assume 48-bit sign-extended addresses
         && mv /usr/bin/slt /usr/bin/slt-bin \
-        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static -R 0x800000000000 --execve /usr/bin/qemu-x86_64-static /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
+        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static --execve /usr/bin/qemu-x86_64-static /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
         && chmod +x /usr/bin/slt \
         # Install conan
         && slt --non-interactive install conan \
         && mv /root/.silabs/slt/engines/conan/conan_engine /root/.silabs/slt/engines/conan/conan_engine-bin \
+        # -R limits address space to 47 bits, fixing Go binaries that assume 48-bit sign-extended addresses
+        # This can be removed once conan_engine is recompiled with a newer Go toolchain
         && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static -R 0x800000000000 /root/.silabs/slt/engines/conan/conan_engine-bin "$@"\n' > /root/.silabs/slt/engines/conan/conan_engine \
         && chmod +x /root/.silabs/slt/engines/conan/conan_engine \
         # Remove --execve from slt wrapper once we install conan, so native tools (tar, etc.) run without QEMU
-        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static -R 0x800000000000 /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
+        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
         # Patch slt to select ARM64 packages for subsequent installs
         && sed -i 's/amd6/arm6/g' /usr/bin/slt-bin \
         # Force conan to use the ARM64 profile for downloading packages
