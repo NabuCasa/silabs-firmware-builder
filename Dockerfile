@@ -128,24 +128,17 @@ RUN set -e \
 
 # Install toolchain via slt
 RUN set -e \
-    && apt-get update && apt-get install -y --no-install-recommends jq && rm -rf /var/lib/apt/lists/* \
     && slt --non-interactive install \
         cmake/3.30.2 \
         ninja/1.12.1 \
         commander/1.22.0 \
         slc-cli/6.0.15 \
         simplicity-sdk/2025.6.2 \
-        zap/2025.12.02 \
+        zap/2026.02.26 \
     # conan cannot resolve two copies of the same package
     # even with different versions in a single command
     && slt --non-interactive install \
         simplicity-sdk/2025.12.1 \
-    # Patch ZAP apack.json to add missing linux.aarch64 executable definitions
-    # Remove once zap is bumped to 2026.x.x
-    && ZAP_PATH="$(slt where zap)" \
-    && jq '.executable["zap:linux.aarch64"]     = {"exe": "zap",     "optional": true} \
-         | .executable["zap-cli:linux.aarch64"] = {"exe": "zap-cli", "optional": true}' \
-        "$ZAP_PATH/apack.json" > /tmp/apack.json && mv /tmp/apack.json "$ZAP_PATH/apack.json" \
     # Clean up download caches to reduce image size
     && rm -rf /root/.silabs/slt/installs/archive/*.zip \
               /root/.silabs/slt/installs/archive/*.tar.* \
