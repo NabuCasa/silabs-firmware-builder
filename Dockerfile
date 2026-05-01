@@ -132,8 +132,8 @@ RUN set -e \
     && slt --non-interactive install \
         cmake/3.30.2 \
         ninja/1.12.1 \
-        commander/1.22.0 \
-        slc-cli/6.0.15 \
+        commander/1.23.1 \
+        slc-cli/6.0.17 \
         simplicity-sdk/2025.6.2 \
         zap/2026.02.26 \
     # conan cannot resolve two copies of the same package
