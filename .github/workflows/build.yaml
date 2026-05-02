@@ -197,7 +197,6 @@ jobs:
       image: ${{ needs.merge-container.outputs.container_name }}
       options: --user root
     strategy:
-      max-parallel: 1
       matrix:
         manifest: ${{ fromJson(needs.list-manifests.outputs.matrix) }}
     steps:
