@@ -136,8 +136,8 @@ RUN set -e \
         slc-cli/6.0.17 \
         simplicity-sdk/2025.6.2 \
         zap/2026.02.26 \
-    # conan cannot resolve two copies of the same package
-    # even with different versions in a single command
+    # conan cannot resolve two copies of the same package, even with different versions,
+    # in a single command
     && slt --non-interactive install \
         simplicity-sdk/2025.12.1 \
     # Clean up download caches to reduce image size
