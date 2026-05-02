@@ -210,9 +210,6 @@ jobs:
           # image build (HOME=/root). Restore it for this step.
           export HOME=/root
 
-          # Fix `fatal: detected dubious ownership in repository at`
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
           /opt/venv/bin/python3 tools/build_project.py \
             --manifest "${{ matrix.manifest }}" \
             --build-dir build \
@@ -224,12 +221,6 @@ jobs:
           # Get the basename of the GBL in `outputs`
           output_basename=$(basename -- $(basename -- $(ls -1 outputs/*.gbl | head -n 1)) .gbl)
           echo "output_basename=$output_basename" >> $GITHUB_OUTPUT
-
-      - name: Install node within container (act)
-        if: ${{ env.ACT }}
-        run: |
-          curl -fsSL https://deb.nodesource.com/nsolid_setup_deb.sh | bash -s 20
-          apt-get install -y nodejs
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
