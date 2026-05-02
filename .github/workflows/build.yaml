@@ -178,54 +178,45 @@ jobs:
 
 
 
-  list-manifests:
-    name: List firmware manifests
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-    steps:
-      - uses: actions/checkout@v4
-      - id: set-matrix
-        run: |
-          echo "matrix=$(find manifests -type f \( -name "*.yaml" -o -name "*.yml" \) -print | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
-
   build-firmwares:
     name: Firmware builder
-    needs: [list-manifests, merge-container]
+    needs: [merge-container]
     runs-on: ubuntu-latest
     container:
       image: ${{ needs.merge-container.outputs.container_name }}
       options: --user root
-    strategy:
-      matrix:
-        manifest: ${{ fromJson(needs.list-manifests.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build firmware
-        id: build-firmware
+      - name: Build all firmwares
         run: |
           # GHA's `container:` sets HOME=/github/home, but slc-cli's adapter-pack
           # discovery scans $HOME/.silabs/... where slt put everything during the
           # image build (HOME=/root). Restore it for this step.
           export HOME=/root
 
-          /opt/venv/bin/python3 tools/build_project.py \
-            --manifest "${{ matrix.manifest }}" \
-            --build-dir build \
-            --output-dir outputs \
-            --output gbl \
-            --output hex \
-            --output out
+          manifests=$(find manifests -type f \( -name "*.yaml" -o -name "*.yml" \) | sort)
 
-          # Get the basename of the GBL in `outputs`
-          output_basename=$(basename -- $(basename -- $(ls -1 outputs/*.gbl | head -n 1)) .gbl)
-          echo "output_basename=$output_basename" >> $GITHUB_OUTPUT
+          for manifest in $manifests; do
+            echo "::group::Building $manifest"
+            /opt/venv/bin/python3 tools/build_project.py \
+              --manifest "$manifest" \
+              --build-dir "build/$(basename "$manifest" | sed 's/\.[^.]*$//')" \
+              --output-dir outputs \
+              --output gbl \
+              --output hex \
+              --output out \
+              --slc-daemon \
+              --keep-slc-daemon
+            echo "::endgroup::"
+          done
+
+          slc --daemon --daemon-timeout 1 daemon-shutdown || true
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: firmware-build-${{ steps.build-firmware.outputs.output_basename }}
+          name: firmware-builds
           path: outputs/*
           compression-level: 9
           if-no-files-found: error
@@ -245,7 +236,7 @@ jobs:
         with:
           path: artifacts
           merge-multiple: true
-          pattern: firmware-build-*
+          pattern: firmware-builds
 
       - name: Generate manifest
         run: |
@@ -279,7 +270,7 @@ jobs:
         with:
           path: artifacts
           merge-multiple: true
-          pattern: firmware-build-*
+          pattern: firmware-builds
 
       - name: Upload artifacts
         uses: softprops/action-gh-release@v2
