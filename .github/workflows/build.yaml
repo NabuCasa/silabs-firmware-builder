@@ -205,6 +205,11 @@ jobs:
       - name: Build firmware
         id: build-firmware
         run: |
+          # GHA's `container:` sets HOME=/github/home, but slc-cli's adapter-pack
+          # discovery scans $HOME/.silabs/... where slt put everything during the
+          # image build (HOME=/root). Restore it for this step.
+          export HOME=/root
+
           # Fix `fatal: detected dubious ownership in repository at`
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
