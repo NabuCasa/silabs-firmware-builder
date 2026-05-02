@@ -144,6 +144,7 @@ RUN set -e \
     && rm -rf /root/.silabs/slt/installs/archive/*.zip \
               /root/.silabs/slt/installs/archive/*.tar.* \
               /root/.silabs/slt/installs/conan/p/*/d/ \
+              /root/.silabs/slt/installs/conan/download_cache \
     # Create stable symlinks and wrappers to make the tools available in PATH
     && mkdir -p /root/.silabs/slt/bin \
     && ln -s "$(slt where java21)/jre/bin/java" /root/.silabs/slt/bin/java \
