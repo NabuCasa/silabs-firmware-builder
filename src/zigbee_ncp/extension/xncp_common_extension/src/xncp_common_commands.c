@@ -181,7 +181,7 @@ static bool handle_set_source_route(xncp_context_t *ctx)
 
     uint8_t num_relays = (ctx->payload_length - 2) / 2;
 
-    if (num_relays > EMBER_MAX_SOURCE_ROUTE_RELAY_COUNT + 1) {
+    if (num_relays > EMBER_MAX_SOURCE_ROUTE_RELAY_COUNT) {
         *ctx->status = EMBER_BAD_ARGUMENT;
         return true;
     }
