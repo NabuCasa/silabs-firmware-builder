@@ -30,15 +30,15 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
             ca-certificates \
             git \
         && rm -rf /var/lib/apt/lists/* \
-        # Download QEMU 10.2.0 source
-        && aria2c --checksum=sha-256=6d7046777ce992e5ce88c413ebe3d1f57b1833e7d8200724097c9b74507e196e -o qemu.tar.gz \
-            https://gitlab.com/qemu-project/qemu/-/archive/v10.2.0/qemu-v10.2.0.tar.gz \
+        # Download QEMU 11.0.0 source
+        && aria2c --checksum=sha-256=253fb688815c7ba4bf1a3ecb582bd4476cfa485deb759f5f641efcde0d4bfabd -o qemu.tar.gz \
+            https://gitlab.com/qemu-project/qemu/-/archive/v11.0.0/qemu-v11.0.0.tar.gz \
         && tar xzf qemu.tar.gz && rm qemu.tar.gz \
-        && mv qemu-v10.2.0 qemu \
+        && mv qemu-v11.0.0 qemu \
         && cd qemu \
         # Apply execve interception patch from conda-forge
         && aria2c -o execve.patch \
-            https://raw.githubusercontent.com/conda-forge/qemu-execve-feedstock/7d9a37bb5498831e0eb9a1cff5c0c6f3d49cb1f7/recipe/patches/apply-execve-JH.patch \
+            https://raw.githubusercontent.com/conda-forge/qemu-execve-feedstock/eaea9abfa56f859c98fb3938535a961465a58ae6/recipe/patches/execve/apply-execve-JH.patch \
         && patch -p1 < execve.patch && rm execve.patch \
         # Skip vsyscall page setup when reserved_va is enabled
         && sed -i '/Cannot allocate vsyscall page/{s/.*/        return true;/;n;d}' linux-user/x86_64/elfload.c \
@@ -90,8 +90,8 @@ RUN set -e \
         unzip \
     && rm -rf /var/lib/apt/lists/* \
     # slt-cli is x64 only but runs fine with QEMU
-    && aria2c --checksum=sha-256=8c2dd5091c15d5dd7b8fc978a512c49d9b9c5da83d4d0b820cfe983b38ef3612 -o slt.zip \
-        https://www.silabs.com/documents/public/software/slt-cli-1.1.0-linux-x64.zip \
+    && aria2c --checksum=sha-256=2b9941216a3549aea6c5cc76565e2bc91ebfd9f41bec1e026341ce47c3aca1d0 -o slt.zip \
+        https://www.silabs.com/documents/public/software/slt-cli-1.1.2-linux-x64.zip \
     && bsdtar -xf slt.zip -C /usr/bin && rm slt.zip \
     && chmod +x /usr/bin/slt \
     && if [ "$TARGETARCH" = "arm64" ]; then \
@@ -100,17 +100,18 @@ RUN set -e \
         && apt-get install -y --no-install-recommends libc6:amd64 zlib1g:amd64 \
         && rm -rf /var/lib/apt/lists/* \
         # slt needs to be emulated. It executes conan_wrapper during installation so we need to use --execve to make it work
-        # -R limits address space to 47 bits, fixing Go binaries that assume 48-bit sign-extended addresses
         && mv /usr/bin/slt /usr/bin/slt-bin \
-        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static -R 0x800000000000 --execve /usr/bin/qemu-x86_64-static /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
+        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static --execve /usr/bin/qemu-x86_64-static /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
         && chmod +x /usr/bin/slt \
         # Install conan
         && slt --non-interactive install conan \
         && mv /root/.silabs/slt/engines/conan/conan_engine /root/.silabs/slt/engines/conan/conan_engine-bin \
+        # -R limits address space to 47 bits, fixing Go binaries that assume 48-bit sign-extended addresses
+        # This can be removed once conan_engine is recompiled with a newer Go toolchain
         && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static -R 0x800000000000 /root/.silabs/slt/engines/conan/conan_engine-bin "$@"\n' > /root/.silabs/slt/engines/conan/conan_engine \
         && chmod +x /root/.silabs/slt/engines/conan/conan_engine \
         # Remove --execve from slt wrapper once we install conan, so native tools (tar, etc.) run without QEMU
-        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static -R 0x800000000000 /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
+        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
         # Patch slt to select ARM64 packages for subsequent installs
         && sed -i 's/amd6/arm6/g' /usr/bin/slt-bin \
         # Force conan to use the ARM64 profile for downloading packages
@@ -128,28 +129,22 @@ RUN set -e \
 
 # Install toolchain via slt
 RUN set -e \
-    && apt-get update && apt-get install -y --no-install-recommends jq && rm -rf /var/lib/apt/lists/* \
     && slt --non-interactive install \
         cmake/3.30.2 \
         ninja/1.12.1 \
-        commander/1.22.0 \
-        slc-cli/6.0.15 \
+        commander/1.23.1 \
+        slc-cli/6.0.17 \
         simplicity-sdk/2025.6.2 \
-        zap/2025.12.02 \
-    # conan cannot resolve two copies of the same package
-    # even with different versions in a single command
+        zap/2026.02.26 \
+    # conan cannot resolve two copies of the same package, even with different versions,
+    # in a single command
     && slt --non-interactive install \
         simplicity-sdk/2025.12.1 \
-    # Patch ZAP apack.json to add missing linux.aarch64 executable definitions
-    # Remove once zap is bumped to 2026.x.x
-    && ZAP_PATH="$(slt where zap)" \
-    && jq '.executable["zap:linux.aarch64"]     = {"exe": "zap",     "optional": true} \
-         | .executable["zap-cli:linux.aarch64"] = {"exe": "zap-cli", "optional": true}' \
-        "$ZAP_PATH/apack.json" > /tmp/apack.json && mv /tmp/apack.json "$ZAP_PATH/apack.json" \
     # Clean up download caches to reduce image size
     && rm -rf /root/.silabs/slt/installs/archive/*.zip \
               /root/.silabs/slt/installs/archive/*.tar.* \
               /root/.silabs/slt/installs/conan/p/*/d/ \
+              /root/.silabs/slt/installs/conan/download_cache \
     # Create stable symlinks and wrappers to make the tools available in PATH
     && mkdir -p /root/.silabs/slt/bin \
     && ln -s "$(slt where java21)/jre/bin/java" /root/.silabs/slt/bin/java \
