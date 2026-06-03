@@ -301,14 +301,27 @@ def main():
         gbl_dynamic.remove("ot_rcp_version")
 
         ot_proj_path = project_root / "config/sl_openthread_generic_config.h"
-        ot_sdk_path = (
-            gsdk_path / "protocol/openthread/include/sl_openthread_package_info.h"
+        ot_sdk_path = next(
+            (
+                path
+                for path in (
+                    # Gecko SDK and Simplicity SDK up to 2025.6.x
+                    (
+                        gsdk_path
+                        / "protocol/openthread/include/sl_openthread_package_info.h"
+                    ),
+                    # Simplicity SDK 2025.12.0 and above
+                    (gsdk_path / "openthread/include/sl_openthread_package_info.h"),
+                )
+                if path.exists()
+            ),
+            None,
         )
 
         if ot_proj_path.exists():
             openthread_config_h = parse_c_header_defines(ot_proj_path.read_text())
             metadata["ot_rcp_version"] = openthread_config_h["PACKAGE_STRING"]
-        elif ot_sdk_path.exists():
+        elif ot_sdk_path is not None:
             openthread_package_info_h = parse_c_header_defines(ot_sdk_path.read_text())
             metadata["ot_rcp_version"] = (
                 openthread_package_info_h["PACKAGE_NAME"]

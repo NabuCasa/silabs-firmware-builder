@@ -709,6 +709,8 @@ def main():
         args.build_dir.absolute(): "/src",
         f"{cmake_dir.absolute()}/..": "/src",
         "/home/buildengineer/jenkins/workspace/Gecko_Workspace/gsdk": f"/src/{sdk_name}_{sdk_version}",
+        # Zigbee sources reference the GitHub Actions workspace they were packaged in
+        "/__w/zigbee/zigbee": f"/src/{sdk_name}_{sdk_version}/zigbee",
         "/home/buildengineer/.silabs/slt/installs/conan/p/cmsisfb920dbb6ad42/p": "/src/vendor/cmsis",
         "/home/buildengineer/.silabs/slt/installs/conan/p/platf85e95225bc406/p": f"/src/{sdk_name}_{sdk_version}/platform_core",
         # The Z-Wave SDK isn't part of the Simplicity SDK but is still referenced. If we
@@ -728,6 +730,7 @@ def main():
         "-Wextra",
         "-Werror",
         "-Wno-error=maybe-uninitialized",  # Linking fails due to a few SDK bugs
+        "-Wno-error=unused-function",  # mbedTLS `ssl_tls.c` with X.509 hostname verification disabled
     ]
     build_flags["CXX_FLAGS"] = build_flags["C_FLAGS"]
 
