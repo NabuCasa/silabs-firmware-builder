@@ -136,10 +136,6 @@ RUN set -e \
         slc-cli/6.0.17 \
         simplicity-sdk/2025.12.3 \
         zap/2026.02.26 \
-    # conan cannot resolve two copies of the same package, even with different versions,
-    # in a single command
-    && slt --non-interactive install \
-        simplicity-sdk/2025.12.1 \
     # Clean up download caches to reduce image size
     && rm -rf /root/.silabs/slt/installs/archive/*.zip \
               /root/.silabs/slt/installs/archive/*.tar.* \

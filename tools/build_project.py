@@ -713,6 +713,7 @@ def main():
         "/__w/zigbee/zigbee": f"/src/{sdk_name}_{sdk_version}/zigbee",
         "/home/buildengineer/.silabs/slt/installs/conan/p/cmsisfb920dbb6ad42/p": "/src/vendor/cmsis",
         "/home/buildengineer/.silabs/slt/installs/conan/p/platf85e95225bc406/p": f"/src/{sdk_name}_{sdk_version}/platform_core",
+        "/home/buildengineer/.silabs/slt/installs/conan/p/platfe548addd6aec0/p": f"/src/{sdk_name}_{sdk_version}/platform_core",
         # The Z-Wave SDK isn't part of the Simplicity SDK but is still referenced. If we
         # ever decide to compile it as part of CI, we can change this remap.
         "/opt/github/runner/_work/z-wave/z-wave": "/src/vendor/zwave",
