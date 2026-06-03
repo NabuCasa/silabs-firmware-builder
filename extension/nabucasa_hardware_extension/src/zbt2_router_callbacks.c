@@ -200,7 +200,9 @@ static void commissioning_retry_event_handler(sl_zigbee_af_event_t *event)
         .mode = LED_MODE_PULSE,
         .color = LED_COLOR_SEARCH_BLUE,
         .period_ms = 2760,
-        .duration_ms = 0
+        .duration_ms = 0,
+        .brightness_min = 6554,  // ~10%
+        .brightness_max = 65535,
     };
     led_manager_set_pattern(LED_PRIORITY_BACKGROUND, &search_pattern);
 
