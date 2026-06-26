@@ -2,8 +2,8 @@ name: Home Assistant Connect ZBT-2 OpenThread RCP
 device: EFR32MG24A420F1536IM40
 base_project: src/openthread_rcp
 filename: "{manifest_name}_{ot_rcp_version.split('/')[-1]}_gsdk_{sdk_version}"
-sdk: "simplicity_sdk:2025.12.3"
-toolchain: "12.2.1.20221205"
+sdk: "simplicity_sdk:2026.6.0"
+toolchain: "14.2.1.20241119"
 
 gbl:
   fw_type: openthread_rcp

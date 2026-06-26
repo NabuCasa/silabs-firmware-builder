@@ -1,9 +1,9 @@
 name: Home Assistant Connect ZBT-2 Zigbee
 device: EFR32MG24A420F1536IM40
 base_project: src/zigbee_ncp
-filename: "{manifest_name}_{ezsp_version}_{fw_variant}"
-sdk: "simplicity_sdk:2025.12.3"
-toolchain: "12.2.1.20221205"
+filename: "{manifest_name}_{ezsp_version}"
+sdk: "simplicity_sdk:2026.6.0"
+toolchain: "14.2.1.20241119"
 
 gbl:
   fw_type: zigbee_ncp

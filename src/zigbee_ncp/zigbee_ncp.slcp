@@ -37,8 +37,13 @@ component:
   - id: rail_util_rssi
   - id: legacy_hal_wdog
   - id: clock_manager
-  # Platform - enable LTO for gcc
+  # Platform - enable LTO for gcc and llvm
   - id: toolchain_gcc_lto
+    condition:
+      - toolchain_gcc
+  - id: toolchain_llvm_lto
+    condition:
+      - toolchain_llvm
 
 define:
   - name: SL_ZIGBEE_CUSTOM_MAC_FILTER_TABLE_SIZE

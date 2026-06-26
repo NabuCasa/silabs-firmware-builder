@@ -62,8 +62,13 @@ component:
   - id: zigbee_bdb_3dot1_rejoin_algorithm
   # - id: zigbee_bdb_3dot1_trust_center_extension  # Unnecessary for a simple router
   - id: zigbee_application_bootloader
-  # Platform - enable LTO for gcc
+  # Platform - enable LTO for gcc and llvm
   - id: toolchain_gcc_lto
+    condition:
+      - toolchain_gcc
+  - id: toolchain_llvm_lto
+    condition:
+      - toolchain_llvm
   # Custom router components
   - id: router_nvram_reset
     vendor: nabucasa

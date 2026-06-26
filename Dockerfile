@@ -30,18 +30,16 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
             ca-certificates \
             git \
         && rm -rf /var/lib/apt/lists/* \
-        # Download QEMU 11.0.0 source
-        && aria2c --checksum=sha-256=253fb688815c7ba4bf1a3ecb582bd4476cfa485deb759f5f641efcde0d4bfabd -o qemu.tar.gz \
-            https://gitlab.com/qemu-project/qemu/-/archive/v11.0.0/qemu-v11.0.0.tar.gz \
+        # Download QEMU 11.0.2 source
+        && aria2c --checksum=sha-256=f1ab4eda29aa2e5c0b29ba38b7411c368b9b9bf822de6569c53ea8d4e04f980a -o qemu.tar.gz \
+            https://gitlab.com/qemu-project/qemu/-/archive/v11.0.2/qemu-v11.0.2.tar.gz \
         && tar xzf qemu.tar.gz && rm qemu.tar.gz \
-        && mv qemu-v11.0.0 qemu \
+        && mv qemu-v11.0.2 qemu \
         && cd qemu \
         # Apply execve interception patch from conda-forge
         && aria2c -o execve.patch \
-            https://raw.githubusercontent.com/conda-forge/qemu-execve-feedstock/eaea9abfa56f859c98fb3938535a961465a58ae6/recipe/patches/execve/apply-execve-JH.patch \
+            https://raw.githubusercontent.com/conda-forge/qemu-execve-feedstock/988a9d79604e0a88cecc6bc4439625decdc308e9/recipe/patches/execve/apply-execve-JH.patch \
         && patch -p1 < execve.patch && rm execve.patch \
-        # Skip vsyscall page setup when reserved_va is enabled
-        && sed -i '/Cannot allocate vsyscall page/{s/.*/        return true;/;n;d}' linux-user/x86_64/elfload.c \
         && ./configure \
             --target-list=x86_64-linux-user \
             --static \
@@ -69,7 +67,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends aria2 ca-certif
 FROM debian:trixie-slim AS python-venv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/bin/
 COPY requirements.txt /tmp/
-RUN UV_PYTHON_INSTALL_DIR=/opt/pythons uv venv -p 3.13 /opt/venv --no-cache \
+RUN UV_PYTHON_INSTALL_DIR=/opt/pythons uv venv -p 3.14 /opt/venv --no-cache \
     && uv pip install --python /opt/venv -r /tmp/requirements.txt
 
 # Install slt and all toolchain packages (depends on QEMU for ARM64)
@@ -106,9 +104,7 @@ RUN set -e \
         # Install conan
         && slt --non-interactive install conan \
         && mv /root/.silabs/slt/engines/conan/conan_engine /root/.silabs/slt/engines/conan/conan_engine-bin \
-        # -R limits address space to 47 bits, fixing Go binaries that assume 48-bit sign-extended addresses
-        # This can be removed once conan_engine is recompiled with a newer Go toolchain
-        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static -R 0x800000000000 /root/.silabs/slt/engines/conan/conan_engine-bin "$@"\n' > /root/.silabs/slt/engines/conan/conan_engine \
+        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static /root/.silabs/slt/engines/conan/conan_engine-bin "$@"\n' > /root/.silabs/slt/engines/conan/conan_engine \
         && chmod +x /root/.silabs/slt/engines/conan/conan_engine \
         # Remove --execve from slt wrapper once we install conan, so native tools (tar, etc.) run without QEMU
         && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
@@ -132,10 +128,10 @@ RUN set -e \
     && slt --non-interactive install \
         cmake/3.30.2 \
         ninja/1.12.1 \
-        commander/1.23.1 \
-        slc-cli/6.0.17 \
-        simplicity-sdk/2025.12.3 \
-        zap/2026.02.26 \
+        commander/1.24.1 \
+        slc-cli/6.0.22 \
+        simplicity-sdk/2026.6.0 \
+        zap/2026.06.17 \
     # Clean up download caches to reduce image size
     && rm -rf /root/.silabs/slt/installs/archive/*.zip \
               /root/.silabs/slt/installs/archive/*.tar.* \

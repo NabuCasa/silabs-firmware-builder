@@ -2,8 +2,8 @@ name: Yellow Zigbee
 device: MGM210PA32JIA
 base_project: src/zigbee_ncp
 filename: "{manifest_name}_{ezsp_version}"
-sdk: "simplicity_sdk:2025.12.3"
-toolchain: "12.2.1.20221205"
+sdk: "simplicity_sdk:2026.6.0"
+toolchain: "14.2.1.20241119"
 
 gbl:
   fw_type: zigbee_ncp

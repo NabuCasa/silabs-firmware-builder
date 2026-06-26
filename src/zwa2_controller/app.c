@@ -40,6 +40,9 @@
 #if defined(SL_CATALOG_POWER_MANAGER_PRESENT)
 #include "sl_power_manager.h"
 #endif
+#ifdef SL_CATALOG_ZW_HOST_HIBERNATION_PRESENT
+#include "sl_host_hibernation_api.h"
+#endif
 
 #include <assert.h>
 #include "led_effects_zwa2.h"
@@ -57,6 +60,11 @@
 
 #ifdef SL_CATALOG_ZW_SHUTDOWN_MANAGER_PRESENT
 #include "zw_shutdown_manager.h"
+#endif
+
+#ifdef SL_CATALOG_ZW_JAMMING_DETECTION_PRESENT
+#include "sl_jamming_detection.h"
+#include "sl_jamming_cmd_handlers.h"
 #endif
 
 /* Basic level definitions */
@@ -141,6 +149,9 @@ zpal_reset_reason_t g_eApplResetReason;
 
 bool bTxStatusReportEnabled;
 
+static void (*m_urgent_app_callback)(const SZwaveReceivePackage *) = NULL;
+static bool (*m_keep_alive_callback)(node_id_t) = NULL;
+
 static void ApplicationInitSW(void);
 static void ApplicationTask(SApplicationHandles *pAppHandles);
 
@@ -149,7 +160,7 @@ static bool request_protocol_cc_encryption(SZwaveReceivePackage *pRPCCEPackage);
 #endif
 
 #ifdef ZW_CONTROLLER_BRIDGE
-static void ApplicationCommandHandler_Bridge(SReceiveMulti *pReciveMulti);
+void ApplicationCommandHandler_Bridge(SReceiveMulti *pReciveMulti);
 #else
 void ApplicationCommandHandler(void *pSubscriberContext, SZwaveReceivePackage* pRxPackage);
 #endif
@@ -166,10 +177,6 @@ extern void ZCB_ComplHandler_ZW_ReplaceFailedNode(uint8_t bStatus);
 
 #if SUPPORT_ZW_SET_SLAVE_LEARN_MODE
 extern void ZCB_ComplHandler_ZW_SetSlaveLearnMode(uint8_t bStatus, uint8_t orgID, uint8_t newID);
-#endif
-
-#if SUPPORT_ZW_SET_RF_RECEIVE_MODE
-extern uint8_t SetRFReceiveMode(uint8_t mode);
 #endif
 
 ZW_WEAK void cmds_power_management_init(void)
@@ -314,12 +321,28 @@ void zaf_event_distributor_app_zw_rx(SZwaveReceivePackage *RxPackage)
   switch (RxPackage->eReceiveType) {
     case EZWAVERECEIVETYPE_SINGLE:
 #ifndef ZW_CONTROLLER_BRIDGE
+#ifdef SL_CATALOG_ZW_HOST_HIBERNATION_PRESENT
+      if (is_host_sleeping()) {
+        node_id_t node_id = RxPackage->uReceiveParams.Rx.RxOptions.sourceNode;
+        const uint8_t * const payload = (uint8_t*) &RxPackage->uReceiveParams.Rx.Payload;
+        s2_message_update_count(node_id, payload);
+        break;
+      }
+#endif
       ApplicationCommandHandler(NULL, RxPackage);
 #endif
       break;
 
 #ifdef ZW_CONTROLLER_BRIDGE
     case EZWAVERECEIVETYPE_MULTI:
+#ifdef SL_CATALOG_ZW_HOST_HIBERNATION_PRESENT
+      if (is_host_sleeping()) {
+        node_id_t node_id = RxPackage->uReceiveParams.RxMulti.RxOptions.sourceNode;
+        const uint8_t * const payload = (uint8_t*) &RxPackage->uReceiveParams.RxMulti.Payload;
+        s2_message_update_count(node_id, payload);
+        break;
+      }
+#endif
       ApplicationCommandHandler_Bridge(&RxPackage->uReceiveParams.RxMulti);
       break;
 #endif // #ifdef ZW_CONTROLLER_BRIDGE
@@ -337,6 +360,18 @@ void zaf_event_distributor_app_zw_rx(SZwaveReceivePackage *RxPackage)
                                  ?ERPCCEEVENT_SERIALAPI_OK : ERPCCEEVENT_SERIALAPI_FAIL);
       break;
 #endif
+    case EZWAVERECEIVETYPE_SINGLE_URGENT:
+      if (m_urgent_app_callback != NULL) {
+        m_urgent_app_callback(RxPackage);
+      } else {
+#ifndef ZW_CONTROLLER_BRIDGE
+        ApplicationCommandHandler(NULL, RxPackage);
+#else
+        ApplicationCommandHandler_Bridge(&RxPackage->uReceiveParams.RxMulti);
+#endif
+      }
+      break;
+
     default:
       break;
   }
@@ -393,6 +428,11 @@ void zaf_event_distributor_app_zw_command_status(SZwaveCommandStatusPackage *Sta
     }
 #endif
 #endif
+    case EZWAVECOMMANDSTATUS_KEEP_ALIVE_UPDATE:
+      if (m_keep_alive_callback != NULL) {
+        m_keep_alive_callback(Status->Content.KeepAliveUpdate.nodeId);
+      }
+      break;
     default:
       break;
   }
@@ -488,6 +528,11 @@ ApplicationTask(SApplicationHandles* pAppHandles)
 #endif
   zaf_event_distributor_init();
 
+#ifdef SL_CATALOG_ZW_HOST_HIBERNATION_PRESENT
+  keep_alive_init();
+  gpio_wakeup_host_init();
+#endif
+
   set_state_and_notify(stateStartup);
   // Wait for and process events
   ZPAL_LOG_DEBUG(ZPAL_LOG_APP, "SerialApi Event processor Started\r\n");
@@ -554,7 +599,6 @@ static void SerialAPIStateHandler(void)
       case stateStartup:
       {
         ApplicationInitSW();
-        SetRFReceiveMode(1);
         set_state_and_notify(stateIdle);
       }
       break;
@@ -791,6 +835,62 @@ ApplicationInitSW(void)
   cmds_power_management_init();
 }
 
+/**
+ * @brief Callback from rssi collection:
+ * - send proprietary Serial API frame 0xF1 to host.
+ * - Subcommands
+ *   -- 0x01: Collection
+ * - Payload is 4 bytes:
+ *     rssi[0] rssi on channel 0
+ *     rssi[1] rssi on channel 1
+ *     rssi[2] rssi on channel 2
+ *     rssi[3] rssi on channel LR Channel A
+ *     rssi[4] rssi on channel LR Channel B
+ */
+#ifdef SL_CATALOG_ZW_JAMMING_DETECTION_PRESENT
+static zpal_status_t application_rssi_collection_callback(const sl_jamming_detection_collection_t *collection)
+{
+  zpal_status_t status = ZPAL_STATUS_FAIL;
+  struct __attribute__((packed)) {
+    uint8_t sub_command;
+    sl_jamming_detection_collection_t payload;
+  } collection_packet = {
+    .sub_command = FUNC_ID_PROP_JAMMING_SUBCOMMAND_COLLECTION,
+    .payload = *collection
+  };
+
+  status = RequestUnsolicited(FUNC_ID_PROP_JAMMING_DETECTION_COMMAND, (uint8_t *)&collection_packet, sizeof(collection_packet)) ? ZPAL_STATUS_OK : ZPAL_STATUS_FAIL;
+  return status;
+}
+
+/**
+ * Callback from jamming detection ZPAL:
+ * - send proprietary Serial API frame 0xF1 to host.
+ * - Subcommands
+ *   -- 0x00: Report
+ * - Payload 1 byte is : jammed channels bitmap.
+ *    0b00000001 = channel 0 is jammed
+ *    0b00000010 = channel 1 is jammed
+ *    0b00000100 = channel 2 is jammed
+ *    0b00001000 = channel LR A is jammed
+ *    0b00010000 = channel LR B is jammed
+ */
+static zpal_status_t application_jamming_detected_callback(const sl_jamming_detection_statistics_t *report)
+{
+  zpal_status_t status = ZPAL_STATUS_FAIL;
+  struct __attribute__((packed)) {
+    uint8_t sub_command;
+    sl_jamming_detection_statistics_t payload;
+  } jamming_packet = {
+    .sub_command   = FUNC_ID_PROP_JAMMING_SUBCOMMAND_REPORT,
+    .payload = *report
+  };
+
+  status = RequestUnsolicited(FUNC_ID_PROP_JAMMING_DETECTION_COMMAND, (uint8_t *)&jamming_packet, sizeof(jamming_packet)) ? ZPAL_STATUS_OK : ZPAL_STATUS_FAIL;
+  return status;
+}
+#endif /* SL_CATALOG_ZW_JAMMING_DETECTION_PRESENT */
+
 /*==============================   ApplicationInit   ======================
 **    Init UART and setup port pins for LEDs
 **
@@ -800,11 +900,32 @@ ApplicationInit(
   zpal_reset_reason_t eResetReason)
 {
 #ifdef SL_CATALOG_ZW_SHUTDOWN_MANAGER_PRESENT
-  zw_shutdown_manager_init();
+  zpal_status_t status = zw_shutdown_manager_init();
+  if (status != ZPAL_STATUS_OK) {
+    assert(false);
+  }
 #endif
   // enable the watchdog at init of application
   zpal_watchdog_init();
   zpal_enable_watchdog(true);
+
+#ifdef SL_CATALOG_ZW_JAMMING_DETECTION_PRESENT
+  sl_jamming_detection_config_t config = { 0 };
+
+  // set the default configuration for the jamming detection
+  if ( ZPAL_STATUS_OK == sl_jamming_detection_default_config(&config)) {
+    // set the callback function to be called when jamming is detected
+    config.report_callback = application_jamming_detected_callback;
+    config.collection_callback = application_rssi_collection_callback;
+
+    /*with or without jamming detection, the rest of the application runs as usual.*/
+    if (ZPAL_STATUS_OK != sl_jamming_detection_init(&config)) {
+      assert(false);
+    }
+  } else {
+    assert(false);
+  }
+#endif /* SL_CATALOG_ZW_JAMMING_DETECTION_PRESENT */
 
   // Serial API can control hardware with information
   // set in the file system therefore it should be the first
@@ -815,7 +936,7 @@ ApplicationInit(
   app_hw_init();
 #endif
 
-  /* g_eApplResetReason now contains lastest System Reset reason */
+  /* g_eApplResetReason now contains lastest System Ryeset reason */
   g_eApplResetReason = eResetReason;
 
   ZPAL_LOG_INFO(ZPAL_LOG_APP, "ApplicationInit eResetReason = %d\n", eResetReason);
@@ -873,8 +994,7 @@ ApplicationInit(
 **    Handling of received application commands and requests
 **
 **--------------------------------------------------------------------------*/
-void /*RET Nothing                  */
-ApplicationCommandHandler(__attribute__((unused)) void *pSubscriberContext, SZwaveReceivePackage* pRxPackage)
+void ApplicationCommandHandler(__attribute__((unused)) void *pSubscriberContext, SZwaveReceivePackage* pRxPackage)
 {
   ZW_APPLICATION_TX_BUFFER *pCmd = (ZW_APPLICATION_TX_BUFFER *)&pRxPackage->uReceiveParams.Rx.Payload;
   uint8_t cmdLength = pRxPackage->uReceiveParams.Rx.iLength;
@@ -923,8 +1043,7 @@ typedef struct SMultiCastNodeMaskHeaderSerial{
 **    Handling of received application commands and requests
 **
 **--------------------------------------------------------------------------*/
-static void                       /*RET Nothing                  */
-ApplicationCommandHandler_Bridge(SReceiveMulti* pReceiveMulti)
+void ApplicationCommandHandler_Bridge(SReceiveMulti* pReceiveMulti)
 {
   /* ZW->HOST: REQ | 0xA8 | rxStatus | destNode | sourceNode | cmdLength
    *          | pCmd[] | multiDestsOffset_NodeMaskLen | multiDestsNodeMask[] | rssiVal
@@ -1080,4 +1199,14 @@ ApplicationNodeUpdate(
 ZW_WEAK const void * SerialAPI_get_uart_config_ext(void)
 {
   return NULL;
+}
+
+void set_urgent_app_callback(urgent_app_callback_t callback)
+{
+  m_urgent_app_callback = callback;
+}
+
+void set_keep_alive_callback(keep_alive_callback_t callback)
+{
+  m_keep_alive_callback = callback;
 }

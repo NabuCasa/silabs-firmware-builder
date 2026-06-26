@@ -186,7 +186,7 @@ configuration:
 - condition:
   - device_series_2
   name: SL_SLEEPTIMER_PERIPHERAL
-  value: SL_SLEEPTIMER_PERIPHERAL_BURTC
+  value: SL_SLEEPTIMER_PERIPHERAL_DEFAULT
 - name: ZAF_CONFIG_INSTALLER_ICON_TYPE
   value: '0'
 - name: ZAF_APP_NAME
