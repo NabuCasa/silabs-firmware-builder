@@ -3,7 +3,7 @@ device: EFR32MG24A420F1536IM40
 base_project: src/zigbee_ncp
 filename: "{manifest_name}_{ezsp_version}"
 sdk: "simplicity_sdk:2026.6.0"
-toolchain: "14.2.1.20241119"
+toolchain: "llvm:21.1.1"
 
 gbl:
   fw_type: zigbee_ncp
