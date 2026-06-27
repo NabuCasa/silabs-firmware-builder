@@ -5,7 +5,11 @@
 #ifndef XNCP_CONFIG_H_
 #define XNCP_CONFIG_H_
 
+#if defined(SL_CATALOG_IOSTREAM_EUSART_PRESENT)
+#include "sl_iostream_eusart_vcom_config.h"
+#elif defined(SL_CATALOG_IOSTREAM_USART_PRESENT)
 #include "sl_iostream_usart_vcom_config.h"
+#endif
 
 // <<< Use Configuration Wizard in Context Menu >>>
 

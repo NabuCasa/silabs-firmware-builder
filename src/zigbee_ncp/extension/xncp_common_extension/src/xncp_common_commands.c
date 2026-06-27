@@ -11,7 +11,13 @@
 #include "ezsp-enum.h"
 #include "em_usart.h"
 #include "random.h"
+
+#if defined(SL_CATALOG_IOSTREAM_EUSART_PRESENT)
+#include "sl_iostream_eusart_vcom_config.h"
+#elif defined(SL_CATALOG_IOSTREAM_USART_PRESENT)
 #include "sl_iostream_usart_vcom_config.h"
+#endif
+
 #include <string.h>
 
 #define BUILD_UINT16(low, high) (((uint16_t)(low)) | ((uint16_t)(high) << 8))
