@@ -9,14 +9,17 @@ import ast
 import sys
 import json
 import time
+import zlib
 import shutil
 import typing
 import hashlib
 import logging
 import pathlib
 import argparse
+import tempfile
 import contextlib
 import subprocess
+from compression import zstd
 from datetime import datetime, timezone
 
 from ruamel.yaml import YAML
@@ -24,6 +27,8 @@ from elftools.elf.elffile import ELFFile
 
 
 LOGGER = logging.getLogger(__name__)
+ZSTD_MAGIC = b"\x28\xb5\x2f\xfd"
+GCC_LTO_FLAG_COMPRESSED = 0x0001
 
 
 yaml = YAML(typ="safe")
@@ -189,6 +194,72 @@ def load_toolchains(paths: list[pathlib.Path]) -> dict[pathlib.Path, str]:
         )
 
     return toolchains
+
+
+def recompress_sdk_lib_lto(sdk_dir: pathlib.Path, toolchain_bin: pathlib.Path) -> None:
+    """Recompress the SDK libraries' LTO bytecode from ZSTD to zlib."""
+
+    # `gcc-ar` loads the LTO plugin so the archive index includes symbols defined only
+    # in LTO bytecode
+    ar = toolchain_bin / "arm-none-eabi-gcc-ar"
+    objcopy = toolchain_bin / "arm-none-eabi-objcopy"
+
+    # Simplicity SDK 2026.6.0 compresses the precompiled stack libraries' LTO bytecode
+    # with ZSTD, but the gcc-arm-none-eabi it distributes is built without ZSTD support
+    # so LTO linking fails. We recompress them with zlib.
+    for lib in sorted(sdk_dir.rglob("*.a")):
+        if ZSTD_MAGIC not in lib.read_bytes():
+            continue
+
+        LOGGER.info(
+            "Recompressing LTO bytecode in SDK lib: %s", lib.relative_to(sdk_dir)
+        )
+        with tempfile.TemporaryDirectory() as tmp_str:
+            tmp = pathlib.Path(tmp_str)
+            subprocess.run([str(ar), "x", str(lib.resolve())], cwd=tmp, check=True)
+            members = sorted(p.name for p in tmp.iterdir())
+
+            for member in members:
+                obj = tmp / member
+                updates = []
+
+                with obj.open("rb") as f:
+                    for section in ELFFile(f).iter_sections():
+                        data = section.data()
+
+                        if section.name.startswith(
+                            (".gnu.lto_", ".gnu.debuglto_")
+                        ) and data.startswith(ZSTD_MAGIC):
+                            recompressed = zlib.compress(zstd.decompress(data))
+                            updates.append((section.name, recompressed))
+                        elif (
+                            section.name.startswith(".gnu.lto_.lto") and len(data) >= 8
+                        ):
+                            # GCC records the compression algorithm in the `lto_section`
+                            # header's flags. Clear the LTO bit, since its now zlib.
+                            flags = int.from_bytes(data[6:8], "little")
+                            if flags & GCC_LTO_FLAG_COMPRESSED:
+                                cleared = flags ^ GCC_LTO_FLAG_COMPRESSED
+                                patched = data[:6] + cleared.to_bytes(2, "little")
+                                updates.append((section.name, patched))
+
+                if not updates:
+                    continue
+
+                update_sections = []
+
+                for index, (name, payload) in enumerate(updates):
+                    payload_file = tmp / f"{member}.lto{index}"
+                    payload_file.write_bytes(payload)
+
+                    update_sections += ["--update-section", f"{name}={payload_file}"]
+
+                subprocess.run([str(objcopy), *update_sections, str(obj)], check=True)
+
+            lib.unlink()
+            subprocess.run(
+                [str(ar), "rcs", str(lib.resolve()), *members], cwd=tmp, check=True
+            )
 
 
 def subprocess_run_verbose(command: list[str], prefix: str, **kwargs) -> None:
@@ -566,6 +637,11 @@ def main():
                 cwd=projects_root,
             )
 
+    # Recompress the (copied) precompiled SDK libs' ZSTD LTO bytecode as zlib, which the
+    # distributed gcc-arm-none-eabi can read
+    copied_sdk_dir = next(args.build_dir.glob(f"{sdk_name}_*"))
+    recompress_sdk_lib_lto(copied_sdk_dir, pathlib.Path(toolchain) / "bin")
+
     # Make sure all extensions are valid (check both SDK and project extensions)
     for sdk_extension in base_project.get("sdk_extension", []):
         sdk_ext_dir = sdk / f"extension/{sdk_extension['id']}_extension"
@@ -714,6 +790,11 @@ def main():
         "/home/buildengineer/.silabs/slt/installs/conan/p/cmsisfb920dbb6ad42/p": "/src/vendor/cmsis",
         "/home/buildengineer/.silabs/slt/installs/conan/p/platf85e95225bc406/p": f"/src/{sdk_name}_{sdk_version}/platform_core",
         "/home/buildengineer/.silabs/slt/installs/conan/p/platfe548addd6aec0/p": f"/src/{sdk_name}_{sdk_version}/platform_core",
+        # The Z-Wave libraries were packaged against their own conan hashes
+        "/home/buildengineer/.silabs/slt/installs/conan/p/cmsis4dea3e6cbb6ce/p": "/src/vendor/cmsis",
+        "/home/buildengineer/.silabs/slt/installs/conan/p/platf6edd0cd4d4914/p": f"/src/{sdk_name}_{sdk_version}/platform_core",
+        # The zigbee stack libraries reference the silabs_core package they were built against
+        "/github/home/.silabs/slt/installs/conan/p/commo8335073ce327e/p": f"/src/{sdk_name}_{sdk_version}/platform_core",
         # The Z-Wave SDK isn't part of the Simplicity SDK but is still referenced. If we
         # ever decide to compile it as part of CI, we can change this remap.
         "/opt/github/runner/_work/z-wave/z-wave": "/src/vendor/zwave",
@@ -731,6 +812,7 @@ def main():
         "-Wextra",
         "-Werror",
         "-Wno-error=maybe-uninitialized",  # Linking fails due to a few SDK bugs
+        "-Wno-error=uninitialized",  # False positive in zigbee `core-cli.c` under LTO
         "-Wno-error=unused-function",  # mbedTLS `ssl_tls.c` with X.509 hostname verification disabled
     ]
     build_flags["CXX_FLAGS"] = build_flags["C_FLAGS"]
