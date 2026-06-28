@@ -1,3 +1,6 @@
+# 9.1.0.0
+Beta release built with EmberZNet 9.1 from Simplicity SDK 2026.6.0.
+
 # 9.0.2.0
 Beta release built with EmberZNet 9.0 from Simplicity SDK 2025.12.3. This is our first release that migrates from the older Gecko SDK to the newer Simplicity SDK.
 

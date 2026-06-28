@@ -1,3 +1,6 @@
+# SL-OPENTHREAD/3.1.0.0_GitHub-fb274efe6
+This beta release is built with OpenThread 3.1.0 from Simplicity SDK 2026.6.0.
+
 # SL-OPENTHREAD/3.0.2.0_GitHub-61e43cffb
 This beta release is built with OpenThread 3.0.2 from Simplicity SDK 2025.12.3.
 
