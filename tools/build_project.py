@@ -846,6 +846,7 @@ def main():
         env={
             "HOME": os.environ["HOME"],
             "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}",
+            "SOURCE_DATE_EPOCH": str(int(args.build_timestamp.timestamp())),
         },
     )
 
