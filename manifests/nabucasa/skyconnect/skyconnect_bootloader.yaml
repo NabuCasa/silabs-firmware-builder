@@ -2,7 +2,7 @@ name: SkyConnect Bootloader
 device: EFR32MG21A020F512IM32
 base_project: src/bootloader
 filename: "{manifest_name}_{gecko_bootloader_version}"
-sdk: "gecko_sdk:4.5.0"
+sdk: "simplicity_sdk:2026.6.0"
 toolchain: "14.2.1.20241119"
 
 gbl:

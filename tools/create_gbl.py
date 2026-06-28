@@ -333,9 +333,23 @@ def main():
 
     if "gecko_bootloader_version" in gbl_dynamic:
         gbl_dynamic.remove("gecko_bootloader_version")
-        btl_config_h = parse_c_header_defines(
-            (gsdk_path / "platform/bootloader/config/btl_config.h").read_text()
+        btl_config_path = next(
+            (
+                path
+                for path in (
+                    # Gecko SDK and Simplicity SDK up to 2025.6.x
+                    (gsdk_path / "platform/bootloader/config/btl_config.h"),
+                    # Simplicity SDK 2025.12.0 and above
+                    (gsdk_path / "bootloader/platform/bootloader/config/btl_config.h"),
+                )
+                if path.exists()
+            ),
+            None,
         )
+        if btl_config_path is None:
+            raise FileNotFoundError("Could not find bootloader btl_config.h")
+
+        btl_config_h = parse_c_header_defines(btl_config_path.read_text())
 
         # Look for overrides
         btl_core_config_h = parse_c_header_defines(

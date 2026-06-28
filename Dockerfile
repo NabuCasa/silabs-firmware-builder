@@ -88,15 +88,6 @@ RUN mkdir -p /opt/zstd-gcc \
         && rm -rf /build; \
     fi
 
-# The new `slt` tool does not provide Gecko SDK builds so we have to download it ourselves.
-FROM debian:trixie-slim AS gecko-sdk-v4.5.0
-RUN apt-get update && apt-get install -y --no-install-recommends aria2 ca-certificates libarchive-tools \
-    && rm -rf /var/lib/apt/lists/* \
-    && aria2c --checksum=sha-256=b5b2b2410eac0c9e2a72320f46605ecac0d376910cafded5daca9c1f78e966c8 -o sdk.zip \
-        https://github.com/SiliconLabs/gecko_sdk/releases/download/v4.5.0/gecko-sdk.zip \
-    && mkdir /out && bsdtar -xf sdk.zip -C /out \
-    && rm sdk.zip
-
 # Python virtual environment for the firmware builder script
 FROM debian:trixie-slim AS python-venv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/bin/
@@ -213,7 +204,6 @@ RUN set -e \
     && git config --global --add safe.directory '*'
 
 # Copy from parallel stages
-COPY --from=gecko-sdk-v4.5.0 /out /gecko_sdk_4.5.0
 COPY --from=python-venv /opt/pythons /opt/pythons
 COPY --from=python-venv /opt/venv /opt/venv
 COPY --from=qemu-execve-builder /usr/src/qemu/build/qemu-x86_64 /usr/bin/qemu-x86_64-static
