@@ -157,6 +157,9 @@ RUN set -e \
         slc-cli/6.0.22 \
         simplicity-sdk/2026.6.0 \
         zap/2026.06.17 \
+    # We don't currently use the LLVM toolchain that is pulled in as a default
+    # dependency. Uninstall it to save space.
+    && slt --non-interactive uninstall --force llvm-arm-toolchain-for-embedded \
     # Clean up download caches to reduce image size
     && rm -rf /root/.silabs/slt/installs/archive/*.zip \
               /root/.silabs/slt/installs/archive/*.tar.* \
