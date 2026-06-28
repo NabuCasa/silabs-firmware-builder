@@ -430,6 +430,9 @@ def main():
 
     manifest = yaml.load(args.manifest.read_text())
 
+    for key, override in args.overrides:
+        manifest[key] = override
+
     # Ensure we can load the correct SDK and toolchain
     sdks = load_sdks(args.sdks)
     sdk, sdk_and_version = next(
@@ -444,9 +447,6 @@ def main():
         if manifest["toolchain"] in (name, name.split(":", 1)[1])
     )
     is_llvm = toolchains[toolchain].startswith("llvm:")
-
-    for key, override in args.overrides:
-        manifest[key] = override
 
     # First, copy the base project into the build dir, under `template/`
     projects_root = pathlib.Path(__file__).parent.parent
