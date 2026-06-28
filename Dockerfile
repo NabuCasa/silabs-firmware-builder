@@ -54,6 +54,40 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
         mkdir -p /usr/src/qemu/build && touch /usr/src/qemu/build/qemu-x86_64; \
     fi
 
+# Arm's official aarch64 toolchain was built WITHOUT libzstd and SiLabs uses
+# zstd-compressed LTO bytecode in their precompiled SDK stack libraries. This prevents
+# any compilation from succeeding on ARM64 hosts. We need to build our own minimal
+# toolchain with zstd support to work around this. x86 is not affected.
+FROM debian:trixie-slim AS zstd-gcc-builder
+ARG TARGETARCH
+RUN mkdir -p /opt/zstd-gcc \
+    && if [ "$TARGETARCH" = "arm64" ]; then set -eux \
+        && apt-get update && apt-get install -y --no-install-recommends \
+            build-essential flex bison texinfo gawk libtool autoconf m4 \
+            zlib1g-dev libzstd-dev wget file gettext bzip2 xz-utils ca-certificates git aria2 \
+        && rm -rf /var/lib/apt/lists/* \
+        && mkdir -p /build/src && cd /build \
+        && aria2c --checksum=sha-256=e6405f20f8a817a50d92dbf7974d0ee77708dfdf9e79900a59c5d343b464ef9c -o src.tar.xz \
+            https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.2.rel1/srcrel/arm-gnu-toolchain-src-snapshot-14.2.rel1.tar.xz \
+        && tar -xJf src.tar.xz -C /build/src && rm src.tar.xz \
+        && git clone --depth 1 --branch v1.1.0 \
+            https://git.gitlab.arm.com/tooling/gnu-devtools-for-arm.git /build/src/gnu-devtools-for-arm \
+        && ln -sf src/gnu-devtools-for-arm/build-gnu-toolchain.sh . \
+        # The `start` stage normally creates `install/`. Running stages individually skips
+        # it, so pre-create it or the first `do_config` can't write `install/.build_flags`.
+        && mkdir -p /build/build-arm-none-eabi-armv7e-m/install \
+        # Single multilib, no gdb. Through gcc2 so cc1plus (C++) is built too.
+        && ./build-gnu-toolchain.sh --target=arm-none-eabi --with-arch=armv7e-m \
+            --disable-multilib --disable-gdb \
+            gmp mpfr mpc isl iconv binutils gcc1 newlib gcc2 \
+        && for t in cc1 cc1plus lto1; do \
+             cp "$(find /build -path '*/libexec/gcc/arm-none-eabi/*' -name "$t" | head -1)" /opt/zstd-gcc/; \
+           done \
+        # Strip debug info (Arm ships these stripped; unstripped they are ~340 MB each)
+        && strip /opt/zstd-gcc/* \
+        && rm -rf /build; \
+    fi
+
 # The new `slt` tool does not provide Gecko SDK builds so we have to download it ourselves.
 FROM debian:trixie-slim AS gecko-sdk-v4.5.0
 RUN apt-get update && apt-get install -y --no-install-recommends aria2 ca-certificates libarchive-tools \
@@ -172,6 +206,8 @@ RUN set -e \
        libpng16-16 \
        libpcre2-16-0 \
        libglib2.0-0 \
+       # Needed at runtime by the zstd-enabled cc1/cc1plus/lto1 swapped in below (ARM64)
+       libzstd1 \
     && rm -rf /var/lib/apt/lists/* \
     # Fix git permission error when building locally
     && git config --global --add safe.directory '*'
@@ -183,6 +219,12 @@ COPY --from=python-venv /opt/venv /opt/venv
 COPY --from=qemu-execve-builder /usr/src/qemu/build/qemu-x86_64 /usr/bin/qemu-x86_64-static
 COPY --from=slt-toolchain /usr/bin/slt* /usr/bin/
 COPY --from=slt-toolchain /root/.silabs /root/.silabs
+COPY --from=zstd-gcc-builder /opt/zstd-gcc /tmp/zstd-gcc
+RUN if [ "$TARGETARCH" = "arm64" ]; then set -eux \
+        && d="$(dirname "$(find /root/.silabs -path '*/libexec/gcc/arm-none-eabi/*' -name lto1 | head -1)")" \
+        && cp /tmp/zstd-gcc/cc1 /tmp/zstd-gcc/cc1plus /tmp/zstd-gcc/lto1 "$d/"; \
+    fi \
+    && rm -rf /tmp/zstd-gcc
 
 # Signal to the firmware builder script that we are running within Docker
 ENV SILABS_FIRMWARE_BUILD_CONTAINER=1
