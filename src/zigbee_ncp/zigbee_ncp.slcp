@@ -47,7 +47,7 @@ component:
 
 define:
   - name: SL_ZIGBEE_CUSTOM_MAC_FILTER_TABLE_SIZE
-    value: 15
+    value: 2
 
 # Prevent LTO from stripping sl_zigbee_version, which is read from the ELF
 # by create_gbl.py to extract the EZSP version for firmware metadata.

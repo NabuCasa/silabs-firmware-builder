@@ -6,6 +6,7 @@
 #define XNCP_CONFIG_H_
 
 #if defined(SL_CATALOG_IOSTREAM_EUSART_PRESENT)
+#include "sl_iostream_eusart.h"
 #include "sl_iostream_eusart_vcom_config.h"
 #elif defined(SL_CATALOG_IOSTREAM_USART_PRESENT)
 #include "sl_iostream_usart_vcom_config.h"
@@ -45,6 +46,13 @@
 // <i> Override only if external flow control differs from internal UART (e.g. ZBT-2)
 #ifndef XNCP_FLOW_CONTROL_TYPE
 #define XNCP_FLOW_CONTROL_TYPE SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE
+#ifndef XNCP_FLOW_CONTROL_TYPE
+    #if defined(SL_CATALOG_IOSTREAM_EUSART_PRESENT)
+        #define XNCP_FLOW_CONTROL_TYPE_DEFAULT SL_IOSTREAM_EUSART_VCOM_FLOW_CONTROL_TYPE
+    #else
+        #define XNCP_FLOW_CONTROL_TYPE_DEFAULT SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE
+    #endif
+    #define XNCP_FLOW_CONTROL_TYPE XNCP_FLOW_CONTROL_TYPE_DEFAULT
 #endif
 
 // <o XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE> EZSP version patch number override
