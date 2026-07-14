@@ -18,6 +18,9 @@ sdk_extension:
     version: 1.0.0
     vendor: nabucasa
 
+sdk_patches:
+  - disable_gp_rx_filter.patch
+
 add_components:
 - id: spidrv_eusart
   instance: [ws2812]
