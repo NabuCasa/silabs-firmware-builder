@@ -50,6 +50,11 @@ bool zwave_ldma_tx_callback(unsigned int channel, unsigned int sequenceNo, void 
     return false;
 }
 
+// As of Simplicity SDK 2026.6.0, DMADRV is deprecated in favour of sl_dma_manager (it still works,
+// delegating internally). This shim is deliberately built on DMADRV constructs to match the Z-Wave
+// ZPAL and SPI/I2C drivers, so we suppress the deprecation warning rather than re-implement it.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 sl_status_t zwave_dmadrv_compat_init()
 {
     Ecode_t result = DMADRV_Init();
@@ -82,3 +87,4 @@ sl_status_t zwave_dmadrv_compat_init()
 
     return SL_STATUS_OK;
 }
+#pragma GCC diagnostic pop

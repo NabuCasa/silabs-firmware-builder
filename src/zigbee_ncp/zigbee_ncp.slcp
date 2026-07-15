@@ -7,49 +7,77 @@ description: Zigbee NCP firmware. Derived from the `ncp-uart-hw` example Gecko S
 author: Nabu Casa
 
 component:
+  - id: sl_main
   - id: iostream_usart
     instance:
       - vcom
+    condition:
+      - device_generic_family_efr32xg21
+  - id: iostream_eusart
+    instance:
+      - vcom
+    condition:
+      - device_has_eusart
   - id: zigbee_debug_print
   - id: iostream_vuart
-  - id: token_manager
+  - id: common_token_manager
   - id: zigbee_token_interface
   - id: zigbee_mfglib
   - id: zigbee_pro_stack
   - id: zigbee_source_route
   - id: zigbee_gp
   - id: zigbee_r22_support
+  - id: zigbee_r23_support
+  - id: zigbee_dynamic_commissioning
   - id: zigbee_security_link_keys
   - id: zigbee_zll
-  - id: zigbee_app_framework_common
+  - id: zigbee_system_common
   - id: zigbee_ncp_uart_hardware
   - id: zigbee_debug_basic
   - id: zigbee_debug_extended
   - id: zigbee_xncp
   - id: rail_util_rssi
   - id: legacy_hal_wdog
+  - id: clock_manager
+  # Platform - enable LTO for gcc and llvm
+  - id: toolchain_gcc_lto
+    condition:
+      - toolchain_gcc
+  - id: toolchain_llvm_lto
+    condition:
+      - toolchain_llvm
 
 define:
-  - name: EMBER_CUSTOM_MAC_FILTER_TABLE_SIZE
-    value: 15
+  - name: SL_ZIGBEE_CUSTOM_MAC_FILTER_TABLE_SIZE
+    value: 2
+
+# Prevent LTO from stripping sl_zigbee_version, which is read from the ELF
+# by create_gbl.py to extract the EZSP version for firmware metadata.
+toolchain_settings:
+  - option: gcc_linker_option
+    value: "-Wl,--undefined=sl_zigbee_version"
 
 configuration:
   - name: SL_CLI_MAX_INPUT_ARGUMENTS
     value: 16
   - name: SL_BOARD_ENABLE_VCOM
     value: 1
+    condition:
+      - iostream_usart
+  - name: SL_IOSTREAM_EUSART_VCOM_FLOW_CONTROL_TYPE
+    value: SL_IOSTREAM_EUSART_UART_FLOW_CTRL_CTS_RTS
+    condition:
+      - iostream_eusart
   - name: SL_IOSTREAM_USART_VCOM_FLOW_CONTROL_TYPE
     value: usartHwFlowControlCtsAndRts
   - name: SL_CLI_EXAMPLE_IOSTREAM_HANDLE
     value: sl_iostream_vuart_handle
   - name: NVM3_DEFAULT_NVM_SIZE
-    value: 36864
-    condition:
-      - device_series_1
-  - name: NVM3_DEFAULT_NVM_SIZE
     value: 32768
     condition:
       - device_series_2
+  - name: SL_ZIGBEE_PACKET_BUFFER_HEAP_SIZE
+    value: SL_ZIGBEE_LARGE_PACKET_BUFFER_HEAP
   # If using zigbee_secure_key_storage we do not need to support backwards
   # compatibility because we have never deployed images with keys in PSA
   # As a result, these lines end up saving some code space
@@ -59,7 +87,15 @@ configuration:
     value: 0
   - name: SL_PSA_ITS_SUPPORT_V3_DRIVER
     value: 1
-  - name: EMBER_AF_PLUGIN_PACKET_HANDOFF_ALLOW_ALL_PACKETS
+  - name: SL_STACK_SIZE
+    value: 4096
+    condition:
+      - cmsis_rtos2
+  - name: SL_ZIGBEE_STACK_RTOS_TASK_STACK_SIZE
+    value: 4096
+    condition:
+      - cmsis_rtos2
+  - name: SL_ZIGBEE_AF_PLUGIN_PACKET_HANDOFF_ALLOW_ALL_PACKETS
     value: 1
   - name: SL_LEGACY_HAL_DISABLE_WATCHDOG
     value: 0

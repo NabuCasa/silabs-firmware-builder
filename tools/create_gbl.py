@@ -23,7 +23,7 @@ def _jump_to_elf_symbol(file: BinaryIO, symbol_name: str) -> tuple[ELFFile, int,
     symtab = elf.get_section_by_name(".symtab")
     symbols = symtab.get_symbol_by_name(symbol_name)
 
-    if len(symbols) != 1:
+    if symbols is None or len(symbols) != 1:
         raise ValueError(f"Expected one symbol for {symbol_name!r}, got {symbols}")
 
     symbol = symbols[0]
@@ -216,7 +216,14 @@ def main():
 
         elf = list(build_dir.glob("*.out"))[0]
         with elf.open("rb") as f:
-            ember_version = read_elf_symbol(f, "emberVersion")
+            # Try new SDK symbol name first, fall back to old
+            try:
+                ember_version = read_elf_symbol(f, "sl_zigbee_version")
+                version_symbol = "sl_zigbee_version"
+            except (ValueError, TypeError):
+                f.seek(0)
+                ember_version = read_elf_symbol(f, "emberVersion")
+                version_symbol = "emberVersion"
 
         (
             build,
@@ -247,7 +254,7 @@ def main():
                     version_type,
                     padding,
                 )
-                ember_version = modify_elf_symbol(f, "emberVersion", new_ember_version)
+                modify_elf_symbol(f, version_symbol, new_ember_version)
 
         metadata["ezsp_version"] = f"{major}.{minor}.{patch}.{special}"
 
@@ -294,14 +301,27 @@ def main():
         gbl_dynamic.remove("ot_rcp_version")
 
         ot_proj_path = project_root / "config/sl_openthread_generic_config.h"
-        ot_sdk_path = (
-            gsdk_path / "protocol/openthread/include/sl_openthread_package_info.h"
+        ot_sdk_path = next(
+            (
+                path
+                for path in (
+                    # Gecko SDK and Simplicity SDK up to 2025.6.x
+                    (
+                        gsdk_path
+                        / "protocol/openthread/include/sl_openthread_package_info.h"
+                    ),
+                    # Simplicity SDK 2025.12.0 and above
+                    (gsdk_path / "openthread/include/sl_openthread_package_info.h"),
+                )
+                if path.exists()
+            ),
+            None,
         )
 
         if ot_proj_path.exists():
             openthread_config_h = parse_c_header_defines(ot_proj_path.read_text())
             metadata["ot_rcp_version"] = openthread_config_h["PACKAGE_STRING"]
-        elif ot_sdk_path.exists():
+        elif ot_sdk_path is not None:
             openthread_package_info_h = parse_c_header_defines(ot_sdk_path.read_text())
             metadata["ot_rcp_version"] = (
                 openthread_package_info_h["PACKAGE_NAME"]
@@ -313,9 +333,23 @@ def main():
 
     if "gecko_bootloader_version" in gbl_dynamic:
         gbl_dynamic.remove("gecko_bootloader_version")
-        btl_config_h = parse_c_header_defines(
-            (gsdk_path / "platform/bootloader/config/btl_config.h").read_text()
+        btl_config_path = next(
+            (
+                path
+                for path in (
+                    # Gecko SDK and Simplicity SDK up to 2025.6.x
+                    (gsdk_path / "platform/bootloader/config/btl_config.h"),
+                    # Simplicity SDK 2025.12.0 and above
+                    (gsdk_path / "bootloader/platform/bootloader/config/btl_config.h"),
+                )
+                if path.exists()
+            ),
+            None,
         )
+        if btl_config_path is None:
+            raise FileNotFoundError("Could not find bootloader btl_config.h")
+
+        btl_config_h = parse_c_header_defines(btl_config_path.read_text())
 
         # Look for overrides
         btl_core_config_h = parse_c_header_defines(

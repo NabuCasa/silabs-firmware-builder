@@ -19,8 +19,13 @@ component:
   - id: bootloader_interface
   - id: clock_manager
   - id: ot_reset_utils
-  # Platform - Enable LTO for gcc by installing the following component
+  # Platform - Enable LTO for gcc and llvm by installing the following components
   - id: toolchain_gcc_lto
+    condition:
+      - toolchain_gcc
+  - id: toolchain_llvm_lto
+    condition:
+      - toolchain_llvm
 
 include:
   - path: .

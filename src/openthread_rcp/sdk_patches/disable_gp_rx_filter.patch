@@ -1,0 +1,14 @@
+diff --git a/openthread/platform-abstraction/efr32/sl_gp_interface.c b/openthread/platform-abstraction/efr32/sl_gp_interface.c
+index b4601a1..226ea80 100644
+--- a/openthread/platform-abstraction/efr32/sl_gp_interface.c
++++ b/openthread/platform-abstraction/efr32/sl_gp_interface.c
+@@ -323,7 +323,8 @@ bool sl_gp_intf_is_gp_pkt(otRadioFrame *aFrame)
+     bool networkVersionCheck = GP_NWK_PROTOCOL_VERSION_CHECK(fc);
+     bool frameVersionCheck   = (efr32GetFrameVersion(aFrame) == IEEE802154_FRAME_VERSION_2003);
+ 
+-    isGpPkt = (lengthCheck && networkVersionCheck && frameVersionCheck);
++    // Patched out: misclassifies zero-payload 2003 MAC commands (it reads past the frame)
++    isGpPkt = false && (lengthCheck && networkVersionCheck && frameVersionCheck);
+ #if 0 // Debugging
+     if (!isGpPkt)
+     {

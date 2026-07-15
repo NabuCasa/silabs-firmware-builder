@@ -12,7 +12,6 @@
 #include "led_manager.h"
 #include "sl_i2cspm_instances.h"
 #include "sl_simple_rgb_pwm_led.h"
-#include "ember.h"
 #include <string.h>
 
 //------------------------------------------------------------------------------
@@ -49,13 +48,13 @@ static bool handle_set_led_state(xncp_context_t *ctx)
         color.g = ((uint16_t)ctx->payload[2] << 8) | ctx->payload[3];
         color.b = ((uint16_t)ctx->payload[4] << 8) | ctx->payload[5];
     } else {
-        *ctx->status = EMBER_BAD_ARGUMENT;
+        *ctx->status = XNCP_STATUS_BAD_ARGUMENT;
         return true;
     }
 
     led_manager_set_color(LED_PRIORITY_MANUAL, color);
 
-    *ctx->status = EMBER_SUCCESS;
+    *ctx->status = XNCP_STATUS_OK;
     return true;
 }
 
@@ -76,6 +75,6 @@ static bool handle_get_accelerometer(xncp_context_t *ctx)
     memcpy(ctx->reply + *ctx->reply_length, (uint8_t*)&xyz[2], sizeof(float));
     *ctx->reply_length += sizeof(float);
 
-    *ctx->status = EMBER_SUCCESS;
+    *ctx->status = XNCP_STATUS_OK;
     return true;
 }

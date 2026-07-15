@@ -2,13 +2,16 @@ name: SkyConnect OpenThread RCP
 device: EFR32MG21A020F512IM32
 base_project: src/openthread_rcp
 filename: "{manifest_name}_{ot_rcp_version.split('/')[-1]}_gsdk_{sdk_version}"
-sdk: "simplicity_sdk:2025.6.2"
-toolchain: "12.2.1.20221205"
+sdk: "simplicity_sdk:2026.6.0"
+toolchain: "14.2.1.20241119"
 
 gbl:
   fw_type: openthread_rcp
   ot_rcp_version: dynamic
   baudrate: 460800
+
+sdk_patches:
+  - disable_gp_rx_filter.patch
 
 add_components:
 - id: iostream_usart

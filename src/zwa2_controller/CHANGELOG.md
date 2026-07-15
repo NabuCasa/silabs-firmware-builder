@@ -1,3 +1,6 @@
+# 1.3.0
+* SDK updated to Simplicity SDK 2025.12.3 (Z-Wave SDK 8.0.2)
+
 # 1.2.0
 * SDK updated to Simplicity SDK 2025.12.1.
 

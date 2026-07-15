@@ -57,12 +57,13 @@ def get_toolchain_default_paths() -> list[pathlib.Path]:
     if sys.platform == "darwin":
         return list(
             pathlib.Path(
-                "/Applications/Simplicity Studio.app/Contents/Eclipse/developer/toolchains/gnu_arm/"
-            ).glob("*")
+                "/Applications/Simplicity Studio.app/Contents/Eclipse/developer/toolchains/"
+            ).glob("*/*")
         )
 
     if is_running_in_docker():
-        return list(pathlib.Path("/root/.silabs/slt/installs/conan/p").glob("gcc-*/p"))
+        root = pathlib.Path("/root/.silabs/slt/installs/conan/p")
+        return list(root.glob("gcc-*/p")) + list(root.glob("llvm-*/p"))
 
     return []
 
@@ -172,6 +173,20 @@ def load_toolchains(paths: list[pathlib.Path]) -> dict[pathlib.Path, str]:
     toolchains = {}
 
     for toolchain in paths:
+        # libc++ encodes its version in `__config` as `_LIBCPP_VERSION` (MMmmpp, e.g. 210101)
+        libcpp_config = next(
+            toolchain.glob("lib/clang-runtimes/**/include/c++/v1/__config"), None
+        )
+        if libcpp_config is not None:
+            for line in libcpp_config.read_text().split("\n"):
+                if "define _LIBCPP_VERSION " in line:
+                    version = int(line.split()[-1])
+                    toolchains[toolchain] = (
+                        f"llvm:{version // 10000}.{version // 100 % 100}.{version % 100}"
+                    )
+                    break
+            continue
+
         gcc_plugin_version_h = next(
             toolchain.glob("lib/gcc/arm-none-eabi/*/plugin/include/plugin-version.h")
         )
@@ -185,7 +200,7 @@ def load_toolchains(paths: list[pathlib.Path]) -> dict[pathlib.Path, str]:
                 version_info[name] = value
 
         toolchains[toolchain] = (
-            version_info["basever"] + "." + version_info["datestamp"]
+            f"gcc:{version_info['basever']}.{version_info['datestamp']}"
         )
 
     return toolchains
@@ -262,6 +277,38 @@ def get_elf_source_paths(elf_path: pathlib.Path) -> set[pathlib.PurePosixPath]:
                 paths.add(pathlib.PurePosixPath(f"{directory}/{filename}"))
 
     return paths
+
+
+def remap_debug_build_paths(elf_path: pathlib.Path, prefix_map: dict[str, str]) -> None:
+    """Remap absolute build-path prefixes in an ELF's DWARF string tables, in place."""
+    replacements = {}
+    for old, new in prefix_map.items():
+        old_bytes, new_bytes = old.encode(), new.encode()
+        assert len(new_bytes) <= len(old_bytes), f"{new!r} is longer than {old!r}"
+        replacements[old_bytes] = new_bytes + b"/" * (len(old_bytes) - len(new_bytes))
+
+    with elf_path.open("rb") as f:
+        elf = ELFFile(f)
+        sections = [
+            (section["sh_offset"], bytearray(section.data()))
+            for name in (".debug_str", ".debug_line_str")
+            if (section := elf.get_section_by_name(name)) is not None
+        ]
+
+    with elf_path.open("r+b") as f:
+        for offset, data in sections:
+            for old_bytes, padded in replacements.items():
+                search = 0
+
+                while (index := data.find(old_bytes, search)) != -1:
+                    # Only rewrite at a string start (offset 0 or right after a NUL)
+                    if index == 0 or data[index - 1] == 0:
+                        data[index : index + len(old_bytes)] = padded
+
+                    search = index + 1
+
+            f.seek(offset)
+            f.write(data)
 
 
 def main():
@@ -383,6 +430,9 @@ def main():
 
     manifest = yaml.load(args.manifest.read_text())
 
+    for key, override in args.overrides:
+        manifest[key] = override
+
     # Ensure we can load the correct SDK and toolchain
     sdks = load_sdks(args.sdks)
     sdk, sdk_and_version = next(
@@ -392,11 +442,11 @@ def main():
 
     toolchains = load_toolchains(args.toolchains)
     toolchain = next(
-        path for path, version in toolchains.items() if version == manifest["toolchain"]
+        path
+        for path, name in toolchains.items()
+        if manifest["toolchain"] in (name, name.split(":", 1)[1])
     )
-
-    for key, override in args.overrides:
-        manifest[key] = override
+    is_llvm = toolchains[toolchain].startswith("llvm:")
 
     # First, copy the base project into the build dir, under `template/`
     projects_root = pathlib.Path(__file__).parent.parent
@@ -536,7 +586,7 @@ def main():
             "--copy-proj-sources",
             "--copy-sdk-sources",
             "--new-project",
-            "--toolchain", "toolchain_gcc",
+            "--toolchain", "toolchain_llvm" if is_llvm else "toolchain_gcc",
             "--sdk", sdk,
             "--output-type", "vscode",
         ],
@@ -702,15 +752,25 @@ def main():
             )
         )
 
-    cmake_dir = args.build_dir / "cmake_gcc"
+    cmake_dir = args.build_dir / ("cmake_llvm" if is_llvm else "cmake_gcc")
 
-    # Remove absolute paths from the build for reproducibility
     remapped_paths = {
         args.build_dir.absolute(): "/src",
         f"{cmake_dir.absolute()}/..": "/src",
+        # The toolchain's own resource/runtime headers (e.g. clang's builtin and newlib
+        # include dirs) are recorded in debug info under a machine-specific conan path
+        str(toolchain): "/src/vendor/toolchain",
         "/home/buildengineer/jenkins/workspace/Gecko_Workspace/gsdk": f"/src/{sdk_name}_{sdk_version}",
+        # Zigbee sources reference the GitHub Actions workspace they were packaged in
+        "/__w/zigbee/zigbee": f"/src/{sdk_name}_{sdk_version}/zigbee",
         "/home/buildengineer/.silabs/slt/installs/conan/p/cmsisfb920dbb6ad42/p": "/src/vendor/cmsis",
         "/home/buildengineer/.silabs/slt/installs/conan/p/platf85e95225bc406/p": f"/src/{sdk_name}_{sdk_version}/platform_core",
+        "/home/buildengineer/.silabs/slt/installs/conan/p/platfe548addd6aec0/p": f"/src/{sdk_name}_{sdk_version}/platform_core",
+        # The Z-Wave libraries were packaged against their own conan hashes
+        "/home/buildengineer/.silabs/slt/installs/conan/p/cmsis4dea3e6cbb6ce/p": "/src/vendor/cmsis",
+        "/home/buildengineer/.silabs/slt/installs/conan/p/platf6edd0cd4d4914/p": f"/src/{sdk_name}_{sdk_version}/platform_core",
+        # The zigbee stack libraries reference the silabs_core package they were built against
+        "/github/home/.silabs/slt/installs/conan/p/commo8335073ce327e/p": f"/src/{sdk_name}_{sdk_version}/platform_core",
         # The Z-Wave SDK isn't part of the Simplicity SDK but is still referenced. If we
         # ever decide to compile it as part of CI, we can change this remap.
         "/opt/github/runner/_work/z-wave/z-wave": "/src/vendor/zwave",
@@ -723,12 +783,24 @@ def main():
     build_flags["LD_FLAGS"] += ["-Wl,--sort-section=name"]
 
     # Enable errors
-    build_flags["C_FLAGS"] += [
-        "-Wall",
-        "-Wextra",
-        "-Werror",
-        "-Wno-error=maybe-uninitialized",  # Linking fails due to a few SDK bugs
-    ]
+    build_flags["C_FLAGS"] += ["-Wall", "-Wextra", "-Werror"]
+
+    if is_llvm:
+        build_flags["C_FLAGS"] += [
+            "-Wno-unknown-warning-option",  # ignore GCC-only warning names
+            "-Wno-error=format-security",  # SDK `diagnostic.c` uses a non-literal format string
+            "-Wno-error=unknown-pragmas",  # our `ws2812.c` uses `#pragma GCC optimize`
+            "-Wno-error=unused-function",  # unused statics in SDK/OpenThread sources
+            "-Wno-error=c23-extensions",  # our `cmds_proprietary.c` has a label before a declaration
+            "-Wno-error=unterminated-string-initialization",  # char arrays in zigbee router sources
+        ]
+    else:
+        build_flags["C_FLAGS"] += [
+            "-Wno-error=maybe-uninitialized",  # Linking fails due to a few SDK bugs
+            "-Wno-error=uninitialized",  # False positive in zigbee `core-cli.c` under LTO
+            "-Wno-error=unused-function",  # mbedTLS `ssl_tls.c` with X.509 hostname verification disabled
+        ]
+
     build_flags["CXX_FLAGS"] = build_flags["C_FLAGS"]
 
     # CMake expects a semicolon-separated list for the post-build command
@@ -759,7 +831,7 @@ def main():
         env={
             "HOME": os.environ["HOME"],
             "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}",
-            "ARM_GCC_DIR": toolchain,
+            ("ARM_LLVM_DIR" if is_llvm else "ARM_GCC_DIR"): toolchain,
             "NINJA_EXE_PATH": shutil.which("ninja"),
             "SOURCE_DATE_EPOCH": str(int(args.build_timestamp.timestamp())),
         },
@@ -774,6 +846,7 @@ def main():
         env={
             "HOME": os.environ["HOME"],
             "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}",
+            "SOURCE_DATE_EPOCH": str(int(args.build_timestamp.timestamp())),
         },
     )
 
@@ -782,15 +855,30 @@ def main():
     # Verify that --wrap linker flags don't wrap weak stubs
     validate_linker_wrap_symbols(map_file=output_artifact.with_suffix(".map"))
 
-    # Verify that all source paths in the ELF have been remapped
+    # Rewrite absolute build paths in the ELF's DWARF for reproducibility, then verify
+    # none leaked
+    out_elf = output_artifact.with_suffix(".out")
+    remap_debug_build_paths(
+        out_elf,
+        {
+            str(args.build_dir.resolve()): "/src",
+            "/root/.silabs": "/src/vendor",  # local conan toolchain/SDK headers
+            "/home/buildengineer": "/src/vendor",  # Silicon Labs build machines
+            "/github/home": "/src/vendor",  # Silicon Labs Zigbee CI
+            "/opt/github": "/src/vendor",  # Silicon Labs Z-Wave CI
+            "/__w": "/src",  # GitHub Actions workspace
+        },
+    )
+
     unreproducible_paths = [
         path
-        for path in get_elf_source_paths(output_artifact.with_suffix(".out"))
+        for path in get_elf_source_paths(out_elf)
         if not path.is_relative_to("/src")
     ]
     if unreproducible_paths:
         raise RuntimeError(
-            f"Unreproducible source paths in ELF: {'\n - '.join(map(str, unreproducible_paths))}"
+            "Unreproducible source paths in ELF: "
+            + "\n - ".join(map(str, unreproducible_paths))
         )
 
     # Read the metadata extracted from the source and build trees

@@ -22,11 +22,14 @@ Examples:
 | `0`  | [`2024.12.1`][sisdk-2024.12.1] | [`7.23.1`][zdk-7.23.1] |
 | `1`  | [`2024.12.2`][sisdk-2024.12.2] | [`7.23.2`][zdk-7.23.2] |
 | `2`  | [`2025.12.1`][sisdk-2025.12.1] | [`8.0.0`][zdk-8.0.0]   |
+| `3`  | [`2025.12.3`][sisdk-2025.12.3] | [`8.0.2`][zdk-8.0.2]   |
 
 <!-- SDK links -->
 [sisdk-2024.12.1]: https://github.com/SiliconLabs/simplicity_sdk/releases/tag/v2024.12.1-0
 [sisdk-2024.12.2]: https://github.com/SiliconLabs/simplicity_sdk/releases/tag/v2024.12.2
 [sisdk-2025.12.1]: https://docs.silabs.com/sisdk-release-notes/2025.12.1/sisdk-release-notes-overview/
+[sisdk-2025.12.3]: https://docs.silabs.com/sisdk-release-notes/2025.12.3/sisdk-release-notes-overview/
 [zdk-7.23.1]: https://www.silabs.com/documents/public/release-notes/SRN14930-7.23.1.0.pdf
 [zdk-7.23.2]: https://www.silabs.com/documents/public/release-notes/SRN14930-7.23.2.0.pdf
 [zdk-8.0.0]: https://docs.silabs.com/sisdk-release-notes/2025.12.1/sisdk-zwave-release-notes/
+[zdk-8.0.2]: https://docs.silabs.com/sisdk-release-notes/2025.12.3/sisdk-zwave-release-notes/

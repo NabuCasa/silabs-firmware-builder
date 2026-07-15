@@ -8,11 +8,17 @@
 #include "xncp_types.h"
 #include "xncp_config.h"
 #include "tx_power.h"
-#include "ember.h"
 #include "ezsp-enum.h"
 #include "em_usart.h"
 #include "random.h"
+
+#if defined(SL_CATALOG_IOSTREAM_EUSART_PRESENT)
+#include "sl_iostream_eusart.h"
+#include "sl_iostream_eusart_vcom_config.h"
+#elif defined(SL_CATALOG_IOSTREAM_USART_PRESENT)
 #include "sl_iostream_usart_vcom_config.h"
+#endif
+
 #include <string.h>
 
 #define BUILD_UINT16(low, high) (((uint16_t)(low)) | ((uint16_t)(high) << 8))
@@ -23,17 +29,17 @@ typedef enum {
 } XncpFlowControlType;
 
 typedef enum {
-  EMBER_ROUTE_ACTIVE = 0,
-  EMBER_ROUTE_BEING_DISCOVERED = 1,
-  EMBER_ROUTE_UNUSED = 3,
-  EMBER_ROUTE_VALIDATING = 4
-} EmberRouteStatus;
+  ROUTE_ACTIVE = 0,
+  ROUTE_BEING_DISCOVERED = 1,
+  ROUTE_UNUSED = 3,
+  ROUTE_VALIDATING = 4
+} RouteStatus;
 
 typedef struct ManualSourceRoute {
   bool active;
   uint16_t destination;
   uint8_t num_relays;
-  uint16_t relays[EMBER_MAX_SOURCE_ROUTE_RELAY_COUNT];
+  uint16_t relays[XNCP_MAX_SOURCE_ROUTE_RELAY_COUNT];
 } ManualSourceRoute;
 
 static ManualSourceRoute manual_source_routes[XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE];
@@ -88,7 +94,7 @@ void xncp_common_init(uint8_t init_level)
 // Multicast override (XNCP_FEATURE_MEMBER_OF_ALL_GROUPS)
 //------------------------------------------------------------------------------
 
-bool __wrap_sli_zigbee_am_multicast_member(EmberMulticastId multicastId)
+bool __wrap_sli_zigbee_am_multicast_member(xncp_multicast_id_t multicastId)
 {
     (void)multicastId;
     // Ignore all binding and multicast table logic, we want all group packets
@@ -99,7 +105,7 @@ bool __wrap_sli_zigbee_am_multicast_member(EmberMulticastId multicastId)
 // Source route management (XNCP_FEATURE_MANUAL_SOURCE_ROUTE)
 //------------------------------------------------------------------------------
 
-static ManualSourceRoute* get_manual_source_route(EmberNodeId destination)
+static ManualSourceRoute* get_manual_source_route(xncp_node_id_t destination)
 {
     for (uint8_t i = 0; i < XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE; i++) {
         if (manual_source_routes[i].active &&
@@ -110,7 +116,7 @@ static ManualSourceRoute* get_manual_source_route(EmberNodeId destination)
     return NULL;
 }
 
-static sli_zigbee_route_table_entry_t* find_free_routing_table_entry(EmberNodeId destination)
+static sli_zigbee_route_table_entry_t* find_free_routing_table_entry(xncp_node_id_t destination)
 {
     uint8_t index = 0xFF;
     sli_zigbee_route_table_entry_t *route_table_entry = NULL;
@@ -120,14 +126,14 @@ static sli_zigbee_route_table_entry_t* find_free_routing_table_entry(EmberNodeId
 
         if (route_table_entry->destination == destination) {
             return route_table_entry;
-        } else if (route_table_entry->status == EMBER_ROUTE_UNUSED) {
+        } else if (route_table_entry->status == ROUTE_UNUSED) {
             index = i;
             continue;
         }
     }
 
     if (index == 0xFF) {
-        index = emberGetPseudoRandomNumber() % sli_zigbee_route_table_size;
+        index = xncp_get_pseudo_random_number() % sli_zigbee_route_table_size;
     }
 
     return &sli_zigbee_route_table[index];
@@ -138,7 +144,7 @@ void nc_zigbee_override_append_source_route(uint16_t destination,
                                              void *header,
                                              bool *consumed)
 {
-    EmberMessageBuffer *msg_header = (EmberMessageBuffer *)header;
+    xncp_message_buffer_t *msg_header = (xncp_message_buffer_t *)header;
     ManualSourceRoute *route = get_manual_source_route(destination);
 
     if (route == NULL) {
@@ -154,7 +160,7 @@ void nc_zigbee_override_append_source_route(uint16_t destination,
         sli_zigbee_route_table_entry_t *route_table_entry = find_free_routing_table_entry(route->destination);
         route_table_entry->destination = route->destination;
         route_table_entry->nextHop = route->destination;
-        route_table_entry->status = EMBER_ROUTE_ACTIVE;
+        route_table_entry->status = ROUTE_ACTIVE;
         route_table_entry->cost = 0;
         route_table_entry->networkIndex = 0;
         return;
@@ -164,29 +170,29 @@ void nc_zigbee_override_append_source_route(uint16_t destination,
 
     route->active = false;  // Disable the route after a single use
 
-    emberAppendToLinkedBuffers(*msg_header, &route->num_relays, 1);
-    emberAppendToLinkedBuffers(*msg_header, &relay_index, 1);
+    xncp_append_to_linked_buffers(*msg_header, &route->num_relays, 1);
+    xncp_append_to_linked_buffers(*msg_header, &relay_index, 1);
 
     for (uint8_t i = 0; i < route->num_relays; i++) {
-        emberAppendToLinkedBuffers(*msg_header, (uint8_t*)&route->relays[route->num_relays - i - 1], 2);
+        xncp_append_to_linked_buffers(*msg_header, (uint8_t*)&route->relays[route->num_relays - i - 1], 2);
     }
 }
 
 static bool handle_set_source_route(xncp_context_t *ctx)
 {
     if ((ctx->payload_length < 2) || (ctx->payload_length % 2 != 0)) {
-        *ctx->status = EMBER_BAD_ARGUMENT;
+        *ctx->status = XNCP_STATUS_BAD_ARGUMENT;
         return true;
     }
 
     uint8_t num_relays = (ctx->payload_length - 2) / 2;
 
-    if (num_relays > EMBER_MAX_SOURCE_ROUTE_RELAY_COUNT) {
-        *ctx->status = EMBER_BAD_ARGUMENT;
+    if (num_relays > XNCP_MAX_SOURCE_ROUTE_RELAY_COUNT) {
+        *ctx->status = XNCP_STATUS_BAD_ARGUMENT;
         return true;
     }
 
-    uint8_t insertion_index = emberGetPseudoRandomNumber() % XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE;
+    uint8_t insertion_index = xncp_get_pseudo_random_number() % XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE;
     uint16_t node_id = BUILD_UINT16(ctx->payload[0], ctx->payload[1]);
 
     for (uint8_t i = 0; i < XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE; i++) {
@@ -211,7 +217,7 @@ static bool handle_set_source_route(xncp_context_t *ctx)
     route->num_relays = num_relays;
     route->active = true;
 
-    *ctx->status = EMBER_SUCCESS;
+    *ctx->status = XNCP_STATUS_OK;
     return true;
 }
 
@@ -222,13 +228,13 @@ static bool handle_set_source_route(xncp_context_t *ctx)
 static bool handle_set_route_table_entry(xncp_context_t *ctx)
 {
     if (ctx->payload_length != 7) {
-        *ctx->status = EMBER_BAD_ARGUMENT;
+        *ctx->status = XNCP_STATUS_BAD_ARGUMENT;
         return true;
     }
 
     uint8_t route_table_index = ctx->payload[0];
     if (route_table_index >= sli_zigbee_route_table_size) {
-        *ctx->status = EMBER_BAD_ARGUMENT;
+        *ctx->status = XNCP_STATUS_BAD_ARGUMENT;
         return true;
     }
 
@@ -239,20 +245,20 @@ static bool handle_set_route_table_entry(xncp_context_t *ctx)
     entry->cost = ctx->payload[6];
     entry->networkIndex = 0;
 
-    *ctx->status = EMBER_SUCCESS;
+    *ctx->status = XNCP_STATUS_OK;
     return true;
 }
 
 static bool handle_get_route_table_entry(xncp_context_t *ctx)
 {
     if (ctx->payload_length != 1) {
-        *ctx->status = EMBER_BAD_ARGUMENT;
+        *ctx->status = XNCP_STATUS_BAD_ARGUMENT;
         return true;
     }
 
     uint8_t route_table_index = ctx->payload[0];
     if (route_table_index >= sli_zigbee_route_table_size) {
-        *ctx->status = EMBER_BAD_ARGUMENT;
+        *ctx->status = XNCP_STATUS_BAD_ARGUMENT;
         return true;
     }
 
@@ -267,7 +273,7 @@ static bool handle_get_route_table_entry(xncp_context_t *ctx)
     ctx->reply[(*ctx->reply_length)++] = entry->status;
     ctx->reply[(*ctx->reply_length)++] = entry->cost;
 
-    *ctx->status = EMBER_SUCCESS;
+    *ctx->status = XNCP_STATUS_OK;
     return true;
 }
 
@@ -278,7 +284,7 @@ static bool handle_get_route_table_entry(xncp_context_t *ctx)
 static bool handle_get_mfg_token_override(xncp_context_t *ctx)
 {
     if (ctx->payload_length != 1) {
-        *ctx->status = EMBER_BAD_ARGUMENT;
+        *ctx->status = XNCP_STATUS_BAD_ARGUMENT;
         return true;
     }
 
@@ -286,16 +292,16 @@ static bool handle_get_mfg_token_override(xncp_context_t *ctx)
     char *override_value;
 
     switch (token_id) {
-        case EZSP_MFG_STRING:
+        case SL_ZIGBEE_EZSP_MFG_STRING:
             override_value = XNCP_MFG_MANUF_NAME;
             break;
 
-        case EZSP_MFG_BOARD_NAME:
+        case SL_ZIGBEE_EZSP_MFG_BOARD_NAME:
             override_value = XNCP_MFG_BOARD_NAME;
             break;
 
         default:
-            *ctx->status = EMBER_NOT_FOUND;
+            *ctx->status = XNCP_STATUS_NOT_FOUND;
             return true;
     }
 
@@ -303,7 +309,7 @@ static bool handle_get_mfg_token_override(xncp_context_t *ctx)
     memcpy(ctx->reply + *ctx->reply_length, override_value, value_length);
     *ctx->reply_length += value_length;
 
-    *ctx->status = EMBER_SUCCESS;
+    *ctx->status = XNCP_STATUS_OK;
     return true;
 }
 
@@ -313,7 +319,7 @@ static bool handle_get_build_string(xncp_context_t *ctx)
     memcpy(ctx->reply + *ctx->reply_length, XNCP_BUILD_STRING, value_length);
     *ctx->reply_length += value_length;
 
-    *ctx->status = EMBER_SUCCESS;
+    *ctx->status = XNCP_STATUS_OK;
     return true;
 }
 
@@ -334,7 +340,7 @@ static bool handle_get_flow_control_type(xncp_context_t *ctx)
 
     ctx->reply[(*ctx->reply_length)++] = (uint8_t)(flow_control_type & 0xFF);
 
-    *ctx->status = EMBER_SUCCESS;
+    *ctx->status = XNCP_STATUS_OK;
     return true;
 }
 
@@ -353,7 +359,7 @@ static bool handle_get_chip_info(xncp_context_t *ctx)
     memcpy(ctx->reply + *ctx->reply_length, PART_NUMBER, value_length);
     *ctx->reply_length += value_length;
 
-    *ctx->status = EMBER_SUCCESS;
+    *ctx->status = XNCP_STATUS_OK;
     return true;
 }
 
@@ -361,14 +367,14 @@ static bool handle_get_chip_info(xncp_context_t *ctx)
 static bool handle_get_tx_power_info(xncp_context_t *ctx)
 {
     if (ctx->payload_length != 2) {
-      *ctx->status = EMBER_BAD_ARGUMENT;
+      *ctx->status = XNCP_STATUS_BAD_ARGUMENT;
       return true;
     }
-  
+
     CountryTxPower result;
     get_tx_power_for_country(ctx->payload[0], ctx->payload[1], &result);
-  
-    *ctx->status = EMBER_SUCCESS;
+
+    *ctx->status = XNCP_STATUS_OK;
     ctx->reply[(*ctx->reply_length)++] = (uint8_t)result.recommended_power_dbm;
     ctx->reply[(*ctx->reply_length)++] = (uint8_t)result.max_power_dbm;
 
