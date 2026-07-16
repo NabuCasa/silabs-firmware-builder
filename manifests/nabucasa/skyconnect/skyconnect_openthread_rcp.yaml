@@ -18,6 +18,10 @@ add_components:
   instance: [vcom]
 
 c_defines:
+  OPENTHREAD_CONFIG_NCP_TX_BUFFER_SIZE:
+    type: c_flag
+    value: 4096  # Default is 2048
+
   SL_IOSTREAM_USART_VCOM_PERIPHERAL: USART0
   SL_IOSTREAM_USART_VCOM_PERIPHERAL_NO: 0
   SL_IOSTREAM_USART_VCOM_BAUDRATE: 460800
