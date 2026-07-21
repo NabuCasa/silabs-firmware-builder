@@ -29,7 +29,7 @@
 // <wdogPeriod_64k=> wdogPeriod_64k / ~2s
 // <wdogPeriod_128k=> wdogPeriod_128k / ~4s
 // <wdogPeriod_256k=> wdogPeriod_256k / ~8s
-#define WATCHDOG_PERIOD wdogPeriod_64k
+#define WATCHDOG_PERIOD wdogPeriod_128k
 
 // <q WATCHDOG_DEBUG_RUN> Keep counting during debug halt.
 // <i> Default: 0 (paused while a debugger has the core halted).
