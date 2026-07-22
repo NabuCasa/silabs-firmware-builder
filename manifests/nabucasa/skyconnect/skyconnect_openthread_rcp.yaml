@@ -12,6 +12,8 @@ gbl:
 
 sdk_patches:
   - disable_gp_rx_filter.patch
+  - uart_tx_drop_on_timeout.patch
+  - uart_tx_bounded_wait_usart.patch
 
 sdk_extension:
   - id: watchdog

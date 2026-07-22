@@ -23,6 +23,8 @@ sdk_extension:
 
 sdk_patches:
   - disable_gp_rx_filter.patch
+  - uart_tx_drop_on_timeout.patch
+  - uart_tx_bounded_wait_eusart.patch
 
 add_components:
 - id: spidrv_eusart

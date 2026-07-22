@@ -1,0 +1,22 @@
+diff --git a/platform_core/platform/service/iostream/src/sl_iostream_eusart.c b/platform_core/platform/service/iostream/src/sl_iostream_eusart.c
+index 6068fbf..de2e750 100644
+--- a/platform_core/platform/service/iostream/src/sl_iostream_eusart.c
++++ b/platform_core/platform/service/iostream/src/sl_iostream_eusart.c
+@@ -591,7 +591,16 @@ static sl_status_t eusart_tx(void *context,
+ {
+   sl_iostream_eusart_context_t *eusart_context = (sl_iostream_eusart_context_t *)context;
+   EUSART_TypeDef* eusart_periph = sl_device_peripheral_eusart_get_base_addr(eusart_context->eusart);
+-  EUSART_TX(eusart_periph, c);
++
++  // `EUSART_TX` blocks indefinitely with hardware flow control and a disconnected host.
++  // Give up transmitting after a dozen milliseconds to avoid a deadlock.
++  uint32_t budget = 1000000;
++  while (!(EUSART_STATUS_GET(eusart_periph) & EUSART_STATUS_TXFL)) {
++    if (budget-- == 0) {
++      return SL_STATUS_TIMEOUT;
++    }
++  }
++  eusart_periph->TXDATA = (uint32_t)(uint8_t)c;
+ 
+ #if defined(SL_IOSTREAM_UART_FLUSH_TX_BUFFER)
+ /* Wait until transmit buffer is empty */
