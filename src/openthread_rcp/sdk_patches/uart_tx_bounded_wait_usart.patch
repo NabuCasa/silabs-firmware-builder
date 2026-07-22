@@ -1,0 +1,22 @@
+diff --git a/platform_core/platform/service/iostream/src/sl_iostream_usart.c b/platform_core/platform/service/iostream/src/sl_iostream_usart.c
+index f884996..249b2f8 100644
+--- a/platform_core/platform/service/iostream/src/sl_iostream_usart.c
++++ b/platform_core/platform/service/iostream/src/sl_iostream_usart.c
+@@ -256,7 +256,16 @@ static sl_status_t usart_tx(void *context,
+ {
+   sl_iostream_usart_context_t *usart_context = (sl_iostream_usart_context_t *)context;
+ 
+-  USART_Tx(usart_context->usart, (uint8_t)c);
++
++  // `USART_Tx` blocks indefinitely with hardware flow control and a disconnected host.
++  // Give up transmitting after a dozen milliseconds to avoid a deadlock.
++  uint32_t budget = 1000000;
++  while (!(USART_StatusGet(usart_context->usart) & USART_STATUS_TXBL)) {
++    if (budget-- == 0) {
++      return SL_STATUS_TIMEOUT;
++    }
++  }
++  usart_context->usart->TXDATA = (uint32_t)(uint8_t)c;
+ 
+ #if defined(SL_IOSTREAM_UART_FLUSH_TX_BUFFER)
+   /* Wait until transmit buffer is empty */
