@@ -40,6 +40,8 @@ template_contribution:
     value: XNCP_FEATURE_CHIP_INFO
   - name: xncp_feature
     value: XNCP_FEATURE_RESTORE_ROUTE_TABLE
+  - name: xncp_feature
+    value: XNCP_FEATURE_COMBINED_SEND
   - name: zigbee_af_callback
     value:
       callback_type: event_init
