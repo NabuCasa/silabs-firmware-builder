@@ -12,10 +12,20 @@ gbl:
 
 sdk_patches:
   - disable_gp_rx_filter.patch
+  - uart_tx_drop_on_timeout.patch
+  - uart_tx_bounded_wait_usart.patch
+
+sdk_extension:
+  - id: watchdog
+    version: 1.0.0
+    vendor: nabucasa
 
 add_components:
 - id: iostream_usart
   instance: [vcom]
+- id: watchdog
+  vendor: nabucasa
+  package: watchdog
 
 c_defines:
   OPENTHREAD_CONFIG_NCP_TX_BUFFER_SIZE:

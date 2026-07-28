@@ -12,12 +12,22 @@ gbl:
 
 sdk_patches:
   - disable_gp_rx_filter.patch
+  - uart_tx_drop_on_timeout.patch
+  - uart_tx_bounded_wait_usart.patch
+
+sdk_extension:
+  - id: watchdog
+    version: 1.0.0
+    vendor: nabucasa
 
 add_components:
 - id: iostream_usart
   instance: [vcom]
 - id: simple_led
   instance: [board_activity]
+- id: watchdog
+  vendor: nabucasa
+  package: watchdog
 
 # SLC validates clock settings before c_defines are patched, use `configuration`
 configuration:

@@ -1,0 +1,37 @@
+id: watchdog
+label: Watchdog
+package: custom
+description: >
+  Hardware watchdog (WDOG0) for the bare-metal superloop. The watchdog is fed
+  every superloop iteration; if the loop stalls, the warning interrupt fires at
+  75% of the timeout and is routed into the crash handler so the stuck PC and
+  stack are captured (RESET_WATCHDOG_CAUGHT) before the chip resets.
+category: Platform|Driver|Watchdog
+quality: production
+source:
+  - path: src/watchdog.c
+include:
+  - path: inc
+    file_list:
+    - path: watchdog.h
+config_file:
+  - path: config/watchdog_config.h
+    file_id: watchdog_config
+provides:
+  - name: watchdog
+requires:
+  - name: emlib_wdog
+  - name: emlib_rmu
+  - name: clock_manager_runtime
+  - name: ot_crash_handler
+template_contribution:
+  - name: event_handler
+    value:
+      event: driver_init
+      include: watchdog.h
+      handler: watchdog_init
+  - name: event_handler
+    value:
+      event: service_process_action
+      include: watchdog.h
+      handler: watchdog_feed

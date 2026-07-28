@@ -1,0 +1,16 @@
+diff --git a/openthread/platform-abstraction/efr32/iostream_uart.c b/openthread/platform-abstraction/efr32/iostream_uart.c
+index c9643cc..935ac0b 100644
+--- a/openthread/platform-abstraction/efr32/iostream_uart.c
++++ b/openthread/platform-abstraction/efr32/iostream_uart.c
+@@ -218,8 +218,10 @@ otError otPlatUartSend(const uint8_t *aBuf, uint16_t aBufLength)
+     }
+ 
+     status = sl_iostream_write(sl_iostream_vcom_handle, aBuf, aBufLength);
+-    if (status == SL_STATUS_OK)
++    if (status == SL_STATUS_OK || status == SL_STATUS_TIMEOUT)
+     {
++        // SL_STATUS_TIMEOUT means hardware flow control kept the transmitter frozen.
++        // Pretend the write succeeded, the host will recover.
+         sTransmitDone = true;
+         error         = OT_ERROR_NONE;
+     }
