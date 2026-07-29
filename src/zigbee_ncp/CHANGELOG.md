@@ -1,14 +1,20 @@
 # 9.1.0.0
-Beta release built with EmberZNet 9.1 from Simplicity SDK 2026.6.0.
+Built with EmberZNet 9.1 from Simplicity SDK 2026.6.0, migrating us from Gecko SDK to Simplicity SDK. Faster message sending, Zigbee 4.0 support, and a few increased buffers.
+
+- Built with EmberZNet 9.1 from Simplicity SDK 2026.6.0.
+- Added Zigbee 4.0 support. This is fully backwards compatible with Zigbee 3.0 and 1.2.
+- Sending a message now takes a single request instead of up to three with a new XNCP API. This reduces latency when sending requests with network coordinators.
+- Increased network table sizes. On ZBT-2 the route and source route tables hold 254 entries, the address table 128, and up to 128 messages can be in flight at once, with a larger packet buffer heap. On SkyConnect and Yellow, 64 messages can be in flight and the address table holds 32 entries.
+- Increased the serial receive buffer from 128 to 512 bytes.
 
 # 9.0.2.0
-Beta release built with EmberZNet 9.0 from Simplicity SDK 2025.12.3. This is our first release that migrates from the older Gecko SDK to the newer Simplicity SDK.
+Built with EmberZNet 9.0 from Simplicity SDK 2025.12.3.
 
 # 7.5.1.0
-Beta release built with Gecko SDK 4.5.0. This includes a new feature to restore routes on adapter startup, speeding up network responsiveness after a reset.
+Built with Gecko SDK 4.5.0. This includes a new feature to restore routes on adapter startup, speeding up network responsiveness after a reset.
 
 # 7.5.0.0
-Beta release built with Gecko SDK 4.4.6.
+Built with Gecko SDK 4.4.6.
 
 # 7.4.4.6
 For adapters that support RGB LEDs, fix the color XNCP command parsing. Allow the adapter to signal preferred TX power settings for a given regulatory domain.

@@ -1,5 +1,8 @@
 # 1.3.0
-* SDK updated to Simplicity SDK 2025.12.3 (Z-Wave SDK 8.0.2)
+Updated to Simplicity SDK 2026.6.0 (Z-Wave SDK 8.1.0).
+
+* Updated to Simplicity SDK 2026.6.0 (Z-Wave SDK 8.1.0), up from Simplicity SDK 2025.12.1 (Z-Wave SDK 8.0.0).
+* Resynced the Serial API application with the new SDK reference application, including its DMA and sleep timer driver changes.
 
 # 1.2.0
 * SDK updated to Simplicity SDK 2025.12.1.
