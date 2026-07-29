@@ -1,5 +1,5 @@
 # Silicon Labs firmware builder repository
-This repository contains tools for building firmwares for the Home Assistant Connect
+This repository contains tools for building firmwares for the Home Assistant Connect ZBT-2, 
 ZBT-1/SkyConnect and the Home Assistant Yellow's IEEE 802.15.4 radio. The firmware
 manifests are entirely generic, however, and are intended to be written easily for any
 Silicon Labs EFR32 device.
