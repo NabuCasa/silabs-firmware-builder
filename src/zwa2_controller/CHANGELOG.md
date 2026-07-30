@@ -1,9 +1,9 @@
 # 1.3.0
 Updated to Simplicity SDK 2026.6.1 (Z-Wave SDK 8.1.1), restoring runtime Image Rejection calibration and fixing a transmission stall under LBT/CSMA.
 
-* Updated to Simplicity SDK 2026.6.0 (Z-Wave SDK 8.1.0), up from Simplicity SDK 2025.12.1 (Z-Wave SDK 8.0.0).
+* Updated to Simplicity SDK 2026.6.1 (Z-Wave SDK 8.1.1), up from Simplicity SDK 2025.12.1 (Z-Wave SDK 8.0.0).
 * Resynced the Serial API application with the new SDK reference application, including its DMA and sleep timer driver changes.
-* Updated to Simplicity SDK 2026.6.1 (Z-Wave SDK 8.1.1), restoring runtime Image Rejection calibration.
+* Restored runtime Image Rejection calibration.
 * Fixed a transmission stall that could occur under LBT/CSMA.
 * Fixed fragmented-beam handling for the Japanese region.
 
