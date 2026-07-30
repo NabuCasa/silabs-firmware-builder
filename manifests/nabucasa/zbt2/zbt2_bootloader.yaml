@@ -2,7 +2,7 @@ name: Home Assistant Connect ZBT-2 Bootloader
 device: EFR32MG24A420F1536IM40
 base_project: src/bootloader
 filename: "{manifest_name}_{gecko_bootloader_version}"
-sdk: "simplicity_sdk:2026.6.0"
+sdk: "simplicity_sdk:2026.6.1"
 toolchain: "14.2.1.20241119"
 
 gbl:
