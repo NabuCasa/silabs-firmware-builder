@@ -155,7 +155,7 @@ RUN set -e \
         ninja/1.12.1 \
         commander/1.24.1 \
         slc-cli/6.0.22 \
-        simplicity-sdk/2026.6.0 \
+        simplicity-sdk/2026.6.1 \
         zap/2026.06.17 \
     # We don't currently use the LLVM toolchain that is pulled in as a default
     # dependency. Uninstall it to save space.

@@ -769,8 +769,12 @@ def main():
         # The Z-Wave libraries were packaged against their own conan hashes
         "/home/buildengineer/.silabs/slt/installs/conan/p/cmsis4dea3e6cbb6ce/p": "/src/vendor/cmsis",
         "/home/buildengineer/.silabs/slt/installs/conan/p/platf6edd0cd4d4914/p": f"/src/{sdk_name}_{sdk_version}/platform_core",
+        # Z-Wave's platform_core was repackaged under a new conan hash in Simplicity SDK 2026.6.1
+        "/home/buildengineer/.silabs/slt/installs/conan/p/platf0f636d352884d/p": f"/src/{sdk_name}_{sdk_version}/platform_core",
         # The zigbee stack libraries reference the silabs_core package they were built against
         "/github/home/.silabs/slt/installs/conan/p/commo8335073ce327e/p": f"/src/{sdk_name}_{sdk_version}/platform_core",
+        # silabs_core was repackaged under a new conan hash in Simplicity SDK 2026.6.1
+        "/github/home/.silabs/slt/installs/conan/p/commo6146391826d06/p": f"/src/{sdk_name}_{sdk_version}/platform_core",
         # The Z-Wave SDK isn't part of the Simplicity SDK but is still referenced. If we
         # ever decide to compile it as part of CI, we can change this remap.
         "/opt/github/runner/_work/z-wave/z-wave": "/src/vendor/zwave",
