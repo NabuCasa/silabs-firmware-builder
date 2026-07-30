@@ -5,7 +5,6 @@ Updated to Simplicity SDK 2026.6.1 (Z-Wave SDK 8.1.1), restoring runtime Image R
 * Resynced the Serial API application with the new SDK reference application, including its DMA and sleep timer driver changes.
 * Updated to Simplicity SDK 2026.6.1 (Z-Wave SDK 8.1.1), restoring runtime Image Rejection calibration.
 * Fixed a transmission stall that could occur under LBT/CSMA.
-* Fixed an EFR32ZG28 radio calibration issue affecting RSSI and CCA measurements.
 * Fixed fragmented-beam handling for the Japanese region.
 
 # 1.2.0
