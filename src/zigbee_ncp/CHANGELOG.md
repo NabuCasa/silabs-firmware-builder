@@ -1,3 +1,6 @@
+# 9.1.1.0
+Built with Simplicity SDK 2026.6.1, up from Simplicity SDK 2026.6.0.
+
 # 9.1.0.0
 Built with EmberZNet 9.1 from Simplicity SDK 2026.6.0, migrating us from Gecko SDK to Simplicity SDK. Faster message sending, Zigbee 4.0 support, and a few increased buffers.
 
