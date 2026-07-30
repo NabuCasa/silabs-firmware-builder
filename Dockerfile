@@ -155,8 +155,11 @@ RUN set -e \
         ninja/1.12.1 \
         commander/1.24.1 \
         slc-cli/6.0.22 \
-        simplicity-sdk/2026.6.1 \
+        simplicity-sdk/2026.6.0 \
         zap/2026.06.17 \
+    # conan's dependency graph rejects two versions of the same package in a
+    # single `install` invocation, so the other SDK version needs its own.
+    && slt --non-interactive install simplicity-sdk/2026.6.1 \
     # We don't currently use the LLVM toolchain that is pulled in as a default
     # dependency. Uninstall it to save space.
     && slt --non-interactive uninstall --force llvm-arm-toolchain-for-embedded \
