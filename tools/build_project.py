@@ -63,7 +63,15 @@ def get_toolchain_default_paths() -> list[pathlib.Path]:
 
     if is_running_in_docker():
         root = pathlib.Path("/root/.silabs/slt/installs/conan/p")
-        return list(root.glob("gcc-*/p")) + list(root.glob("llvm-*/p"))
+
+        return (
+            list(root.glob("gcc-*/p"))
+            + list(root.glob("llvm-*/p"))
+            # Conan unpacks downloaded packages at the top level but keeps ones it built
+            # itself under `b/`
+            + list(root.glob("b/gcc-*/p"))
+            + list(root.glob("b/llvm-*/p"))
+        )
 
     return []
 

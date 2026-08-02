@@ -1,57 +1,82 @@
-# Build QEMU with execve interception patch for running x86_64 binaries on ARM64.
-# This patched QEMU intercepts execve() syscalls and wraps child processes with QEMU,
-# which is necessary because binfmt_misc is not available during Docker builds.
+# Build FEX for running x86_64 binaries on ARM64.
 #
-# The purpose of this patch is to allow us to emulate `slt` and `conan`, the new Silicon
+# The purpose of this is to allow us to emulate `slt` and `conan`, the new Silicon
 # Labs tooling for setting up development tools. These tools are not available for ARM64
 # Linux but strangely all other packages are, meaning we can just emulate the downloading
 # part and still have native performance for all compilation.
 #
-# We use upstream QEMU with the execve interception patch from conda-forge/qemu-execve-feedstock.
-# This patch adds --execve <path> option (or QEMU_EXECVE env var) to intercept execve() calls.
-# See https://github.com/conda-forge/qemu-execve-feedstock for the patch source.
+# FEX intercepts execve()/execveat() in its syscall layer: x86 ELFs are re-executed
+# through FEX itself (via /proc/self/exe) while native AArch64 ELFs are handed straight
+# to the kernel. This means no binfmt_misc and no patched emulator are required, and
+# native tools spawned by `slt` still run unemulated.
+#
+# No x86_64 RootFS is configured: when FEX's rootfs path is empty it resolves guest paths
+# against the host filesystem, so the `libc6:amd64`/`zlib1g:amd64` multiarch packages
+# installed below are all the x86_64 userspace `slt` needs.
 #
 # We can remove this once SiLabs releases builds of `slt` and `conan` for ARM64 Linux.
-FROM --platform=$BUILDPLATFORM debian:bookworm-slim AS qemu-execve-builder
+FROM debian:trixie-slim AS fex-builder
 ARG TARGETARCH
 WORKDIR /usr/src
-RUN if [ "$TARGETARCH" = "arm64" ]; then \
-        apt-get -q update \
-        && apt-get -qqy install \
+RUN mkdir -p /fex/usr/bin \
+    && if [ "$TARGETARCH" = "arm64" ]; then set -eux \
+        && apt-get -q update \
+        && apt-get -qqy install --no-install-recommends \
             build-essential \
-            zlib1g-dev \
-            libpixman-1-dev \
-            python3 \
-            python3-venv \
-            libglib2.0-dev \
-            pkg-config \
+            cmake \
             ninja-build \
-            aria2 \
-            ca-certificates \
+            clang \
+            lld \
+            llvm \
+            python3 \
+            pkg-config \
             git \
+            ca-certificates \
         && rm -rf /var/lib/apt/lists/* \
-        # Download QEMU 11.0.2 source
-        && aria2c --checksum=sha-256=f1ab4eda29aa2e5c0b29ba38b7411c368b9b9bf822de6569c53ea8d4e04f980a -o qemu.tar.gz \
-            https://gitlab.com/qemu-project/qemu/-/archive/v11.0.2/qemu-v11.0.2.tar.gz \
-        && tar xzf qemu.tar.gz && rm qemu.tar.gz \
-        && mv qemu-v11.0.2 qemu \
-        && cd qemu \
-        # Apply execve interception patch from conda-forge
-        && aria2c -o execve.patch \
-            https://raw.githubusercontent.com/conda-forge/qemu-execve-feedstock/988a9d79604e0a88cecc6bc4439625decdc308e9/recipe/patches/execve/apply-execve-JH.patch \
-        && patch -p1 < execve.patch && rm execve.patch \
-        && ./configure \
-            --target-list=x86_64-linux-user \
-            --static \
-            --disable-pie \
-            --disable-docs \
-            --disable-tools \
-            --disable-capstone \
-            --disable-guest-agent \
-        && make -j $(nproc); \
+        && git clone --depth 1 --branch FEX-2607 https://github.com/FEX-Emu/FEX fex \
+        && cd fex \
+        # Every submodule except the three `*-bins` test-fixture repos, which are large
+        # and only needed for BUILD_TESTING.
+        && git submodule update --init --depth 1 \
+            External/vixl \
+            External/fmt \
+            External/xxhash \
+            External/jemalloc_glibc \
+            External/range-v3 \
+            External/unordered_dense \
+            External/rpmalloc \
+            External/tracy \
+            External/Catch2 \
+            External/zydis \
+            External/drm-headers \
+            External/Vulkan-Headers \
+            Source/Common/cpp-optparse \
+        && cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DUSE_LINKER=lld \
+            # FEX defaults to TUNE_CPU=native, which reads the *build* machine's
+            # /proc/cpuinfo and bakes in `-mcpu=<that core>`. That would make the image
+            # non-portable across ARM64 hosts (an Apple M-series build box vs a Neoverse
+            # CI runner pick different cores). `none` omits -mcpu entirely. This only
+            # affects how FEX's own C++ is compiled; the JIT still does runtime feature
+            # detection for the code it generates.
+            -DTUNE_CPU=none \
+            -DENABLE_LTO=True \
+            -DENABLE_ASSERTIONS=False \
+            -DENABLE_CCACHE=False \
+            -DBUILD_TESTING=False \
+            -DBUILD_THUNKS=False \
+            -DBUILD_FEXCONFIG=False \
+        && cmake --build build --parallel "$(nproc)" \
+        && DESTDIR=/fex cmake --install build --component Runtime \
+        && strip /fex/usr/bin/FEX /fex/usr/bin/FEXServer \
+        && rm -rf /usr/src/fex; \
     else \
-        # Dummy file to copy for x86_64
-        mkdir -p /usr/src/qemu/build && touch /usr/src/qemu/build/qemu-x86_64; \
+        # Dummy files to copy for x86_64
+        touch /fex/usr/bin/FEX /fex/usr/bin/FEXServer; \
     fi
 
 # Arm's official aarch64 toolchain was built WITHOUT libzstd and SiLabs uses
@@ -95,12 +120,12 @@ COPY requirements.txt /tmp/
 RUN UV_PYTHON_INSTALL_DIR=/opt/pythons uv venv -p 3.14 /opt/venv --no-cache \
     && uv pip install --python /opt/venv -r /tmp/requirements.txt
 
-# Install slt and all toolchain packages (depends on QEMU for ARM64)
+# Install slt and all toolchain packages (depends on FEX for ARM64)
 FROM debian:trixie-slim AS slt-toolchain
 ARG TARGETARCH
 
-# Copy patched QEMU with execve interception (only used on ARM64)
-COPY --from=qemu-execve-builder /usr/src/qemu/build/qemu-x86_64 /usr/bin/qemu-x86_64-static
+# Copy FEX (only used on ARM64)
+COPY --from=fex-builder /fex/usr/bin/ /usr/bin/
 
 # Set up slt and conan
 RUN set -e \
@@ -112,7 +137,7 @@ RUN set -e \
         bzip2 \
         unzip \
     && rm -rf /var/lib/apt/lists/* \
-    # slt-cli is x64 only but runs fine with QEMU
+    # slt-cli is x64 only but runs fine with FEX
     && aria2c --checksum=sha-256=2b9941216a3549aea6c5cc76565e2bc91ebfd9f41bec1e026341ce47c3aca1d0 -o slt.zip \
         https://www.silabs.com/documents/public/software/slt-cli-1.1.2-linux-x64.zip \
     && bsdtar -xf slt.zip -C /usr/bin && rm slt.zip \
@@ -122,17 +147,22 @@ RUN set -e \
         && apt-get update \
         && apt-get install -y --no-install-recommends libc6:amd64 zlib1g:amd64 \
         && rm -rf /var/lib/apt/lists/* \
-        # slt needs to be emulated. It executes conan_wrapper during installation so we need to use --execve to make it work
+        # slt needs to be emulated. FEX intercepts the execve() of conan_engine during
+        # installation and re-runs it under FEX, so no wrapper is needed for it. Native
+        # tools (tar, etc.) that slt spawns are passed straight through to the kernel.
+        #
+        # GODEBUG=asyncpreemptoff=1 is required for correctness, not speed. Go 1.14+
+        # preempts goroutines by delivering SIGURG at arbitrary instruction boundaries,
+        # and FEX does not reliably preserve guest register state when a signal lands
+        # mid-translated-block. Without this, `slt` corrupts its own memory and dies at a
+        # different random location nearly every run (measured: 10 of 12 `slt --help`
+        # invocations crashed; with it, 15 of 15 passed). It is exported so the
+        # conan_engine child process inherits it.
         && mv /usr/bin/slt /usr/bin/slt-bin \
-        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static --execve /usr/bin/qemu-x86_64-static /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
+        && printf '#!/bin/sh\nexport GODEBUG=asyncpreemptoff=1\nexec /usr/bin/FEX /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
         && chmod +x /usr/bin/slt \
         # Install conan
         && slt --non-interactive install conan \
-        && mv /root/.silabs/slt/engines/conan/conan_engine /root/.silabs/slt/engines/conan/conan_engine-bin \
-        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static /root/.silabs/slt/engines/conan/conan_engine-bin "$@"\n' > /root/.silabs/slt/engines/conan/conan_engine \
-        && chmod +x /root/.silabs/slt/engines/conan/conan_engine \
-        # Remove --execve from slt wrapper once we install conan, so native tools (tar, etc.) run without QEMU
-        && printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
         # Patch slt to select ARM64 packages for subsequent installs
         && sed -i 's/amd6/arm6/g' /usr/bin/slt-bin \
         # Force conan to use the ARM64 profile for downloading packages
@@ -146,6 +176,44 @@ RUN set -e \
         && rm conan-2.21.0.tgz; \
     else \
         slt --non-interactive install conan; \
+    fi
+
+# Silicon Labs has suddenly stopped serving binary ARM64 packages for Windows and Linux.
+# Rebuild them from the upstream recipes. They rely on OSS binary distributions and are
+# binary-identical to the SiLabs builds.
+RUN if [ "$TARGETARCH" = "arm64" ]; then set -eux \
+    && export CONAN_HOME=/root/.silabs/slt/installs/conan \
+    && CONAN=/root/.silabs/slt/engines/conan/conan/conan \
+    && for spec in \
+        "cmake:3.30.2:8798657aa78b2da38a3ae465f2d10090" \
+        "ninja:1.12.1:9ce59e07a142d4da1c532b49742fe16d" \
+        "gcc-arm-none-eabi:14.2.rel1:7a5e7220af325e610937338dde99651b" \
+        "llvm-arm-toolchain-for-embedded:21.1.1:877f3e0faf9658c618b4c2fe80bbb9fa" \
+       ; do \
+        n="${spec%%:*}"; rest="${spec#*:}"; v="${rest%%:*}"; r="${rest#*:}" \
+        && mkdir -p "/rebuild/$n" && cd "/rebuild/$n" \
+        && aria2c -q -o conanfile.py \
+            "https://conan.silabs.net/v2/conans/$n/$v/silabs/_/revisions/$r/files/conanfile.py" \
+        # gcc-arm-none-eabi is the one recipe that pulls from SiLabs' internal
+        # Artifactory (artifactory-local.silabs.net, not publicly resolvable).
+        && if [ "$n" = "gcc-arm-none-eabi" ]; then \
+             sed -i 's|linux_url = f"{artifactory_path}/gcc-arm-none-eabi-{package_version}-linux"|linux_url = f"https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/{package_version}/binrel"|' conanfile.py \
+             && grep -q armkeil conanfile.py; \
+           fi \
+        # gcc-arm-none-eabi's recipe derives its version from `git describe` when none
+        # is given, which would self-name the package 0.0.1-initial-build.
+        && "$CONAN" export . --version="$v" --user=silabs \
+        && "$CONAN" install --requires="$n/$v@silabs" -pr:h=default -pr:b=default --build="$n/*" \
+       ; done \
+    # cd out of /rebuild first: conan resolves a workspace folder by walking up from the
+    # cwd, and dies with FileNotFoundError if the cwd has been deleted underneath it.
+    && cd / \
+    && rm -rf /rebuild \
+    # Drop conan's retained build/source trees in the same layer that created them,
+    # otherwise the ~1.1 GB stays in this layer no matter where it is deleted later.
+    # This also leaves a single copy of the ARM toolchain, so the cc1/cc1plus/lto1 swap
+    # in the final stage cannot patch a build-folder copy instead of the package.
+    && "$CONAN" cache clean --source --build --temp; \
     fi
 
 # Install toolchain via slt
@@ -184,7 +252,7 @@ ENV LC_ALL=C.UTF-8
 
 # Install only runtime packages
 RUN set -e \
-    # Install x86_64 libraries for QEMU on ARM64
+    # Install x86_64 libraries for FEX on ARM64
     && if [ "$TARGETARCH" = "arm64" ]; then \
         dpkg --add-architecture amd64 \
         && apt-get update \
@@ -209,7 +277,7 @@ RUN set -e \
 # Copy from parallel stages
 COPY --from=python-venv /opt/pythons /opt/pythons
 COPY --from=python-venv /opt/venv /opt/venv
-COPY --from=qemu-execve-builder /usr/src/qemu/build/qemu-x86_64 /usr/bin/qemu-x86_64-static
+COPY --from=fex-builder /fex/usr/bin/ /usr/bin/
 COPY --from=slt-toolchain /usr/bin/slt* /usr/bin/
 COPY --from=slt-toolchain /root/.silabs /root/.silabs
 COPY --from=zstd-gcc-builder /opt/zstd-gcc /tmp/zstd-gcc
