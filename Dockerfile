@@ -70,6 +70,7 @@ RUN set -e \
         libarchive-tools \
         bzip2 \
         unzip \
+        jq \
     && rm -rf /var/lib/apt/lists/* \
     # slt-cli is x64 only but runs fine with FEX
     && aria2c --checksum=sha-256=2b9941216a3549aea6c5cc76565e2bc91ebfd9f41bec1e026341ce47c3aca1d0 -o slt.zip \
@@ -118,15 +119,16 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then set -eux \
     && export CONAN_HOME=/root/.silabs/slt/installs/conan \
     && CONAN=/root/.silabs/slt/engines/conan/conan/conan \
     && for spec in \
-        "cmake:3.30.2:8798657aa78b2da38a3ae465f2d10090" \
-        "ninja:1.12.1:9ce59e07a142d4da1c532b49742fe16d" \
-        "gcc-arm-none-eabi:14.2.rel1:7a5e7220af325e610937338dde99651b" \
-        "llvm-arm-toolchain-for-embedded:21.1.1:877f3e0faf9658c618b4c2fe80bbb9fa" \
+        "cmake:3.30.2" \
+        "ninja:1.12.1" \
+        "gcc-arm-none-eabi:14.2.rel1" \
+        "llvm-arm-toolchain-for-embedded:21.1.1" \
        ; do \
-        n="${spec%%:*}"; rest="${spec#*:}"; v="${rest%%:*}"; r="${rest#*:}" \
+        n="${spec%%:*}"; v="${spec#*:}"; u="https://conan.silabs.net/v2/conans/$n/$v/silabs/_" \
         && mkdir -p "/rebuild/$n" && cd "/rebuild/$n" \
-        && aria2c -q -o conanfile.py \
-            "https://conan.silabs.net/v2/conans/$n/$v/silabs/_/revisions/$r/files/conanfile.py" \
+        && aria2c -q -o latest.json "$u/latest" \
+        && r=$(jq -r .revision latest.json) \
+        && aria2c -q -o conanfile.py "$u/revisions/$r/files/conanfile.py" \
         # gcc-arm-none-eabi is the one recipe that pulls from SiLabs' internal
         # Artifactory (artifactory-local.silabs.net, not publicly resolvable).
         && if [ "$n" = "gcc-arm-none-eabi" ]; then \
