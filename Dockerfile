@@ -1,82 +1,16 @@
-# Build FEX for running x86_64 binaries on ARM64.
-#
-# The purpose of this is to allow us to emulate `slt` and `conan`, the new Silicon
-# Labs tooling for setting up development tools. These tools are not available for ARM64
-# Linux but strangely all other packages are, meaning we can just emulate the downloading
-# part and still have native performance for all compilation.
-#
-# FEX intercepts execve()/execveat() in its syscall layer: x86 ELFs are re-executed
-# through FEX itself (via /proc/self/exe) while native AArch64 ELFs are handed straight
-# to the kernel. This means no binfmt_misc and no patched emulator are required, and
-# native tools spawned by `slt` still run unemulated.
-#
-# No x86_64 RootFS is configured: when FEX's rootfs path is empty it resolves guest paths
-# against the host filesystem, so the `libc6:amd64`/`zlib1g:amd64` multiarch packages
-# installed below are all the x86_64 userspace `slt` needs.
+# FEX emulates the x86_64-only `slt` and `conan` binaries on ARM64. Debian has no
+# fex-emu package and the Ubuntu PPA keeps only the newest build per series, so we take
+# Fedora's. It links against a newer libfmt than Debian ships, so that comes along too.
 #
 # We can remove this once SiLabs releases builds of `slt` and `conan` for ARM64 Linux.
-FROM debian:trixie-slim AS fex-builder
+FROM fedora:42 AS fex-builder
 ARG TARGETARCH
-WORKDIR /usr/src
-RUN mkdir -p /fex/usr/bin \
+RUN mkdir -p /fex/bin /fex/lib \
     && if [ "$TARGETARCH" = "arm64" ]; then set -eux \
-        && apt-get -q update \
-        && apt-get -qqy install --no-install-recommends \
-            build-essential \
-            cmake \
-            ninja-build \
-            clang \
-            lld \
-            llvm \
-            python3 \
-            pkg-config \
-            git \
-            ca-certificates \
-        && rm -rf /var/lib/apt/lists/* \
-        && git clone --depth 1 --branch FEX-2607 https://github.com/FEX-Emu/FEX fex \
-        && cd fex \
-        # Every submodule except the three `*-bins` test-fixture repos, which are large
-        # and only needed for BUILD_TESTING.
-        && git submodule update --init --depth 1 \
-            External/vixl \
-            External/fmt \
-            External/xxhash \
-            External/jemalloc_glibc \
-            External/range-v3 \
-            External/unordered_dense \
-            External/rpmalloc \
-            External/tracy \
-            External/Catch2 \
-            External/zydis \
-            External/drm-headers \
-            External/Vulkan-Headers \
-            Source/Common/cpp-optparse \
-        && cmake -S . -B build -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=/usr \
-            -DCMAKE_C_COMPILER=clang \
-            -DCMAKE_CXX_COMPILER=clang++ \
-            -DUSE_LINKER=lld \
-            # FEX defaults to TUNE_CPU=native, which reads the *build* machine's
-            # /proc/cpuinfo and bakes in `-mcpu=<that core>`. That would make the image
-            # non-portable across ARM64 hosts (an Apple M-series build box vs a Neoverse
-            # CI runner pick different cores). `none` omits -mcpu entirely. This only
-            # affects how FEX's own C++ is compiled; the JIT still does runtime feature
-            # detection for the code it generates.
-            -DTUNE_CPU=none \
-            -DENABLE_LTO=True \
-            -DENABLE_ASSERTIONS=False \
-            -DENABLE_CCACHE=False \
-            -DBUILD_TESTING=False \
-            -DBUILD_THUNKS=False \
-            -DBUILD_FEXCONFIG=False \
-        && cmake --build build --parallel "$(nproc)" \
-        && DESTDIR=/fex cmake --install build --component Runtime \
-        && strip /fex/usr/bin/FEX /fex/usr/bin/FEXServer \
-        && rm -rf /usr/src/fex; \
-    else \
-        # Dummy files to copy for x86_64
-        touch /fex/usr/bin/FEX /fex/usr/bin/FEXServer; \
+        && dnf -y install --setopt=install_weak_deps=False fex-emu \
+        && cp /usr/bin/FEX /usr/bin/FEXServer /fex/bin/ \
+        && cp -aL /usr/lib64/libfmt.so.11 /fex/lib/ \
+        && dnf clean all; \
     fi
 
 # Arm's official aarch64 toolchain was built WITHOUT libzstd and SiLabs uses
@@ -125,7 +59,7 @@ FROM debian:trixie-slim AS slt-toolchain
 ARG TARGETARCH
 
 # Copy FEX (only used on ARM64)
-COPY --from=fex-builder /fex/usr/bin/ /usr/bin/
+COPY --from=fex-builder /fex /tmp/fex
 
 # Set up slt and conan
 RUN set -e \
@@ -143,7 +77,9 @@ RUN set -e \
     && bsdtar -xf slt.zip -C /usr/bin && rm slt.zip \
     && chmod +x /usr/bin/slt \
     && if [ "$TARGETARCH" = "arm64" ]; then \
-        dpkg --add-architecture amd64 \
+        cp /tmp/fex/bin/* /usr/bin/ \
+        && cp /tmp/fex/lib/* /usr/lib/aarch64-linux-gnu/ \
+        && dpkg --add-architecture amd64 \
         && apt-get update \
         && apt-get install -y --no-install-recommends libc6:amd64 zlib1g:amd64 \
         && rm -rf /var/lib/apt/lists/* \
@@ -151,13 +87,9 @@ RUN set -e \
         # installation and re-runs it under FEX, so no wrapper is needed for it. Native
         # tools (tar, etc.) that slt spawns are passed straight through to the kernel.
         #
-        # GODEBUG=asyncpreemptoff=1 is required for correctness, not speed. Go 1.14+
-        # preempts goroutines by delivering SIGURG at arbitrary instruction boundaries,
-        # and FEX does not reliably preserve guest register state when a signal lands
-        # mid-translated-block. Without this, `slt` corrupts its own memory and dies at a
-        # different random location nearly every run (measured: 10 of 12 `slt --help`
-        # invocations crashed; with it, 15 of 15 passed). It is exported so the
-        # conan_engine child process inherits it.
+        # GODEBUG=asyncpreemptoff=1 is needed for correctness, not speed: FEX mishandles
+        # the SIGURG Go uses to preempt goroutines and `slt` corrupts its own memory in
+        # most runs without it. Exported so the conan_engine child inherits it.
         && mv /usr/bin/slt /usr/bin/slt-bin \
         && printf '#!/bin/sh\nexport GODEBUG=asyncpreemptoff=1\nexec /usr/bin/FEX /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
         && chmod +x /usr/bin/slt \
@@ -176,7 +108,8 @@ RUN set -e \
         && rm conan-2.21.0.tgz; \
     else \
         slt --non-interactive install conan; \
-    fi
+    fi \
+    && rm -rf /tmp/fex
 
 # Silicon Labs has suddenly stopped serving binary ARM64 packages for Windows and Linux.
 # Rebuild them from the upstream recipes. They rely on OSS binary distributions and are
@@ -277,15 +210,17 @@ RUN set -e \
 # Copy from parallel stages
 COPY --from=python-venv /opt/pythons /opt/pythons
 COPY --from=python-venv /opt/venv /opt/venv
-COPY --from=fex-builder /fex/usr/bin/ /usr/bin/
+COPY --from=fex-builder /fex /tmp/fex
 COPY --from=slt-toolchain /usr/bin/slt* /usr/bin/
 COPY --from=slt-toolchain /root/.silabs /root/.silabs
 COPY --from=zstd-gcc-builder /opt/zstd-gcc /tmp/zstd-gcc
 RUN if [ "$TARGETARCH" = "arm64" ]; then set -eux \
+        && cp /tmp/fex/bin/* /usr/bin/ \
+        && cp /tmp/fex/lib/* /usr/lib/aarch64-linux-gnu/ \
         && d="$(dirname "$(find /root/.silabs -path '*/libexec/gcc/arm-none-eabi/*' -name lto1 | head -1)")" \
         && cp /tmp/zstd-gcc/cc1 /tmp/zstd-gcc/cc1plus /tmp/zstd-gcc/lto1 "$d/"; \
     fi \
-    && rm -rf /tmp/zstd-gcc
+    && rm -rf /tmp/fex /tmp/zstd-gcc
 
 # Signal to the firmware builder script that we are running within Docker
 ENV SILABS_FIRMWARE_BUILD_CONTAINER=1
