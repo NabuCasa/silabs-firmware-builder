@@ -199,7 +199,6 @@ RUN set -eux \
     && rm -rf /tmp/zstd-gcc \
     && git config --system --add safe.directory '*'
 
-# Signal to the firmware builder script that we are running within Docker
 ENV HOME=/root
 ENV PATH="$PATH:/opt/silabs/bin"
 

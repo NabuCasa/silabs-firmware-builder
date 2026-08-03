@@ -849,7 +849,6 @@ def main():
         out_elf,
         {
             str(args.build_dir.resolve()): "/src",
-            "/root/.silabs": "/src/vendor",  # local conan toolchain/SDK headers
             "/home/buildengineer": "/src/vendor",  # Silicon Labs build machines
             "/github/home": "/src/vendor",  # Silicon Labs Zigbee CI
             "/opt/github": "/src/vendor",  # Silicon Labs Z-Wave CI
