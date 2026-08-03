@@ -72,7 +72,7 @@ jobs:
             head_image=$(echo ${{ github.repository }} | awk '{print tolower($0)}')
           fi
 
-          tag_name=$(echo "${{ hashFiles('Dockerfile', 'requirements.txt') }}" | cut -c-16)
+          tag_name=$(echo "${{ hashFiles('Dockerfile', 'uv.lock') }}" | cut -c-16)
 
           # Default to building a new container under the original repo
           image_name=$head_image
@@ -227,7 +227,7 @@ jobs:
       contents: read
       packages: read
     container:
-      # Tag is the hash of the Dockerfile and requirements.txt, built by this workflow
+      # Tag is the hash of the Dockerfile and uv.lock, built by this workflow
       image: ${{ needs.merge-container.outputs.container_name }} # zizmor: ignore[unpinned-images]
       options: --user root
     strategy:
@@ -271,7 +271,7 @@ jobs:
       contents: read
       packages: read
     container:
-      # Tag is the hash of the Dockerfile and requirements.txt, built by this workflow
+      # Tag is the hash of the Dockerfile and uv.lock, built by this workflow
       image: ${{ needs.merge-container.outputs.container_name }} # zizmor: ignore[unpinned-images]
       options: --user root
     steps:
