@@ -59,7 +59,7 @@ def get_apack_default_paths() -> list[pathlib.Path]:
 
 def get_sdk_default_paths() -> list[pathlib.Path]:
     """Return the path to the SDK."""
-    return list(pathlib.Path("/").glob("*_sdk_*"))
+    return list(pathlib.Path("/opt/silabs/sdks").glob("*sdk*"))
 
 
 def parse_override(override: str) -> tuple[str, dict | list]:

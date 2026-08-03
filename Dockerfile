@@ -61,8 +61,8 @@ RUN set -eux \
     && aria2c -q -o prev.json "$SDK/revisions/$RREV/packages/$PKG/latest" \
     && PREV=$(jq -r .revision prev.json) \
     && aria2c -q -x4 -o sdk.tgz "$SDK/revisions/$RREV/packages/$PKG/revisions/$PREV/files/conan_package.tgz" \
-    && mkdir -p "/simplicity_sdk_$SDK_VERSION" \
-    && bsdtar -xf sdk.tgz -C "/simplicity_sdk_$SDK_VERSION" \
+    && mkdir -p "/opt/silabs/sdks/simplicity_sdk_$SDK_VERSION" \
+    && bsdtar -xf sdk.tgz -C "/opt/silabs/sdks/simplicity_sdk_$SDK_VERSION" \
     && rm -f rrev.json pkgs.json prev.json sdk.tgz
 
 # Arm publishes both toolchains that Silicon Labs repackages: arm-none-eabi (GCC) and
@@ -139,7 +139,6 @@ RUN UV_PYTHON_INSTALL_DIR=/opt/pythons uv venv -p 3.14 /opt/venv --no-cache \
 # Final image
 FROM debian:trixie-slim
 ARG TARGETARCH
-ARG SDK_VERSION=2026.6.1
 
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
@@ -168,7 +167,7 @@ COPY --from=python-venv /opt/pythons /opt/pythons
 COPY --from=python-venv /opt/venv /opt/venv
 COPY --from=silabs-tools /opt/silabs /opt/silabs
 COPY --from=arm-toolchains /opt/toolchains /opt/toolchains
-COPY --from=silabs-sdk /simplicity_sdk_${SDK_VERSION} /simplicity_sdk_${SDK_VERSION}
+COPY --from=silabs-sdk /opt/silabs/sdks /opt/silabs/sdks
 COPY --from=zstd-gcc-builder /opt/zstd-gcc /tmp/zstd-gcc
 RUN set -eux \
     && mkdir -p /opt/silabs/bin \
