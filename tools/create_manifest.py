@@ -10,7 +10,7 @@ import logging
 import pathlib
 import re
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from universal_silabs_flasher.firmware import parse_firmware_image
 
@@ -52,7 +52,7 @@ def main():
     args = parser.parse_args()
     manifest = {
         "metadata": {
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
         },
         "firmwares": [],
     }
@@ -68,7 +68,7 @@ def main():
 
         try:
             gbl_metadata = firmware.get_nabucasa_metadata()
-        except (KeyError, ValueError):
+        except KeyError, ValueError:
             metadata = None
         else:
             metadata = gbl_metadata.original_json

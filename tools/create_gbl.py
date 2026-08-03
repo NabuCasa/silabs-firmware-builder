@@ -85,7 +85,7 @@ def parse_c_header_defines(file_content: str) -> dict[str, str]:
 
         try:
             config[key] = ast.literal_eval(value)
-        except (ValueError, SyntaxError):
+        except ValueError, SyntaxError:
             pass
 
     return config
@@ -218,7 +218,7 @@ def main():
             try:
                 ember_version = read_elf_symbol(f, "sl_zigbee_version")
                 version_symbol = "sl_zigbee_version"
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 f.seek(0)
                 ember_version = read_elf_symbol(f, "emberVersion")
                 version_symbol = "emberVersion"

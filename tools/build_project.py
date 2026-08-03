@@ -17,7 +17,7 @@ import subprocess
 import sys
 import time
 import typing
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from elftools.elf.elffile import ELFFile
 from ruamel.yaml import YAML
@@ -388,9 +388,9 @@ def main():
     if args.build_timestamp is not None:
         args.build_timestamp = datetime.strptime(
             args.build_timestamp, "%Y%m%d%H%M%S"
-        ).replace(tzinfo=timezone.utc)
+        ).replace(tzinfo=UTC)
     else:
-        args.build_timestamp = datetime.now(timezone.utc)
+        args.build_timestamp = datetime.now(UTC)
 
     if args.slc_daemon:
         SLC = ["slc", "--daemon", "--daemon-timeout", "1"]
