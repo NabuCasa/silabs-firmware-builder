@@ -241,11 +241,6 @@ jobs:
       - name: Build firmware
         id: build-firmware
         run: |
-          # GHA's `container:` sets HOME=/github/home, but slc-cli's adapter-pack
-          # discovery scans $HOME/.silabs/... where slt put everything during the
-          # image build (HOME=/root). Restore it for this step.
-          export HOME=/root
-
           /opt/venv/bin/python3 tools/build_project.py \
             --manifest "${MATRIX_MANIFEST}" \
             --build-dir build \
