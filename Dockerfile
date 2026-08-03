@@ -65,11 +65,8 @@ RUN set -eux \
     && bsdtar -xf sdk.tgz -C "/simplicity_sdk_$SDK_VERSION" \
     && rm -f rrev.json pkgs.json prev.json sdk.tgz
 
-# arm-none-eabi comes from xPack rather than Arm directly: it is the same GCC 14.2.1
-# 20241119, but built against libzstd (which it bundles), and SiLabs ships
-# zstd-compressed LTO bytecode in their precompiled stack libraries. Arm's own binaries
-# omit zstd for AARCH64, which would otherwise mean rebuilding cc1/cc1plus/lto1 from
-# source here.
+# Arm publishes both toolchains that Silicon Labs repackages: arm-none-eabi (GCC) and
+# Arm Toolchain for Embedded (LLVM).
 FROM debian:trixie-slim AS arm-toolchains
 ARG TARGETARCH
 RUN set -eux \
@@ -78,13 +75,13 @@ RUN set -eux \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /opt/toolchains/gcc-arm-none-eabi /opt/toolchains/llvm-arm-none-eabi \
     && if [ "$TARGETARCH" = "arm64" ]; then \
-        aria2c -q -o gcc.tar.gz --checksum=sha-256=a1ac95c8d9347020d61e387e644a2c1806556b77162958a494d2f5f3d5fe7053 \
-            https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/download/v14.2.1-1.1/xpack-arm-none-eabi-gcc-14.2.1-1.1-linux-arm64.tar.gz \
+        aria2c -q -o gcc.tar.xz --checksum=sha-256=87330bab085dd8749d4ed0ad633674b9dc48b237b61069e3b481abd364d0a684 \
+            https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-aarch64-arm-none-eabi.tar.xz \
         && aria2c -q -o atfe.tar.xz --checksum=sha-256=dfd93d7c79f26667f4baf7f388966aa4cbfd938bc5cbcf0ae064553faf3e9604 \
             https://github.com/arm/arm-toolchain/releases/download/release-21.1.1-ATfE/ATfE-21.1.1-Linux-AArch64.tar.xz; \
        else \
-        aria2c -q -o gcc.tar.gz --checksum=sha-256=ed8c7d207a85d00da22b90cf80ab3b0b2c7600509afadf6b7149644e9d4790a6 \
-            https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/download/v14.2.1-1.1/xpack-arm-none-eabi-gcc-14.2.1-1.1-linux-x64.tar.gz \
+        aria2c -q -o gcc.tar.xz --checksum=sha-256=62a63b981fe391a9cbad7ef51b17e49aeaa3e7b0d029b36ca1e9c3b2a9b78823 \
+            https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-eabi.tar.xz \
         && aria2c -q -o atfe.tar.xz --checksum=sha-256=fd7fcc2eb4c88c53b71c45f9c6aa83317d45da5c1b51b0720c66f1ac70151e6e \
             https://github.com/arm/arm-toolchain/releases/download/release-21.1.1-ATfE/ATfE-21.1.1-Linux-x86_64.tar.xz; \
        fi \
@@ -92,11 +89,45 @@ RUN set -eux \
         https://github.com/arm/arm-toolchain/releases/download/release-21.1.1-ATfE/ATfE-newlib-nano-overlay-21.1.1.tar.xz \
     && aria2c -q -o newlib.tar.xz --checksum=sha-256=d9750863c5561c05a57f6df6019efea87e9206c0eef34c4e6441f339824cc908 \
         https://github.com/arm/arm-toolchain/releases/download/release-21.1.1-ATfE/ATfE-newlib-overlay-21.1.1.tar.xz \
-    && bsdtar -xf gcc.tar.gz --strip-components=1 -C /opt/toolchains/gcc-arm-none-eabi \
+    && bsdtar -xf gcc.tar.xz --strip-components=1 -C /opt/toolchains/gcc-arm-none-eabi \
     && bsdtar -xf atfe.tar.xz --strip-components=1 -C /opt/toolchains/llvm-arm-none-eabi \
     && bsdtar -xf nano.tar.xz -C /opt/toolchains/llvm-arm-none-eabi \
     && bsdtar -xf newlib.tar.xz -C /opt/toolchains/llvm-arm-none-eabi \
-    && rm gcc.tar.gz atfe.tar.xz nano.tar.xz newlib.tar.xz
+    && rm gcc.tar.xz atfe.tar.xz nano.tar.xz newlib.tar.xz
+
+# Arm's official aarch64 toolchain was built WITHOUT libzstd and SiLabs uses
+# zstd-compressed LTO bytecode in their precompiled SDK stack libraries. This prevents
+# any compilation from succeeding on ARM64 hosts. We need to build our own minimal
+# toolchain with zstd support to work around this. x86 is not affected.
+FROM debian:trixie-slim AS zstd-gcc-builder
+ARG TARGETARCH
+RUN mkdir -p /opt/zstd-gcc \
+    && if [ "$TARGETARCH" = "arm64" ]; then set -eux \
+        && apt-get update && apt-get install -y --no-install-recommends \
+            build-essential flex bison texinfo gawk libtool autoconf m4 \
+            zlib1g-dev libzstd-dev wget file gettext bzip2 xz-utils ca-certificates git aria2 \
+        && rm -rf /var/lib/apt/lists/* \
+        && mkdir -p /build/src && cd /build \
+        && aria2c --checksum=sha-256=e6405f20f8a817a50d92dbf7974d0ee77708dfdf9e79900a59c5d343b464ef9c -o src.tar.xz \
+            https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.2.rel1/srcrel/arm-gnu-toolchain-src-snapshot-14.2.rel1.tar.xz \
+        && tar -xJf src.tar.xz -C /build/src && rm src.tar.xz \
+        && git clone --depth 1 --branch v1.1.0 \
+            https://git.gitlab.arm.com/tooling/gnu-devtools-for-arm.git /build/src/gnu-devtools-for-arm \
+        && ln -sf src/gnu-devtools-for-arm/build-gnu-toolchain.sh . \
+        # The `start` stage normally creates `install/`. Running stages individually skips
+        # it, so pre-create it or the first `do_config` can't write `install/.build_flags`.
+        && mkdir -p /build/build-arm-none-eabi-armv7e-m/install \
+        # Single multilib, no gdb. Through gcc2 so cc1plus (C++) is built too.
+        && ./build-gnu-toolchain.sh --target=arm-none-eabi --with-arch=armv7e-m \
+            --disable-multilib --disable-gdb \
+            gmp mpfr mpc isl iconv binutils gcc1 newlib gcc2 \
+        && for t in cc1 cc1plus lto1; do \
+             cp "$(find /build -path '*/libexec/gcc/arm-none-eabi/*' -name "$t" | head -1)" /opt/zstd-gcc/; \
+           done \
+        # Strip debug info (Arm ships these stripped; unstripped they are ~340 MB each)
+        && strip /opt/zstd-gcc/* \
+        && rm -rf /build; \
+    fi
 
 # Python virtual environment for the firmware builder script
 FROM debian:trixie-slim AS python-venv
@@ -126,6 +157,8 @@ RUN set -e \
        libpng16-16 \
        libpcre2-16-0 \
        libglib2.0-0 \
+       # Needed at runtime by the zstd-enabled cc1/cc1plus/lto1 swapped in below (ARM64)
+       libzstd1 \
     && rm -rf /var/lib/apt/lists/* \
     # Fix git permission error when building locally
     && git config --global --add safe.directory '*'
@@ -136,6 +169,7 @@ COPY --from=python-venv /opt/venv /opt/venv
 COPY --from=silabs-tools /opt/silabs /opt/silabs
 COPY --from=arm-toolchains /opt/toolchains /opt/toolchains
 COPY --from=silabs-sdk /simplicity_sdk_${SDK_VERSION} /simplicity_sdk_${SDK_VERSION}
+COPY --from=zstd-gcc-builder /opt/zstd-gcc /tmp/zstd-gcc
 RUN set -eux \
     && mkdir -p /opt/silabs/bin \
     && ln -s /opt/silabs/java21/jre/bin/java /opt/silabs/bin/java \
@@ -143,7 +177,12 @@ RUN set -eux \
     && ln -s /opt/silabs/zap/zap /opt/silabs/bin/zap \
     # slc uses $(dirname "$0") to find slc.jar, so it needs a wrapper rather than a symlink
     && printf '#!/bin/sh\nexec /opt/silabs/slc-cli/slc "$@"\n' > /opt/silabs/bin/slc \
-    && chmod +x /opt/silabs/bin/slc
+    && chmod +x /opt/silabs/bin/slc \
+    && if [ "$TARGETARCH" = "arm64" ]; then \
+        cp /tmp/zstd-gcc/cc1 /tmp/zstd-gcc/cc1plus /tmp/zstd-gcc/lto1 \
+            /opt/toolchains/gcc-arm-none-eabi/libexec/gcc/arm-none-eabi/*/; \
+       fi \
+    && rm -rf /tmp/zstd-gcc
 
 # Signal to the firmware builder script that we are running within Docker
 ENV SILABS_FIRMWARE_BUILD_CONTAINER=1
