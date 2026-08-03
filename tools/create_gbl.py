@@ -3,9 +3,7 @@
 
 from __future__ import annotations
 
-import os
 import ast
-import sys
 import json
 import struct
 import pathlib
@@ -376,13 +374,6 @@ def main():
     (artifact_root / "gbl_metadata.json").write_text(
         json.dumps(metadata, sort_keys=True)
     )
-
-    # Make sure the Commander binary is included in the PATH on macOS
-    if sys.platform == "darwin":
-        os.environ["PATH"] += (
-            os.pathsep
-            + "/Applications/Simplicity Studio.app/Contents/Eclipse/developer/adapter_packs/commander/Commander.app/Contents/MacOS"
-        )
 
     commander_args = [
         "commander",

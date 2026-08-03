@@ -30,9 +30,7 @@ yaml = YAML(typ="safe")
 
 
 def evaulate_f_string(f_string: str, variables: dict[str, typing.Any]) -> str:
-    """
-    Evaluates an `f`-string with the given locals.
-    """
+    """Evaluates an `f`-string with the given locals."""
 
     return eval("f" + repr(f_string), variables)
 
@@ -47,53 +45,22 @@ def ensure_folder(path: str | pathlib.Path) -> pathlib.Path:
     return path
 
 
-def is_running_in_docker() -> bool:
-    """Check if we're running inside the Docker build container."""
-    return os.environ.get("SILABS_FIRMWARE_BUILD_CONTAINER") == "1"
-
-
 def get_toolchain_default_paths() -> list[pathlib.Path]:
     """Return the path to the toolchain."""
-    if sys.platform == "darwin":
-        return list(
-            pathlib.Path(
-                "/Applications/Simplicity Studio.app/Contents/Eclipse/developer/toolchains/"
-            ).glob("*/*")
-        )
-
-    if is_running_in_docker():
-        return list(pathlib.Path("/opt/toolchains").glob("*"))
-
-    return []
+    return list(pathlib.Path("/opt/toolchains").glob("*"))
 
 
 def get_apack_default_paths() -> list[pathlib.Path]:
     """Return the folders containing slc adapter packs."""
-    if is_running_in_docker():
-        # slc wants each pack's own folder. Without them it falls back to the SDK's own
-        # apacks, which lack Python, and every template generator silently fails.
-        return [p.parent for p in pathlib.Path("/opt/silabs").glob("*/apack.json")]
 
-    return []
+    # slc wants each pack's own folder. Without them it falls back to the SDK's own
+    # apacks, which lack Python, and every template generator silently fails.
+    return [p.parent for p in pathlib.Path("/opt/silabs").glob("*/apack.json")]
 
 
 def get_sdk_default_paths() -> list[pathlib.Path]:
     """Return the path to the SDK."""
-    if sys.platform == "darwin":
-        return list(pathlib.Path("~/SimplicityStudio/SDKs").expanduser().glob("*_sdk*"))
-
-    if is_running_in_docker():
-        return list(pathlib.Path("/").glob("*_sdk_*"))
-
-    return []
-
-
-def get_default_slc_daemon_flag() -> bool:
-    """Return whether to use the SLC daemon by default."""
-    if is_running_in_docker():
-        return False
-
-    return True
+    return list(pathlib.Path("/").glob("*_sdk_*"))
 
 
 def parse_override(override: str) -> tuple[str, dict | list]:
@@ -406,7 +373,7 @@ def main():
         "--slc-daemon",
         action="store_true",
         dest="slc_daemon",
-        default=get_default_slc_daemon_flag(),
+        default=False,
         help="Whether to use the SLC daemon for the build",
     )
     parser.add_argument(
