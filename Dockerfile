@@ -1,17 +1,99 @@
-# FEX emulates the x86_64-only `slt` and `conan` binaries on ARM64. Debian has no
-# fex-emu package and the Ubuntu PPA keeps only the newest build per series, so we take
-# Fedora's. It links against a newer libfmt than Debian ships, so that comes along too.
-#
-# We can remove this once SiLabs releases builds of `slt` and `conan` for ARM64 Linux.
-FROM fedora:42 AS fex-builder
+# Simplicity Commander, slc-cli, ZAP, a JRE and a Python interpreter are published on
+# Silicon Labs' update site as native builds for both architectures. Fetching them directly
+# avoids `slt`, which is x86_64-only and would otherwise have to be emulated on ARM64.
+FROM debian:trixie-slim AS silabs-tools
 ARG TARGETARCH
-RUN mkdir -p /fex/bin /fex/lib \
-    && if [ "$TARGETARCH" = "arm64" ]; then set -eux \
-        && dnf -y install --setopt=install_weak_deps=False fex-emu \
-        && cp /usr/bin/FEX /usr/bin/FEXServer /fex/bin/ \
-        && cp -aL /usr/lib64/libfmt.so.11 /fex/lib/ \
-        && dnf clean all; \
-    fi
+RUN set -eux \
+    && apt-get update && apt-get install -y --no-install-recommends \
+        aria2 ca-certificates libarchive-tools \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /opt/silabs/commander /opt/silabs/slc-cli /opt/silabs/zap \
+                /opt/silabs/java21 /opt/silabs/python \
+    && if [ "$TARGETARCH" = "arm64" ]; then \
+        aria2c -q -o python.zip --checksum=sha-256=0bd0334fead1e3c2647b6c09b9801b214ab3b999e9e6a9d13553ff57c1e04bb2 \
+            https://updates.silabs.com/studio/v6/updates/update_site/archives/python/3.10.3/python.3.10.gtk.linux.aarch64.zip \
+        && aria2c -q -o slc.zip --checksum=sha-256=5d13e09e605e5dfb94abeb0773055647764bb30d746916f3fc3991a48282a6ba \
+            https://updates.silabs.com/studio/v6/updates/update_site/archives/slc-cli/6.0.22/slc-cli.linux.gtk.aarch64.zip \
+        && aria2c -q -o zap.zip --checksum=sha-256=15c5263ea98a1162e655ad5fb154a4f0e62047b6382a889f9e986f570c30c45b \
+            https://updates.silabs.com/studio/v6/updates/update_site/archives/zap/2026.06.17/zap-linux-arm64.zip \
+        && aria2c -q -o jre.zip --checksum=sha-256=61b4be111fe14d7a9138de920047489c679c7a697320cf69d28b23046edbaf73 \
+            https://updates.silabs.com/studio/v6/updates/update_site/archives/java21/21.0.6/linux.aarch64_21.0.6.zip \
+        && aria2c -q -o commander.tar.bz --checksum=sha-256=99fd45e5064b00ace957b4d12c00bb3c3b33845b4e65793fde99d4960004e091 \
+            https://updates.silabs.com/studio/v6/updates/update_site/archives/commander/1.24.1/Commander_linux_aarch64_1v24p1b1980.tar.bz; \
+       else \
+        aria2c -q -o python.zip --checksum=sha-256=26f56b1cfa05b2b3b7dafb2c2a5e3c19498389c34dfe68be800f71f476c86363 \
+            https://updates.silabs.com/studio/v6/updates/update_site/archives/python/3.10.3/python.3.10.3.gtk.linux.x86_64.zip \
+        && aria2c -q -o slc.zip --checksum=sha-256=f05e078b369d7e7dbfa31bdd2ad8edf61f04a9291393deab4702137639ba7d19 \
+            https://updates.silabs.com/studio/v6/updates/update_site/archives/slc-cli/6.0.22/slc-cli.linux.gtk.x86_64.zip \
+        && aria2c -q -o zap.zip --checksum=sha-256=45537226973fb892894f7110288dd4a7db627728af8cd9fc7c27b658530e2b88 \
+            https://updates.silabs.com/studio/v6/updates/update_site/archives/zap/2026.06.17/zap-linux-x64.zip \
+        && aria2c -q -o jre.zip --checksum=sha-256=5382fa98bcc66fc3aef48792a3e84328eca16afa9bf97517527e92812516ee50 \
+            https://updates.silabs.com/studio/v6/updates/update_site/archives/java21/21.0.6/linux.x86_64_21.0.6.zip \
+        && aria2c -q -o commander.tar.bz --checksum=sha-256=3ba24eeaeb560e9db306a4d070e2bbe40b456701b4b87c53643a93ab1101b2c4 \
+            https://updates.silabs.com/studio/v6/updates/update_site/archives/commander/1.24.1/Commander_linux_x86_64_1v24p1b1980.tar.bz; \
+       fi \
+    # slc runs the SDK's template generators with this Python, which it finds as an adapter
+    # pack rather than on PATH
+    && bsdtar -xf python.zip --strip-components=1 -C /opt/silabs/python \
+    && bsdtar -xf slc.zip --strip-components=1 -C /opt/silabs/slc-cli \
+    && bsdtar -xf zap.zip -C /opt/silabs/zap \
+    && bsdtar -xf jre.zip --strip-components=1 -C /opt/silabs/java21 \
+    && bsdtar -xf commander.tar.bz --strip-components=1 -C /opt/silabs/commander \
+    && rm python.zip slc.zip zap.zip jre.zip commander.tar.bz
+
+# The SDK is a conan package, but conan is not needed to fetch one: the recipe revision,
+# package id and package revision are all discoverable over its REST API. Those revisions
+# are content hashes, so the URL is already pinned to exactly these bytes.
+FROM debian:trixie-slim AS silabs-sdk
+ARG SDK_VERSION=2026.6.1
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+RUN set -eux \
+    && apt-get update && apt-get install -y --no-install-recommends \
+        aria2 ca-certificates jq libarchive-tools \
+    && rm -rf /var/lib/apt/lists/* \
+    && cd /tmp \
+    && SDK="https://conan.silabs.net/v2/conans/simplicity-sdk/$SDK_VERSION/silabs/_" \
+    && aria2c -q -o rrev.json "$SDK/latest" \
+    && RREV=$(jq -r .revision rrev.json) \
+    && aria2c -q -o pkgs.json "$SDK/revisions/$RREV/search" \
+    && PKG=$(jq -r 'keys[0]' pkgs.json) \
+    && aria2c -q -o prev.json "$SDK/revisions/$RREV/packages/$PKG/latest" \
+    && PREV=$(jq -r .revision prev.json) \
+    && aria2c -q -x4 -o sdk.tgz "$SDK/revisions/$RREV/packages/$PKG/revisions/$PREV/files/conan_package.tgz" \
+    && mkdir -p "/simplicity_sdk_$SDK_VERSION" \
+    && bsdtar -xf sdk.tgz -C "/simplicity_sdk_$SDK_VERSION" \
+    && rm -f rrev.json pkgs.json prev.json sdk.tgz
+
+# Arm publishes both toolchains that Silicon Labs repackages: arm-none-eabi (GCC) and
+# Arm Toolchain for Embedded (LLVM).
+FROM debian:trixie-slim AS arm-toolchains
+ARG TARGETARCH
+RUN set -eux \
+    && apt-get update && apt-get install -y --no-install-recommends \
+        aria2 ca-certificates libarchive-tools \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /opt/toolchains/gcc-arm-none-eabi /opt/toolchains/llvm-arm-none-eabi \
+    && if [ "$TARGETARCH" = "arm64" ]; then \
+        aria2c -q -o gcc.tar.xz --checksum=sha-256=87330bab085dd8749d4ed0ad633674b9dc48b237b61069e3b481abd364d0a684 \
+            https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-aarch64-arm-none-eabi.tar.xz \
+        && aria2c -q -o atfe.tar.xz --checksum=sha-256=dfd93d7c79f26667f4baf7f388966aa4cbfd938bc5cbcf0ae064553faf3e9604 \
+            https://github.com/arm/arm-toolchain/releases/download/release-21.1.1-ATfE/ATfE-21.1.1-Linux-AArch64.tar.xz; \
+       else \
+        aria2c -q -o gcc.tar.xz --checksum=sha-256=62a63b981fe391a9cbad7ef51b17e49aeaa3e7b0d029b36ca1e9c3b2a9b78823 \
+            https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-eabi.tar.xz \
+        && aria2c -q -o atfe.tar.xz --checksum=sha-256=fd7fcc2eb4c88c53b71c45f9c6aa83317d45da5c1b51b0720c66f1ac70151e6e \
+            https://github.com/arm/arm-toolchain/releases/download/release-21.1.1-ATfE/ATfE-21.1.1-Linux-x86_64.tar.xz; \
+       fi \
+    && aria2c -q -o nano.tar.xz --checksum=sha-256=7b70739b5f5ec0172b379de458daa97f063aa90f7eb1c5f543e2923a72dfce42 \
+        https://github.com/arm/arm-toolchain/releases/download/release-21.1.1-ATfE/ATfE-newlib-nano-overlay-21.1.1.tar.xz \
+    && aria2c -q -o newlib.tar.xz --checksum=sha-256=d9750863c5561c05a57f6df6019efea87e9206c0eef34c4e6441f339824cc908 \
+        https://github.com/arm/arm-toolchain/releases/download/release-21.1.1-ATfE/ATfE-newlib-overlay-21.1.1.tar.xz \
+    && bsdtar -xf gcc.tar.xz --strip-components=1 -C /opt/toolchains/gcc-arm-none-eabi \
+    && bsdtar -xf atfe.tar.xz --strip-components=1 -C /opt/toolchains/llvm-arm-none-eabi \
+    && bsdtar -xf nano.tar.xz -C /opt/toolchains/llvm-arm-none-eabi \
+    && bsdtar -xf newlib.tar.xz -C /opt/toolchains/llvm-arm-none-eabi \
+    && rm gcc.tar.xz atfe.tar.xz nano.tar.xz newlib.tar.xz
 
 # Arm's official aarch64 toolchain was built WITHOUT libzstd and SiLabs uses
 # zstd-compressed LTO bytecode in their precompiled SDK stack libraries. This prevents
@@ -54,150 +136,22 @@ COPY requirements.txt /tmp/
 RUN UV_PYTHON_INSTALL_DIR=/opt/pythons uv venv -p 3.14 /opt/venv --no-cache \
     && uv pip install --python /opt/venv -r /tmp/requirements.txt
 
-# Install slt and all toolchain packages (depends on FEX for ARM64)
-FROM debian:trixie-slim AS slt-toolchain
-ARG TARGETARCH
-
-# Copy FEX (only used on ARM64)
-COPY --from=fex-builder /fex /tmp/fex
-
-# Set up slt and conan
-RUN set -e \
-    && apt-get update && apt-get install -y --no-install-recommends \
-        aria2 \
-        ca-certificates \
-        # Required by conan
-        libarchive-tools \
-        bzip2 \
-        unzip \
-        jq \
-    && rm -rf /var/lib/apt/lists/* \
-    # slt-cli is x64 only but runs fine with FEX
-    && aria2c --checksum=sha-256=2b9941216a3549aea6c5cc76565e2bc91ebfd9f41bec1e026341ce47c3aca1d0 -o slt.zip \
-        https://www.silabs.com/documents/public/software/slt-cli-1.1.2-linux-x64.zip \
-    && bsdtar -xf slt.zip -C /usr/bin && rm slt.zip \
-    && chmod +x /usr/bin/slt \
-    && if [ "$TARGETARCH" = "arm64" ]; then \
-        cp /tmp/fex/bin/* /usr/bin/ \
-        && cp /tmp/fex/lib/* /usr/lib/aarch64-linux-gnu/ \
-        && dpkg --add-architecture amd64 \
-        && apt-get update \
-        && apt-get install -y --no-install-recommends libc6:amd64 zlib1g:amd64 \
-        && rm -rf /var/lib/apt/lists/* \
-        # slt needs to be emulated. FEX intercepts the execve() of conan_engine during
-        # installation and re-runs it under FEX, so no wrapper is needed for it. Native
-        # tools (tar, etc.) that slt spawns are passed straight through to the kernel.
-        #
-        # GODEBUG=asyncpreemptoff=1 is needed for correctness, not speed: FEX mishandles
-        # the SIGURG Go uses to preempt goroutines and `slt` corrupts its own memory in
-        # most runs without it. Exported so the conan_engine child inherits it.
-        && mv /usr/bin/slt /usr/bin/slt-bin \
-        && printf '#!/bin/sh\nexport GODEBUG=asyncpreemptoff=1\nexec /usr/bin/FEX /usr/bin/slt-bin "$@"\n' > /usr/bin/slt \
-        && chmod +x /usr/bin/slt \
-        # Install conan
-        && slt --non-interactive install conan \
-        # Patch slt to select ARM64 packages for subsequent installs
-        && sed -i 's/amd6/arm6/g' /usr/bin/slt-bin \
-        # Force conan to use the ARM64 profile for downloading packages
-        && cp /root/.silabs/slt/installs/conan/profiles/linux_arm64 /root/.silabs/slt/installs/conan/profiles/default \
-        # Replace bundled conan with native conan 2.21.0, it uses Python to extract archives which is slow to emulate
-        && aria2c --checksum=sha-256=2f356826c4c633f24355f4cb1d54a980a23c1912c0bcab54a771913af3b753b5 -o conan-2.21.0.tgz \
-            https://github.com/conan-io/conan/releases/download/2.21.0/conan-2.21.0-linux-aarch64.tgz \
-        && rm -rf /root/.silabs/slt/engines/conan/conan \
-        && mkdir /root/.silabs/slt/engines/conan/conan \
-        && bsdtar -xf conan-2.21.0.tgz --strip-components=1 -C /root/.silabs/slt/engines/conan/conan \
-        && rm conan-2.21.0.tgz; \
-    else \
-        slt --non-interactive install conan; \
-    fi \
-    && rm -rf /tmp/fex
-
-# Silicon Labs has suddenly stopped serving binary ARM64 packages for Windows and Linux.
-# Rebuild them from the upstream recipes. They rely on OSS binary distributions and are
-# binary-identical to the SiLabs builds.
-RUN if [ "$TARGETARCH" = "arm64" ]; then set -eux \
-    && export CONAN_HOME=/root/.silabs/slt/installs/conan \
-    && CONAN=/root/.silabs/slt/engines/conan/conan/conan \
-    && for spec in \
-        "cmake:3.30.2" \
-        "ninja:1.12.1" \
-        "gcc-arm-none-eabi:14.2.rel1" \
-        "llvm-arm-toolchain-for-embedded:21.1.1" \
-       ; do \
-        n="${spec%%:*}"; v="${spec#*:}"; u="https://conan.silabs.net/v2/conans/$n/$v/silabs/_" \
-        && mkdir -p "/rebuild/$n" && cd "/rebuild/$n" \
-        && aria2c -q -o latest.json "$u/latest" \
-        && r=$(jq -r .revision latest.json) \
-        && aria2c -q -o conanfile.py "$u/revisions/$r/files/conanfile.py" \
-        # gcc-arm-none-eabi is the one recipe that pulls from SiLabs' internal
-        # Artifactory (artifactory-local.silabs.net, not publicly resolvable).
-        && if [ "$n" = "gcc-arm-none-eabi" ]; then \
-             sed -i 's|linux_url = f"{artifactory_path}/gcc-arm-none-eabi-{package_version}-linux"|linux_url = f"https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/{package_version}/binrel"|' conanfile.py \
-             && grep -q armkeil conanfile.py; \
-           fi \
-        # gcc-arm-none-eabi's recipe derives its version from `git describe` when none
-        # is given, which would self-name the package 0.0.1-initial-build.
-        && "$CONAN" export . --version="$v" --user=silabs \
-        && "$CONAN" install --requires="$n/$v@silabs" -pr:h=default -pr:b=default --build="$n/*" \
-       ; done \
-    # cd out of /rebuild first: conan resolves a workspace folder by walking up from the
-    # cwd, and dies with FileNotFoundError if the cwd has been deleted underneath it.
-    && cd / \
-    && rm -rf /rebuild \
-    # Drop conan's retained build/source trees in the same layer that created them,
-    # otherwise the ~1.1 GB stays in this layer no matter where it is deleted later.
-    # This also leaves a single copy of the ARM toolchain, so the cc1/cc1plus/lto1 swap
-    # in the final stage cannot patch a build-folder copy instead of the package.
-    && "$CONAN" cache clean --source --build --temp; \
-    fi
-
-# Install toolchain via slt
-RUN set -e \
-    && slt --non-interactive install \
-        cmake/3.30.2 \
-        ninja/1.12.1 \
-        commander/1.24.1 \
-        slc-cli/6.0.22 \
-        simplicity-sdk/2026.6.1 \
-        zap/2026.06.17 \
-    # We don't currently use the LLVM toolchain that is pulled in as a default
-    # dependency. Uninstall it to save space.
-    && slt --non-interactive uninstall --force llvm-arm-toolchain-for-embedded \
-    # Clean up download caches to reduce image size
-    && rm -rf /root/.silabs/slt/installs/archive/*.zip \
-              /root/.silabs/slt/installs/archive/*.tar.* \
-              /root/.silabs/slt/installs/conan/p/*/d/ \
-              /root/.silabs/slt/installs/conan/download_cache \
-    # Create stable symlinks and wrappers to make the tools available in PATH
-    && mkdir -p /root/.silabs/slt/bin \
-    && ln -s "$(slt where java21)/jre/bin/java" /root/.silabs/slt/bin/java \
-    && ln -s "$(slt where commander)/commander" /root/.silabs/slt/bin/commander \
-    && ln -s "$(slt where cmake)/bin/cmake" /root/.silabs/slt/bin/cmake \
-    && ln -s "$(slt where ninja)/ninja" /root/.silabs/slt/bin/ninja \
-    # slc needs a wrapper script because it uses $(dirname "$0") to find slc.jar
-    && printf '#!/bin/sh\nexec "%s/slc" "$@"\n' "$(slt where slc-cli)" > /root/.silabs/slt/bin/slc \
-    && chmod +x /root/.silabs/slt/bin/slc
-
 # Final image
 FROM debian:trixie-slim
 ARG TARGETARCH
+ARG SDK_VERSION=2026.6.1
 
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
 # Install only runtime packages
 RUN set -e \
-    # Install x86_64 libraries for FEX on ARM64
-    && if [ "$TARGETARCH" = "arm64" ]; then \
-        dpkg --add-architecture amd64 \
-        && apt-get update \
-        && apt-get install -y --no-install-recommends libc6:amd64 zlib1g:amd64; \
-    else \
-        apt-get update; \
-    fi \
+    && apt-get update \
     && apt-get install -y --no-install-recommends \
        ca-certificates \
        git \
+       cmake \
+       ninja-build \
        libstdc++6 \
        libgl1 \
        libpng16-16 \
@@ -212,22 +166,28 @@ RUN set -e \
 # Copy from parallel stages
 COPY --from=python-venv /opt/pythons /opt/pythons
 COPY --from=python-venv /opt/venv /opt/venv
-COPY --from=fex-builder /fex /tmp/fex
-COPY --from=slt-toolchain /usr/bin/slt* /usr/bin/
-COPY --from=slt-toolchain /root/.silabs /root/.silabs
+COPY --from=silabs-tools /opt/silabs /opt/silabs
+COPY --from=arm-toolchains /opt/toolchains /opt/toolchains
+COPY --from=silabs-sdk /simplicity_sdk_${SDK_VERSION} /simplicity_sdk_${SDK_VERSION}
 COPY --from=zstd-gcc-builder /opt/zstd-gcc /tmp/zstd-gcc
-RUN if [ "$TARGETARCH" = "arm64" ]; then set -eux \
-        && cp /tmp/fex/bin/* /usr/bin/ \
-        && cp /tmp/fex/lib/* /usr/lib/aarch64-linux-gnu/ \
-        && d="$(dirname "$(find /root/.silabs -path '*/libexec/gcc/arm-none-eabi/*' -name lto1 | head -1)")" \
-        && cp /tmp/zstd-gcc/cc1 /tmp/zstd-gcc/cc1plus /tmp/zstd-gcc/lto1 "$d/"; \
-    fi \
-    && rm -rf /tmp/fex /tmp/zstd-gcc
+RUN set -eux \
+    && mkdir -p /opt/silabs/bin \
+    && ln -s /opt/silabs/java21/jre/bin/java /opt/silabs/bin/java \
+    && ln -s /opt/silabs/commander/commander /opt/silabs/bin/commander \
+    && ln -s /opt/silabs/zap/zap /opt/silabs/bin/zap \
+    # slc uses $(dirname "$0") to find slc.jar, so it needs a wrapper rather than a symlink
+    && printf '#!/bin/sh\nexec /opt/silabs/slc-cli/slc "$@"\n' > /opt/silabs/bin/slc \
+    && chmod +x /opt/silabs/bin/slc \
+    && if [ "$TARGETARCH" = "arm64" ]; then \
+        cp /tmp/zstd-gcc/cc1 /tmp/zstd-gcc/cc1plus /tmp/zstd-gcc/lto1 \
+            /opt/toolchains/gcc-arm-none-eabi/libexec/gcc/arm-none-eabi/*/; \
+       fi \
+    && rm -rf /tmp/zstd-gcc
 
 # Signal to the firmware builder script that we are running within Docker
 ENV SILABS_FIRMWARE_BUILD_CONTAINER=1
 ENV HOME=/root
-ENV PATH="$PATH:/root/.silabs/slt/bin"
+ENV PATH="$PATH:/opt/silabs/bin"
 
 WORKDIR /repo
 

@@ -62,16 +62,17 @@ def get_toolchain_default_paths() -> list[pathlib.Path]:
         )
 
     if is_running_in_docker():
-        root = pathlib.Path("/root/.silabs/slt/installs/conan/p")
+        return list(pathlib.Path("/opt/toolchains").glob("*"))
 
-        return (
-            list(root.glob("gcc-*/p"))
-            + list(root.glob("llvm-*/p"))
-            # Conan unpacks downloaded packages at the top level but keeps ones it built
-            # itself under `b/`
-            + list(root.glob("b/gcc-*/p"))
-            + list(root.glob("b/llvm-*/p"))
-        )
+    return []
+
+
+def get_apack_default_paths() -> list[pathlib.Path]:
+    """Return the folders containing slc adapter packs."""
+    if is_running_in_docker():
+        # slc wants each pack's own folder. Without them it falls back to the SDK's own
+        # apacks, which lack Python, and every template generator silently fails.
+        return [p.parent for p in pathlib.Path("/opt/silabs").glob("*/apack.json")]
 
     return []
 
@@ -82,11 +83,7 @@ def get_sdk_default_paths() -> list[pathlib.Path]:
         return list(pathlib.Path("~/SimplicityStudio/SDKs").expanduser().glob("*_sdk*"))
 
     if is_running_in_docker():
-        paths = list(pathlib.Path("/").glob("*_sdk_*"))
-        paths += list(
-            pathlib.Path("/root/.silabs/slt/installs/conan/p").glob("simpl*/p")
-        )
-        return paths
+        return list(pathlib.Path("/").glob("*_sdk_*"))
 
     return []
 
@@ -376,6 +373,14 @@ def main():
         help="Path to a GCC toolchain",
     )
     parser.add_argument(
+        "--tool-path",
+        action="append",
+        dest="tool_paths",
+        type=ensure_folder,
+        default=get_apack_default_paths(),
+        help="Path to a folder containing an slc adapter pack",
+    )
+    parser.add_argument(
         "--postbuild",
         default=pathlib.Path(__file__).parent / "create_gbl.py",
         required=False,
@@ -597,7 +602,9 @@ def main():
             "--toolchain", "toolchain_llvm" if is_llvm else "toolchain_gcc",
             "--sdk", sdk,
             "--output-type", "vscode",
-        ],
+        ]
+        + [f"--tool-path={p}" for p in args.tool_paths]
+        + [f"--toolchain-locations={'llvm' if is_llvm else 'gcc'}:{toolchain}"],
         "slc generate",
         env={
             **os.environ,
@@ -845,6 +852,8 @@ def main():
             "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}",
             ("ARM_LLVM_DIR" if is_llvm else "ARM_GCC_DIR"): toolchain,
             "NINJA_EXE_PATH": shutil.which("ninja"),
+            # The SDK's generated cmake otherwise resolves this with `slt where commander`
+            "POST_BUILD_EXE": shutil.which("commander"),
             "SOURCE_DATE_EPOCH": str(int(args.build_timestamp.timestamp())),
         },
         cwd=cmake_dir,
