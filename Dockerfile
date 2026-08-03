@@ -1,12 +1,31 @@
+# syntax=docker/dockerfile:1
+
+# Keep the tag date and snapshot ID equal: the dated image is built from that snapshot,
+# and an index older than the rootfs produces dependency conflicts.
+ARG DEBIAN_TAG=trixie-20260713-slim
+ARG DEBIAN_DIGEST=sha256:020c0d20b9880058cbe785a9db107156c3c75c2ac944a6aa7ab59f2add76a7bd
+ARG DEBIAN_SNAPSHOT=20260713T000000Z
+
+FROM debian:${DEBIAN_TAG}@${DEBIAN_DIGEST} AS trixie-stable
+ARG DEBIAN_SNAPSHOT
+RUN set -eux \
+    && printf '%s\n' \
+        "APT::Snapshot \"${DEBIAN_SNAPSHOT}\";" \
+        'Acquire::Check-Valid-Until "false";' \
+        'Acquire::Snapshots::URI::Host::deb.debian.org "http://snapshot.debian.org/archive/@PATH@/@SNAPSHOTID@/";' \
+        'Acquire::Snapshots::URI::Origin::Debian "http://snapshot.debian.org/archive/debian/@SNAPSHOTID@/";' \
+        'Acquire::Snapshots::URI::Override::Label::Debian-Security "http://snapshot.debian.org/archive/debian-security/@SNAPSHOTID@/";' \
+        > /etc/apt/apt.conf.d/80snapshot \
+    && apt-get update
+
 # Simplicity Commander, slc-cli, ZAP, a JRE and a Python interpreter are published on
 # Silicon Labs' update site as native builds for both architectures. Fetching them directly
 # avoids `slt`, which is x86_64-only and would otherwise have to be emulated on ARM64.
-FROM debian:trixie-slim AS silabs-tools
+FROM trixie-stable AS silabs-tools
 ARG TARGETARCH
 RUN set -eux \
-    && apt-get update && apt-get install -y --no-install-recommends \
+    && apt-get install -y --no-install-recommends \
         aria2 ca-certificates libarchive-tools \
-    && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /opt/silabs/commander /opt/silabs/slc-cli /opt/silabs/zap \
                 /opt/silabs/java21 /opt/silabs/python \
     && if [ "$TARGETARCH" = "arm64" ]; then \
@@ -44,14 +63,13 @@ RUN set -eux \
 # The SDK is a conan package, but conan is not needed to fetch one: the recipe revision,
 # package id and package revision are all discoverable over its REST API. Those revisions
 # are content hashes, so the URL is already pinned to exactly these bytes.
-FROM debian:trixie-slim AS silabs-sdk
+FROM trixie-stable AS silabs-sdk
 ARG SDK_VERSION=2026.6.1
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 RUN set -eux \
-    && apt-get update && apt-get install -y --no-install-recommends \
+    && apt-get install -y --no-install-recommends \
         aria2 ca-certificates jq libarchive-tools \
-    && rm -rf /var/lib/apt/lists/* \
     && cd /tmp \
     && SDK="https://conan.silabs.net/v2/conans/simplicity-sdk/$SDK_VERSION/silabs/_" \
     && aria2c -q -o rrev.json "$SDK/latest" \
@@ -67,12 +85,11 @@ RUN set -eux \
 
 # Arm publishes both toolchains that Silicon Labs repackages: arm-none-eabi (GCC) and
 # Arm Toolchain for Embedded (LLVM).
-FROM debian:trixie-slim AS arm-toolchains
+FROM trixie-stable AS arm-toolchains
 ARG TARGETARCH
 RUN set -eux \
-    && apt-get update && apt-get install -y --no-install-recommends \
+    && apt-get install -y --no-install-recommends \
         aria2 ca-certificates libarchive-tools \
-    && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /opt/toolchains/gcc-arm-none-eabi /opt/toolchains/llvm-arm-none-eabi \
     && if [ "$TARGETARCH" = "arm64" ]; then \
         aria2c -q -o gcc.tar.xz --checksum=sha-256=87330bab085dd8749d4ed0ad633674b9dc48b237b61069e3b481abd364d0a684 \
@@ -99,14 +116,13 @@ RUN set -eux \
 # zstd-compressed LTO bytecode in their precompiled SDK stack libraries. This prevents
 # any compilation from succeeding on ARM64 hosts. We need to build our own minimal
 # toolchain with zstd support to work around this. x86 is not affected.
-FROM debian:trixie-slim AS zstd-gcc-builder
+FROM trixie-stable AS zstd-gcc-builder
 ARG TARGETARCH
 RUN mkdir -p /opt/zstd-gcc \
     && if [ "$TARGETARCH" = "arm64" ]; then set -eux \
-        && apt-get update && apt-get install -y --no-install-recommends \
+        && apt-get install -y --no-install-recommends \
             build-essential flex bison texinfo gawk libtool autoconf m4 \
             zlib1g-dev libzstd-dev wget file gettext bzip2 xz-utils ca-certificates git aria2 \
-        && rm -rf /var/lib/apt/lists/* \
         && mkdir -p /build/src && cd /build \
         && aria2c --checksum=sha-256=e6405f20f8a817a50d92dbf7974d0ee77708dfdf9e79900a59c5d343b464ef9c -o src.tar.xz \
             https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.2.rel1/srcrel/arm-gnu-toolchain-src-snapshot-14.2.rel1.tar.xz \
@@ -130,22 +146,24 @@ RUN mkdir -p /opt/zstd-gcc \
     fi
 
 # Python virtual environment for the firmware builder script
-FROM debian:trixie-slim AS python-venv
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/bin/
+FROM trixie-stable AS python-venv
+COPY --from=ghcr.io/astral-sh/uv:0.12.1 /uv /uvx /usr/bin/
 COPY requirements.txt /tmp/
-RUN UV_PYTHON_INSTALL_DIR=/opt/pythons uv venv -p 3.14 /opt/venv --no-cache \
+RUN UV_PYTHON_INSTALL_DIR=/opt/pythons uv venv -p 3.14.6 /opt/venv --no-cache \
     && uv pip install --python /opt/venv -r /tmp/requirements.txt
 
-# Final image
-FROM debian:trixie-slim
+# This stage ships, so the index is bind-mounted rather than inherited: `FROM
+# trixie-stable` would carry its 41 MB of lists into the image permanently.
+FROM debian:${DEBIAN_TAG}@${DEBIAN_DIGEST}
 ARG TARGETARCH
 
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
 # Install only runtime packages
-RUN set -e \
-    && apt-get update \
+COPY --from=trixie-stable /etc/apt/apt.conf.d/80snapshot /etc/apt/apt.conf.d/80snapshot
+RUN --mount=type=bind,from=trixie-stable,source=/var/lib/apt/lists,target=/var/lib/apt/lists,rw \
+    set -e \
     && apt-get install -y --no-install-recommends \
        ca-certificates \
        git \
@@ -158,7 +176,6 @@ RUN set -e \
        libglib2.0-0 \
        # Needed at runtime by the zstd-enabled cc1/cc1plus/lto1 swapped in below (ARM64)
        libzstd1 \
-    && rm -rf /var/lib/apt/lists/* \
     # Fix git permission error when building locally
     && git config --global --add safe.directory '*'
 
@@ -184,7 +201,6 @@ RUN set -eux \
     && rm -rf /tmp/zstd-gcc
 
 # Signal to the firmware builder script that we are running within Docker
-ENV SILABS_FIRMWARE_BUILD_CONTAINER=1
 ENV HOME=/root
 ENV PATH="$PATH:/opt/silabs/bin"
 
