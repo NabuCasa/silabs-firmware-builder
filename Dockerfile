@@ -175,9 +175,7 @@ RUN --mount=type=bind,from=trixie-stable,source=/var/lib/apt/lists,target=/var/l
        libpcre2-16-0 \
        libglib2.0-0 \
        # Needed at runtime by the zstd-enabled cc1/cc1plus/lto1 swapped in below (ARM64)
-       libzstd1 \
-    # Fix git permission error when building locally
-    && git config --global --add safe.directory '*'
+       libzstd1
 
 # Copy from parallel stages
 COPY --from=python-venv /opt/pythons /opt/pythons
@@ -198,7 +196,8 @@ RUN set -eux \
         cp /tmp/zstd-gcc/cc1 /tmp/zstd-gcc/cc1plus /tmp/zstd-gcc/lto1 \
             /opt/toolchains/gcc-arm-none-eabi/libexec/gcc/arm-none-eabi/*/; \
        fi \
-    && rm -rf /tmp/zstd-gcc
+    && rm -rf /tmp/zstd-gcc \
+    && git config --system --add safe.directory '*'
 
 # Signal to the firmware builder script that we are running within Docker
 ENV HOME=/root
