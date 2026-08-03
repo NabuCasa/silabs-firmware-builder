@@ -3,16 +3,16 @@
 
 from __future__ import annotations
 
+import argparse
 import ast
 import json
-import struct
 import pathlib
-import argparse
+import struct
 import subprocess
-
 from typing import BinaryIO
-from ruamel.yaml import YAML
+
 from elftools.elf.elffile import ELFFile
+from ruamel.yaml import YAML
 
 
 def _jump_to_elf_symbol(file: BinaryIO, symbol_name: str) -> tuple[ELFFile, int, int]:
@@ -49,7 +49,7 @@ def read_elf_symbol(file: BinaryIO, symbol_name: str) -> bytes:
     """
     Read an ELF symbol.
     """
-    elf, offset, size = _jump_to_elf_symbol(file, symbol_name)
+    _elf, offset, size = _jump_to_elf_symbol(file, symbol_name)
 
     file.seek(offset)
     return file.read(size)
@@ -59,7 +59,7 @@ def modify_elf_symbol(file: BinaryIO, symbol_name: str, value: bytes) -> None:
     """
     Modify an ELF symbol.
     """
-    elf, offset, size = _jump_to_elf_symbol(file, symbol_name)
+    _elf, offset, size = _jump_to_elf_symbol(file, symbol_name)
     assert len(value) == size
 
     file.seek(offset)
@@ -212,7 +212,7 @@ def main():
     if "ezsp_version" in gbl_dynamic:
         gbl_dynamic.remove("ezsp_version")
 
-        elf = list(build_dir.glob("*.out"))[0]
+        elf = next(iter(build_dir.glob("*.out")))
         with elf.open("rb") as f:
             # Try new SDK symbol name first, fall back to old
             try:

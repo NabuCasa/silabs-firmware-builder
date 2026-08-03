@@ -3,25 +3,24 @@
 
 from __future__ import annotations
 
-import os
-import re
-import ast
-import sys
-import json
-import time
-import shutil
-import typing
-import hashlib
-import logging
-import pathlib
 import argparse
+import ast
 import contextlib
+import hashlib
+import json
+import logging
+import os
+import pathlib
+import re
+import shutil
 import subprocess
+import sys
+import time
+import typing
 from datetime import datetime, timezone
 
-from ruamel.yaml import YAML
 from elftools.elf.elffile import ELFFile
-
+from ruamel.yaml import YAML
 
 LOGGER = logging.getLogger(__name__)
 

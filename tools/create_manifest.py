@@ -3,14 +3,13 @@
 
 from __future__ import annotations
 
-import re
-import sys
+import argparse
+import hashlib
 import json
 import logging
-import hashlib
 import pathlib
-import argparse
-
+import re
+import sys
 from datetime import datetime, timezone
 
 from universal_silabs_flasher.firmware import parse_firmware_image
@@ -104,7 +103,7 @@ def main():
             "metadata_version",
         }
         assert len(version_keys) == 1
-        version_key = list(version_keys)[0]
+        version_key = next(iter(version_keys))
 
         version = fw["metadata"][version_key]
 
