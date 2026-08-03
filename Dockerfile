@@ -148,9 +148,9 @@ RUN mkdir -p /opt/zstd-gcc \
 # Python virtual environment for the firmware builder script
 FROM trixie-stable AS python-venv
 COPY --from=ghcr.io/astral-sh/uv:0.12.1 /uv /uvx /usr/bin/
-COPY requirements.txt /tmp/
-RUN UV_PYTHON_INSTALL_DIR=/opt/pythons uv venv -p 3.14.6 /opt/venv --no-cache \
-    && uv pip install --python /opt/venv -r /tmp/requirements.txt
+COPY pyproject.toml uv.lock /tmp/project/
+RUN UV_PYTHON_INSTALL_DIR=/opt/pythons UV_PROJECT_ENVIRONMENT=/opt/venv \
+    uv sync --project /tmp/project --frozen --no-dev --no-cache -p 3.14.6
 
 # This stage ships, so the index is bind-mounted rather than inherited: `FROM
 # trixie-stable` would carry its 41 MB of lists into the image permanently.
