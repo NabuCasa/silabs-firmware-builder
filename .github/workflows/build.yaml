@@ -21,8 +21,10 @@ jobs:
     name: Run pre-commit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
       - name: Install pre-commit
         run: |
           pip install pre-commit
@@ -43,9 +45,11 @@ jobs:
       build_image: ${{ steps.read-repo-info.outputs.build_image }}
       build_matrix: ${{ steps.read-repo-info.outputs.build_matrix }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       - name: Log in to the GitHub container registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -54,8 +58,8 @@ jobs:
         id: read-repo-info
         run: |
           if [[ $GITHUB_EVENT_NAME == "pull_request" ]]; then
-            base_image=$(echo ${{ github.event.pull_request.base.repo.full_name }} | awk '{print tolower($0)}')
-            head_image=$(echo ${{ github.event.pull_request.head.repo.full_name }} | awk '{print tolower($0)}')
+            base_image=$(echo ${GITHUB_EVENT_PULL_REQUEST_BASE_REPO_FULL_NAME} | awk '{print tolower($0)}')
+            head_image=$(echo ${GITHUB_EVENT_PULL_REQUEST_HEAD_REPO_FULL_NAME} | awk '{print tolower($0)}')
           else
             base_image=$(echo ${{ github.repository }} | awk '{print tolower($0)}')
             head_image=$(echo ${{ github.repository }} | awk '{print tolower($0)}')
@@ -96,6 +100,9 @@ jobs:
           else
             echo 'build_matrix=[{"arch":"skipped","runner":"ubuntu-latest"}]' >> $GITHUB_OUTPUT
           fi
+        env:
+          GITHUB_EVENT_PULL_REQUEST_BASE_REPO_FULL_NAME: ${{ github.event.pull_request.base.repo.full_name }}
+          GITHUB_EVENT_PULL_REQUEST_HEAD_REPO_FULL_NAME: ${{ github.event.pull_request.head.repo.full_name }}
 
   build-container:
     name: Build container (${{ matrix.arch }})
@@ -107,18 +114,20 @@ jobs:
       matrix:
         include: ${{ fromJson(needs.check-container.outputs.build_matrix) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         if: matrix.arch != 'skipped'
+        with:
+          persist-credentials: false
       - name: Log in to the GitHub container registry
         if: matrix.arch != 'skipped'
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Docker Buildx
         if: matrix.arch != 'skipped'
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
       - name: Free up disk space
         if: matrix.arch != 'skipped'
         run: |
@@ -129,7 +138,7 @@ jobs:
           df -h
       - name: Build and Push
         if: matrix.arch != 'skipped'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: .
           file: Dockerfile
@@ -150,31 +159,40 @@ jobs:
     steps:
       - name: Log in to the GitHub container registry
         if: needs.check-container.outputs.build_image == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Docker Buildx
         if: needs.check-container.outputs.build_image == 'true'
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
       - name: Create and push manifest
         if: needs.check-container.outputs.build_image == 'true'
         run: |
-          docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${{ needs.check-container.outputs.tag_name }} \
-            ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${{ needs.check-container.outputs.tag_name }}-amd64 \
-            ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${{ needs.check-container.outputs.tag_name }}-arm64
+          docker buildx imagetools create -t ${{ env.REGISTRY }}/${NEEDS_CHECK_CONTAINER_OUTPUTS_IMAGE_NAME}:${NEEDS_CHECK_CONTAINER_OUTPUTS_TAG_NAME} \
+            ${{ env.REGISTRY }}/${NEEDS_CHECK_CONTAINER_OUTPUTS_IMAGE_NAME}:${NEEDS_CHECK_CONTAINER_OUTPUTS_TAG_NAME}-amd64 \
+            ${{ env.REGISTRY }}/${NEEDS_CHECK_CONTAINER_OUTPUTS_IMAGE_NAME}:${NEEDS_CHECK_CONTAINER_OUTPUTS_TAG_NAME}-arm64
+        env:
+          NEEDS_CHECK_CONTAINER_OUTPUTS_IMAGE_NAME: ${{ needs.check-container.outputs.image_name }}
+          NEEDS_CHECK_CONTAINER_OUTPUTS_TAG_NAME: ${{ needs.check-container.outputs.tag_name }}
       - name: Tag with ref name
         if: needs.check-container.outputs.build_image == 'true'
         run: |
-          REF_TAG=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g')
-          docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${REF_TAG} \
-            ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${{ needs.check-container.outputs.tag_name }}
+          REF_TAG=$(echo "${GITHUB_REF_NAME}" | sed 's/[^a-zA-Z0-9._-]/-/g')
+          docker buildx imagetools create -t ${{ env.REGISTRY }}/${NEEDS_CHECK_CONTAINER_OUTPUTS_IMAGE_NAME}:${REF_TAG} \
+            ${{ env.REGISTRY }}/${NEEDS_CHECK_CONTAINER_OUTPUTS_IMAGE_NAME}:${NEEDS_CHECK_CONTAINER_OUTPUTS_TAG_NAME}
+        env:
+          NEEDS_CHECK_CONTAINER_OUTPUTS_IMAGE_NAME: ${{ needs.check-container.outputs.image_name }}
+          NEEDS_CHECK_CONTAINER_OUTPUTS_TAG_NAME: ${{ needs.check-container.outputs.tag_name }}
       - name: Tag as latest
         if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && needs.check-container.outputs.build_image == 'true'
         run: |
-          docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:latest \
-            ${{ env.REGISTRY }}/${{ needs.check-container.outputs.image_name }}:${{ needs.check-container.outputs.tag_name }}
+          docker buildx imagetools create -t ${{ env.REGISTRY }}/${NEEDS_CHECK_CONTAINER_OUTPUTS_IMAGE_NAME}:latest \
+            ${{ env.REGISTRY }}/${NEEDS_CHECK_CONTAINER_OUTPUTS_IMAGE_NAME}:${NEEDS_CHECK_CONTAINER_OUTPUTS_TAG_NAME}
+        env:
+          NEEDS_CHECK_CONTAINER_OUTPUTS_IMAGE_NAME: ${{ needs.check-container.outputs.image_name }}
+          NEEDS_CHECK_CONTAINER_OUTPUTS_TAG_NAME: ${{ needs.check-container.outputs.tag_name }}
 
 
 
@@ -184,7 +202,9 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       - id: set-matrix
         run: |
           echo "matrix=$(find manifests -type f \( -name "*.yaml" -o -name "*.yml" \) -print | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
@@ -200,7 +220,9 @@ jobs:
       matrix:
         manifest: ${{ fromJson(needs.list-manifests.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Build firmware
         id: build-firmware
@@ -211,7 +233,7 @@ jobs:
           export HOME=/root
 
           /opt/venv/bin/python3 tools/build_project.py \
-            --manifest "${{ matrix.manifest }}" \
+            --manifest "${MATRIX_MANIFEST}" \
             --build-dir build \
             --output-dir outputs \
             --output gbl \
@@ -221,9 +243,11 @@ jobs:
           # Get the basename of the GBL in `outputs`
           output_basename=$(basename -- $(basename -- $(ls -1 outputs/*.gbl | head -n 1)) .gbl)
           echo "output_basename=$output_basename" >> $GITHUB_OUTPUT
+        env:
+          MATRIX_MANIFEST: ${{ matrix.manifest }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: firmware-build-${{ steps.build-firmware.outputs.output_basename }}
           path: outputs/*
@@ -238,10 +262,12 @@ jobs:
       image: ${{ needs.merge-container.outputs.container_name }}
       options: --user root
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Download all workflow artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: artifacts
           merge-multiple: true
@@ -252,7 +278,7 @@ jobs:
           /opt/venv/bin/python3 tools/create_manifest.py artifacts src > artifacts/manifest.json
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: manifest
           path: artifacts/manifest.json
@@ -268,21 +294,21 @@ jobs:
       contents: write
     steps:
       - name: Download manifest
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: artifacts
           merge-multiple: true
           pattern: manifest
 
       - name: Download all workflow artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: artifacts
           merge-multiple: true
           pattern: firmware-build-*
 
       - name: Upload artifacts
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           files: |
             artifacts/*.gbl
@@ -297,19 +323,21 @@ jobs:
       contents: write
     steps:
       - name: Checkout releases branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: releases
           path: releases_branch
+          persist-credentials: false
 
       - name: Download release assets
         env:
           GH_TOKEN: ${{ github.token }}
+          GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
           set -euo pipefail
           mkdir -p artifacts_release
           sleep 10
-          gh release download "${{ github.event.release.tag_name }}" \
+          gh release download "${GITHUB_EVENT_RELEASE_TAG_NAME}" \
             --repo "${{ github.repository }}" \
             --dir artifacts_release \
             --clobber
@@ -317,11 +345,13 @@ jobs:
       - name: Sync files for release tag
         run: |
           set -euo pipefail
-          tag="${{ github.event.release.tag_name }}"
+          tag="${GITHUB_EVENT_RELEASE_TAG_NAME}"
           target="releases_branch/${tag}"
           mkdir -p "$target"
           find "$target" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
           cp -a artifacts_release/. "$target/"
+        env:
+          GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
 
       - name: Commit and push changes
         run: |
@@ -329,7 +359,9 @@ jobs:
           cd releases_branch
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "${{ github.event.release.tag_name }}"
-          git commit --allow-empty -m "Sync release assets for ${{ github.event.release.tag_name }}"
+          git add "${GITHUB_EVENT_RELEASE_TAG_NAME}"
+          git commit --allow-empty -m "Sync release assets for ${GITHUB_EVENT_RELEASE_TAG_NAME}"
           git pull --rebase origin releases
           git push origin HEAD:releases
+        env:
+          GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
