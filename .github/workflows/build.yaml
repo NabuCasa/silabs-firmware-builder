@@ -343,12 +343,13 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Checkout releases branch
+      # Credentials are intentionally persisted: the last step pushes back to the
+      # `releases` branch. Nothing here is uploaded as an artifact.
+      - name: Checkout releases branch # zizmor: ignore[artipacked]
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: releases
           path: releases_branch
-          persist-credentials: false
 
       - name: Download release assets
         env:
