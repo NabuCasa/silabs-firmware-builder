@@ -1,9 +1,8 @@
-import json
 import argparse
-import pathlib
-
-import enum
 import dataclasses
+import enum
+import json
+import pathlib
 
 from universal_silabs_flasher.firmware import GBLImage, GBLTagId
 

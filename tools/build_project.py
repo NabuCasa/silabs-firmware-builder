@@ -3,25 +3,24 @@
 
 from __future__ import annotations
 
-import os
-import re
-import ast
-import sys
-import json
-import time
-import shutil
-import typing
-import hashlib
-import logging
-import pathlib
 import argparse
+import ast
 import contextlib
+import hashlib
+import json
+import logging
+import os
+import pathlib
+import re
+import shutil
 import subprocess
-from datetime import datetime, timezone
+import sys
+import time
+import typing
+from datetime import UTC, datetime
 
-from ruamel.yaml import YAML
 from elftools.elf.elffile import ELFFile
-
+from ruamel.yaml import YAML
 
 LOGGER = logging.getLogger(__name__)
 
@@ -30,9 +29,7 @@ yaml = YAML(typ="safe")
 
 
 def evaulate_f_string(f_string: str, variables: dict[str, typing.Any]) -> str:
-    """
-    Evaluates an `f`-string with the given locals.
-    """
+    """Evaluates an `f`-string with the given locals."""
 
     return eval("f" + repr(f_string), variables)
 
@@ -47,48 +44,22 @@ def ensure_folder(path: str | pathlib.Path) -> pathlib.Path:
     return path
 
 
-def is_running_in_docker() -> bool:
-    """Check if we're running inside the Docker build container."""
-    return os.environ.get("SILABS_FIRMWARE_BUILD_CONTAINER") == "1"
-
-
 def get_toolchain_default_paths() -> list[pathlib.Path]:
     """Return the path to the toolchain."""
-    if sys.platform == "darwin":
-        return list(
-            pathlib.Path(
-                "/Applications/Simplicity Studio.app/Contents/Eclipse/developer/toolchains/"
-            ).glob("*/*")
-        )
+    return list(pathlib.Path("/opt/toolchains").glob("*"))
 
-    if is_running_in_docker():
-        root = pathlib.Path("/root/.silabs/slt/installs/conan/p")
-        return list(root.glob("gcc-*/p")) + list(root.glob("llvm-*/p"))
 
-    return []
+def get_apack_default_paths() -> list[pathlib.Path]:
+    """Return the folders containing slc adapter packs."""
+
+    # slc wants each pack's own folder. Without them it falls back to the SDK's own
+    # apacks, which lack Python, and every template generator silently fails.
+    return [p.parent for p in pathlib.Path("/opt/silabs").glob("*/apack.json")]
 
 
 def get_sdk_default_paths() -> list[pathlib.Path]:
     """Return the path to the SDK."""
-    if sys.platform == "darwin":
-        return list(pathlib.Path("~/SimplicityStudio/SDKs").expanduser().glob("*_sdk*"))
-
-    if is_running_in_docker():
-        paths = list(pathlib.Path("/").glob("*_sdk_*"))
-        paths += list(
-            pathlib.Path("/root/.silabs/slt/installs/conan/p").glob("simpl*/p")
-        )
-        return paths
-
-    return []
-
-
-def get_default_slc_daemon_flag() -> bool:
-    """Return whether to use the SLC daemon by default."""
-    if is_running_in_docker():
-        return False
-
-    return True
+    return list(pathlib.Path("/opt/silabs/sdks").glob("*sdk*"))
 
 
 def parse_override(override: str) -> tuple[str, dict | list]:
@@ -368,6 +339,14 @@ def main():
         help="Path to a GCC toolchain",
     )
     parser.add_argument(
+        "--tool-path",
+        action="append",
+        dest="tool_paths",
+        type=ensure_folder,
+        default=get_apack_default_paths(),
+        help="Path to a folder containing an slc adapter pack",
+    )
+    parser.add_argument(
         "--postbuild",
         default=pathlib.Path(__file__).parent / "create_gbl.py",
         required=False,
@@ -393,7 +372,7 @@ def main():
         "--slc-daemon",
         action="store_true",
         dest="slc_daemon",
-        default=get_default_slc_daemon_flag(),
+        default=False,
         help="Whether to use the SLC daemon for the build",
     )
     parser.add_argument(
@@ -409,9 +388,9 @@ def main():
     if args.build_timestamp is not None:
         args.build_timestamp = datetime.strptime(
             args.build_timestamp, "%Y%m%d%H%M%S"
-        ).replace(tzinfo=timezone.utc)
+        ).replace(tzinfo=UTC)
     else:
-        args.build_timestamp = datetime.now(timezone.utc)
+        args.build_timestamp = datetime.now(UTC)
 
     if args.slc_daemon:
         SLC = ["slc", "--daemon", "--daemon-timeout", "1"]
@@ -589,7 +568,9 @@ def main():
             "--toolchain", "toolchain_llvm" if is_llvm else "toolchain_gcc",
             "--sdk", sdk,
             "--output-type", "vscode",
-        ],
+        ]
+        + [f"--tool-path={p}" for p in args.tool_paths]
+        + [f"--toolchain-locations={'llvm' if is_llvm else 'gcc'}:{toolchain}"],
         "slc generate",
         env={
             **os.environ,
@@ -837,6 +818,8 @@ def main():
             "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}",
             ("ARM_LLVM_DIR" if is_llvm else "ARM_GCC_DIR"): toolchain,
             "NINJA_EXE_PATH": shutil.which("ninja"),
+            # The SDK's generated cmake otherwise resolves this with `slt where commander`
+            "POST_BUILD_EXE": shutil.which("commander"),
             "SOURCE_DATE_EPOCH": str(int(args.build_timestamp.timestamp())),
         },
         cwd=cmake_dir,
@@ -866,7 +849,6 @@ def main():
         out_elf,
         {
             str(args.build_dir.resolve()): "/src",
-            "/root/.silabs": "/src/vendor",  # local conan toolchain/SDK headers
             "/home/buildengineer": "/src/vendor",  # Silicon Labs build machines
             "/github/home": "/src/vendor",  # Silicon Labs Zigbee CI
             "/opt/github": "/src/vendor",  # Silicon Labs Z-Wave CI

@@ -3,18 +3,16 @@
 
 from __future__ import annotations
 
-import os
-import ast
-import sys
-import json
-import struct
-import pathlib
 import argparse
+import ast
+import json
+import pathlib
+import struct
 import subprocess
-
 from typing import BinaryIO
-from ruamel.yaml import YAML
+
 from elftools.elf.elffile import ELFFile
+from ruamel.yaml import YAML
 
 
 def _jump_to_elf_symbol(file: BinaryIO, symbol_name: str) -> tuple[ELFFile, int, int]:
@@ -51,7 +49,7 @@ def read_elf_symbol(file: BinaryIO, symbol_name: str) -> bytes:
     """
     Read an ELF symbol.
     """
-    elf, offset, size = _jump_to_elf_symbol(file, symbol_name)
+    _elf, offset, size = _jump_to_elf_symbol(file, symbol_name)
 
     file.seek(offset)
     return file.read(size)
@@ -61,7 +59,7 @@ def modify_elf_symbol(file: BinaryIO, symbol_name: str, value: bytes) -> None:
     """
     Modify an ELF symbol.
     """
-    elf, offset, size = _jump_to_elf_symbol(file, symbol_name)
+    _elf, offset, size = _jump_to_elf_symbol(file, symbol_name)
     assert len(value) == size
 
     file.seek(offset)
@@ -87,7 +85,7 @@ def parse_c_header_defines(file_content: str) -> dict[str, str]:
 
         try:
             config[key] = ast.literal_eval(value)
-        except (ValueError, SyntaxError):
+        except ValueError, SyntaxError:
             pass
 
     return config
@@ -214,13 +212,13 @@ def main():
     if "ezsp_version" in gbl_dynamic:
         gbl_dynamic.remove("ezsp_version")
 
-        elf = list(build_dir.glob("*.out"))[0]
+        elf = next(iter(build_dir.glob("*.out")))
         with elf.open("rb") as f:
             # Try new SDK symbol name first, fall back to old
             try:
                 ember_version = read_elf_symbol(f, "sl_zigbee_version")
                 version_symbol = "sl_zigbee_version"
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 f.seek(0)
                 ember_version = read_elf_symbol(f, "emberVersion")
                 version_symbol = "emberVersion"
@@ -376,13 +374,6 @@ def main():
     (artifact_root / "gbl_metadata.json").write_text(
         json.dumps(metadata, sort_keys=True)
     )
-
-    # Make sure the Commander binary is included in the PATH on macOS
-    if sys.platform == "darwin":
-        os.environ["PATH"] += (
-            os.pathsep
-            + "/Applications/Simplicity Studio.app/Contents/Eclipse/developer/adapter_packs/commander/Commander.app/Contents/MacOS"
-        )
 
     commander_args = [
         "commander",
