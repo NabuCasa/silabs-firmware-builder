@@ -277,11 +277,11 @@ def main() -> None:
 
     output_hex.flash_data(address=bootloader.address, data=bootloader.data)
 
-    # Flash the application
+    # Flash the application segments
     application_gbl = GBL3Image.from_bytes(args.application.read_bytes())
-    application = application_gbl.get_first_tag(GBL3EraseProg)
 
-    output_hex.flash_data(address=application.address, data=application.data)
+    for application in application_gbl.get_tags(GBL3EraseProg):
+        output_hex.flash_data(address=application.address, data=application.data)
 
     # Flash USERDATA tokens
     tokens_json = json.loads(args.tokens.read_text())
