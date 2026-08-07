@@ -133,6 +133,13 @@ def parse_properties_file(file_content: str) -> dict[str, str | list[str]]:
     return properties
 
 
+def resolve_key_path(
+    key: str, project_root: pathlib.Path, gsdk_path: pathlib.Path
+) -> pathlib.Path:
+    """Resolve a manifest key path against the generated project, absolutes pass through."""
+    return project_root / pathlib.Path(key.format(SDK_DIR=gsdk_path))
+
+
 def create_gbl(
     build_dir: pathlib.Path,
     project_root: pathlib.Path,
@@ -335,11 +342,13 @@ def create_gbl(
         image = image.compress(GBL3Compression(gbl_metadata["compression"]))
 
     if gbl_metadata.get("encrypt_key", None) is not None:
-        key_path = pathlib.Path(gbl_metadata["encrypt_key"].format(SDK_DIR=gsdk_path))
+        key_path = resolve_key_path(
+            gbl_metadata["encrypt_key"], project_root, gsdk_path
+        )
         image = image.encrypt(read_encryption_key(key_path.read_text()))
 
     if gbl_metadata.get("sign_key", None) is not None:
-        key_path = pathlib.Path(gbl_metadata["sign_key"].format(SDK_DIR=gsdk_path))
+        key_path = resolve_key_path(gbl_metadata["sign_key"], project_root, gsdk_path)
         private_key = load_pem_private_key(key_path.read_bytes(), password=None)
         assert isinstance(private_key, ec.EllipticCurvePrivateKey)
         image = image.sign(private_key)
