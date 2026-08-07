@@ -111,7 +111,7 @@ def create_gbl(
     gbl_metadata: dict[str, Any],
 ) -> dict[str, Any]:
     """Build the GBL image for a linked project, returning its metadata."""
-    out_file = build_dir / f"{project_name}.out"
+    elf = build_dir / f"{project_name}.out"
 
     # Prepare the GBL metadata
     metadata = {
@@ -128,13 +128,12 @@ def create_gbl(
     if "ezsp_version" in gbl_dynamic:
         gbl_dynamic.remove("ezsp_version")
 
-        elf = next(iter(build_dir.glob("*.out")))
         with elf.open("rb") as f:
             # Try new SDK symbol name first, fall back to old
             try:
                 ember_version = read_elf_symbol(f, "sl_zigbee_version")
                 version_symbol = "sl_zigbee_version"
-            except ValueError, TypeError:
+            except ValueError:
                 f.seek(0)
                 ember_version = read_elf_symbol(f, "emberVersion")
                 version_symbol = "emberVersion"
@@ -288,7 +287,7 @@ def create_gbl(
 
     metadata_json = json.dumps(metadata, sort_keys=True).encode("utf-8")
 
-    with out_file.open("rb") as f:
+    with elf.open("rb") as f:
         if gbl_metadata.get("fw_type", None) != "gecko-bootloader":
             image = build_application_gbl3(
                 f, metadata=metadata_json if gbl_metadata else None
@@ -316,6 +315,6 @@ def create_gbl(
         image = image.sign(private_key)
 
     # `commander` pads its output to a 4 byte boundary
-    out_file.with_suffix(".gbl").write_bytes(image.serialize(block_size=4))
+    elf.with_suffix(".gbl").write_bytes(image.serialize(block_size=4))
 
     return metadata

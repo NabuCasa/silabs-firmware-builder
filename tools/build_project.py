@@ -133,12 +133,7 @@ def load_sdks(paths: list[pathlib.Path]) -> dict[pathlib.Path, str]:
 
     for sdk in paths:
         sdk_file = next(sdk.glob("*_sdk.slcs"))
-
-        try:
-            sdk_meta = yaml.load(sdk_file.read_text())
-        except FileNotFoundError:
-            LOGGER.warning("SDK %s is not valid, skipping", sdk)
-            continue
+        sdk_meta = yaml.load(sdk_file.read_text())
 
         sdk_id = sdk_meta["id"]
         sdk_version = sdk_meta["sdk_version"]
