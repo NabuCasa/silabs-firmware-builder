@@ -95,44 +95,6 @@ def parse_c_header_defines(file_content: str) -> dict[str, str]:
     return config
 
 
-def parse_properties_file(file_content: str) -> dict[str, str | list[str]]:
-    """
-    Parses custom .properties file format into a dictionary.
-    Handles double backslashes as escape characters for spaces.
-    """
-    properties = {}
-
-    for line in file_content.split("\n"):
-        line = line.strip()
-
-        if not line or line.startswith("#"):
-            continue
-
-        key, value = line.split("=", 1)
-        key = key.strip()
-
-        properties[key] = []
-        current_value = ""
-        i = 0
-
-        while i < len(value):
-            if value[i : i + 2] == "\\\\":
-                current_value += " "
-                i += 2
-            elif value[i] == " ":
-                properties[key].append(current_value)
-                current_value = ""
-                i += 1
-            else:
-                current_value += value[i]
-                i += 1
-
-        if current_value:
-            properties[key].append(current_value)
-
-    return properties
-
-
 def resolve_key_path(
     key: str, project_root: pathlib.Path, gsdk_path: pathlib.Path
 ) -> pathlib.Path:
