@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 import ast
 import contextlib
+import dataclasses
+import enum
 import hashlib
 import json
 import logging
@@ -29,7 +31,12 @@ LOGGER = logging.getLogger(__name__)
 yaml = YAML(typ="safe")
 
 
-def evaulate_f_string(f_string: str, variables: dict[str, typing.Any]) -> str:
+class Toolchain(enum.StrEnum):
+    LLVM = "llvm"
+    GCC = "gcc"
+
+
+def evaluate_f_string(f_string: str, variables: dict[str, typing.Any]) -> str:
     """Evaluates an `f`-string with the given locals."""
 
     return eval("f" + repr(f_string), variables)
@@ -154,7 +161,8 @@ def load_toolchains(paths: list[pathlib.Path]) -> dict[pathlib.Path, str]:
                 if "define _LIBCPP_VERSION " in line:
                     version = int(line.split()[-1])
                     toolchains[toolchain] = (
-                        f"llvm:{version // 10000}.{version // 100 % 100}.{version % 100}"
+                        f"{Toolchain.LLVM}:"
+                        f"{version // 10000}.{version // 100 % 100}.{version % 100}"
                     )
                     break
             continue
@@ -172,7 +180,7 @@ def load_toolchains(paths: list[pathlib.Path]) -> dict[pathlib.Path, str]:
                 version_info[name] = value
 
         toolchains[toolchain] = (
-            f"gcc:{version_info['basever']}.{version_info['datestamp']}"
+            f"{Toolchain.GCC}:{version_info['basever']}.{version_info['datestamp']}"
         )
 
     return toolchains
@@ -283,7 +291,41 @@ def remap_debug_build_paths(elf_path: pathlib.Path, prefix_map: dict[str, str]) 
             f.write(data)
 
 
-def main():
+@dataclasses.dataclass(frozen=True)
+class ResolvedBuild:
+    """Everything about a build that is resolved up front and never changes."""
+
+    manifest: dict[str, typing.Any]
+    manifest_path: pathlib.Path
+    build_dir: pathlib.Path
+    projects_root: pathlib.Path
+    base_project_path: pathlib.Path
+    base_project_name: str
+    sdk: pathlib.Path
+    sdk_name: str
+    sdk_version: str
+    toolchain: Toolchain
+    toolchain_path: pathlib.Path
+    build_timestamp: datetime
+
+    @property
+    def manifest_dir(self) -> pathlib.Path:
+        return self.manifest_path.parent
+
+    @property
+    def build_template_path(self) -> pathlib.Path:
+        return self.build_dir / "template"
+
+    @property
+    def base_project_slcp(self) -> pathlib.Path:
+        return self.build_template_path / f"{self.base_project_name}.slcp"
+
+    @property
+    def cmake_dir(self) -> pathlib.Path:
+        return self.build_dir / f"cmake_{self.toolchain}"
+
+
+def build_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
@@ -378,36 +420,16 @@ def main():
         help="Build timestamp for reproducible builds (YYYYMMDDHHmmss format)",
     )
 
-    args = parser.parse_args()
+    return parser
 
-    if args.build_timestamp is not None:
-        args.build_timestamp = datetime.strptime(
-            args.build_timestamp, "%Y%m%d%H%M%S"
-        ).replace(tzinfo=UTC)
-    else:
-        args.build_timestamp = datetime.now(UTC)
 
-    if args.slc_daemon:
-        SLC = ["slc", "--daemon", "--daemon-timeout", "1"]
-    else:
-        SLC = ["slc"]
-
-    if args.build_dir is None:
-        args.build_dir = pathlib.Path(f"build/{time.time():.0f}_{args.manifest.stem}")
-
-    # argparse defaults should be replaced, not extended
-    if args.sdks != get_sdk_default_paths():
-        args.sdks = args.sdks[len(get_sdk_default_paths()) :]
-
-    if args.toolchains != get_toolchain_default_paths():
-        args.toolchains = args.toolchains[len(get_toolchain_default_paths()) :]
-
+def resolve_build(args: argparse.Namespace) -> ResolvedBuild:
+    """Load the manifest and pin down the SDK, toolchain, and build paths."""
     manifest = yaml.load(args.manifest.read_text())
 
     for key, override in args.overrides:
         manifest[key] = override
 
-    # Ensure we can load the correct SDK and toolchain
     sdks = load_sdks(args.sdks)
     sdk, sdk_and_version = next(
         (path, version) for path, version in sdks.items() if version == manifest["sdk"]
@@ -415,29 +437,41 @@ def main():
     sdk_name, sdk_version = sdk_and_version.split(":", 1)
 
     toolchains = load_toolchains(args.toolchains)
-    toolchain = next(
+    toolchain_path = next(
         path
         for path, name in toolchains.items()
         if manifest["toolchain"] in (name, name.split(":", 1)[1])
     )
-    is_llvm = toolchains[toolchain].startswith("llvm:")
+    toolchain = Toolchain(toolchains[toolchain_path].split(":", 1)[0])
 
-    # First, copy the base project into the build dir, under `template/`
     projects_root = pathlib.Path(__file__).parent.parent
     base_project_path = projects_root / manifest["base_project"]
     assert base_project_path.is_relative_to(projects_root)
 
-    build_template_path = args.build_dir / "template"
+    # The template copy preserves `.slcp` files, so the source project names the build
+    (base_project_slcp,) = base_project_path.glob("*.slcp")
 
-    LOGGER.info("Building in %s", args.build_dir.resolve())
+    return ResolvedBuild(
+        manifest=manifest,
+        manifest_path=args.manifest,
+        build_dir=args.build_dir,
+        projects_root=projects_root,
+        base_project_path=base_project_path,
+        base_project_name=base_project_slcp.stem,
+        sdk=sdk,
+        sdk_name=sdk_name,
+        sdk_version=sdk_version,
+        toolchain=toolchain,
+        toolchain_path=toolchain_path,
+        build_timestamp=args.build_timestamp,
+    )
 
-    if args.clean_build_dir:
-        with contextlib.suppress(OSError):
-            shutil.rmtree(args.build_dir)
 
+def copy_base_project(build: ResolvedBuild) -> None:
+    """Copy the base project into the build dir, then overlay SDK sources onto it."""
     shutil.copytree(
-        base_project_path,
-        build_template_path,
+        build.base_project_path,
+        build.build_template_path,
         dirs_exist_ok=True,
         ignore=lambda dir, contents: [
             "autogen",
@@ -453,9 +487,9 @@ def main():
 
     # Copy SDK files into the build template (e.g. unmodified sample app sources).
     # Files already present in the project (customized) are not overwritten.
-    for sdk_file in manifest.get("copy_sdk_files", []):
-        src = sdk / sdk_file["source"]
-        dst = build_template_path / sdk_file["path"]
+    for sdk_file in build.manifest.get("copy_sdk_files", []):
+        src = build.sdk / sdk_file["source"]
+        dst = build.build_template_path / sdk_file["path"]
 
         if dst.exists():
             LOGGER.info("Skipping SDK file (already in project): %s", sdk_file["path"])
@@ -465,29 +499,22 @@ def main():
         shutil.copy(src, dst)
         LOGGER.info("Copied SDK file: %s -> %s", sdk_file["source"], sdk_file["path"])
 
-    # We extend the base project with the manifest, since added components could have
-    # extra dependencies
-    (base_project_slcp,) = build_template_path.glob("*.slcp")
-    base_project_name = base_project_slcp.stem
-    base_project = yaml.load(base_project_slcp.read_text())
 
-    # Add new components
+def merge_manifest_into_slcp(
+    base_project: dict[str, typing.Any], manifest: dict[str, typing.Any]
+) -> dict[str, typing.Any]:
+    """Extend the base project with the manifest's additions and removals."""
     base_project["component"].extend(manifest.get("add_components", []))
     base_project.setdefault("toolchain_settings", []).extend(
         manifest.get("toolchain_settings", [])
     )
-
-    # Add SDK extensions
     base_project.setdefault("sdk_extension", []).extend(
         manifest.get("sdk_extension", [])
     )
-
-    # Add template contributions
     base_project.setdefault("template_contribution", []).extend(
         manifest.get("template_contribution", [])
     )
 
-    # Remove components
     for component in manifest.get("remove_components", []):
         try:
             base_project["component"].remove(component)
@@ -497,19 +524,8 @@ def main():
             )
             sys.exit(1)
 
-    # Add new sources
     base_project.setdefault("source", []).extend(manifest.get("add_sources", []))
     base_project.setdefault("include", []).extend(manifest.get("add_includes", []))
-
-    # Add config files (e.g., ZAP files)
-    manifest_dir = args.manifest.parent
-    for config_file in manifest.get("config_file", []):
-        src_path = manifest_dir / config_file["path"]
-        dst_path = build_template_path / config_file["path"]
-        dst_path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy(src_path, dst_path)
-        LOGGER.info("Copied config file: %s", config_file["path"])
-
     base_project.setdefault("config_file", []).extend(manifest.get("config_file", []))
 
     # Extend configuration and C defines
@@ -536,32 +552,54 @@ def main():
                 # Otherwise, append it
                 output_config.append({"name": name, "value": value})
 
-    # Finally, write out the modified base project
-    with base_project_slcp.open("w") as f:
+    return base_project
+
+
+def prepare_project_slcp(build: ResolvedBuild) -> dict[str, typing.Any]:
+    """Merge the manifest into the copied project and write it back out."""
+    # Config files (e.g. ZAP files) live next to the manifest, not in the base project
+    for config_file in build.manifest.get("config_file", []):
+        src_path = build.manifest_dir / config_file["path"]
+        dst_path = build.build_template_path / config_file["path"]
+        dst_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(src_path, dst_path)
+        LOGGER.info("Copied config file: %s", config_file["path"])
+
+    base_project = merge_manifest_into_slcp(
+        yaml.load(build.base_project_slcp.read_text()), build.manifest
+    )
+
+    with build.base_project_slcp.open("w") as f:
         yaml.dump(base_project, f)
 
-    # Next, generate a chip-specific project from the modified base project
-    LOGGER.info(f"Generating project for {manifest['device']}")
+    return base_project
+
+
+def run_slc_generate(
+    build: ResolvedBuild, slc: list[str], tool_paths: list[pathlib.Path]
+) -> None:
+    """Generate a chip-specific project from the modified base project."""
+    LOGGER.info(f"Generating project for {build.manifest['device']}")
 
     # fmt: off
     subprocess_run_verbose(
-        SLC
+        slc
         + [
             "generate",
             "--verbose", "DEBUG",
             "--trust-totality",
-            "--with", manifest["device"],
-            "--project-file", base_project_slcp.resolve(),
-            "--export-destination", args.build_dir.resolve(),
+            "--with", build.manifest["device"],
+            "--project-file", build.base_project_slcp.resolve(),
+            "--export-destination", build.build_dir.resolve(),
             "--copy-proj-sources",
             "--copy-sdk-sources",
             "--new-project",
-            "--toolchain", "toolchain_llvm" if is_llvm else "toolchain_gcc",
-            "--sdk", sdk,
+            "--toolchain", f"toolchain_{build.toolchain}",
+            "--sdk", build.sdk,
             "--output-type", "vscode",
         ]
-        + [f"--tool-path={p}" for p in args.tool_paths]
-        + [f"--toolchain-locations={'llvm' if is_llvm else 'gcc'}:{toolchain}"],
+        + [f"--tool-path={p}" for p in tool_paths]
+        + [f"--toolchain-locations={build.toolchain}:{build.toolchain_path}"],
         "slc generate",
         env={
             **os.environ,
@@ -569,30 +607,37 @@ def main():
     )
     # fmt: on
 
-    # Apply SDK patches if specified. These should be a last resort, we prefer to use
-    # SDK extensions wherever possible!
-    if manifest.get("sdk_patches"):
-        copied_sdk_dir = next(args.build_dir.glob(f"{sdk_name}_*"))
 
-        for patch_path in manifest["sdk_patches"]:
-            patch_file = base_project_path / "sdk_patches" / patch_path
-            LOGGER.info("Applying SDK patch: %s", patch_file.name)
-            subprocess.run(
-                [
-                    "git",
-                    "apply",
-                    f"--directory={copied_sdk_dir.resolve().relative_to(projects_root.resolve())}",
-                    str(patch_file.resolve()),
-                ],
-                check=True,
-                cwd=projects_root,
-            )
+def apply_sdk_patches(build: ResolvedBuild) -> None:
+    """Patch the copied SDK. A last resort, prefer SDK extensions wherever possible!"""
+    if not build.manifest.get("sdk_patches"):
+        return
 
-    # Make sure all extensions are valid (check both SDK and project extensions)
+    copied_sdk_dir = next(build.build_dir.glob(f"{build.sdk_name}_*"))
+
+    for patch_path in build.manifest["sdk_patches"]:
+        patch_file = build.base_project_path / "sdk_patches" / patch_path
+        LOGGER.info("Applying SDK patch: %s", patch_file.name)
+        subprocess.run(
+            [
+                "git",
+                "apply",
+                f"--directory={copied_sdk_dir.resolve().relative_to(build.projects_root.resolve())}",
+                str(patch_file.resolve()),
+            ],
+            check=True,
+            cwd=build.projects_root,
+        )
+
+
+def validate_sdk_extensions(
+    build: ResolvedBuild, base_project: dict[str, typing.Any]
+) -> None:
+    """Make sure all referenced extensions exist in the SDK or the project."""
     for sdk_extension in base_project.get("sdk_extension", []):
-        sdk_ext_dir = sdk / f"extension/{sdk_extension['id']}_extension"
+        sdk_ext_dir = build.sdk / f"extension/{sdk_extension['id']}_extension"
         project_ext_dir = (
-            build_template_path / f"extension/{sdk_extension['id']}_extension"
+            build.build_template_path / f"extension/{sdk_extension['id']}_extension"
         )
 
         if not sdk_ext_dir.is_dir() and not project_ext_dir.is_dir():
@@ -603,67 +648,60 @@ def main():
             )
             sys.exit(1)
 
-    # Template variables for C defines
-    value_template_env = {
-        "git_repo_hash": get_git_commit_id(repo=pathlib.Path(__file__).parent.parent),
-        "manifest_name": args.manifest.stem,
-        "now": args.build_timestamp,
-    }
 
-    # Actually search for C defines within config
-    unused_defines = set(manifest.get("c_defines", {}).keys())
-
-    # First, populate build flags
-    build_flags = {
-        "C_FLAGS": [],
-        "CXX_FLAGS": [],
-        "LD_FLAGS": [],
-    }
+def normalize_c_defines(manifest: dict[str, typing.Any]) -> dict[str, dict]:
+    """Expand the shorthand form of `c_defines` entries into full dicts."""
+    normalized = {}
 
     for define, config in manifest.get("c_defines", {}).items():
         if not isinstance(config, dict):
-            config = manifest["c_defines"][define] = {
-                "type": "config",
-                "value": config,
-                "error_on_duplicate": True,
-            }
-        elif isinstance(config, dict) and "error_on_duplicate" not in config:
-            config["error_on_duplicate"] = True
+            config = {"type": "config", "value": config}
 
-        if config["type"] == "config":
-            continue
-        elif config["type"] != "c_flag":
+        config = {"error_on_duplicate": True, **config}
+
+        if config["type"] not in ("config", "c_flag"):
             raise ValueError(f"Invalid config type: {config['type']}")
 
-        build_flags["C_FLAGS"].append(f"-D{define}={config['value']}")
-        build_flags["CXX_FLAGS"].append(f"-D{define}={config['value']}")
-        unused_defines.remove(define)
+        normalized[define] = config
 
-    for config_root in [args.build_dir / "autogen", args.build_dir / "config"]:
+    return normalized
+
+
+def patch_config_headers(
+    config_roots: list[pathlib.Path],
+    c_defines: dict[str, dict],
+    base_project: dict[str, typing.Any],
+    template_env: dict[str, typing.Any],
+) -> set[str]:
+    """Rewrite `#define`s in the generated config headers, returning the ones applied."""
+    written = set()
+
+    for config_root in config_roots:
         for config_f in config_root.glob("*.h"):
             config_h_lines = config_f.read_text().split("\n")
             written_config = {}
             new_config_h_lines = []
 
             for index, line in enumerate(config_h_lines):
-                for define, config in manifest.get("c_defines", {}).items():
+                # The two lists stay in lockstep, so `index` is valid in both
+                assert len(new_config_h_lines) == index
+
+                for define, config in c_defines.items():
                     if config["type"] == "c_flag":
                         continue
-
-                    value_template = config["value"]
 
                     if f"#define {define} " not in line:
                         continue
 
-                    if define not in unused_defines:
-                        if manifest["c_defines"][define]["error_on_duplicate"]:
+                    if define in written:
+                        if config["error_on_duplicate"]:
                             LOGGER.error("Define %r used twice!", define)
                             sys.exit(1)
-                        else:
-                            LOGGER.warning(
-                                "Define %r used twice but this is allowed", define
-                            )
-                            continue
+
+                        LOGGER.warning(
+                            "Define %r used twice but this is allowed", define
+                        )
+                        continue
 
                     define_with_whitespace = line.split(f"#define {define}", 1)[1]
                     alignment = define_with_whitespace[
@@ -686,19 +724,18 @@ def main():
                         assert re.match(r'#warning ".*? not configured"', prev_line)
                         new_config_h_lines[index - 1] = f"//{prev_line}"
 
-                    value_template = str(value_template)
+                    value_template = str(config["value"])
 
                     if value_template.startswith("template:"):
                         value = value_template.replace("template:", "", 1).format(
-                            **value_template_env
+                            **template_env
                         )
                     else:
                         value = value_template
 
                     new_config_h_lines.append(f"#define {define}{alignment}{value}")
                     written_config[define] = value
-
-                    unused_defines.remove(define)
+                    written.add(define)
                     break
                 else:
                     new_config_h_lines.append(line)
@@ -707,15 +744,13 @@ def main():
                 LOGGER.info("Patching %s with %s", config_f, written_config)
                 config_f.write_text("\n".join(new_config_h_lines))
 
-    if unused_defines:
-        LOGGER.error("Defines were unused, aborting: %s", unused_defines)
-        sys.exit(1)
+    return written
 
-    # Fix Gecko SDK bugs
-    sl_rail_util_pti_config_h = args.build_dir / "config/sl_rail_util_pti_config.h"
 
-    # PTI seemingly cannot be excluded, even if it is disabled.
-    # This causes builds to fail when `-Werror` is enabled.
+def fix_pti_config_warning(build: ResolvedBuild) -> None:
+    """PTI seemingly cannot be excluded, even if it is disabled, breaking `-Werror`."""
+    sl_rail_util_pti_config_h = build.build_dir / "config/sl_rail_util_pti_config.h"
+
     if sl_rail_util_pti_config_h.exists():
         sl_rail_util_pti_config_h.write_text(
             sl_rail_util_pti_config_h.read_text().replace(
@@ -724,64 +759,93 @@ def main():
             )
         )
 
-    cmake_dir = args.build_dir / ("cmake_llvm" if is_llvm else "cmake_gcc")
 
-    remapped_paths = {
-        args.build_dir.absolute(): "/src",
-        f"{cmake_dir.absolute()}/..": "/src",
+def sdk_path_remaps(build: ResolvedBuild) -> dict[str, str]:
+    """Absolute paths baked into the SDK and its prebuilt libraries, and their remaps."""
+    sdk_src = f"/src/{build.sdk_name}_{build.sdk_version}"
+
+    return {
+        str(build.build_dir.absolute()): "/src",
+        f"{build.cmake_dir.absolute()}/..": "/src",
         # The toolchain's own resource/runtime headers (e.g. clang's builtin and newlib
         # include dirs) are recorded in debug info under a machine-specific conan path
-        str(toolchain): "/src/vendor/toolchain",
-        "/home/buildengineer/jenkins/workspace/Gecko_Workspace/gsdk": f"/src/{sdk_name}_{sdk_version}",
+        str(build.toolchain_path): "/src/vendor/toolchain",
+        "/home/buildengineer/jenkins/workspace/Gecko_Workspace/gsdk": sdk_src,
         # Zigbee sources reference the GitHub Actions workspace they were packaged in
-        "/__w/zigbee/zigbee": f"/src/{sdk_name}_{sdk_version}/zigbee",
+        "/__w/zigbee/zigbee": f"{sdk_src}/zigbee",
         "/home/buildengineer/.silabs/slt/installs/conan/p/cmsisfb920dbb6ad42/p": "/src/vendor/cmsis",
-        "/home/buildengineer/.silabs/slt/installs/conan/p/platf85e95225bc406/p": f"/src/{sdk_name}_{sdk_version}/platform_core",
-        "/home/buildengineer/.silabs/slt/installs/conan/p/platfe548addd6aec0/p": f"/src/{sdk_name}_{sdk_version}/platform_core",
+        "/home/buildengineer/.silabs/slt/installs/conan/p/platf85e95225bc406/p": f"{sdk_src}/platform_core",
+        "/home/buildengineer/.silabs/slt/installs/conan/p/platfe548addd6aec0/p": f"{sdk_src}/platform_core",
         # The Z-Wave libraries were packaged against their own conan hashes
         "/home/buildengineer/.silabs/slt/installs/conan/p/cmsis4dea3e6cbb6ce/p": "/src/vendor/cmsis",
-        "/home/buildengineer/.silabs/slt/installs/conan/p/platf6edd0cd4d4914/p": f"/src/{sdk_name}_{sdk_version}/platform_core",
+        "/home/buildengineer/.silabs/slt/installs/conan/p/platf6edd0cd4d4914/p": f"{sdk_src}/platform_core",
         # Z-Wave's platform_core was repackaged under a new conan hash in Simplicity SDK 2026.6.1
-        "/home/buildengineer/.silabs/slt/installs/conan/p/platf0f636d352884d/p": f"/src/{sdk_name}_{sdk_version}/platform_core",
+        "/home/buildengineer/.silabs/slt/installs/conan/p/platf0f636d352884d/p": f"{sdk_src}/platform_core",
         # The zigbee stack libraries reference the silabs_core package they were built against
-        "/github/home/.silabs/slt/installs/conan/p/commo8335073ce327e/p": f"/src/{sdk_name}_{sdk_version}/platform_core",
+        "/github/home/.silabs/slt/installs/conan/p/commo8335073ce327e/p": f"{sdk_src}/platform_core",
         # silabs_core was repackaged under a new conan hash in Simplicity SDK 2026.6.1
-        "/github/home/.silabs/slt/installs/conan/p/commo6146391826d06/p": f"/src/{sdk_name}_{sdk_version}/platform_core",
+        "/github/home/.silabs/slt/installs/conan/p/commo6146391826d06/p": f"{sdk_src}/platform_core",
         # The Z-Wave SDK isn't part of the Simplicity SDK but is still referenced. If we
         # ever decide to compile it as part of CI, we can change this remap.
         "/opt/github/runner/_work/z-wave/z-wave": "/src/vendor/zwave",
     }
-    build_flags["C_FLAGS"] += [
-        f"-ffile-prefix-map={src}={dst}" for src, dst in remapped_paths.items()
-    ]
 
-    # Ensure deterministic linking order
-    build_flags["LD_FLAGS"] += ["-Wl,--sort-section=name"]
 
-    # Enable errors
-    build_flags["C_FLAGS"] += ["-Wall", "-Wextra", "-Werror"]
+def warning_flags(toolchain: Toolchain) -> list[str]:
+    """Warnings that are errors, minus the ones the SDK cannot currently satisfy."""
+    flags = ["-Wall", "-Wextra", "-Werror"]
 
-    if is_llvm:
-        build_flags["C_FLAGS"] += [
-            "-Wno-unknown-warning-option",  # ignore GCC-only warning names
-            "-Wno-error=format-security",  # SDK `diagnostic.c` uses a non-literal format string
-            "-Wno-error=unknown-pragmas",  # our `ws2812.c` uses `#pragma GCC optimize`
-            "-Wno-error=unused-function",  # unused statics in SDK/OpenThread sources
-            "-Wno-error=c23-extensions",  # our `cmds_proprietary.c` has a label before a declaration
-            "-Wno-error=unterminated-string-initialization",  # char arrays in zigbee router sources
-        ]
-    else:
-        build_flags["C_FLAGS"] += [
+    if toolchain is Toolchain.LLVM:
+        return (
+            flags
+            + [
+                "-Wno-unknown-warning-option",  # ignore GCC-only warning names
+                "-Wno-error=format-security",  # SDK `diagnostic.c` uses a non-literal format string
+                "-Wno-error=unknown-pragmas",  # our `ws2812.c` uses `#pragma GCC optimize`
+                "-Wno-error=unused-function",  # unused statics in SDK/OpenThread sources
+                "-Wno-error=c23-extensions",  # our `cmds_proprietary.c` has a label before a declaration
+                "-Wno-error=unterminated-string-initialization",  # char arrays in zigbee router sources
+            ]
+        )
+
+    return (
+        flags
+        + [
             "-Wno-error=maybe-uninitialized",  # Linking fails due to a few SDK bugs
             "-Wno-error=uninitialized",  # False positive in zigbee `core-cli.c` under LTO
             "-Wno-error=unused-function",  # mbedTLS `ssl_tls.c` with X.509 hostname verification disabled
         ]
+    )
 
-    build_flags["CXX_FLAGS"] = build_flags["C_FLAGS"]
 
+def assemble_build_flags(
+    build: ResolvedBuild, c_flag_defines: list[str]
+) -> dict[str, list[str]]:
+    c_flags = (
+        c_flag_defines
+        + [
+            f"-ffile-prefix-map={src}={dst}"
+            for src, dst in sdk_path_remaps(build).items()
+        ]
+        + warning_flags(build.toolchain)
+    )
+
+    return {
+        "C_FLAGS": c_flags,
+        "CXX_FLAGS": c_flags,
+        # Ensure deterministic linking order
+        "LD_FLAGS": ["-Wl,--sort-section=name"],
+    }
+
+
+def cmake_configure_and_build(
+    build: ResolvedBuild, build_flags: dict[str, list[str]]
+) -> None:
     # The GBL is built in-process after the link, so neutralize the SDK's post-build
     # hook. CMake expects a semicolon-separated list for the command.
     cmake_post_build_command = ";".join([shutil.which("cmake"), "-E", "true"])
+
+    source_date_epoch = str(int(build.build_timestamp.timestamp()))
 
     # fmt: off
     subprocess_run_verbose(
@@ -799,52 +863,40 @@ def main():
         env={
             "HOME": os.environ["HOME"],
             "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}",
-            ("ARM_LLVM_DIR" if is_llvm else "ARM_GCC_DIR"): toolchain,
+            f"ARM_{build.toolchain.upper()}_DIR": build.toolchain_path,
             "NINJA_EXE_PATH": shutil.which("ninja"),
             # Unused, `post_build_command` replaces it. The SDK's toolchain.cmake still
             # requires it to be non-empty, otherwise it errors out.
             "POST_BUILD_EXE": shutil.which("cmake"),
-            "SOURCE_DATE_EPOCH": str(int(args.build_timestamp.timestamp())),
+            "SOURCE_DATE_EPOCH": source_date_epoch,
         },
-        cwd=cmake_dir,
+        cwd=build.cmake_dir,
     )
     # fmt: on
 
     subprocess_run_verbose(
         ["cmake", "--build", "."],
         "cmake --build",
-        cwd=cmake_dir,
+        cwd=build.cmake_dir,
         env={
             "HOME": os.environ["HOME"],
             "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}",
-            "SOURCE_DATE_EPOCH": str(int(args.build_timestamp.timestamp())),
+            "SOURCE_DATE_EPOCH": source_date_epoch,
         },
     )
 
-    # Extract the metadata from the source and build trees, patch the ELF, and build the
-    # GBL. This runs before the debug paths below are rewritten, as the GBL contains only
-    # loadable segments and is unaffected by them.
-    extracted_gbl_metadata = create_gbl(
-        build_dir=cmake_dir,
-        project_root=args.build_dir,
-        gsdk_path=sdk,
-        project_name=base_project_name,
-        sdk_version=sdk_version,
-        gbl_metadata=manifest["gbl"],
-    )
 
-    output_artifact = (cmake_dir / base_project_name).with_suffix(".gbl")
-
-    # Verify that --wrap linker flags don't wrap weak stubs
+def verify_build_reproducibility(
+    build: ResolvedBuild, output_artifact: pathlib.Path
+) -> None:
+    """Check the linker wraps and scrub absolute build paths out of the ELF's DWARF."""
     validate_linker_wrap_symbols(map_file=output_artifact.with_suffix(".map"))
 
-    # Rewrite absolute build paths in the ELF's DWARF for reproducibility, then verify
-    # none leaked
     out_elf = output_artifact.with_suffix(".out")
     remap_debug_build_paths(
         out_elf,
         {
-            str(args.build_dir.resolve()): "/src",
+            str(build.build_dir.resolve()): "/src",
             "/home/buildengineer": "/src/vendor",  # Silicon Labs build machines
             "/github/home": "/src/vendor",  # Silicon Labs Zigbee CI
             "/opt/github": "/src/vendor",  # Silicon Labs Z-Wave CI
@@ -863,9 +915,97 @@ def main():
             + "\n - ".join(map(str, unreproducible_paths))
         )
 
-    base_filename = evaulate_f_string(
-        manifest.get("filename", "{manifest_name}"),
-        {**value_template_env, **extracted_gbl_metadata},
+
+def main() -> None:
+    args = build_argument_parser().parse_args()
+
+    if args.build_timestamp is not None:
+        args.build_timestamp = datetime.strptime(
+            args.build_timestamp, "%Y%m%d%H%M%S"
+        ).replace(tzinfo=UTC)
+    else:
+        args.build_timestamp = datetime.now(UTC)
+
+    if args.slc_daemon:
+        slc = ["slc", "--daemon", "--daemon-timeout", "1"]
+    else:
+        slc = ["slc"]
+
+    if args.build_dir is None:
+        args.build_dir = pathlib.Path(f"build/{time.time():.0f}_{args.manifest.stem}")
+
+    # argparse defaults should be replaced, not extended
+    if args.sdks != get_sdk_default_paths():
+        args.sdks = args.sdks[len(get_sdk_default_paths()) :]
+
+    if args.toolchains != get_toolchain_default_paths():
+        args.toolchains = args.toolchains[len(get_toolchain_default_paths()) :]
+
+    build = resolve_build(args)
+    LOGGER.info("Building in %s", build.build_dir.resolve())
+
+    if args.clean_build_dir:
+        with contextlib.suppress(OSError):
+            shutil.rmtree(build.build_dir)
+
+    copy_base_project(build)
+    base_project = prepare_project_slcp(build)
+
+    run_slc_generate(build, slc=slc, tool_paths=args.tool_paths)
+    apply_sdk_patches(build)
+    validate_sdk_extensions(build, base_project)
+
+    # Template variables for C defines and the output filename
+    template_env = {
+        "git_repo_hash": get_git_commit_id(repo=build.projects_root),
+        "manifest_name": build.manifest_path.stem,
+        "now": build.build_timestamp,
+    }
+
+    c_defines = normalize_c_defines(build.manifest)
+    c_flag_defines = [
+        f"-D{define}={config['value']}"
+        for define, config in c_defines.items()
+        if config["type"] == "c_flag"
+    ]
+    written_defines = patch_config_headers(
+        config_roots=[build.build_dir / "autogen", build.build_dir / "config"],
+        c_defines=c_defines,
+        base_project=base_project,
+        template_env=template_env,
+    )
+
+    unused_defines = (
+        set(c_defines)
+        - written_defines
+        - {define for define, config in c_defines.items() if config["type"] == "c_flag"}
+    )
+    if unused_defines:
+        LOGGER.error("Defines were unused, aborting: %s", unused_defines)
+        sys.exit(1)
+
+    fix_pti_config_warning(build)
+
+    cmake_configure_and_build(build, assemble_build_flags(build, c_flag_defines))
+
+    # Extract the metadata from the source and build trees, patch the ELF, and build the
+    # GBL. This runs before the debug paths below are rewritten, as the GBL contains only
+    # loadable segments and is unaffected by them.
+    extracted_gbl_metadata = create_gbl(
+        build_dir=build.cmake_dir,
+        project_root=build.build_dir,
+        gsdk_path=build.sdk,
+        project_name=build.base_project_name,
+        sdk_version=build.sdk_version,
+        gbl_metadata=build.manifest["gbl"],
+    )
+
+    output_artifact = (build.cmake_dir / build.base_project_name).with_suffix(".gbl")
+    verify_build_reproducibility(build, output_artifact)
+
+    base_filename = evaluate_f_string(
+        build.manifest.get("filename", "{manifest_name}"),
+        {**template_env, **extracted_gbl_metadata},
     )
 
     args.output_dir.mkdir(exist_ok=True)
@@ -882,10 +1022,10 @@ def main():
 
     if args.clean_build_dir:
         with contextlib.suppress(OSError):
-            shutil.rmtree(args.build_dir)
+            shutil.rmtree(build.build_dir)
 
     if args.slc_daemon and not args.keep_slc_daemon:
-        subprocess.run(SLC + ["daemon-shutdown"], check=True)
+        subprocess.run(slc + ["daemon-shutdown"], check=True)
 
 
 if __name__ == "__main__":
