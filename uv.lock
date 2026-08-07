@@ -147,14 +147,14 @@ wheels = [
 
 [[package]]
 name = "pygbl"
-version = "1.0.0"
+version = "1.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pyelftools" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d2/50/92a582eedf3a825fd4ac3ad7de7130b44e1fcad2ee94039ec3e34225c48f/pygbl-1.0.0.tar.gz", hash = "sha256:d1d85932d583519d1b311796048a2b1b27264b881ab773a156dae5f2800e1e92", size = 7720896, upload-time = "2026-08-07T00:38:26.923Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/73/1b/e0fc748c05e54b647f1a4f8af99f80dce261cfdadf9f9052d4c14eb86763/pygbl-1.0.1.tar.gz", hash = "sha256:aafd10948167ea17ff5d345172c18deeb2962d65559c63d9fd0606ec49cd0fd5", size = 7860164, upload-time = "2026-08-07T13:21:48.161Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ab/f5/e6b8f178ef8c7ff6dc3bdaea499e57cd2f03b01d9665d25e89db33abacc4/pygbl-1.0.0-py3-none-any.whl", hash = "sha256:75590e5ab19240387a80d133a25ae46685ab6eb033d21c1b26e5ccf91a1b3e9e", size = 28976, upload-time = "2026-08-07T00:38:25.554Z" },
+    { url = "https://files.pythonhosted.org/packages/ad/62/0cfff6a218879da4ae766f51fc139b3256ed7ad0137b6c62f5826c4d05e1/pygbl-1.0.1-py3-none-any.whl", hash = "sha256:ea8fc6d89e249725c47fbe42bb13f4792032fe84b90de3351a9888442b1700d5", size = 29225, upload-time = "2026-08-07T13:21:46.667Z" },
 ]
 
 [package.optional-dependencies]
@@ -185,6 +185,6 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "pyelftools" },
-    { name = "pygbl", extras = ["all"], specifier = ">=1.0.0" },
+    { name = "pygbl", extras = ["all"], specifier = ">=1.0.1" },
     { name = "ruamel-yaml" },
 ]

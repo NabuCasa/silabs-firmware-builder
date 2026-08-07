@@ -5,7 +5,7 @@ requires-python = ">=3.14"
 dependencies = [
     "ruamel.yaml",
     "pyelftools",
-    "pygbl[all]>=1.0.0",
+    "pygbl[all]>=1.0.1",
 ]
 
 [tool.uv]
