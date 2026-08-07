@@ -818,8 +818,9 @@ def main():
             "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}",
             ("ARM_LLVM_DIR" if is_llvm else "ARM_GCC_DIR"): toolchain,
             "NINJA_EXE_PATH": shutil.which("ninja"),
-            # The SDK's generated cmake otherwise resolves this with `slt where commander`
-            "POST_BUILD_EXE": shutil.which("commander"),
+            # Unused, `post_build_command` replaces it. The SDK's toolchain.cmake still
+            # requires it to be non-empty, otherwise it errors out.
+            "POST_BUILD_EXE": str(args.postbuild),
             "SOURCE_DATE_EPOCH": str(int(args.build_timestamp.timestamp())),
         },
         cwd=cmake_dir,
