@@ -197,4 +197,4 @@ ENV PATH="$PATH:/opt/silabs/bin"
 
 WORKDIR /repo
 
-ENTRYPOINT ["/opt/venv/bin/python3", "tools/build_project.py"]
+ENTRYPOINT ["/opt/venv/bin/python3", "-m", "tools.build_project"]

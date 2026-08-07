@@ -241,7 +241,7 @@ jobs:
       - name: Build firmware
         id: build-firmware
         run: |
-          /opt/venv/bin/python3 tools/build_project.py \
+          /opt/venv/bin/python3 -m tools.build_project \
             --manifest "${MATRIX_MANIFEST}" \
             --build-dir build \
             --output-dir outputs \

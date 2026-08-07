@@ -1,14 +1,12 @@
-#!/usr/bin/env python3
 """Tool to create a GBL image in a Simplicity Studio build directory."""
 
 from __future__ import annotations
 
-import argparse
 import ast
 import json
 import pathlib
 import struct
-from typing import BinaryIO
+from typing import Any, BinaryIO
 
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
@@ -19,7 +17,6 @@ from pygbl import (
     build_bootloader_gbl3,
     read_encryption_key,
 )
-from ruamel.yaml import YAML
 
 
 def _jump_to_elf_symbol(file: BinaryIO, symbol_name: str) -> tuple[ELFFile, int, int]:
@@ -136,78 +133,21 @@ def parse_properties_file(file_content: str) -> dict[str, str | list[str]]:
     return properties
 
 
-def find_file_in_parent_dirs(root: pathlib.Path, filename: str) -> pathlib.Path:
-    """
-    Finds a file in the given directory or any of its parents.
-    """
-    root = root.resolve()
-
-    while True:
-        if (root / filename).exists():
-            return root / filename
-
-        if root.parent == root:
-            raise FileNotFoundError(
-                f"Could not find {filename} in any parent directory"
-            )
-
-        root = root.parent
-
-
-def main():
-    # Run as a Simplicity Studio post-build step
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-    parser.add_argument("command", type=str, help="Command to execute: postbuild")
-    parser.add_argument("slpb_file", type=pathlib.Path, help="Path to the .slpb file")
-    parser.add_argument(
-        "--parameter",
-        action="append",
-        type=lambda kv: kv.split(":"),
-        dest="parameters",
-        help="Parameters in the format key:value",
-    )
-
-    args = parser.parse_args()
-    args.parameters = dict(args.parameters)
-
-    project_name = args.slpb_file.stem
-    build_dir = pathlib.Path(args.parameters["build_dir"])
+def create_gbl(
+    build_dir: pathlib.Path,
+    project_root: pathlib.Path,
+    gsdk_path: pathlib.Path,
+    project_name: str,
+    sdk_version: str,
+    gbl_metadata: dict[str, Any],
+) -> dict[str, Any]:
+    """Build the GBL image for a linked project, returning its metadata."""
     out_file = build_dir / f"{project_name}.out"
-
-    artifact_root = out_file.parent
-    project_name = out_file.stem
-    slcp_path = find_file_in_parent_dirs(
-        root=artifact_root,
-        filename=project_name + ".slcp",
-    )
-
-    project_root = slcp_path.parent
-
-    if "sdk_dir" in args.parameters:
-        gsdk_path = pathlib.Path(args.parameters["sdk_dir"])
-    elif "cmake" in str(build_dir):
-        gsdk_path = pathlib.Path(
-            pathlib.Path(build_dir / f"{project_name}.cmake")
-            .read_text()
-            .split('set(SDK_PATH "', 1)[1]
-            .split('"', 1)[0]
-        )
-    else:
-        raise RuntimeError("Cannot determine SDK directory")
-
-    # Parse the main Simplicity Studio project config
-    slcp = YAML(typ="safe").load(slcp_path.read_text())
-
-    gbl_metadata = YAML(typ="safe").load(
-        (project_root / "gbl_metadata.yaml").read_text()
-    )
 
     # Prepare the GBL metadata
     metadata = {
         "metadata_version": 2,
-        "sdk_version": slcp["sdk"]["version"],
+        "sdk_version": sdk_version,
         "fw_type": gbl_metadata.get("fw_type"),
         "fw_variant": gbl_metadata.get("fw_variant"),
         "baudrate": gbl_metadata.get("baudrate"),
@@ -377,10 +317,7 @@ def main():
 
     print("Generated GBL metadata:", metadata, flush=True)
 
-    # `build_project.py` reads this back, so keep writing it even though the GBL is now
-    # built in-process rather than by `commander`
     metadata_json = json.dumps(metadata, sort_keys=True).encode("utf-8")
-    (artifact_root / "gbl_metadata.json").write_bytes(metadata_json)
 
     with out_file.open("rb") as f:
         if gbl_metadata.get("fw_type", None) != "gecko-bootloader":
@@ -410,6 +347,4 @@ def main():
     # `commander` pads its output to a 4 byte boundary
     out_file.with_suffix(".gbl").write_bytes(image.serialize(block_size=4))
 
-
-if __name__ == "__main__":
-    main()
+    return metadata

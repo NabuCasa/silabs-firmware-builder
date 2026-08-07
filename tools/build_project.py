@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Tool to retarget and build a SLCP project based on a manifest."""
 
 from __future__ import annotations
@@ -21,6 +20,8 @@ from datetime import UTC, datetime
 
 from elftools.elf.elffile import ELFFile
 from ruamel.yaml import YAML
+
+from .create_gbl import create_gbl
 
 LOGGER = logging.getLogger(__name__)
 
@@ -347,12 +348,6 @@ def main():
         help="Path to a folder containing an slc adapter pack",
     )
     parser.add_argument(
-        "--postbuild",
-        default=pathlib.Path(__file__).parent / "create_gbl.py",
-        required=False,
-        help="Postbuild executable",
-    )
-    parser.add_argument(
         "--override",
         action="append",
         dest="overrides",
@@ -544,10 +539,6 @@ def main():
     # Finally, write out the modified base project
     with base_project_slcp.open("w") as f:
         yaml.dump(base_project, f)
-
-    # Create a GBL metadata file
-    with (args.build_dir / "gbl_metadata.yaml").open("w") as f:
-        yaml.dump(manifest["gbl"], f)
 
     # Next, generate a chip-specific project from the modified base project
     LOGGER.info(f"Generating project for {manifest['device']}")
@@ -788,17 +779,9 @@ def main():
 
     build_flags["CXX_FLAGS"] = build_flags["C_FLAGS"]
 
-    # CMake expects a semicolon-separated list for the post-build command
-    # fmt: off
-    cmake_post_build_command = ";".join(
-        [
-            str(args.postbuild), "postbuild",
-            str((args.build_dir / base_project_name).resolve()) + ".slpb",
-            "--parameter", f"build_dir:{cmake_dir.resolve()}",
-            "--parameter", f"sdk_dir:{sdk}",
-        ]
-    )
-    # fmt: on
+    # The GBL is built in-process after the link, so neutralize the SDK's post-build
+    # hook. CMake expects a semicolon-separated list for the command.
+    cmake_post_build_command = ";".join([shutil.which("cmake"), "-E", "true"])
 
     # fmt: off
     subprocess_run_verbose(
@@ -820,7 +803,7 @@ def main():
             "NINJA_EXE_PATH": shutil.which("ninja"),
             # Unused, `post_build_command` replaces it. The SDK's toolchain.cmake still
             # requires it to be non-empty, otherwise it errors out.
-            "POST_BUILD_EXE": str(args.postbuild),
+            "POST_BUILD_EXE": shutil.which("cmake"),
             "SOURCE_DATE_EPOCH": str(int(args.build_timestamp.timestamp())),
         },
         cwd=cmake_dir,
@@ -836,6 +819,18 @@ def main():
             "PATH": f"{pathlib.Path(sys.executable).parent}:{os.environ['PATH']}",
             "SOURCE_DATE_EPOCH": str(int(args.build_timestamp.timestamp())),
         },
+    )
+
+    # Extract the metadata from the source and build trees, patch the ELF, and build the
+    # GBL. This runs before the debug paths below are rewritten, as the GBL contains only
+    # loadable segments and is unaffected by them.
+    extracted_gbl_metadata = create_gbl(
+        build_dir=cmake_dir,
+        project_root=args.build_dir,
+        gsdk_path=sdk,
+        project_name=base_project_name,
+        sdk_version=sdk_version,
+        gbl_metadata=manifest["gbl"],
     )
 
     output_artifact = (cmake_dir / base_project_name).with_suffix(".gbl")
@@ -868,10 +863,6 @@ def main():
             + "\n - ".join(map(str, unreproducible_paths))
         )
 
-    # Read the metadata extracted from the source and build trees
-    extracted_gbl_metadata = json.loads(
-        (output_artifact.parent / "gbl_metadata.json").read_text()
-    )
     base_filename = evaulate_f_string(
         manifest.get("filename", "{manifest_name}"),
         {**value_template_env, **extracted_gbl_metadata},
