@@ -8,10 +8,17 @@ import ast
 import json
 import pathlib
 import struct
-import subprocess
 from typing import BinaryIO
 
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from elftools.elf.elffile import ELFFile
+from pygbl import (
+    GBL3Compression,
+    build_application_gbl3,
+    build_bootloader_gbl3,
+    read_encryption_key,
+)
 from ruamel.yaml import YAML
 
 
@@ -370,45 +377,38 @@ def main():
 
     print("Generated GBL metadata:", metadata, flush=True)
 
-    # Write it to a file for `commander` to read
-    (artifact_root / "gbl_metadata.json").write_text(
-        json.dumps(metadata, sort_keys=True)
-    )
+    # `build_project.py` reads this back, so keep writing it even though the GBL is now
+    # built in-process rather than by `commander`
+    metadata_json = json.dumps(metadata, sort_keys=True).encode("utf-8")
+    (artifact_root / "gbl_metadata.json").write_bytes(metadata_json)
 
-    commander_args = [
-        "commander",
-        "gbl",
-        "create",
-        out_file.with_suffix(".gbl"),
-        (
-            "--app"
-            if gbl_metadata.get("fw_type", None) != "gecko-bootloader"
-            else "--bootloader"
-        ),
-        out_file,
-    ] + (
-        [
-            "--metadata",
-            (artifact_root / "gbl_metadata.json"),
-        ]
-        if gbl_metadata
-        else []
-    )
+    with out_file.open("rb") as f:
+        if gbl_metadata.get("fw_type", None) != "gecko-bootloader":
+            image = build_application_gbl3(
+                f, metadata=metadata_json if gbl_metadata else None
+            )
+        else:
+            image = build_bootloader_gbl3(
+                f, metadata=metadata_json if gbl_metadata else None
+            )
 
+    # The order matters: compression only touches program data, encryption then wraps
+    # every tag but the header, and the signature covers the resulting ciphertext
     if gbl_metadata.get("compression", None) is not None:
-        commander_args += ["--compress", gbl_metadata["compression"]]
-
-    if gbl_metadata.get("sign_key", None) is not None:
-        commander_args += ["--sign", gbl_metadata["sign_key"].format(SDK_DIR=gsdk_path)]
+        image = image.compress(GBL3Compression(gbl_metadata["compression"]))
 
     if gbl_metadata.get("encrypt_key", None) is not None:
-        commander_args += [
-            "--encrypt",
-            gbl_metadata["encrypt_key"].format(SDK_DIR=gsdk_path),
-        ]
+        key_path = pathlib.Path(gbl_metadata["encrypt_key"].format(SDK_DIR=gsdk_path))
+        image = image.encrypt(read_encryption_key(key_path.read_text()))
 
-    # Finally, generate the GBL
-    subprocess.run(commander_args, check=True)
+    if gbl_metadata.get("sign_key", None) is not None:
+        key_path = pathlib.Path(gbl_metadata["sign_key"].format(SDK_DIR=gsdk_path))
+        private_key = load_pem_private_key(key_path.read_bytes(), password=None)
+        assert isinstance(private_key, ec.EllipticCurvePrivateKey)
+        image = image.sign(private_key)
+
+    # `commander` pads its output to a 4 byte boundary
+    out_file.with_suffix(".gbl").write_bytes(image.serialize(block_size=4))
 
 
 if __name__ == "__main__":

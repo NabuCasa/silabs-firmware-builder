@@ -12,7 +12,7 @@ import re
 import sys
 from datetime import UTC, datetime
 
-from universal_silabs_flasher.firmware import parse_firmware_image
+from pygbl import GBLError, parse_firmware_image
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -62,16 +62,13 @@ def main():
 
         try:
             firmware = parse_firmware_image(data)
-        except ValueError:
+        except GBLError:
             _LOGGER.warning("Ignoring invalid firmware file: %s", firmware_file)
             continue
 
-        try:
-            gbl_metadata = firmware.get_nabucasa_metadata()
-        except KeyError, ValueError:
-            metadata = None
-        else:
-            metadata = gbl_metadata.original_json
+        # Encrypted images keep their metadata inside the ciphertext, so it is absent
+        raw_metadata = firmware.get_metadata()
+        metadata = json.loads(raw_metadata) if raw_metadata is not None else None
 
         manifest["firmwares"].append(
             {
