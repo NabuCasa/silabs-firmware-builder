@@ -4,7 +4,7 @@ import enum
 import json
 import pathlib
 
-from universal_silabs_flasher.firmware import GBLImage, GBLTagId
+from pygbl import GBL3Bootloader, GBL3EraseProg, GBL3Image
 
 
 @dataclasses.dataclass(frozen=True)
@@ -272,21 +272,16 @@ def main() -> None:
     output_hex = IntelHex()
 
     # Flash the bootloader
-    bootloader_gbl = GBLImage.from_bytes(args.bootloader.read_bytes())
-    bootloader_data = bootloader_gbl.get_first_tag(GBLTagId.BOOTLOADER)
-    bootloader_hdr, bootloader = bootloader_data[:8], bootloader_data[8:]
-    _bootloader_version = int.from_bytes(bootloader_hdr[0:4], "little")
-    bootloader_base_addr = int.from_bytes(bootloader_hdr[4:8], "little")
+    bootloader_gbl = GBL3Image.from_bytes(args.bootloader.read_bytes())
+    bootloader = bootloader_gbl.get_first_tag(GBL3Bootloader)
 
-    output_hex.flash_data(address=bootloader_base_addr, data=bootloader)
+    output_hex.flash_data(address=bootloader.address, data=bootloader.data)
 
-    # Flash the application
-    application_gbl = GBLImage.from_bytes(args.application.read_bytes())
-    application_data = application_gbl.get_first_tag(GBLTagId.PROGRAM_DATA2)
-    application_hdr, application = application_data[:4], application_data[4:]
-    application_base_addr = int.from_bytes(application_hdr[0:4], "little")
+    # Flash the application segments
+    application_gbl = GBL3Image.from_bytes(args.application.read_bytes())
 
-    output_hex.flash_data(address=application_base_addr, data=application)
+    for application in application_gbl.get_tags(GBL3EraseProg):
+        output_hex.flash_data(address=application.address, data=application.data)
 
     # Flash USERDATA tokens
     tokens_json = json.loads(args.tokens.read_text())

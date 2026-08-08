@@ -13,3 +13,10 @@ requires:
 toolchain_settings:
   - option: gcc_linker_option
     value: "-Wl,--wrap=sl_token_manager_get_data"
+  - option: llvm_linker_option
+    value: "-Wl,--wrap=sl_token_manager_get_data"
+
+metadata:
+  nabucasa:
+    wrap_definitions:
+      sl_token_manager_get_data: "sl_token_manager_api.c"

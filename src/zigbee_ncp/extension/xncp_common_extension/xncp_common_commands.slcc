@@ -22,6 +22,8 @@ requires:
 toolchain_settings:
   - option: gcc_linker_option
     value: "-Wl,--wrap=sli_zigbee_am_multicast_member"
+  - option: llvm_linker_option
+    value: "-Wl,--wrap=sli_zigbee_am_multicast_member"
 template_contribution:
   - name: xncp_command_table
     value:

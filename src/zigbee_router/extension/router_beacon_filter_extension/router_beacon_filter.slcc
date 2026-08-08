@@ -14,3 +14,10 @@ requires:
 toolchain_settings:
   - option: gcc_linker_option
     value: "-Wl,--wrap=sli_zigbee_stack_get_stored_beacon"
+  - option: llvm_linker_option
+    value: "-Wl,--wrap=sli_zigbee_stack_get_stored_beacon"
+
+metadata:
+  nabucasa:
+    wrap_definitions:
+      sli_zigbee_stack_get_stored_beacon: "libzigbee-pro-stack.a:beacon-handling.c.obj"

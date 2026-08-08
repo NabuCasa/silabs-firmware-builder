@@ -18,16 +18,15 @@ RUN set -eux \
         > /etc/apt/apt.conf.d/80snapshot \
     && apt-get update
 
-# Simplicity Commander, slc-cli, ZAP, a JRE and a Python interpreter are published on
-# Silicon Labs' update site as native builds for both architectures. Fetching them directly
-# avoids `slt`, which is x86_64-only and would otherwise have to be emulated on ARM64.
+# slc-cli, ZAP, a JRE and a Python interpreter are published on Silicon Labs' update
+# site as native builds for both architectures. Fetching them directly avoids `slt`,
+# which is x86_64-only and would otherwise have to be emulated on ARM64.
 FROM trixie-stable AS silabs-tools
 ARG TARGETARCH
 RUN set -eux \
     && apt-get install -y --no-install-recommends \
         aria2 ca-certificates libarchive-tools \
-    && mkdir -p /opt/silabs/commander /opt/silabs/slc-cli /opt/silabs/zap \
-                /opt/silabs/java21 /opt/silabs/python \
+    && mkdir -p /opt/silabs/slc-cli /opt/silabs/zap /opt/silabs/java21 /opt/silabs/python \
     && if [ "$TARGETARCH" = "arm64" ]; then \
         aria2c -q -o python.zip --checksum=sha-256=0bd0334fead1e3c2647b6c09b9801b214ab3b999e9e6a9d13553ff57c1e04bb2 \
             https://updates.silabs.com/studio/v6/updates/update_site/archives/python/3.10.3/python.3.10.gtk.linux.aarch64.zip \
@@ -36,9 +35,7 @@ RUN set -eux \
         && aria2c -q -o zap.zip --checksum=sha-256=15c5263ea98a1162e655ad5fb154a4f0e62047b6382a889f9e986f570c30c45b \
             https://updates.silabs.com/studio/v6/updates/update_site/archives/zap/2026.06.17/zap-linux-arm64.zip \
         && aria2c -q -o jre.zip --checksum=sha-256=61b4be111fe14d7a9138de920047489c679c7a697320cf69d28b23046edbaf73 \
-            https://updates.silabs.com/studio/v6/updates/update_site/archives/java21/21.0.6/linux.aarch64_21.0.6.zip \
-        && aria2c -q -o commander.tar.bz --checksum=sha-256=99fd45e5064b00ace957b4d12c00bb3c3b33845b4e65793fde99d4960004e091 \
-            https://updates.silabs.com/studio/v6/updates/update_site/archives/commander/1.24.1/Commander_linux_aarch64_1v24p1b1980.tar.bz; \
+            https://updates.silabs.com/studio/v6/updates/update_site/archives/java21/21.0.6/linux.aarch64_21.0.6.zip; \
        else \
         aria2c -q -o python.zip --checksum=sha-256=26f56b1cfa05b2b3b7dafb2c2a5e3c19498389c34dfe68be800f71f476c86363 \
             https://updates.silabs.com/studio/v6/updates/update_site/archives/python/3.10.3/python.3.10.3.gtk.linux.x86_64.zip \
@@ -47,9 +44,7 @@ RUN set -eux \
         && aria2c -q -o zap.zip --checksum=sha-256=45537226973fb892894f7110288dd4a7db627728af8cd9fc7c27b658530e2b88 \
             https://updates.silabs.com/studio/v6/updates/update_site/archives/zap/2026.06.17/zap-linux-x64.zip \
         && aria2c -q -o jre.zip --checksum=sha-256=5382fa98bcc66fc3aef48792a3e84328eca16afa9bf97517527e92812516ee50 \
-            https://updates.silabs.com/studio/v6/updates/update_site/archives/java21/21.0.6/linux.x86_64_21.0.6.zip \
-        && aria2c -q -o commander.tar.bz --checksum=sha-256=3ba24eeaeb560e9db306a4d070e2bbe40b456701b4b87c53643a93ab1101b2c4 \
-            https://updates.silabs.com/studio/v6/updates/update_site/archives/commander/1.24.1/Commander_linux_x86_64_1v24p1b1980.tar.bz; \
+            https://updates.silabs.com/studio/v6/updates/update_site/archives/java21/21.0.6/linux.x86_64_21.0.6.zip; \
        fi \
     # slc runs the SDK's template generators with this Python, which it finds as an adapter
     # pack rather than on PATH
@@ -57,8 +52,7 @@ RUN set -eux \
     && bsdtar -xf slc.zip --strip-components=1 -C /opt/silabs/slc-cli \
     && bsdtar -xf zap.zip -C /opt/silabs/zap \
     && bsdtar -xf jre.zip --strip-components=1 -C /opt/silabs/java21 \
-    && bsdtar -xf commander.tar.bz --strip-components=1 -C /opt/silabs/commander \
-    && rm python.zip slc.zip zap.zip jre.zip commander.tar.bz
+    && rm python.zip slc.zip zap.zip jre.zip
 
 # The SDK is a conan package, but conan is not needed to fetch one: the recipe revision,
 # package id and package revision are all discoverable over its REST API. Those revisions
@@ -187,7 +181,6 @@ COPY --from=zstd-gcc-builder /opt/zstd-gcc /tmp/zstd-gcc
 RUN set -eux \
     && mkdir -p /opt/silabs/bin \
     && ln -s /opt/silabs/java21/jre/bin/java /opt/silabs/bin/java \
-    && ln -s /opt/silabs/commander/commander /opt/silabs/bin/commander \
     && ln -s /opt/silabs/zap/zap /opt/silabs/bin/zap \
     # slc uses $(dirname "$0") to find slc.jar, so it needs a wrapper rather than a symlink
     && printf '#!/bin/sh\nexec /opt/silabs/slc-cli/slc "$@"\n' > /opt/silabs/bin/slc \
@@ -204,4 +197,4 @@ ENV PATH="$PATH:/opt/silabs/bin"
 
 WORKDIR /repo
 
-ENTRYPOINT ["/opt/venv/bin/python3", "tools/build_project.py"]
+ENTRYPOINT ["/opt/venv/bin/python3", "-m", "tools.build_project"]

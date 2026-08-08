@@ -1,18 +1,22 @@
-#!/usr/bin/env python3
 """Tool to create a GBL image in a Simplicity Studio build directory."""
 
 from __future__ import annotations
 
-import argparse
 import ast
 import json
 import pathlib
 import struct
-import subprocess
-from typing import BinaryIO
+from typing import Any, BinaryIO
 
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from elftools.elf.elffile import ELFFile
-from ruamel.yaml import YAML
+from pygbl import (
+    GBL3Compression,
+    build_application_gbl3,
+    build_bootloader_gbl3,
+    read_encryption_key,
+)
 
 
 def _jump_to_elf_symbol(file: BinaryIO, symbol_name: str) -> tuple[ELFFile, int, int]:
@@ -91,116 +95,28 @@ def parse_c_header_defines(file_content: str) -> dict[str, str]:
     return config
 
 
-def parse_properties_file(file_content: str) -> dict[str, str | list[str]]:
-    """
-    Parses custom .properties file format into a dictionary.
-    Handles double backslashes as escape characters for spaces.
-    """
-    properties = {}
-
-    for line in file_content.split("\n"):
-        line = line.strip()
-
-        if not line or line.startswith("#"):
-            continue
-
-        key, value = line.split("=", 1)
-        key = key.strip()
-
-        properties[key] = []
-        current_value = ""
-        i = 0
-
-        while i < len(value):
-            if value[i : i + 2] == "\\\\":
-                current_value += " "
-                i += 2
-            elif value[i] == " ":
-                properties[key].append(current_value)
-                current_value = ""
-                i += 1
-            else:
-                current_value += value[i]
-                i += 1
-
-        if current_value:
-            properties[key].append(current_value)
-
-    return properties
+def resolve_key_path(
+    key: str, project_root: pathlib.Path, gsdk_path: pathlib.Path
+) -> pathlib.Path:
+    """Resolve a manifest key path against the generated project, absolutes pass through."""
+    return project_root / pathlib.Path(key.format(SDK_DIR=gsdk_path))
 
 
-def find_file_in_parent_dirs(root: pathlib.Path, filename: str) -> pathlib.Path:
-    """
-    Finds a file in the given directory or any of its parents.
-    """
-    root = root.resolve()
-
-    while True:
-        if (root / filename).exists():
-            return root / filename
-
-        if root.parent == root:
-            raise FileNotFoundError(
-                f"Could not find {filename} in any parent directory"
-            )
-
-        root = root.parent
-
-
-def main():
-    # Run as a Simplicity Studio post-build step
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-    parser.add_argument("command", type=str, help="Command to execute: postbuild")
-    parser.add_argument("slpb_file", type=pathlib.Path, help="Path to the .slpb file")
-    parser.add_argument(
-        "--parameter",
-        action="append",
-        type=lambda kv: kv.split(":"),
-        dest="parameters",
-        help="Parameters in the format key:value",
-    )
-
-    args = parser.parse_args()
-    args.parameters = dict(args.parameters)
-
-    project_name = args.slpb_file.stem
-    build_dir = pathlib.Path(args.parameters["build_dir"])
-    out_file = build_dir / f"{project_name}.out"
-
-    artifact_root = out_file.parent
-    project_name = out_file.stem
-    slcp_path = find_file_in_parent_dirs(
-        root=artifact_root,
-        filename=project_name + ".slcp",
-    )
-
-    project_root = slcp_path.parent
-
-    if "sdk_dir" in args.parameters:
-        gsdk_path = pathlib.Path(args.parameters["sdk_dir"])
-    elif "cmake" in str(build_dir):
-        gsdk_path = pathlib.Path(
-            pathlib.Path(build_dir / f"{project_name}.cmake")
-            .read_text()
-            .split('set(SDK_PATH "', 1)[1]
-            .split('"', 1)[0]
-        )
-    else:
-        raise RuntimeError("Cannot determine SDK directory")
-
-    # Parse the main Simplicity Studio project config
-    slcp = YAML(typ="safe").load(slcp_path.read_text())
-
-    gbl_metadata = YAML(typ="safe").load(
-        (project_root / "gbl_metadata.yaml").read_text()
-    )
+def create_gbl(
+    build_dir: pathlib.Path,
+    project_root: pathlib.Path,
+    gsdk_path: pathlib.Path,
+    project_name: str,
+    sdk_version: str,
+    gbl_metadata: dict[str, Any],
+) -> dict[str, Any]:
+    """Build the GBL image for a linked project, returning its metadata."""
+    elf = build_dir / f"{project_name}.out"
 
     # Prepare the GBL metadata
     metadata = {
         "metadata_version": 2,
-        "sdk_version": slcp["sdk"]["version"],
+        "sdk_version": sdk_version,
         "fw_type": gbl_metadata.get("fw_type"),
         "fw_variant": gbl_metadata.get("fw_variant"),
         "baudrate": gbl_metadata.get("baudrate"),
@@ -212,13 +128,12 @@ def main():
     if "ezsp_version" in gbl_dynamic:
         gbl_dynamic.remove("ezsp_version")
 
-        elf = next(iter(build_dir.glob("*.out")))
         with elf.open("rb") as f:
             # Try new SDK symbol name first, fall back to old
             try:
                 ember_version = read_elf_symbol(f, "sl_zigbee_version")
                 version_symbol = "sl_zigbee_version"
-            except ValueError, TypeError:
+            except ValueError:
                 f.seek(0)
                 ember_version = read_elf_symbol(f, "emberVersion")
                 version_symbol = "emberVersion"
@@ -370,46 +285,36 @@ def main():
 
     print("Generated GBL metadata:", metadata, flush=True)
 
-    # Write it to a file for `commander` to read
-    (artifact_root / "gbl_metadata.json").write_text(
-        json.dumps(metadata, sort_keys=True)
-    )
+    metadata_json = json.dumps(metadata, sort_keys=True).encode("utf-8")
 
-    commander_args = [
-        "commander",
-        "gbl",
-        "create",
-        out_file.with_suffix(".gbl"),
-        (
-            "--app"
-            if gbl_metadata.get("fw_type", None) != "gecko-bootloader"
-            else "--bootloader"
-        ),
-        out_file,
-    ] + (
-        [
-            "--metadata",
-            (artifact_root / "gbl_metadata.json"),
-        ]
-        if gbl_metadata
-        else []
-    )
+    with elf.open("rb") as f:
+        if gbl_metadata.get("fw_type", None) != "gecko-bootloader":
+            image = build_application_gbl3(
+                f, metadata=metadata_json if gbl_metadata else None
+            )
+        else:
+            image = build_bootloader_gbl3(
+                f, metadata=metadata_json if gbl_metadata else None
+            )
 
+    # The order matters: compression only touches program data, encryption then wraps
+    # every tag but the header, and the signature covers the resulting ciphertext
     if gbl_metadata.get("compression", None) is not None:
-        commander_args += ["--compress", gbl_metadata["compression"]]
-
-    if gbl_metadata.get("sign_key", None) is not None:
-        commander_args += ["--sign", gbl_metadata["sign_key"].format(SDK_DIR=gsdk_path)]
+        image = image.compress(GBL3Compression(gbl_metadata["compression"]))
 
     if gbl_metadata.get("encrypt_key", None) is not None:
-        commander_args += [
-            "--encrypt",
-            gbl_metadata["encrypt_key"].format(SDK_DIR=gsdk_path),
-        ]
+        key_path = resolve_key_path(
+            gbl_metadata["encrypt_key"], project_root, gsdk_path
+        )
+        image = image.encrypt(read_encryption_key(key_path.read_text()))
 
-    # Finally, generate the GBL
-    subprocess.run(commander_args, check=True)
+    if gbl_metadata.get("sign_key", None) is not None:
+        key_path = resolve_key_path(gbl_metadata["sign_key"], project_root, gsdk_path)
+        private_key = load_pem_private_key(key_path.read_bytes(), password=None)
+        assert isinstance(private_key, ec.EllipticCurvePrivateKey)
+        image = image.sign(private_key)
 
+    # `commander` pads its output to a 4 byte boundary
+    elf.with_suffix(".gbl").write_bytes(image.serialize(block_size=4))
 
-if __name__ == "__main__":
-    main()
+    return metadata

@@ -18,3 +18,5 @@ requires:
 toolchain_settings:
   - option: gcc_linker_option
     value: "-Wl,--wrap=halStackIndicateActivity"
+  - option: llvm_linker_option
+    value: "-Wl,--wrap=halStackIndicateActivity"
