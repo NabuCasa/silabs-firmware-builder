@@ -193,38 +193,145 @@ def subprocess_run_verbose(command: list[str], prefix: str, **kwargs) -> None:
         sys.exit(1)
 
 
-def validate_linker_wrap_symbols(map_file: pathlib.Path) -> None:
-    """
-    Check that all --wrap linker flags wrap non-stub symbols.
+def validate_wrap_declarations(project_path: pathlib.Path) -> dict[str, str | None]:
+    """Map each wrapped symbol to where its definition lives, or `None` if unspecified."""
+    declarations: dict[str, str | None] = {}
 
-    When using GCC's --wrap=X, the linker creates __real_X pointing to the original.
-    If these __real functions are stubs, LTO will usually combine them and reuse the
-    same address.
-    """
-    map_content = map_file.read_text()
+    # Shared extensions are symlinked in from the repo root, and `rglob` does not
+    # descend into symlinked directories on its own
+    for slcc in sorted(project_path.rglob("*.slcc", recurse_symlinks=True)):
+        component = yaml.load(slcc.read_text())
+        declared: dict[str, set[str]] = {}
 
-    # Build address -> [symbols] and symbol -> address mappings
-    addr_to_symbols: dict[str, list[str]] = {}
-    symbol_to_addr: dict[str, str] = {}
+        for setting in component.get("toolchain_settings", []):
+            targets = set(re.findall(r"--wrap=(\w+)", str(setting["value"])))
 
-    for match in re.finditer(r"^\s+(0x[0-9a-f]+)\s+(\w+)$", map_content):
-        addr, name = match.groups()
-        addr_to_symbols.setdefault(addr, []).append(name)
-        symbol_to_addr[name] = addr
+            if targets:
+                declared.setdefault(setting["option"], set()).update(targets)
 
-    # Check if original symbols share addresses with unrelated symbols
-    for name in re.findall(r"__wrap_(\w+)", map_content):
-        if name not in symbol_to_addr:
+        if not declared:
             continue
 
-        addr = symbol_to_addr[name]
-        symbols_at_addr = addr_to_symbols[addr]
+        gcc = declared.get("gcc_linker_option", set())
+        llvm = declared.get("llvm_linker_option", set())
 
-        if len(symbols_at_addr) > 1:
-            raise RuntimeError(
-                f"Linker --wrap={name} appears to wrap an empty stub "
-                f"(shares address {addr} with: {symbols_at_addr}"
+        # `gcc_linker_option` only reaches the GCC linker, so a wrap declared under it
+        # alone vanishes from LLVM builds: no flag, no `__wrap_` symbol, no error
+        if gcc != llvm:
+            LOGGER.error(
+                "%s declares --wrap for one toolchain only: gcc-only=%s llvm-only=%s",
+                slcc.relative_to(project_path),
+                sorted(gcc - llvm),
+                sorted(llvm - gcc),
             )
+            sys.exit(1)
+
+        # `metadata` is the SDK's free-form slcc key; a bare top-level key is a
+        # "junk key" warning and spec 8 refuses to generate with any warning
+        definitions = (
+            component.get("metadata", {})
+            .get("nabucasa", {})
+            .get("wrap_definitions", {})
+        )
+
+        if set(definitions) - gcc:
+            LOGGER.error(
+                "%s names definitions for symbols it does not wrap: %s",
+                slcc.relative_to(project_path),
+                sorted(set(definitions) - gcc),
+            )
+            sys.exit(1)
+
+        for target in gcc:
+            declarations[target] = definitions.get(target)
+
+    return declarations
+
+
+def linker_wrap_targets(build: ResolvedBuild) -> set[str]:
+    """The symbols the generated project actually asks the linker to wrap."""
+    return set(re.findall(r"-Wl,--wrap=(\w+)", build.project_cmake.read_text()))
+
+
+def validate_linker_wraps(elf_path: pathlib.Path, targets: set[str]) -> None:
+    """Check that every reference to a wrapped symbol goes via its wrapper."""
+
+    # `--emit-relocs` retains relocations naming the symbol each call site and function
+    # pointer resolved to, so vector table entries are covered as directly as branches
+    with elf_path.open("rb") as f:
+        elf = ELFFile(f)
+        symbols = list(elf.get_section_by_name(".symtab").iter_symbols())
+        names = [symbol.name for symbol in symbols]
+        functions = {
+            symbol.name: (symbol["st_value"] & ~1, symbol["st_size"])
+            for symbol in symbols
+            if symbol["st_info"]["type"] == "STT_FUNC" and symbol.name
+        }
+
+        references: dict[str, list[tuple[str, int]]] = {}
+
+        for section in elf.iter_sections():
+            if section.header["sh_type"] not in ("SHT_REL", "SHT_RELA"):
+                continue
+
+            # `.ARM.exidx` describes functions for unwinding, it does not reference them
+            if ".debug" in section.name or ".ARM.exidx" in section.name:
+                continue
+
+            for reloc in section.iter_relocations():
+                references.setdefault(names[reloc["r_info_sym"]], []).append(
+                    (section.name, reloc["r_offset"])
+                )
+
+    # Without them every target below would trivially pass, which is the failure mode
+    # this check exists to eliminate
+    if targets and not references:
+        raise RuntimeError(
+            f"{elf_path.name} has no relocations, `-Wl,--emit-relocs` is required to"
+            f" validate --wrap"
+        )
+
+    problems = []
+
+    for target in sorted(targets):
+        refs = references.get(target, [])
+        wrapper = functions.get(f"__wrap_{target}")
+
+        if wrapper is None:
+            # With no references left the linker drops the wrapper too, which is fine
+            if refs:
+                section, offset = refs[0]
+                problems.append(
+                    f"--wrap={target}: __wrap_{target} is not in the image, but"
+                    f" {len(refs)} reference(s) remain, e.g. {section}+0x{offset:08x}"
+                )
+
+            continue
+
+        start, size = wrapper
+        stray = [ref for ref in refs if not (start <= ref[1] < start + size)]
+
+        if stray:
+            section, offset = stray[0]
+            problems.append(
+                f"--wrap={target}: {len(stray)} reference(s) bypass __wrap_{target},"
+                f" e.g. {section}+0x{offset:08x}"
+            )
+
+        if target in functions:
+            address = functions[target][0]
+            peers = sorted(n for n, (a, _) in functions.items() if a == address)
+
+            if len(peers) > 1:
+                problems.append(
+                    f"--wrap={target}: __real_{target} shares address 0x{address:08x}"
+                    f" with {peers}, so it is likely an empty stub folded by LTO"
+                )
+
+    if problems:
+        raise RuntimeError(
+            "Linker --wrap validation failed:\n - " + "\n - ".join(problems)
+        )
 
 
 def get_elf_source_paths(elf_path: pathlib.Path) -> set[pathlib.PurePosixPath]:
@@ -233,7 +340,9 @@ def get_elf_source_paths(elf_path: pathlib.Path) -> set[pathlib.PurePosixPath]:
 
     with elf_path.open("rb") as f:
         elf = ELFFile(f)
-        dwarf = elf.get_dwarf_info()
+        # `--emit-relocs` leaves `.rel.debug_*` behind, which pyelftools would otherwise
+        # try to apply, and it has no handler for `R_ARM_NONE`
+        dwarf = elf.get_dwarf_info(relocate_dwarf_sections=False)
 
         for cu in dwarf.iter_CUs():
             line_program = dwarf.line_program_for_CU(cu)
@@ -318,6 +427,10 @@ class ResolvedBuild:
     @property
     def cmake_dir(self) -> pathlib.Path:
         return self.build_dir / f"cmake_{self.toolchain}"
+
+    @property
+    def project_cmake(self) -> pathlib.Path:
+        return self.cmake_dir / f"{self.base_project_name}.cmake"
 
 
 def build_argument_parser() -> argparse.ArgumentParser:
@@ -603,6 +716,87 @@ def run_slc_generate(
     # fmt: on
 
 
+def exclude_archive_member_from_lto(
+    build: ResolvedBuild, archive_name: str, member: str, arch_flags: list[str]
+) -> None:
+    """Replace one bitcode archive member with a precompiled object, in place."""
+    archive = next(build.build_dir.rglob(archive_name)).resolve()
+    workdir = build.build_dir / "no_lto"
+    workdir.mkdir(parents=True, exist_ok=True)
+
+    gcc = build.toolchain_path / "bin/arm-none-eabi-gcc"
+    ar = build.toolchain_path / "bin/arm-none-eabi-ar"
+    real_member = f"no_lto_{member}"
+
+    subprocess.run([ar, "x", archive, member], cwd=workdir, check=True)
+    # `nolto-rel` runs LTO codegen but emits a plain relocatable object, so the member's
+    # own references stay undefined instead of being bound internally
+    subprocess.run(
+        [
+            gcc,
+            *arch_flags,
+            "-r",
+            "-nostdlib",
+            "-flinker-output=nolto-rel",
+            member,
+            "-o",
+            real_member,
+        ],
+        cwd=workdir,
+        check=True,
+    )
+    subprocess.run([ar, "r", archive, real_member], cwd=workdir, check=True)
+    subprocess.run([ar, "d", archive, member], check=True)
+
+    LOGGER.info("Excluded %s from LTO (%s)", member, archive.name)
+
+
+def exclude_definitions_from_lto(build: ResolvedBuild, definitions: list[str]) -> None:
+    """Compile the named definitions outside the LTO unit so `--wrap` can see them."""
+    # GNU ld only redirects *undefined* references, so a definition LTO can see is called
+    # directly instead (binutils PR ld/31956). LLD rewrites symbol tables and is immune.
+    if not definitions or build.toolchain is not Toolchain.GCC:
+        return
+
+    text = build.project_cmake.read_text()
+
+    # `-fwhole-program` asserts the LTO unit is the entire program, so a definition
+    # sitting outside it does not resolve at all
+    assert "-fwhole-program" in text
+    text = text.replace(" -fwhole-program", "")
+
+    arch_flags = list(
+        dict.fromkeys(re.findall(r"-m(?:cpu|fpu|float-abi)=[\w.+-]+|-mthumb", text))
+    )
+
+    sources = []
+
+    for definition in definitions:
+        archive_name, separator, member = definition.partition(":")
+
+        if separator:
+            exclude_archive_member_from_lto(build, archive_name, member, arch_flags)
+        else:
+            sources.append(definition)
+
+    if sources:
+        matched = [
+            line.strip().strip('"')
+            for line in text.split("\n")
+            if line.strip().strip('"').endswith(tuple(sources))
+        ]
+        assert len(matched) == len(sources), f"{sources} matched {matched}"
+
+        quoted = "\n    ".join(f'"{path}"' for path in matched)
+        text += (
+            f"\nset_source_files_properties(\n    {quoted}\n"
+            f'    PROPERTIES COMPILE_OPTIONS "-fno-lto"\n)\n'
+        )
+        LOGGER.info("Excluded %s from LTO", sources)
+
+    build.project_cmake.write_text(text)
+
+
 def apply_sdk_patches(build: ResolvedBuild) -> None:
     """Patch the copied SDK. A last resort, prefer SDK extensions wherever possible!"""
     if not build.manifest.get("sdk_patches"):
@@ -788,29 +982,27 @@ def sdk_path_remaps(build: ResolvedBuild) -> dict[str, str]:
 
 def warning_flags(toolchain: Toolchain) -> list[str]:
     """Warnings that are errors, minus the ones the SDK cannot currently satisfy."""
-    flags = ["-Wall", "-Wextra", "-Werror"]
-
-    if toolchain is Toolchain.LLVM:
-        return (
-            flags
-            + [
-                "-Wno-unknown-warning-option",  # ignore GCC-only warning names
-                "-Wno-error=format-security",  # SDK `diagnostic.c` uses a non-literal format string
-                "-Wno-error=unknown-pragmas",  # our `ws2812.c` uses `#pragma GCC optimize`
-                "-Wno-error=unused-function",  # unused statics in SDK/OpenThread sources
-                "-Wno-error=c23-extensions",  # our `cmds_proprietary.c` has a label before a declaration
-                "-Wno-error=unterminated-string-initialization",  # char arrays in zigbee router sources
-            ]
-        )
-
-    return (
-        flags
-        + [
+    return {
+        Toolchain.LLVM: [
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Wno-unknown-warning-option",  # ignore GCC-only warning names
+            "-Wno-error=format-security",  # SDK `diagnostic.c` uses a non-literal format string
+            "-Wno-error=unknown-pragmas",  # our `ws2812.c` uses `#pragma GCC optimize`
+            "-Wno-error=unused-function",  # unused statics in SDK/OpenThread sources
+            "-Wno-error=c23-extensions",  # our `cmds_proprietary.c` has a label before a declaration
+            "-Wno-error=unterminated-string-initialization",  # char arrays in zigbee router sources
+        ],
+        Toolchain.GCC: [
+            "-Wall",
+            "-Wextra",
+            "-Werror",
             "-Wno-error=maybe-uninitialized",  # Linking fails due to a few SDK bugs
             "-Wno-error=uninitialized",  # False positive in zigbee `core-cli.c` under LTO
             "-Wno-error=unused-function",  # mbedTLS `ssl_tls.c` with X.509 hostname verification disabled
-        ]
-    )
+        ],
+    }[toolchain]
 
 
 def assemble_build_flags(
@@ -828,8 +1020,13 @@ def assemble_build_flags(
     return {
         "C_FLAGS": c_flags,
         "CXX_FLAGS": c_flags,
-        # Ensure deterministic linking order
-        "LD_FLAGS": ["-Wl,--sort-section=name"],
+        "LD_FLAGS": [
+            # Ensure deterministic linking order
+            "-Wl,--sort-section=name",
+            # Kept for `validate_linker_wraps`. Non-alloc, so the GBL and HEX are
+            # byte-identical with or without it.
+            "-Wl,--emit-relocs",
+        ],
     }
 
 
@@ -884,9 +1081,7 @@ def cmake_configure_and_build(
 def verify_build_reproducibility(
     build: ResolvedBuild, output_artifact: pathlib.Path
 ) -> None:
-    """Check the linker wraps and scrub absolute build paths out of the ELF's DWARF."""
-    validate_linker_wrap_symbols(map_file=output_artifact.with_suffix(".map"))
-
+    """Scrub absolute build paths out of the ELF's DWARF and confirm none are left."""
     out_elf = output_artifact.with_suffix(".out")
     remap_debug_build_paths(
         out_elf,
@@ -949,6 +1144,7 @@ def main() -> None:
     run_slc_generate(build, slc=slc, tool_paths=args.tool_paths)
     apply_sdk_patches(build)
     validate_sdk_extensions(build, base_project)
+    declared_wraps = validate_wrap_declarations(build.base_project_path)
 
     # Template variables for C defines and the output filename
     template_env = {
@@ -981,7 +1177,22 @@ def main() -> None:
 
     fix_pti_config_warning(build)
 
+    # Only our own wraps: SDK wrappers such as `main` hand the `__real_` call off to
+    # another function entirely, which the reference check below would flag
+    wrapped = set(declared_wraps) & linker_wrap_targets(build)
+
+    definitions = [
+        declared_wraps[target]
+        for target in sorted(wrapped)
+        if declared_wraps[target] is not None
+    ]
+    exclude_definitions_from_lto(build, definitions)
     cmake_configure_and_build(build, assemble_build_flags(build, c_flag_defines))
+
+    validate_linker_wraps(
+        elf_path=(build.cmake_dir / build.base_project_name).with_suffix(".out"),
+        targets=wrapped,
+    )
 
     # Extract the metadata from the source and build trees, patch the ELF, and build the
     # GBL. This runs before the debug paths below are rewritten, as the GBL contains only

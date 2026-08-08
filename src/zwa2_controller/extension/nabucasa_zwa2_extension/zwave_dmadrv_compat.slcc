@@ -33,3 +33,7 @@ toolchain_settings:
     value: "-Wl,--wrap=LDMA_IRQHandler"
   - option: gcc_linker_option
     value: "-Wl,--wrap=zpal_uart_utils_tx_transfer_start"
+  - option: llvm_linker_option
+    value: "-Wl,--wrap=LDMA_IRQHandler"
+  - option: llvm_linker_option
+    value: "-Wl,--wrap=zpal_uart_utils_tx_transfer_start"
