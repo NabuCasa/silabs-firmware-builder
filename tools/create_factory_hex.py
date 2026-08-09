@@ -4,7 +4,15 @@ import enum
 import json
 import pathlib
 
-from pygbl import GBL3Bootloader, GBL3EraseProg, GBL3Image
+from pygbl import (
+    GBL3Bootloader,
+    GBL3EraseProg,
+    GBL3Header,
+    GBL3Image,
+    GBL3Prog,
+    GBL3Type,
+    read_encryption_key,
+)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -239,6 +247,19 @@ class IntelHex:
         )
 
 
+def load_gbl(path: pathlib.Path, key: bytes | None) -> GBL3Image:
+    """Read a GBL, decrypting and decompressing it into plain program data."""
+    image = GBL3Image.from_bytes(path.read_bytes())
+
+    if GBL3Type.ENCRYPTION_AESCCM in image.get_first_tag(GBL3Header).type:
+        if key is None:
+            raise ValueError(f"{path} is encrypted, pass --encryption-key")
+
+        image = image.decrypt(key)
+
+    return image.decompress()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Create an Intel HEX file combining a bootloader, application, and manufacturing tokens."
@@ -262,6 +283,13 @@ def main() -> None:
         help="Path to tokens JSON.",
     )
     parser.add_argument(
+        "--encryption-key",
+        type=pathlib.Path,
+        required=False,
+        default=None,
+        help="Path to the image encryption key token file, for encrypted GBL files.",
+    )
+    parser.add_argument(
         "--output",
         type=pathlib.Path,
         required=True,
@@ -271,16 +299,28 @@ def main() -> None:
 
     output_hex = IntelHex()
 
+    if args.encryption_key is not None:
+        key = read_encryption_key(args.encryption_key.read_text())
+    else:
+        key = None
+
     # Flash the bootloader
-    bootloader_gbl = GBL3Image.from_bytes(args.bootloader.read_bytes())
+    bootloader_gbl = load_gbl(args.bootloader, key)
     bootloader = bootloader_gbl.get_first_tag(GBL3Bootloader)
 
     output_hex.flash_data(address=bootloader.address, data=bootloader.data)
 
-    # Flash the application segments
-    application_gbl = GBL3Image.from_bytes(args.application.read_bytes())
+    # Flash the application segments. Both program data tag ids mean the same thing,
+    # only their erase behavior on the device differs
+    application_gbl = load_gbl(args.application, key)
+    application_tags = [
+        t for t in application_gbl.tags if isinstance(t, (GBL3EraseProg, GBL3Prog))
+    ]
 
-    for application in application_gbl.get_tags(GBL3EraseProg):
+    if not application_tags:
+        raise ValueError(f"{args.application} contains no program data")
+
+    for application in application_tags:
         output_hex.flash_data(address=application.address, data=application.data)
 
     # Flash USERDATA tokens
