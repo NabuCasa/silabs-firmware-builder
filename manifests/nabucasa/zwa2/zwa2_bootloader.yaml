@@ -1,0 +1,54 @@
+name: Home Assistant Connect ZWA-2 Bootloader
+device: EFR32ZG23A020F512GM40
+base_project: src/bootloader
+filename: "{manifest_name}_{gecko_bootloader_version}"
+sdk: "simplicity_sdk:2026.6.1"
+toolchain: "gcc:14.2.1.20241119"
+
+gbl:
+  fw_type: gecko-bootloader
+  gecko_bootloader_version: dynamic
+  encrypt_key: config/keys/vendor_encrypt.key
+  sign_key: config/keys/vendor_sign.key
+  compression: lzma
+
+# Signing/encryption keys, shared with the ZWA-2 application firmwares
+config_file:
+  - path: config/keys/vendor_encrypt.key
+    directory: keys
+  - path: config/keys/vendor_sign.key
+    directory: keys
+
+sdk_patches:
+  # Adds a "4. erase nvm" command to the bootloader menu
+  - xmodem-erase-nvm.patch
+
+add_components:
+  - id: bootloader_compression_lzma
+
+configuration:
+  BOOTLOADER_ENFORCE_SIGNED_UPGRADE: 1
+  BOOTLOADER_WRITE_DISABLE: 1
+  # Reset to 1 when bumping the SDK version. Bump when modifying the bootloader
+  # without bumping the SDK version.
+  # We use 1 to signify that this is not the stock Gecko Bootloader.
+  BOOTLOADER_VERSION_MAIN_CUSTOMER: 1
+  APPLICATION_VERIFICATION_SKIP_EM4_RST: 1
+  BOOTLOADER_FALLBACK_LEGACY_KEY: 1
+  BTL_STORAGE_BASE_ADDRESS: 134496256
+
+c_defines:
+  SL_SERIAL_UART_FLOW_CONTROL: 0
+
+  SL_SERIAL_UART_PERIPHERAL: USART0
+  SL_SERIAL_UART_PERIPHERAL_NO: 0
+
+  SL_SERIAL_UART_TX_PORT: gpioPortA
+  SL_SERIAL_UART_TX_PIN:  8
+
+  SL_SERIAL_UART_RX_PORT: gpioPortA
+  SL_SERIAL_UART_RX_PIN:  7
+
+  SL_GPIO_ACTIVATION_POLARITY: LOW
+  SL_BTL_BUTTON_PORT: gpioPortA
+  SL_BTL_BUTTON_PIN: 5
