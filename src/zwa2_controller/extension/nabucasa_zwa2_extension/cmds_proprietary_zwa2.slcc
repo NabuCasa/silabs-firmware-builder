@@ -1,7 +1,7 @@
 id: cmds_proprietary_zwa2
 label: Proprietary Serial API Commands (ZWA-2)
 package: custom
-description: Nabu Casa proprietary Serial API commands for LED control, system indication, and configuration
+description: Nabu Casa proprietary Serial API commands for LED control, system indication, configuration, and bootloader info
 category: Z-Wave|Serial API
 quality: production
 source:
@@ -15,3 +15,4 @@ provides:
 requires:
   - name: led_effects_base
   - name: led_manager
+  - name: bootloader_interface

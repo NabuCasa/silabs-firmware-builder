@@ -18,6 +18,7 @@ typedef enum
   NABU_CASA_CONFIG_SET = 6,
   NABU_CASA_LED_GET_BINARY = 7,
   NABU_CASA_LED_SET_BINARY = 8,
+  NABU_CASA_BOOTLOADER_INFO = 9,
 } eNabuCasaCmd;
 
 typedef enum

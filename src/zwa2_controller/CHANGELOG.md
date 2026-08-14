@@ -1,3 +1,8 @@
+# 1.3.1
+Added a proprietary Serial API command that reports the bootloader version, checksum and capabilities without rebooting into the bootloader.
+
+* Added `NABU_CASA_BOOTLOADER_INFO` (subcommand 9 of `FUNC_ID_PROPRIETARY_0`), returning the bootloader version, a CRC-32 over the bootloader image, and its capability mask.
+
 # 1.3.0
 Updated to Simplicity SDK 2026.6.1 (Z-Wave SDK 8.1.1), restoring runtime Image Rejection calibration and fixing a transmission stall under LBT/CSMA.
 
