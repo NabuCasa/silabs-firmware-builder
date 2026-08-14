@@ -24,29 +24,6 @@
 /* Track whether the manual LED layer is "on" (for GET commands) */
 static bool manual_led_on = false;
 
-// Compute a standard CRC-32 (reflected, polynomial 0xEDB88320) so a host can
-// reproduce the value from a released bootloader image.
-// The nibble-wise loop keeps the lookup table at 64 bytes.
-static uint32_t nc_crc32(const uint8_t *data, uint32_t length)
-{
-  static const uint32_t table[16] = {
-    0x00000000, 0x1DB71064, 0x3B6E20C8, 0x26D930AC,
-    0x76DC4190, 0x6B6B51F4, 0x4DB26158, 0x5005713C,
-    0xEDB88320, 0xF00F9344, 0xD6D6A3E8, 0xCB61B38C,
-    0x9B64C2B0, 0x86D3D2D4, 0xA00AE278, 0xBDBDF21C
-  };
-
-  uint32_t crc = 0xFFFFFFFF;
-  for (uint32_t j = 0; j < length; j++)
-  {
-    crc ^= data[j];
-    crc = table[crc & 0x0F] ^ (crc >> 4);
-    crc = table[crc & 0x0F] ^ (crc >> 4);
-  }
-
-  return ~crc;
-}
-
 bool nc_config_get(eNabuCasaConfigKey key)
 {
   NabuCasaConfigStorage_t cfg = CONFIG_STORAGE_DEFAULTS;
@@ -314,25 +291,14 @@ ZW_ADD_CMD(FUNC_ID_NABU_CASA)
   case NABU_CASA_BOOTLOADER_INFO:
   {
     // HOST->ZW (REQ): NABU_CASA_BOOTLOADER_INFO
-    // ZW->HOST (RES): NABU_CASA_BOOTLOADER_INFO | version[4] | crc32[4] | capabilities[4]
-    // ZW->HOST (RES): NABU_CASA_BOOTLOADER_INFO | false, if no bootloader is present
+    // ZW->HOST (RES): NABU_CASA_BOOTLOADER_INFO | version[4] | capabilities[4]
 
+    // bootloader_getInfo() leaves the version untouched when it finds no
+    // bootloader table, so the initializer defines what gets reported.
     BootloaderInformation_t btlInfo = { 0 };
     bootloader_getInfo(&btlInfo);
 
-    if (SL_BOOTLOADER != btlInfo.type)
-    {
-      response[i++] = cmdRes;
-      break;
-    }
-
-    // A type of SL_BOOTLOADER means bootloader_getInfo() found a valid table
-    // pointer and magic word, so the size field can be trusted.
-    const uint32_t words[] = {
-      btlInfo.version,
-      nc_crc32((const uint8_t *)BTL_MAIN_STAGE_BASE, mainBootloaderTable->size),
-      btlInfo.capabilities
-    };
+    const uint32_t words[] = { btlInfo.version, btlInfo.capabilities };
 
     for (unsigned w = 0; w < sizeof(words) / sizeof(words[0]); w++)
     {
