@@ -1,6 +1,6 @@
 # 1.3.1
 * Added a proprietary Serial API command to query the bootloader version and capabilities without rebooting into the bootloader.
-* Fixed the radio turning off after the first received frame on controllers migrated from the 500 series, where the listening flag in the controller's own node info was left unset.
+* Fixed an issue where the radio could turn off after one received frame. This affected some controllers migrated from the 500 series, where the listening flag in the controller's own node info was left unset.
 
 # 1.3.0
 Updated to Simplicity SDK 2026.6.1 (Z-Wave SDK 8.1.1), restoring runtime Image Rejection calibration and fixing a transmission stall under LBT/CSMA.
