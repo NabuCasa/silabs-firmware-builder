@@ -1,5 +1,5 @@
 # 1.3.1
-* Added a proprietary Serial API command to reports the bootloader version and capabilities without rebooting into the bootloader.
+* Added a proprietary Serial API command to query the bootloader version and capabilities without rebooting into the bootloader.
 
 # 1.3.0
 Updated to Simplicity SDK 2026.6.1 (Z-Wave SDK 8.1.1), restoring runtime Image Rejection calibration and fixing a transmission stall under LBT/CSMA.
