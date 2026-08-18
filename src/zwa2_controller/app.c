@@ -453,6 +453,15 @@ appFileSystemInit(void)
    */
   if (SerialApiFileInit()) {
     ReadApplicationSettings(&AppNodeInfo->DeviceOptionsMask, &AppNodeInfo->NodeType.generic, &AppNodeInfo->NodeType.specific);
+
+    // Workaround: Migrations from older 500-series controllers could leave the
+    // listening flag unset. SDK 8.0.0+ started evaluating it though, so we must
+    // set it here to prevent controllers from turning off their radio.
+    if (!(AppNodeInfo->DeviceOptionsMask & APPLICATION_NODEINFO_LISTENING)) {
+      AppNodeInfo->DeviceOptionsMask |= APPLICATION_NODEINFO_LISTENING;
+      SaveApplicationSettings(AppNodeInfo->DeviceOptionsMask, AppNodeInfo->NodeType.generic, AppNodeInfo->NodeType.specific);
+    }
+
     ReadApplicationCCInfo(&CommandClasses.UnSecureIncludedCC.iListLength,
                           (uint8_t*)CommandClasses.UnSecureIncludedCC.pCommandClasses,
                           &CommandClasses.SecureIncludedUnSecureCC.iListLength,
