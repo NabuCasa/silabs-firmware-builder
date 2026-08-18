@@ -1,0 +1,285 @@
+{
+  "metadata": {
+    "created_at": "2026-08-18T19:18:23.476183+00:00"
+  },
+  "changelogs": {
+    "openthread_rcp": [
+      {
+        "version": "SL-OPENTHREAD/3.1.1.0_GitHub-fb274efe6",
+        "summary": "Built with OpenThread 3.1.0 from Simplicity SDK 2026.6.1, adding automatic recovery from firmware stalls and fixing serial link lockups.",
+        "notes": "- Built with OpenThread 3.1.0 from Simplicity SDK 2026.6.0, up from Simplicity SDK 2025.6.2.\n- Added a watchdog that resets the adapter if the firmware gets stuck.\n- Fixed the serial link locking up when the host stopped reading while hardware flow control was enabled (ZBT-1 and Yellow). Transmits now give up after a short bounded wait and drop the byte, so the adapter keeps running and the host can recover.\n- Doubled the host transmit buffer from 2048 to 4096 bytes, reducing dropped frames when a burst of network traffic arrives at once.\n- Fixed a Green Power packet filter that misclassified zero-payload frames by reading past the end of the frame."
+      },
+      {
+        "version": "SL-OPENTHREAD/3.1.0.0_GitHub-fb274efe6",
+        "summary": "Built with OpenThread 3.1.0 from Simplicity SDK 2026.6.0, adding automatic recovery from firmware stalls and fixing serial link lockups.",
+        "notes": null
+      },
+      {
+        "version": "SL-OPENTHREAD/3.0.2.0_GitHub-61e43cffb",
+        "summary": "Built with OpenThread 3.0.2 from Simplicity SDK 2025.12.3.",
+        "notes": null
+      },
+      {
+        "version": "SL-OPENTHREAD/2.7.2.0_GitHub-fb0446f53",
+        "summary": "Built with Simplicity SDK 2025.6.2.",
+        "notes": null
+      },
+      {
+        "version": "2.4.7.0_GitHub-fb0446f53",
+        "summary": "Built with Gecko SDK 4.5.0.",
+        "notes": null
+      },
+      {
+        "version": "2.4.6.0_GitHub-bdb394eb3",
+        "summary": "Built with Gecko SDK 4.4.6.",
+        "notes": null
+      },
+      {
+        "version": "SL-OPENTHREAD/2.4.4.0_GitHub-7074a43e4",
+        "summary": "Initial release with the new firmware builder. This firmware is identical to the firmware bundled with the OpenThread Border Router addon.",
+        "notes": null
+      }
+    ],
+    "zigbee_ncp": [
+      {
+        "version": "9.1.1.0",
+        "summary": "Built with EmberZNet 9.1 from Simplicity SDK 2026.6.1, migrating us from Gecko SDK to Simplicity SDK. Faster message sending, Zigbee 4.0 support, and a few increased buffers.",
+        "notes": "- Built with EmberZNet 9.1 from Simplicity SDK 2026.6.1.\n- Added Zigbee 4.0 support. This is fully backwards compatible with Zigbee 3.0 and 1.2.\n- Sending a message now takes a single request instead of up to three with a new XNCP API. This reduces latency when sending requests with network coordinators.\n- Increased network table sizes. On ZBT-2 the route and source route tables hold 254 entries, the address table 128, and up to 128 messages can be in flight at once, with a larger packet buffer heap. On SkyConnect and Yellow, 64 messages can be in flight and the address table holds 32 entries.\n- Increased the serial receive buffer from 128 to 512 bytes."
+      },
+      {
+        "version": "9.1.0.0",
+        "summary": "Built with EmberZNet 9.1 from Simplicity SDK 2026.6.0, migrating us from Gecko SDK to Simplicity SDK.",
+        "notes": null
+      },
+      {
+        "version": "9.0.2.0",
+        "summary": "Built with EmberZNet 9.0 from Simplicity SDK 2025.12.3.",
+        "notes": null
+      },
+      {
+        "version": "7.5.1.0",
+        "summary": "Built with Gecko SDK 4.5.0. This includes a new feature to restore routes on adapter startup, speeding up network responsiveness after a reset.",
+        "notes": null
+      },
+      {
+        "version": "7.5.0.0",
+        "summary": "Built with Gecko SDK 4.4.6.",
+        "notes": null
+      },
+      {
+        "version": "7.4.4.6",
+        "summary": "For adapters that support RGB LEDs, fix the color XNCP command parsing. Allow the adapter to signal preferred TX power settings for a given regulatory domain.",
+        "notes": null
+      },
+      {
+        "version": "7.4.4.5",
+        "summary": "Increase UART RX buffer size from 32 to 128 bytes to fix issues with OTA when using Z2M. For adapters with pinhole reset buttons, enable the reset button to wipe network settings. This is a bugfix re-release of 7.4.4.4.",
+        "notes": null
+      },
+      {
+        "version": "7.4.4.4",
+        "summary": "Increase UART RX buffer size from 32 to 128 bytes to fix issues with OTA when using Z2M. For adapters with pinhole reset buttons, enable the reset button to wipe network settings.",
+        "notes": null
+      },
+      {
+        "version": "7.4.4.3",
+        "summary": "Fix setup LED behavior for adapters with external indicator LEDs and tweak routing and child table sizes.",
+        "notes": null
+      },
+      {
+        "version": "7.4.4.2",
+        "summary": "Allow receiving events from devices using unregistered group IDs and increase routing and child table sizes.",
+        "notes": null
+      },
+      {
+        "version": "7.4.4.1",
+        "summary": "Re-release of 7.4.4.0 that fixes a regression with group addressing present in the previous release, affecting some devices like IKEA remotes.",
+        "notes": null
+      },
+      {
+        "version": "7.4.4.0",
+        "summary": "Initial release with the new firmware builder. This release fixes minor bugs related to adapter migration and includes other improvements in the underlying SDK.",
+        "notes": null
+      }
+    ]
+  },
+  "firmwares": [
+    {
+      "filename": "skyconnect_bootloader_3.2.0.gbl",
+      "version": "3.2.0",
+      "checksum": "sha3-256:a86f0de441e7907cfd443d99a42f374952ee21cab0d180e295c120791fd72771",
+      "size": 11652,
+      "metadata": {
+        "baudrate": 115200,
+        "fw_type": "gecko-bootloader",
+        "fw_variant": null,
+        "gecko_bootloader_version": "3.2.0",
+        "metadata_version": 2,
+        "sdk_version": "2026.6.1"
+      },
+      "release_notes": null,
+      "release_summary": null
+    },
+    {
+      "filename": "skyconnect_openthread_rcp_3.1.1.0_GitHub-fb274efe6_gsdk_2026.6.1.gbl",
+      "version": "SL-OPENTHREAD/3.1.1.0_GitHub-fb274efe6",
+      "checksum": "sha3-256:801018eee49dc528f60feaa1c4961b4f49133016e90646fcb0288f085028591c",
+      "size": 106584,
+      "metadata": {
+        "baudrate": 460800,
+        "fw_type": "openthread_rcp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "ot_rcp_version": "SL-OPENTHREAD/3.1.1.0_GitHub-fb274efe6",
+        "sdk_version": "2026.6.1"
+      },
+      "release_notes": "Built with OpenThread 3.1.0 from Simplicity SDK 2026.6.1, adding automatic recovery from firmware stalls and fixing serial link lockups.",
+      "release_summary": "- Built with OpenThread 3.1.0 from Simplicity SDK 2026.6.0, up from Simplicity SDK 2025.6.2.\n- Added a watchdog that resets the adapter if the firmware gets stuck.\n- Fixed the serial link locking up when the host stopped reading while hardware flow control was enabled (ZBT-1 and Yellow). Transmits now give up after a short bounded wait and drop the byte, so the adapter keeps running and the host can recover.\n- Doubled the host transmit buffer from 2048 to 4096 bytes, reducing dropped frames when a burst of network traffic arrives at once.\n- Fixed a Green Power packet filter that misclassified zero-payload frames by reading past the end of the frame."
+    },
+    {
+      "filename": "skyconnect_zigbee_ncp_9.1.1.0.gbl",
+      "version": "9.1.1.0",
+      "checksum": "sha3-256:b7c223fcc12aada8e20b2a562f13daefd3c435275ff5027a8339643198c5f6b3",
+      "size": 252756,
+      "metadata": {
+        "baudrate": 115200,
+        "ezsp_version": "9.1.1.0",
+        "fw_type": "zigbee_ncp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "sdk_version": "2026.6.1"
+      },
+      "release_notes": "Built with EmberZNet 9.1 from Simplicity SDK 2026.6.1, migrating us from Gecko SDK to Simplicity SDK. Faster message sending, Zigbee 4.0 support, and a few increased buffers.",
+      "release_summary": "- Built with EmberZNet 9.1 from Simplicity SDK 2026.6.1.\n- Added Zigbee 4.0 support. This is fully backwards compatible with Zigbee 3.0 and 1.2.\n- Sending a message now takes a single request instead of up to three with a new XNCP API. This reduces latency when sending requests with network coordinators.\n- Increased network table sizes. On ZBT-2 the route and source route tables hold 254 entries, the address table 128, and up to 128 messages can be in flight at once, with a larger packet buffer heap. On SkyConnect and Yellow, 64 messages can be in flight and the address table holds 32 entries.\n- Increased the serial receive buffer from 128 to 512 bytes."
+    },
+    {
+      "filename": "yellow_bootloader_3.2.0.gbl",
+      "version": "3.2.0",
+      "checksum": "sha3-256:2471302c5594be21241b0e3797d458e670cc8db2ea9c911cd667d6fdb8c65104",
+      "size": 11716,
+      "metadata": {
+        "baudrate": 115200,
+        "fw_type": "gecko-bootloader",
+        "fw_variant": null,
+        "gecko_bootloader_version": "3.2.0",
+        "metadata_version": 2,
+        "sdk_version": "2026.6.1"
+      },
+      "release_notes": null,
+      "release_summary": null
+    },
+    {
+      "filename": "yellow_openthread_rcp_3.1.1.0_GitHub-fb274efe6_gsdk_2026.6.1.gbl",
+      "version": "SL-OPENTHREAD/3.1.1.0_GitHub-fb274efe6",
+      "checksum": "sha3-256:11f2d757d5133046f1a61b320dd8674529c951bb701d65da58778ed0380a6e0b",
+      "size": 103296,
+      "metadata": {
+        "baudrate": 460800,
+        "fw_type": "openthread_rcp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "ot_rcp_version": "SL-OPENTHREAD/3.1.1.0_GitHub-fb274efe6",
+        "sdk_version": "2026.6.1"
+      },
+      "release_notes": "Built with OpenThread 3.1.0 from Simplicity SDK 2026.6.1, adding automatic recovery from firmware stalls and fixing serial link lockups.",
+      "release_summary": "- Built with OpenThread 3.1.0 from Simplicity SDK 2026.6.0, up from Simplicity SDK 2025.6.2.\n- Added a watchdog that resets the adapter if the firmware gets stuck.\n- Fixed the serial link locking up when the host stopped reading while hardware flow control was enabled (ZBT-1 and Yellow). Transmits now give up after a short bounded wait and drop the byte, so the adapter keeps running and the host can recover.\n- Doubled the host transmit buffer from 2048 to 4096 bytes, reducing dropped frames when a burst of network traffic arrives at once.\n- Fixed a Green Power packet filter that misclassified zero-payload frames by reading past the end of the frame."
+    },
+    {
+      "filename": "yellow_zigbee_ncp_9.1.1.0.gbl",
+      "version": "9.1.1.0",
+      "checksum": "sha3-256:c149ca344be1ea94be347088767327265ada46d307618d5643173510eb723843",
+      "size": 249400,
+      "metadata": {
+        "baudrate": 115200,
+        "ezsp_version": "9.1.1.0",
+        "fw_type": "zigbee_ncp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "sdk_version": "2026.6.1"
+      },
+      "release_notes": "Built with EmberZNet 9.1 from Simplicity SDK 2026.6.1, migrating us from Gecko SDK to Simplicity SDK. Faster message sending, Zigbee 4.0 support, and a few increased buffers.",
+      "release_summary": "- Built with EmberZNet 9.1 from Simplicity SDK 2026.6.1.\n- Added Zigbee 4.0 support. This is fully backwards compatible with Zigbee 3.0 and 1.2.\n- Sending a message now takes a single request instead of up to three with a new XNCP API. This reduces latency when sending requests with network coordinators.\n- Increased network table sizes. On ZBT-2 the route and source route tables hold 254 entries, the address table 128, and up to 128 messages can be in flight at once, with a larger packet buffer heap. On SkyConnect and Yellow, 64 messages can be in flight and the address table holds 32 entries.\n- Increased the serial receive buffer from 128 to 512 bytes."
+    },
+    {
+      "filename": "zbt2_bootloader_3.2.0.gbl",
+      "version": "3.2.0",
+      "checksum": "sha3-256:60d219d5876e51e8ea6074beec8bccf15e7ccb542eefbfdf3eb52707e3e61e09",
+      "size": 12164,
+      "metadata": {
+        "baudrate": 115200,
+        "fw_type": "gecko-bootloader",
+        "fw_variant": null,
+        "gecko_bootloader_version": "3.2.0",
+        "metadata_version": 2,
+        "sdk_version": "2026.6.1"
+      },
+      "release_notes": null,
+      "release_summary": null
+    },
+    {
+      "filename": "zbt2_openthread_rcp_3.1.1.0_GitHub-fb274efe6_gsdk_2026.6.1.gbl",
+      "version": "SL-OPENTHREAD/3.1.1.0_GitHub-fb274efe6",
+      "checksum": "sha3-256:936d800e49f8ba628e22526166c27839dfef0b8f13c50146b41c770ac682b80d",
+      "size": 139316,
+      "metadata": {
+        "baudrate": 460800,
+        "fw_type": "openthread_rcp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "ot_rcp_version": "SL-OPENTHREAD/3.1.1.0_GitHub-fb274efe6",
+        "sdk_version": "2026.6.1"
+      },
+      "release_notes": "Built with OpenThread 3.1.0 from Simplicity SDK 2026.6.1, adding automatic recovery from firmware stalls and fixing serial link lockups.",
+      "release_summary": "- Built with OpenThread 3.1.0 from Simplicity SDK 2026.6.0, up from Simplicity SDK 2025.6.2.\n- Added a watchdog that resets the adapter if the firmware gets stuck.\n- Fixed the serial link locking up when the host stopped reading while hardware flow control was enabled (ZBT-1 and Yellow). Transmits now give up after a short bounded wait and drop the byte, so the adapter keeps running and the host can recover.\n- Doubled the host transmit buffer from 2048 to 4096 bytes, reducing dropped frames when a burst of network traffic arrives at once.\n- Fixed a Green Power packet filter that misclassified zero-payload frames by reading past the end of the frame."
+    },
+    {
+      "filename": "zbt2_router_2026.6.1.gbl",
+      "version": null,
+      "checksum": "sha3-256:a14d0e0e931195859bb28250b23fb704a6b2faeb4be8417017494b1113979cde",
+      "size": 374328,
+      "metadata": {
+        "baudrate": 115200,
+        "fw_type": "zigbee_router",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "sdk_version": "2026.6.1"
+      },
+      "release_notes": null,
+      "release_summary": null
+    },
+    {
+      "filename": "zbt2_zigbee_ncp_9.1.1.0.gbl",
+      "version": "9.1.1.0",
+      "checksum": "sha3-256:adcd913d74d3bdb42e7325ac01e86fca333bcf0496fb49db1380fc6ac64c837b",
+      "size": 273600,
+      "metadata": {
+        "baudrate": 460800,
+        "ezsp_version": "9.1.1.0",
+        "fw_type": "zigbee_ncp",
+        "fw_variant": null,
+        "metadata_version": 2,
+        "sdk_version": "2026.6.1"
+      },
+      "release_notes": "Built with EmberZNet 9.1 from Simplicity SDK 2026.6.1, migrating us from Gecko SDK to Simplicity SDK. Faster message sending, Zigbee 4.0 support, and a few increased buffers.",
+      "release_summary": "- Built with EmberZNet 9.1 from Simplicity SDK 2026.6.1.\n- Added Zigbee 4.0 support. This is fully backwards compatible with Zigbee 3.0 and 1.2.\n- Sending a message now takes a single request instead of up to three with a new XNCP API. This reduces latency when sending requests with network coordinators.\n- Increased network table sizes. On ZBT-2 the route and source route tables hold 254 entries, the address table 128, and up to 128 messages can be in flight at once, with a larger packet buffer heap. On SkyConnect and Yellow, 64 messages can be in flight and the address table holds 32 entries.\n- Increased the serial receive buffer from 128 to 512 bytes."
+    },
+    {
+      "filename": "zwa2_bootloader_3.2.1.gbl",
+      "version": null,
+      "checksum": "sha3-256:5ff178a4db8016abbd910f6dc74119d0036fa8baeb1f0bba5895c75ee6365719",
+      "size": 17904,
+      "metadata": null,
+      "release_notes": null,
+      "release_summary": null
+    },
+    {
+      "filename": "zwa2_controller_1.3.1.gbl",
+      "version": null,
+      "checksum": "sha3-256:cc17ad970aad4fdc19a7e381d84225f3a7081600d69b7df8af6913915c6d7736",
+      "size": 147764,
+      "metadata": null,
+      "release_notes": null,
+      "release_summary": null
+    }
+  ]
+}
