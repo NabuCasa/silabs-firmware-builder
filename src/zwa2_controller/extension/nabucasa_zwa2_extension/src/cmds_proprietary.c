@@ -291,22 +291,23 @@ ZW_ADD_CMD(FUNC_ID_NABU_CASA)
   case NABU_CASA_BOOTLOADER_INFO:
   {
     // HOST->ZW (REQ): NABU_CASA_BOOTLOADER_INFO
-    // ZW->HOST (RES): NABU_CASA_BOOTLOADER_INFO | version[4] | capabilities[4]
+    // ZW->HOST (RES): NABU_CASA_BOOTLOADER_INFO | major | minor | customer | capabilities[4]
 
     // bootloader_getInfo() leaves the version untouched when it finds no
     // bootloader table, so the initializer defines what gets reported.
     BootloaderInformation_t btlInfo = { 0 };
     bootloader_getInfo(&btlInfo);
 
-    const uint32_t words[] = { btlInfo.version, btlInfo.capabilities };
+    // The SDK's customer field is 16 bits wide, but only its low byte is sent
+    // because the version is consumed as major.minor.customer.
+    response[i++] = (uint8_t)(btlInfo.version >> BOOTLOADER_VERSION_MAJOR_SHIFT);
+    response[i++] = (uint8_t)(btlInfo.version >> BOOTLOADER_VERSION_MINOR_SHIFT);
+    response[i++] = (uint8_t)btlInfo.version;
 
-    for (unsigned w = 0; w < sizeof(words) / sizeof(words[0]); w++)
-    {
-      response[i++] = (uint8_t)(words[w] >> 24);
-      response[i++] = (uint8_t)(words[w] >> 16);
-      response[i++] = (uint8_t)(words[w] >> 8);
-      response[i++] = (uint8_t)(words[w]);
-    }
+    response[i++] = (uint8_t)(btlInfo.capabilities >> 24);
+    response[i++] = (uint8_t)(btlInfo.capabilities >> 16);
+    response[i++] = (uint8_t)(btlInfo.capabilities >> 8);
+    response[i++] = (uint8_t)btlInfo.capabilities;
     break;
   }
 
