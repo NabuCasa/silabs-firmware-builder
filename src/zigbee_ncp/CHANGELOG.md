@@ -1,3 +1,8 @@
+# 9.1.1.1
+Fix Zigbee 4.0 routers failing to join directly through the coordinator.
+
+- Fixed Zigbee 4.0 routers without an install code failing to join when paired directly via the coordinator instead of through another router. The coordinator committed to an install code key negotiation that the joiner could not complete and never fell back to the standard network key delivery. It now only negotiates a dynamic link key when a link key has been provisioned for that specific device, and otherwise uses the standard join.
+
 # 9.1.1.0
 Built with EmberZNet 9.1 from Simplicity SDK 2026.6.1, migrating us from Gecko SDK to Simplicity SDK. Faster message sending, Zigbee 4.0 support, and a few increased buffers.
 

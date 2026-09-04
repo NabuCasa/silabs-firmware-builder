@@ -1,0 +1,5 @@
+id: ncp_dlk_policy
+vendor: nabucasa
+version: "1.0.0"
+component_path:
+  - path: "./"

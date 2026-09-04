@@ -1,0 +1,23 @@
+id: ncp_dlk_policy
+label: NCP Dynamic Link Key Policy
+package: custom
+description: >-
+  Overrides the stack's weak `sl_zigbee_zdo_dlk_select_negotiation_parameters_callback`.
+  The default selects install-code DLK for any joiner that advertises install code
+  support (every Silabs R23 device does, unconditionally) and satisfies its own PSK
+  lookup with the wildcard `ZigBeeAlliance09` transient key that hosts add for
+  legacy joins. The joiner then has no install code to negotiate with, and the trust
+  center never falls back to sending the network key, so the join dies with
+  SL_STATUS_ZIGBEE_NO_NETWORK_KEY_RECEIVED. This policy only negotiates when a
+  transient key was provisioned for the joiner's exact EUI64 and otherwise returns
+  an error, which the stack turns into the legacy well-known-key network key transport.
+category: Zigbee|NCP
+quality: production
+source:
+  - path: src/ncp_dlk_policy.c
+provides:
+  - name: ncp_dlk_policy
+requires:
+  - name: zigbee_r23_support
+  - name: zigbee_dynamic_commissioning
+  - name: zigbee_debug_print

@@ -39,6 +39,8 @@ configuration:
   SL_CLOCK_MANAGER_PCLK_DIVIDER: SL_CLOCK_MANAGER_PCLK_DIV_MIN
 
 c_defines:
+  XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE: 1
+
   # SDK bug: the PCLK divider is set to 1 for the MGM210, it is set to 2 everywhere else
   SL_CLOCK_MANAGER_PCLK_DIVIDER: SL_CLOCK_MANAGER_PCLK_DIV_MIN
 
