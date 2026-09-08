@@ -970,6 +970,8 @@ def sdk_path_remaps(build: ResolvedBuild) -> dict[str, str]:
         "/home/buildengineer/.silabs/slt/installs/conan/p/platf6edd0cd4d4914/p": f"{sdk_src}/platform_core",
         # Z-Wave's platform_core was repackaged under a new conan hash in Simplicity SDK 2026.6.1
         "/home/buildengineer/.silabs/slt/installs/conan/p/platf0f636d352884d/p": f"{sdk_src}/platform_core",
+        # The Z-Wave end device libraries reference the mbedtls package they were built against
+        "/home/buildengineer/.silabs/slt/installs/conan/p/mbedt41879ab8b510b/p": f"{sdk_src}/mbedtls",
         # The zigbee stack libraries reference the silabs_core package they were built against
         "/github/home/.silabs/slt/installs/conan/p/commo8335073ce327e/p": f"{sdk_src}/platform_core",
         # silabs_core was repackaged under a new conan hash in Simplicity SDK 2026.6.1
