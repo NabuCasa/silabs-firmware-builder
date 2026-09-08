@@ -265,6 +265,32 @@
               "reportableChange": 0
             }
           ]
+        },
+        {
+          "name": "Keep-Alive",
+          "code": 37,
+          "mfgCode": null,
+          "define": "KEEPALIVE_CLUSTER",
+          "side": "client",
+          "enabled": 1,
+          "attributes": [
+            {
+              "name": "cluster revision",
+              "code": 65533,
+              "mfgCode": null,
+              "side": "client",
+              "type": "int16u",
+              "included": 1,
+              "storageOption": "RAM",
+              "singleton": 1,
+              "bounded": 0,
+              "defaultValue": "0x0001",
+              "reportable": 0,
+              "minInterval": 1,
+              "maxInterval": 65534,
+              "reportableChange": 0
+            }
+          ]
         }
       ]
     }
