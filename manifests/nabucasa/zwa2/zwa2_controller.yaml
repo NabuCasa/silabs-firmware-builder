@@ -4,9 +4,11 @@ base_project: src/zwa2_controller
 filename: "{manifest_name}_{zwave_version}"
 sdk: "simplicity_sdk:2026.6.1"
 toolchain: "gcc:14.2.1.20241119"
+
 gbl:
   fw_type: zwave_ncp
   zwave_version: dynamic
+  baudrate: 115200
   encrypt_key: config/keys/vendor_encrypt.key
   sign_key: config/keys/vendor_sign.key
   compression: lzma

@@ -27,6 +27,7 @@ from .create_gbl import create_gbl
 
 LOGGER = logging.getLogger(__name__)
 
+PROJECTS_ROOT = pathlib.Path(__file__).parent.parent
 
 yaml = YAML(typ="safe")
 
@@ -396,14 +397,77 @@ def remap_debug_build_paths(elf_path: pathlib.Path, prefix_map: dict[str, str]) 
 
 
 @dataclasses.dataclass(frozen=True)
+class Manifest:
+    """A build manifest."""
+
+    path: pathlib.Path
+    config: dict[str, typing.Any]
+
+    @classmethod
+    def load(cls, path: pathlib.Path) -> Manifest:
+        return cls(path=path, config=yaml.load(path.read_text()))
+
+    @property
+    def name(self) -> str:
+        return self.path.stem
+
+    @property
+    def gbl(self) -> dict[str, typing.Any]:
+        return self.config["gbl"]
+
+    @property
+    def sdk_version(self) -> str:
+        """The SDK version the manifest pins, without the SDK's name."""
+        return self.config["sdk"].split(":", 1)[1]
+
+    @property
+    def base_project_path(self) -> pathlib.Path:
+        path = PROJECTS_ROOT / self.config["base_project"]
+        assert path.is_relative_to(PROJECTS_ROOT)
+
+        return path
+
+    @property
+    def encryption_key_path(self) -> pathlib.Path | None:
+        """The image encryption key, if the manifest encrypts its firmware."""
+        if "encrypt_key" not in self.gbl:
+            return None
+
+        # `gbl.encrypt_key` points into the generated project, where the manifest's
+        # `config_file` entries are copied under that same relative path
+        return self.path.parent / self.gbl["encrypt_key"]
+
+    @property
+    def version_key(self) -> str | None:
+        """The metadata key holding this firmware's own version, if it has one."""
+        version_keys = [
+            key
+            for key, value in self.gbl.items()
+            if value == "dynamic" and key.endswith("_version")
+        ]
+
+        # Some firmwares, such as the Zigbee router, carry no version of their own
+        if not version_keys:
+            return None
+
+        (version_key,) = version_keys
+
+        return version_key
+
+    def output_stem(self, template_env: dict[str, typing.Any]) -> str:
+        """The output filename, without an extension, for a build's metadata."""
+        return evaluate_f_string(
+            self.config.get("filename", "{manifest_name}"),
+            {"manifest_name": self.name, **template_env},
+        )
+
+
+@dataclasses.dataclass(frozen=True)
 class ResolvedBuild:
     """Everything about a build that is resolved up front and never changes."""
 
-    manifest: dict[str, typing.Any]
-    manifest_path: pathlib.Path
+    manifest: Manifest
     build_dir: pathlib.Path
-    projects_root: pathlib.Path
-    base_project_path: pathlib.Path
     base_project_name: str
     sdk: pathlib.Path
     sdk_name: str
@@ -413,8 +477,12 @@ class ResolvedBuild:
     build_timestamp: datetime
 
     @property
+    def base_project_path(self) -> pathlib.Path:
+        return self.manifest.base_project_path
+
+    @property
     def manifest_dir(self) -> pathlib.Path:
-        return self.manifest_path.parent
+        return self.manifest.path.parent
 
     @property
     def build_template_path(self) -> pathlib.Path:
@@ -533,14 +601,16 @@ def build_argument_parser() -> argparse.ArgumentParser:
 
 def resolve_build(args: argparse.Namespace) -> ResolvedBuild:
     """Load the manifest and pin down the SDK, toolchain, and build paths."""
-    manifest = yaml.load(args.manifest.read_text())
+    manifest = Manifest.load(args.manifest)
 
     for key, override in args.overrides:
-        manifest[key] = override
+        manifest.config[key] = override
 
     sdks = load_sdks(args.sdks)
     sdk, sdk_and_version = next(
-        (path, version) for path, version in sdks.items() if version == manifest["sdk"]
+        (path, version)
+        for path, version in sdks.items()
+        if version == manifest.config["sdk"]
     )
     sdk_name, sdk_version = sdk_and_version.split(":", 1)
 
@@ -548,23 +618,16 @@ def resolve_build(args: argparse.Namespace) -> ResolvedBuild:
     toolchain_path = next(
         path
         for path, name in toolchains.items()
-        if manifest["toolchain"] in (name, name.split(":", 1)[1])
+        if manifest.config["toolchain"] in (name, name.split(":", 1)[1])
     )
     toolchain = Toolchain(toolchains[toolchain_path].split(":", 1)[0])
 
-    projects_root = pathlib.Path(__file__).parent.parent
-    base_project_path = projects_root / manifest["base_project"]
-    assert base_project_path.is_relative_to(projects_root)
-
     # The template copy preserves `.slcp` files, so the source project names the build
-    (base_project_slcp,) = base_project_path.glob("*.slcp")
+    (base_project_slcp,) = manifest.base_project_path.glob("*.slcp")
 
     return ResolvedBuild(
         manifest=manifest,
-        manifest_path=args.manifest,
         build_dir=args.build_dir,
-        projects_root=projects_root,
-        base_project_path=base_project_path,
         base_project_name=base_project_slcp.stem,
         sdk=sdk,
         sdk_name=sdk_name,
@@ -595,7 +658,7 @@ def copy_base_project(build: ResolvedBuild) -> None:
 
     # Copy SDK files into the build template (e.g. unmodified sample app sources).
     # Files already present in the project (customized) are not overwritten.
-    for sdk_file in build.manifest.get("copy_sdk_files", []):
+    for sdk_file in build.manifest.config.get("copy_sdk_files", []):
         src = build.sdk / sdk_file["source"]
         dst = build.build_template_path / sdk_file["path"]
 
@@ -666,7 +729,7 @@ def merge_manifest_into_slcp(
 def prepare_project_slcp(build: ResolvedBuild) -> dict[str, typing.Any]:
     """Merge the manifest into the copied project and write it back out."""
     # Config files (e.g. ZAP files) live next to the manifest, not in the base project
-    for config_file in build.manifest.get("config_file", []):
+    for config_file in build.manifest.config.get("config_file", []):
         src_path = build.manifest_dir / config_file["path"]
         dst_path = build.build_template_path / config_file["path"]
         dst_path.parent.mkdir(parents=True, exist_ok=True)
@@ -674,7 +737,7 @@ def prepare_project_slcp(build: ResolvedBuild) -> dict[str, typing.Any]:
         LOGGER.info("Copied config file: %s", config_file["path"])
 
     base_project = merge_manifest_into_slcp(
-        yaml.load(build.base_project_slcp.read_text()), build.manifest
+        yaml.load(build.base_project_slcp.read_text()), build.manifest.config
     )
 
     with build.base_project_slcp.open("w") as f:
@@ -687,7 +750,7 @@ def run_slc_generate(
     build: ResolvedBuild, slc: list[str], tool_paths: list[pathlib.Path]
 ) -> None:
     """Generate a chip-specific project from the modified base project."""
-    LOGGER.info(f"Generating project for {build.manifest['device']}")
+    LOGGER.info(f"Generating project for {build.manifest.config['device']}")
 
     # fmt: off
     subprocess_run_verbose(
@@ -696,7 +759,7 @@ def run_slc_generate(
             "generate",
             "--verbose", "DEBUG",
             "--trust-totality",
-            "--with", build.manifest["device"],
+            "--with", build.manifest.config["device"],
             "--project-file", build.base_project_slcp.resolve(),
             "--export-destination", build.build_dir.resolve(),
             "--copy-proj-sources",
@@ -799,23 +862,23 @@ def exclude_definitions_from_lto(build: ResolvedBuild, definitions: list[str]) -
 
 def apply_sdk_patches(build: ResolvedBuild) -> None:
     """Patch the copied SDK. A last resort, prefer SDK extensions wherever possible!"""
-    if not build.manifest.get("sdk_patches"):
+    if not build.manifest.config.get("sdk_patches"):
         return
 
     copied_sdk_dir = next(build.build_dir.glob(f"{build.sdk_name}_*"))
 
-    for patch_path in build.manifest["sdk_patches"]:
+    for patch_path in build.manifest.config["sdk_patches"]:
         patch_file = build.base_project_path / "sdk_patches" / patch_path
         LOGGER.info("Applying SDK patch: %s", patch_file.name)
         subprocess.run(
             [
                 "git",
                 "apply",
-                f"--directory={copied_sdk_dir.resolve().relative_to(build.projects_root.resolve())}",
+                f"--directory={copied_sdk_dir.resolve().relative_to(PROJECTS_ROOT.resolve())}",
                 str(patch_file.resolve()),
             ],
             check=True,
-            cwd=build.projects_root,
+            cwd=PROJECTS_ROOT,
         )
 
 
@@ -1148,12 +1211,12 @@ def main() -> None:
 
     # Template variables for C defines and the output filename
     template_env = {
-        "git_repo_hash": get_git_commit_id(repo=build.projects_root),
-        "manifest_name": build.manifest_path.stem,
+        "git_repo_hash": get_git_commit_id(repo=PROJECTS_ROOT),
+        "manifest_name": build.manifest.name,
         "now": build.build_timestamp,
     }
 
-    c_defines = normalize_c_defines(build.manifest)
+    c_defines = normalize_c_defines(build.manifest.config)
     c_flag_defines = [
         f"-D{define}={config['value']}"
         for define, config in c_defines.items()
@@ -1203,15 +1266,14 @@ def main() -> None:
         gsdk_path=build.sdk,
         project_name=build.base_project_name,
         sdk_version=build.sdk_version,
-        gbl_metadata=build.manifest["gbl"],
+        gbl_metadata=build.manifest.gbl,
     )
 
     output_artifact = (build.cmake_dir / build.base_project_name).with_suffix(".gbl")
     verify_build_reproducibility(build, output_artifact)
 
-    base_filename = evaluate_f_string(
-        build.manifest.get("filename", "{manifest_name}"),
-        {**template_env, **extracted_gbl_metadata},
+    base_filename = build.manifest.output_stem(
+        {**template_env, **extracted_gbl_metadata}
     )
 
     args.output_dir.mkdir(exist_ok=True)

@@ -8,6 +8,7 @@ toolchain: "gcc:14.2.1.20241119"
 gbl:
   fw_type: gecko-bootloader
   gecko_bootloader_version: dynamic
+  baudrate: 115200
   encrypt_key: config/keys/vendor_encrypt.key
   sign_key: config/keys/vendor_sign.key
   compression: lzma

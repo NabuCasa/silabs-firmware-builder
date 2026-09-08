@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Tool to create a JSON manifest file for a collection of firmwares."""
 
 from __future__ import annotations
@@ -10,11 +9,25 @@ import logging
 import pathlib
 import re
 import sys
+import typing
 from datetime import UTC, datetime
 
-from pygbl import GBLError, parse_firmware_image
+from pygbl import (
+    FirmwareImage,
+    GBL3Header,
+    GBL3Image,
+    GBL3Type,
+    GBLError,
+    parse_firmware_image,
+    read_encryption_key,
+)
+
+from .build_project import Manifest
 
 _LOGGER = logging.getLogger(__name__)
+
+# Metadata fields copied verbatim from the manifest's `gbl` section by `create_gbl`
+STATIC_METADATA_KEYS = ("fw_type", "fw_variant", "baudrate")
 
 
 def parse_markdown_changelog(text: str) -> list[dict[str, str | None]]:
@@ -41,20 +54,94 @@ def parse_markdown_changelog(text: str) -> list[dict[str, str | None]]:
     return entries
 
 
-def get_firmware_version(metadata: dict) -> str | None:
-    """Extract the firmware version from its metadata, if it is versioned at all."""
-    version_keys = {k for k in metadata if k.endswith("_version")} - {
-        "sdk_version",
-        "metadata_version",
-    }
+def load_manifests(directory: pathlib.Path) -> list[Manifest]:
+    """Load every build manifest below a directory."""
+    paths = sorted(
+        path for pattern in ("*.yaml", "*.yml") for path in directory.rglob(pattern)
+    )
 
-    # Some firmwares, such as the Zigbee router, carry no version of their own
-    if not version_keys:
+    return [Manifest.load(path) for path in paths]
+
+
+def is_encrypted(firmware: FirmwareImage) -> bool:
+    """Whether an image's payload is encrypted, and so needs a key to be read."""
+    if not isinstance(firmware, GBL3Image):
+        return False
+
+    return GBL3Type.ENCRYPTION_AESCCM in firmware.get_first_tag(GBL3Header).type
+
+
+def unlock(manifest: Manifest, firmware: FirmwareImage) -> FirmwareImage | None:
+    """Open an image with a manifest's own key, or `None` if it did not build it."""
+    if is_encrypted(firmware) != (manifest.encryption_key_path is not None):
         return None
 
-    (version_key,) = version_keys
+    if manifest.encryption_key_path is None:
+        return firmware
 
-    return metadata[version_key]
+    key = read_encryption_key(manifest.encryption_key_path.read_text())
+
+    try:
+        return firmware.decrypt(key)
+    except GBLError:
+        return None
+
+
+def metadata_mismatches(
+    manifest: Manifest, metadata: dict[str, typing.Any]
+) -> list[str]:
+    """Describe every way an image's metadata disagrees with its manifest."""
+    expected = {
+        "sdk_version": manifest.sdk_version,
+        **{key: manifest.gbl.get(key) for key in STATIC_METADATA_KEYS},
+    }
+
+    mismatches = [
+        f"{key}: manifest declares {value!r}, image has {metadata.get(key)!r}"
+        for key, value in expected.items()
+        if metadata.get(key) != value
+    ]
+
+    mismatches.extend(
+        f"{key}: manifest declares it dynamic but the image has no such key"
+        for key, value in manifest.gbl.items()
+        if value == "dynamic" and key not in metadata
+    )
+
+    return mismatches
+
+
+def find_manifest(
+    manifests: list[Manifest], firmware: FirmwareImage, stem: str
+) -> tuple[Manifest, dict[str, typing.Any]] | None:
+    """Find the manifest whose build produced a firmware file, and read its metadata."""
+    matches = []
+
+    for manifest in manifests:
+        image = unlock(manifest, firmware)
+
+        if image is None:
+            continue
+
+        raw_metadata = image.get_metadata()
+
+        if raw_metadata is None:
+            continue
+
+        metadata = json.loads(raw_metadata)
+
+        # `fw_type` is checked first: the output filename of an unrelated firmware is
+        # templated on metadata this image does not carry
+        if (
+            manifest.gbl.get("fw_type") == metadata["fw_type"]
+            and manifest.output_stem(metadata) == stem
+        ):
+            matches.append((manifest, metadata))
+
+    if len(matches) != 1:
+        return None
+
+    return matches[0]
 
 
 def main():
@@ -62,18 +149,24 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument(
-        "firmware_dir",
+        "--manifests",
         type=pathlib.Path,
-        help="Directory containing firmware images",
+        required=True,
+        help="Directory containing the build manifests the firmwares were built from",
     )
     parser.add_argument(
-        "source_dir",
+        "--artifacts",
         type=pathlib.Path,
-        help="Directory containing the source tree to identify changelogs",
+        required=True,
+        help="Directory containing firmware images",
     )
 
     args = parser.parse_args()
-    manifest = {
+
+    manifests = load_manifests(args.manifests)
+    _LOGGER.info("Loaded %d manifests from %s", len(manifests), args.manifests)
+
+    output = {
         "metadata": {
             "created_at": datetime.now(UTC).isoformat(),
         },
@@ -81,7 +174,11 @@ def main():
         "firmwares": [],
     }
 
-    for firmware_file in sorted(args.firmware_dir.glob("*.gbl")):
+    inconsistent = False
+    matched: dict[pathlib.Path, Manifest] = {}
+    changelogs: dict[str, list[dict[str, str | None]]] = {}
+
+    for firmware_file in sorted(args.artifacts.glob("*.gbl")):
         data = firmware_file.read_bytes()
 
         try:
@@ -90,31 +187,46 @@ def main():
             _LOGGER.warning("Ignoring invalid firmware file: %s", firmware_file)
             continue
 
-        # Encrypted images keep their metadata inside the ciphertext, so it is absent
-        raw_metadata = firmware.get_metadata()
-        metadata = json.loads(raw_metadata) if raw_metadata is not None else None
+        match = find_manifest(manifests, firmware, firmware_file.stem)
 
-        manifest["firmwares"].append(
-            {
-                "filename": firmware_file.name,
-                "version": get_firmware_version(metadata) if metadata else None,
-                "checksum": f"sha3-256:{hashlib.sha3_256(data).hexdigest()}",
-                "size": len(data),
-                "metadata": metadata,
-                "release_notes": None,
-                "release_summary": None,
-            }
-        )
-
-    missing_changelogs = False
-    changelogs: dict[str, list[dict[str, str | None]]] = {}
-
-    for fw in manifest["firmwares"]:
-        if fw["metadata"] is None:
+        if match is None:
+            _LOGGER.error(
+                "Firmware %s matches no manifest in %s", firmware_file, args.manifests
+            )
+            inconsistent = True
             continue
 
-        fw_type = fw["metadata"]["fw_type"]
-        changelog_md = args.source_dir / fw_type / "CHANGELOG.md"
+        source_manifest, metadata = match
+        mismatches = metadata_mismatches(source_manifest, metadata)
+
+        if mismatches:
+            _LOGGER.error(
+                "Firmware %s disagrees with %s:\n - %s",
+                firmware_file,
+                source_manifest.path,
+                "\n - ".join(mismatches),
+            )
+            inconsistent = True
+            continue
+
+        matched[source_manifest.path] = source_manifest
+        version_key = source_manifest.version_key
+        version = metadata[version_key] if version_key else None
+
+        fw = {
+            "filename": firmware_file.name,
+            "version": version,
+            "checksum": f"sha3-256:{hashlib.sha3_256(data).hexdigest()}",
+            "size": len(data),
+            "metadata": metadata,
+            "release_notes": None,
+            "release_summary": None,
+        }
+        output["firmwares"].append(fw)
+
+        # The manifest names the source directory the changelog lives in
+        fw_type = metadata["fw_type"]
+        changelog_md = source_manifest.base_project_path / "CHANGELOG.md"
 
         if fw_type not in changelogs:
             if changelog_md.exists():
@@ -125,18 +237,16 @@ def main():
         if not changelogs[fw_type]:
             continue
 
-        entry = next(
-            (e for e in changelogs[fw_type] if e["version"] == fw["version"]), None
-        )
+        entry = next((e for e in changelogs[fw_type] if e["version"] == version), None)
 
         if entry is None:
             _LOGGER.error(
                 "Firmware %s version %s has no changelog entry in %s",
-                fw["filename"],
-                fw["version"],
+                firmware_file,
+                version,
                 changelog_md,
             )
-            missing_changelogs = True
+            inconsistent = True
             continue
 
         # These two fields are kept for backwards compatibility with older clients that
@@ -145,13 +255,18 @@ def main():
         fw["release_notes"] = entry["summary"]
         fw["release_summary"] = entry["notes"]
 
-    manifest["changelogs"] = {t: e for t, e in changelogs.items() if e}
+    for unbuilt in manifests:
+        if unbuilt.path not in matched:
+            _LOGGER.warning("Manifest %s produced no firmware", unbuilt.path)
 
-    if missing_changelogs:
+    output["changelogs"] = {t: e for t, e in changelogs.items() if e}
+
+    if inconsistent:
         sys.exit(1)
 
-    print(json.dumps(manifest, indent=2))
+    print(json.dumps(output, indent=2))
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     main()

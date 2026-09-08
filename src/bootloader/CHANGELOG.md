@@ -3,6 +3,9 @@ Updated to Simplicity SDK 2026.6.1, migrating the ZWA-2 bootloader from the stan
 
 - Updated to Simplicity SDK 2026.6.1, up from Simplicity SDK 2024.12.2.
 
+# 3.2.0
+Updated to Simplicity SDK 2026.6.1.
+
 # 3.0.1
 Initial ZWA-2 bootloader release based on Simplicity SDK 2024.12.2.
 
