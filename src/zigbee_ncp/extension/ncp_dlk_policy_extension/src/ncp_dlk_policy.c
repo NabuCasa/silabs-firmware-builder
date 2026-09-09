@@ -1,0 +1,47 @@
+#include PLATFORM_HEADER
+#include "sl_zigbee.h"
+#include "stack/include/sl_zigbee_zdo_dlk_negotiation.h"
+#include "stack/include/zigbee-security-manager.h"
+
+// Strong override of the weak default in `sl_zigbee_r23_app_stubs.c`.
+//
+// Returning an error here makes the trust center skip DLK and deliver the network
+// key the R21 way, encrypted with the well-known key. Returning SL_STATUS_OK commits
+// the trust center to a negotiation with no fallback: it ignores the joiner's error
+// response and never sends the network key. So we only proceed when the host has
+// provisioned a link key for this specific joiner, which is the install code flow.
+sl_status_t sl_zigbee_zdo_dlk_select_negotiation_parameters_callback(
+  sl_zigbee_address_info *partner,
+  sl_zigbee_dlk_supported_negotiation_method their_supported_methods,
+  sl_zigbee_dlk_negotiation_supported_shared_secret_source their_supported_secrets,
+  sl_zigbee_dlk_negotiation_method *selected_method,
+  sl_zigbee_dlk_negotiation_shared_secret_source *selected_secret)
+{
+  if (!(their_supported_secrets & DLK_SECRET_MASK_PRECONFIG_INSTALL_CODE)) {
+    return SL_STATUS_NOT_SUPPORTED;
+  }
+
+  if (their_supported_methods & DLK_PROTOCOL_MASK_SPEKE_C25519_SHA256) {
+    *selected_method = DLK_PROTOCOL_ENUM_SPEKE_C25519_SHA256;
+  } else if (their_supported_methods & DLK_PROTOCOL_MASK_SPEKE_C25519_AES128) {
+    *selected_method = DLK_PROTOCOL_ENUM_SPEKE_C25519_AES128;
+  } else if (their_supported_methods & DLK_PROTOCOL_MASK_STATIC_KEY_REQUEST) {
+    *selected_method = DLK_PROTOCOL_ENUM_STATIC_KEY;
+  } else {
+    return SL_STATUS_NOT_SUPPORTED;
+  }
+
+  sl_zigbee_sec_man_context_t context;
+  sl_zigbee_sec_man_init_context(&context);
+  context.core_key_type = SL_ZB_SEC_MAN_KEY_TYPE_TC_LINK_WITH_TIMEOUT;
+  context.flags |= ZB_SEC_MAN_FLAG_EUI_IS_VALID;
+  memmove(context.eui64, partner->device_long, EUI64_SIZE);
+
+  sl_zigbee_sec_man_aps_key_metadata_t metadata;
+  if (sl_zigbee_sec_man_get_aps_key_info(&context, &metadata) != SL_STATUS_OK) {
+    return SL_STATUS_NOT_FOUND;
+  }
+
+  *selected_secret = DLK_SECRET_ENUM_PRECONFIG_INSTALL_CODE;
+  return SL_STATUS_OK;
+}

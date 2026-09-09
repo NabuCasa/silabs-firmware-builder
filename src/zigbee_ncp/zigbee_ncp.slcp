@@ -6,6 +6,11 @@ quality: production
 description: Zigbee NCP firmware. Derived from the `ncp-uart-hw` example Gecko SDK project.
 author: Nabu Casa
 
+sdk_extension:
+  - id: ncp_dlk_policy
+    vendor: nabucasa
+    version: 1.0.0
+
 component:
   - id: sl_main
   - id: iostream_usart
@@ -29,6 +34,9 @@ component:
   - id: zigbee_r22_support
   - id: zigbee_r23_support
   - id: zigbee_dynamic_commissioning
+  - id: ncp_dlk_policy
+    vendor: nabucasa
+    package: ncp_dlk_policy
   - id: zigbee_security_link_keys
   - id: zigbee_zll
   - id: zigbee_system_common
@@ -50,12 +58,6 @@ component:
 define:
   - name: SL_ZIGBEE_CUSTOM_MAC_FILTER_TABLE_SIZE
     value: 2
-
-# Prevent LTO from stripping sl_zigbee_version, which is read from the ELF
-# by create_gbl.py to extract the EZSP version for firmware metadata.
-toolchain_settings:
-  - option: gcc_linker_option
-    value: "-Wl,--undefined=sl_zigbee_version"
 
 configuration:
   - name: SL_CLI_MAX_INPUT_ARGUMENTS

@@ -5,69 +5,16 @@ from __future__ import annotations
 import ast
 import json
 import pathlib
-import struct
-from typing import Any, BinaryIO
+from typing import Any
 
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
-from elftools.elf.elffile import ELFFile
 from pygbl import (
     GBL3Compression,
     build_application_gbl3,
     build_bootloader_gbl3,
     read_encryption_key,
 )
-
-
-def _jump_to_elf_symbol(file: BinaryIO, symbol_name: str) -> tuple[ELFFile, int, int]:
-    elf = ELFFile(file)
-
-    symtab = elf.get_section_by_name(".symtab")
-    symbols = symtab.get_symbol_by_name(symbol_name)
-
-    if symbols is None or len(symbols) != 1:
-        raise ValueError(f"Expected one symbol for {symbol_name!r}, got {symbols}")
-
-    symbol = symbols[0]
-    symbol_addr = symbol["st_value"]
-    symbol_size = symbol["st_size"]
-
-    for segment in elf.iter_segments():
-        if segment["p_type"] != "PT_LOAD":
-            continue
-
-        segment_start = segment["p_vaddr"]
-        segment_end = segment_start + segment["p_filesz"]
-
-        if segment_start <= symbol_addr < segment_end:
-            return (
-                elf,
-                symbol_addr - segment_start + segment["p_offset"],
-                symbol_size,
-            )
-
-    raise ValueError("Could not find segment")
-
-
-def read_elf_symbol(file: BinaryIO, symbol_name: str) -> bytes:
-    """
-    Read an ELF symbol.
-    """
-    _elf, offset, size = _jump_to_elf_symbol(file, symbol_name)
-
-    file.seek(offset)
-    return file.read(size)
-
-
-def modify_elf_symbol(file: BinaryIO, symbol_name: str, value: bytes) -> None:
-    """
-    Modify an ELF symbol.
-    """
-    _elf, offset, size = _jump_to_elf_symbol(file, symbol_name)
-    assert len(value) == size
-
-    file.seek(offset)
-    file.write(value)
 
 
 def parse_c_header_defines(file_content: str) -> dict[str, str]:
@@ -128,48 +75,26 @@ def create_gbl(
     if "ezsp_version" in gbl_dynamic:
         gbl_dynamic.remove("ezsp_version")
 
-        with elf.open("rb") as f:
-            # Try new SDK symbol name first, fall back to old
-            try:
-                ember_version = read_elf_symbol(f, "sl_zigbee_version")
-                version_symbol = "sl_zigbee_version"
-            except ValueError:
-                f.seek(0)
-                ember_version = read_elf_symbol(f, "emberVersion")
-                version_symbol = "emberVersion"
-
-        (
-            build,
-            major,
-            minor,
-            patch,
-            special,
-            version_type,
-            padding,
-        ) = struct.unpack(">HBBBBBB", ember_version)
-
-        # Look for overrides
-        xncp_config_h = parse_c_header_defines(
-            (project_root / "config/xncp_config.h").read_text()
+        zigbee_config_h = parse_c_header_defines(
+            (gsdk_path / "zigbee/stack/config/config.h").read_text()
         )
-        if xncp_config_h["XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE"] != 0xFF:
-            special = xncp_config_h["XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE"]
+        special_version = zigbee_config_h["SL_ZIGBEE_SPECIAL_VERSION"]
 
-            # Write the override back to the ELF
-            with elf.open("r+b") as f:
-                new_ember_version = struct.pack(
-                    ">HBBBBBB",
-                    build,
-                    major,
-                    minor,
-                    patch,
-                    special,
-                    version_type,
-                    padding,
-                )
-                modify_elf_symbol(f, version_symbol, new_ember_version)
+        # `ezsp_version.c` in the NCP applies the same override at compile time
+        xncp_config_path = project_root / "config/xncp_config.h"
+        if xncp_config_path.exists():
+            xncp_config_h = parse_c_header_defines(xncp_config_path.read_text())
+            if xncp_config_h["XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE"] != 0xFF:
+                special_version = xncp_config_h["XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE"]
 
-        metadata["ezsp_version"] = f"{major}.{minor}.{patch}.{special}"
+        metadata["ezsp_version"] = ".".join(
+            [
+                str(zigbee_config_h["SL_ZIGBEE_MAJOR_VERSION"]),
+                str(zigbee_config_h["SL_ZIGBEE_MINOR_VERSION"]),
+                str(zigbee_config_h["SL_ZIGBEE_PATCH_VERSION"]),
+                str(special_version),
+            ]
+        )
 
     if "cpc_version" in gbl_dynamic:
         gbl_dynamic.remove("cpc_version")
