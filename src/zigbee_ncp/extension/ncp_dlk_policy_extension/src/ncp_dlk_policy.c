@@ -32,13 +32,13 @@ sl_status_t sl_zigbee_zdo_dlk_select_negotiation_parameters_callback(
   }
 
   sl_zigbee_sec_man_context_t context;
-  sl_zigbee_sec_man_key_t key;
+  sl_zigbee_sec_man_init_context(&context);
+  context.core_key_type = SL_ZB_SEC_MAN_KEY_TYPE_TC_LINK_WITH_TIMEOUT;
+  context.flags |= ZB_SEC_MAN_FLAG_EUI_IS_VALID;
+  memmove(context.eui64, partner->device_long, EUI64_SIZE);
+
   sl_zigbee_sec_man_aps_key_metadata_t metadata;
-
-  sl_status_t status = sl_zigbee_sec_man_export_transient_key_by_eui(partner->device_long, &context, &key, &metadata);
-  memset(&key, 0, sizeof(key));
-
-  if (status != SL_STATUS_OK) {
+  if (sl_zigbee_sec_man_get_aps_key_info(&context, &metadata) != SL_STATUS_OK) {
     return SL_STATUS_NOT_FOUND;
   }
 
