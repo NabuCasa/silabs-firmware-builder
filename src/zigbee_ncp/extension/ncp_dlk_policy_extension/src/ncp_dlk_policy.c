@@ -29,6 +29,8 @@ sl_status_t sl_zigbee_zdo_dlk_select_negotiation_parameters_callback(
     *selected_method = DLK_PROTOCOL_ENUM_SPEKE_C25519_SHA256;
   } else if (their_supported_methods & DLK_PROTOCOL_MASK_SPEKE_C25519_AES128) {
     *selected_method = DLK_PROTOCOL_ENUM_SPEKE_C25519_AES128;
+  } else if (their_supported_methods & DLK_PROTOCOL_MASK_STATIC_KEY_REQUEST) {
+    *selected_method = DLK_PROTOCOL_ENUM_STATIC_KEY;
   } else {
     return SL_STATUS_NOT_SUPPORTED;
   }
