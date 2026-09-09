@@ -20,4 +20,3 @@ provides:
 requires:
   - name: zigbee_r23_support
   - name: zigbee_dynamic_commissioning
-  - name: zigbee_debug_print
