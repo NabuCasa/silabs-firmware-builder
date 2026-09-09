@@ -17,10 +17,6 @@ sl_status_t sl_zigbee_zdo_dlk_select_negotiation_parameters_callback(
   sl_zigbee_dlk_negotiation_method *selected_method,
   sl_zigbee_dlk_negotiation_shared_secret_source *selected_secret)
 {
-  sl_zigbee_sec_man_context_t context;
-  sl_zigbee_sec_man_key_t key;
-  sl_zigbee_sec_man_aps_key_metadata_t metadata;
-
   if (!(their_supported_secrets & DLK_SECRET_MASK_PRECONFIG_INSTALL_CODE)) {
     return SL_STATUS_NOT_SUPPORTED;
   }
@@ -35,8 +31,12 @@ sl_status_t sl_zigbee_zdo_dlk_select_negotiation_parameters_callback(
     return SL_STATUS_NOT_SUPPORTED;
   }
 
-  sl_status_t status = sl_zigbee_sec_man_export_transient_key_by_eui(
-    partner->device_long, &context, &key, &metadata);
+  sl_zigbee_sec_man_context_t context;
+  sl_zigbee_sec_man_key_t key;
+  sl_zigbee_sec_man_aps_key_metadata_t metadata;
+
+  sl_status_t status = sl_zigbee_sec_man_export_transient_key_by_eui(partner->device_long, &context, &key, &metadata);
+  memset(&key, 0, sizeof(key));
 
   if (status != SL_STATUS_OK) {
     return SL_STATUS_NOT_FOUND;
