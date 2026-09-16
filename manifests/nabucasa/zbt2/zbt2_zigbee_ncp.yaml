@@ -56,6 +56,7 @@ add_components:
 - id: xncp_zbt2_commands
   vendor: nabucasa
   package: xncp_zbt2
+- id: rail_util_coex
 
 # SLC reads `configuration` during validation, before c_defines are patched
 configuration:
@@ -143,6 +144,17 @@ c_defines:
   SL_I2CSPM_INST_SCL_PIN: 6
   SL_I2CSPM_INST_SDA_PORT: SL_GPIO_PORT_C
   SL_I2CSPM_INST_SDA_PIN: 7
+
+  # Coexistence with the ESP32-S3
+  SL_RAIL_UTIL_COEX_REQ_ENABLED: 1
+  SL_RAIL_UTIL_COEX_REQ_PORT: SL_GPIO_PORT_B
+  SL_RAIL_UTIL_COEX_REQ_PIN: 0
+  SL_RAIL_UTIL_COEX_PRI_ENABLED: 1
+  SL_RAIL_UTIL_COEX_PRI_PORT: SL_GPIO_PORT_B
+  SL_RAIL_UTIL_COEX_PRI_PIN: 1
+  SL_RAIL_UTIL_COEX_GNT_ENABLED: 1
+  SL_RAIL_UTIL_COEX_GNT_PORT: SL_GPIO_PORT_B
+  SL_RAIL_UTIL_COEX_GNT_PIN: 2
 
   # Pinhole button
   SL_SIMPLE_BUTTON_PIN_HOLE_BUTTON_PORT: SL_GPIO_PORT_C
