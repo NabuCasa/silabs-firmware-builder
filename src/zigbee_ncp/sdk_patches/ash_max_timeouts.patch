@@ -1,0 +1,13 @@
+diff --git a/zigbee/platform/service/legacy_ncp_ash/inc/ash-ncp.h b/zigbee/platform/service/legacy_ncp_ash/inc/ash-ncp.h
+index a814c32..932798e 100644
+--- a/zigbee/platform/service/legacy_ncp_ash/inc/ash-ncp.h
++++ b/zigbee/platform/service/legacy_ncp_ash/inc/ash-ncp.h
+@@ -266,7 +266,7 @@ tokTypeMfgAshConfig sli_ash_ncp_get_config_or_default(sli_ash_ncp_config_index i
+ #define ASH_TIME_DATA_MAX      3200
+ // Consecutive ACK timeouts (minus 1) needed to enter the ERROR state.
+ // The value 0xFF means the NCP will not disconnect due to timeouts.
+-#define ASH_MAX_TIMEOUTS          3
++#define ASH_MAX_TIMEOUTS          6
+ // Delay before sending RSTACK, needed by some RS-232 to TTL converters.
+ #ifdef SLEEPY_EZSP_ASH
+   #define ASH_REBOOT_DELAY        0

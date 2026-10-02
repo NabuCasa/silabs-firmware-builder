@@ -10,6 +10,9 @@ gbl:
   ezsp_version: dynamic
   baudrate: 115200
 
+sdk_patches:
+  - ash_max_timeouts.patch
+
 sdk_extension:
   - id: xncp
     vendor: nabucasa
