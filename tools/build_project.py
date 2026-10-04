@@ -1151,6 +1151,32 @@ def rust_target_triple(device: str) -> str:
     return "thumbv8m.main-none-eabihf"
 
 
+def rust_toolchain_binaries(build: ResolvedBuild) -> dict[str, typing.Any]:
+    """The binutils + shim compiler the Rust phase needs, per toolchain. GCC ships
+    arm-none-eabi-* GNU binutils + gcc; LLVM ships llvm-* + clang, which needs an explicit
+    --target and has its libc sysroot baked in. bindgen always uses its own libclang, so it
+    only needs a sysroot pointing at some arm libc headers to parse."""
+    tp = build.toolchain_path
+    if build.toolchain is Toolchain.LLVM:
+        return {
+            "ar": tp / "bin/llvm-ar",
+            "strip": tp / "bin/llvm-strip",
+            "shim_cc": tp / "bin/clang",
+            # clang defaults to the host triple; the shim is bare-metal arm.
+            "shim_target": [
+                f"--target={rust_target_triple(build.manifest.config['device'])}"
+            ],
+            "sysroot": tp / "lib/clang-runtimes/arm-none-eabi/include",
+        }
+    return {
+        "ar": tp / "bin/arm-none-eabi-ar",
+        "strip": tp / "bin/arm-none-eabi-strip",
+        "shim_cc": tp / "bin/arm-none-eabi-gcc",
+        "shim_target": [],
+        "sysroot": tp / "arm-none-eabi/include",
+    }
+
+
 def extract_slc_clang_flags(build: ResolvedBuild) -> dict[str, typing.Any]:
     """Pull the include dirs, preprocessor defines, and arch flags out of the SLC-generated
     cmake, so bindgen/cc compile against exactly what the C build sees. Nothing about the
@@ -1218,7 +1244,7 @@ def stub_rust_libraries(build: ResolvedBuild) -> None:
         return
 
     archives = rust_staticlib_archives()
-    ar = build.toolchain_path / "bin/arm-none-eabi-ar"
+    ar = rust_toolchain_binaries(build)["ar"]
 
     for slcc in build.build_template_path.rglob("*.slcc"):
         data = yaml.load(slcc.read_text())
@@ -1273,18 +1299,18 @@ def build_rust_libraries(build: ResolvedBuild, rust_config: dict[str, str]) -> N
 
     inc_args = " ".join(f"-I{d}" for d in flags["includes"])
     define_args = " ".join(f"-D{d}" for d in flags["defines"])
+    bins = rust_toolchain_binaries(build)
+    shim_arch = " ".join(bins["shim_target"] + flags["arch"])
     # The installed SDK has cmsis_clang.h, which a GCC build does not copy into the
     # build tree but bindgen's libclang needs.
     cmsis = build.sdk / "cmsis/Core/Include"
-    sysroot = build.toolchain_path / "arm-none-eabi/include"
-    gcc = build.toolchain_path / "bin/arm-none-eabi-gcc"
 
     env = {
         **os.environ,
         "PATH": f"{pathlib.Path.home() / '.cargo/bin'}:{os.environ['PATH']}",
-        "OHF_BINDGEN_FLAGS": f"--target={triple} -isystem{sysroot} -I{cmsis} {inc_args} {define_args}",
-        "OHF_SHIM_CC": str(gcc),
-        "OHF_SHIM_CFLAGS": f"{' '.join(flags['arch'])} -I{cmsis} {inc_args} {define_args}",
+        "OHF_BINDGEN_FLAGS": f"--target={triple} -isystem{bins['sysroot']} -I{cmsis} {inc_args} {define_args}",
+        "OHF_SHIM_CC": str(bins["shim_cc"]),
+        "OHF_SHIM_CFLAGS": f"{shim_arch} -I{cmsis} {inc_args} {define_args}",
         "OHF_RUST_CONFIG": str(config_path.resolve()),
     }
 
@@ -1325,11 +1351,7 @@ def build_rust_libraries(build: ResolvedBuild, rust_config: dict[str, str]) -> N
             # source paths (library/core/src/*.rs) that fail the reproducibility check.
             # The C side keeps its own debuginfo.
             subprocess.run(
-                [
-                    build.toolchain_path / "bin/arm-none-eabi-strip",
-                    "--strip-debug",
-                    str(dest),
-                ],
+                [bins["strip"], "--strip-debug", str(dest)],
                 check=True,
             )
             placed.append(dest.name)
