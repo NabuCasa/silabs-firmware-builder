@@ -30,9 +30,14 @@ fn main() {
         .prepend_enum_name(false)
         .allowlist_type(
             "I2C_TransferSeq_TypeDef|sl_led_t|sl_led_rgb_pwm_t|sl_led_state_t|sl_status_t|\
-             SPIDRV_Handle_t|GPIO_Mode_TypeDef",
+             SPIDRV_Handle_t|GPIO_Mode_TypeDef|sl_sleeptimer_timer_handle_t|CORE_irqState_t",
         )
-        .allowlist_function("I2CSPM_Transfer|sl_udelay_wait|sl_led_init|SPIDRV_MTransmit")
+        .allowlist_function(
+            "I2CSPM_Transfer|sl_udelay_wait|sl_led_init|SPIDRV_MTransmit|\
+             sl_led_turn_on|sl_led_turn_off|sl_led_set_rgb_color|\
+             sl_sleeptimer_start_periodic_timer_ms|sl_sleeptimer_stop_timer|\
+             CORE_EnterCritical|CORE_ExitCritical",
+        )
         .allowlist_var("I2C_FLAG_.*|SL_STATUS_OK|SL_LED_CURRENT_STATE_.*")
         // SL_ENUM[_GENERIC] expands to `typedef T name; enum name##_enum {...}`, so the
         // variants (gpioMode*, SL_GPIO_PORT_*) live in the separate `_enum` type, which

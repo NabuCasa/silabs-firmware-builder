@@ -9,3 +9,5 @@
 #include "spidrv.h"
 #include "em_gpio.h"
 #include "sl_device_gpio.h"
+#include "sl_sleeptimer.h"
+#include "em_core.h"

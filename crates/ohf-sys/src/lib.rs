@@ -16,3 +16,19 @@ extern "C" {
     /// into this crate). `mode` is a `gpioMode*` value.
     pub fn ohf_gpio_pin_mode_set(port: u32, pin: u32, mode: u32, out: u32);
 }
+
+// The critical-section impl, backed by the SDK's CORE_Enter/ExitCritical. Registering
+// it here lets any component use `critical_section::with` and `critical_section::Mutex`
+// for shared state the compiler only lets you touch while interrupts are masked.
+struct SdkCriticalSection;
+critical_section::set_impl!(SdkCriticalSection);
+
+unsafe impl critical_section::Impl for SdkCriticalSection {
+    unsafe fn acquire() -> critical_section::RawRestoreState {
+        CORE_EnterCritical()
+    }
+
+    unsafe fn release(state: critical_section::RawRestoreState) {
+        CORE_ExitCritical(state);
+    }
+}

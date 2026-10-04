@@ -5,6 +5,11 @@ version.workspace = true
 
 [lib]
 
+[dependencies]
+# ohf-sys provides the critical-section impl (backed by CORE_Enter/ExitCritical) so
+# components can use critical_section::Mutex for compile-time-checked shared state.
+critical-section = { version = "1", features = ["restore-state-u32"] }
+
 [build-dependencies]
 bindgen = "0.73"
 cc = "1"
