@@ -6,6 +6,7 @@ members = [
     "ohf-qma6100p",
     "ohf-led-effects",
     "ohf-led-effects-zigbee",
+    "ohf-led-effects-openthread",
     "ohf-firmware",
 ]
 

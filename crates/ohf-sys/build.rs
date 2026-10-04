@@ -42,7 +42,9 @@ fn main() {
         // SL_ENUM[_GENERIC] expands to `typedef T name; enum name##_enum {...}`, so the
         // variants (gpioMode*, SL_GPIO_PORT_*) live in the separate `_enum` type, which
         // must be allowlisted by name. These back symbol-valued config (WS2812_EN_PORT).
-        .allowlist_type("GPIO_Mode_TypeDef_enum|sl_gpio_port_t_enum")
+        // Both GPIO port spellings a manifest might use for a *_EN_PORT config:
+        // SL_GPIO_PORT_* (sl_device_gpio) and gpioPort* (emlib GPIO_Port_TypeDef).
+        .allowlist_type("GPIO_Mode_TypeDef_enum|GPIO_Port_TypeDef_enum|sl_gpio_port_t_enum")
         .opaque_type("SPIDRV_HandleData")
         // SL_STATUS_OK etc. are cast macros bindgen can't constant-fold alone.
         .clang_macro_fallback()

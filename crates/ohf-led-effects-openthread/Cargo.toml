@@ -1,0 +1,12 @@
+[package]
+name = "ohf-led-effects-openthread"
+edition.workspace = true
+version.workspace = true
+
+[lib]
+# OpenThread per-stack LED wrapper. rlib gated behind ohf-firmware's
+# `led_effects_openthread` feature (SLC enables it only for Thread builds, so it never
+# co-links with the Zigbee wrapper). Pure Rust: the OT APIs are real symbols.
+
+[dependencies]
+ohf-sys = { path = "../ohf-sys" }

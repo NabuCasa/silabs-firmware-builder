@@ -12,6 +12,8 @@
 extern crate ohf_led_effects;
 #[cfg(feature = "led_effects_zigbee")]
 extern crate ohf_led_effects_zigbee;
+#[cfg(feature = "led_effects_openthread")]
+extern crate ohf_led_effects_openthread;
 #[cfg(feature = "qma6100p")]
 extern crate ohf_qma6100p;
 #[cfg(feature = "ws2812")]
