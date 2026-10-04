@@ -1251,6 +1251,15 @@ def build_rust_libraries(build: ResolvedBuild, rust_config: dict[str, str]) -> N
     if not RUST_DIR.is_dir():
         return
 
+    # SLC renders the enabled Rust components' `ohf_rust_feature` contributions here (a
+    # JSON array); its absence means no Rust components are in this build.
+    features_file = build.build_dir / "autogen" / "ohf_rust_features.json"
+    if not features_file.exists():
+        return
+    features = json.loads(features_file.read_text())
+    if not features:
+        return
+
     triple = rust_target_triple(build.manifest.config["device"])
     flags = extract_slc_clang_flags(build)
 
@@ -1276,7 +1285,18 @@ def build_rust_libraries(build: ResolvedBuild, rust_config: dict[str, str]) -> N
     }
 
     subprocess_run_verbose(
-        ["cargo", "build", "--release", "--target", triple],
+        [
+            "cargo",
+            "build",
+            "--release",
+            "--target",
+            triple,
+            "-p",
+            "ohf-firmware",
+            "--no-default-features",
+            "--features",
+            ",".join(features),
+        ],
         "cargo",
         env=env,
         cwd=RUST_DIR,

@@ -1,0 +1,4 @@
+{#- SLC's Jinja is Jython and contributions arrive as a Java ArrayList, which the
+    `tojson` filter can't serialize; iterate and emit the JSON by hand. Feature names are
+    plain identifiers, so no escaping is needed. -#}
+[{% for f in ohf_rust_feature | default([]) %}"{{ f }}"{% if not loop.last %}, {% endif %}{% endfor %}]

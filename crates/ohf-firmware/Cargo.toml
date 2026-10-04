@@ -8,7 +8,18 @@ version.workspace = true
 # provides the one #[panic_handler], so core/the handler appear exactly once.
 crate-type = ["staticlib"]
 
+# Each component is an optional dep behind a feature whose name matches the component's
+# `ohf_rust_feature` slcc contribution. SLC renders the enabled set (autogen/
+# ohf_rust_features.txt); build_project.py passes it as --features. SLC selects; cargo
+# follows. Adding a component = a crate here + its feature + the slcc contribution.
 [dependencies]
-ohf-ws2812 = { path = "../ohf-ws2812" }
-ohf-qma6100p = { path = "../ohf-qma6100p" }
-ohf-led-effects = { path = "../ohf-led-effects" }
+ohf-ws2812 = { path = "../ohf-ws2812", optional = true }
+ohf-qma6100p = { path = "../ohf-qma6100p", optional = true }
+ohf-led-effects = { path = "../ohf-led-effects", optional = true }
+ohf-led-effects-zigbee = { path = "../ohf-led-effects-zigbee", optional = true }
+
+[features]
+ws2812 = ["dep:ohf-ws2812"]
+qma6100p = ["dep:ohf-qma6100p"]
+led_effects = ["dep:ohf-led-effects"]
+led_effects_zigbee = ["dep:ohf-led-effects-zigbee"]

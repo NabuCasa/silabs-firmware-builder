@@ -12,3 +12,10 @@ library:
   - path: lib/libohf_firmware.a
 provides:
   - name: ohf_runtime
+template_file:
+  # SLC renders this over the ohf_rust_feature contributions of the *enabled* Rust
+  # components -> build/autogen/ohf_rust_features.json (a JSON array), which
+  # build_project.py turns into `cargo build --features ...`. SLC decides the set; cargo
+  # follows.
+  - path: ohf_rust_features.json.jinja
+

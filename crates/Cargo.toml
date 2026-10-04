@@ -1,6 +1,13 @@
 [workspace]
 resolver = "2"
-members = ["ohf-sys", "ohf-ws2812", "ohf-qma6100p", "ohf-led-effects", "ohf-firmware"]
+members = [
+    "ohf-sys",
+    "ohf-ws2812",
+    "ohf-qma6100p",
+    "ohf-led-effects",
+    "ohf-led-effects-zigbee",
+    "ohf-firmware",
+]
 
 [workspace.package]
 edition = "2021"

@@ -5,7 +5,8 @@ description: LED state machine for network status and tilt detection, Zigbee imp
 category: Zigbee|NCP
 quality: production
 source:
-  - path: src/led_effects_zigbee.c
+  # Only the token-read shim stays C; the wrapper logic is crates/ohf-led-effects-zigbee.
+  - path: src/led_effects_zigbee_shim.c
 include:
   - path: inc
     file_list:
@@ -13,6 +14,7 @@ include:
 provides:
   - name: led_effects
 requires:
+  - name: ohf_runtime
   - name: led_effects_base
 template_contribution:
   - name: zigbee_af_callback
@@ -23,3 +25,5 @@ template_contribution:
     value:
       callback_type: stack_status
       function_name: led_effects_stack_status_callback
+  - name: ohf_rust_feature
+    value: led_effects_zigbee

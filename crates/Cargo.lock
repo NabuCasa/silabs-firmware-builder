@@ -151,6 +151,7 @@ name = "ohf-firmware"
 version = "0.1.0"
 dependencies = [
  "ohf-led-effects",
+ "ohf-led-effects-zigbee",
  "ohf-qma6100p",
  "ohf-ws2812",
 ]
@@ -164,6 +165,10 @@ dependencies = [
  "ohf-sys",
  "serde_json",
 ]
+
+[[package]]
+name = "ohf-led-effects-zigbee"
+version = "0.1.0"
 
 [[package]]
 name = "ohf-qma6100p"

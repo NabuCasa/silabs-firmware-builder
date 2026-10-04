@@ -6,9 +6,15 @@
 //! component whose C-ABI exports go unreferenced for a given config.
 #![no_std]
 
-// Pull each component in so its #[no_mangle] exports land in the staticlib.
+// Pull each enabled component in so its #[no_mangle] exports land in the staticlib.
+// Features are selected by SLC (see Cargo.toml).
+#[cfg(feature = "led_effects")]
 extern crate ohf_led_effects;
+#[cfg(feature = "led_effects_zigbee")]
+extern crate ohf_led_effects_zigbee;
+#[cfg(feature = "qma6100p")]
 extern crate ohf_qma6100p;
+#[cfg(feature = "ws2812")]
 extern crate ohf_ws2812;
 
 use core::panic::PanicInfo;
