@@ -13,16 +13,22 @@ description: >-
   an error, which the stack turns into the legacy well-known-key network key transport.
 category: Zigbee|NCP
 quality: production
-source:
-  # Strong override of the SDK's weak callback; delegates to the Rust policy
-  # (crates/ohf-ncp-dlk-policy).
-  - path: src/ncp_dlk_policy_shim.c
 provides:
   - name: ncp_dlk_policy
 requires:
   - name: ohf_runtime
   - name: zigbee_r23_support
   - name: zigbee_dynamic_commissioning
+toolchain_settings:
+  # Linker-wrap the SDK's weak DLK callback straight onto the Rust policy
+  # (__wrap_sl_zigbee_zdo_dlk_select_negotiation_parameters_callback in
+  # crates/ohf-ncp-dlk-policy) instead of a C shim. lld honours the wrap over the
+  # LTO-visible weak default; GNU ld (PR ld/31956) would call it directly, so
+  # validate_linker_wraps will fail a GCC build here.
+  - option: gcc_linker_option
+    value: "-Wl,--wrap=sl_zigbee_zdo_dlk_select_negotiation_parameters_callback"
+  - option: llvm_linker_option
+    value: "-Wl,--wrap=sl_zigbee_zdo_dlk_select_negotiation_parameters_callback"
 template_contribution:
   - name: ohf_rust_feature
     value: ncp_dlk_policy

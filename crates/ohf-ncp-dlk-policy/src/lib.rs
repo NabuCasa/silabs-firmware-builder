@@ -7,9 +7,11 @@
 //! to negotiate when a link key is provisioned for the joiner's exact EUI64, and otherwise
 //! returns an error — which the stack turns into the legacy key transport.
 //!
-//! A strong Rust symbol in the aggregate archive won't win over the SDK's weak default
-//! under `-flto -fwhole-program`, so `ncp_dlk_policy_shim.c` (a direct source object) owns
-//! the callback name and delegates to `ohf_ncp_dlk_select_negotiation_parameters` here.
+//! The SDK's default is `SL_WEAK`; we linker-wrap it straight onto this Rust function
+//! (`-Wl,--wrap=sl_zigbee_zdo_dlk_select_negotiation_parameters_callback` redirects the
+//! stack's calls to `__wrap_…`, and the `--wrap` reference pulls it out of the aggregate
+//! archive). lld honours the wrap over the LTO-visible weak default; GNU ld (PR ld/31956)
+//! would call the weak default directly, so this path is LLVM-only.
 #![no_std]
 #![allow(non_camel_case_types, non_upper_case_globals)]
 
@@ -19,7 +21,7 @@ mod bindings {
 use bindings::*;
 
 #[no_mangle]
-pub unsafe extern "C" fn ohf_ncp_dlk_select_negotiation_parameters(
+pub unsafe extern "C" fn __wrap_sl_zigbee_zdo_dlk_select_negotiation_parameters_callback(
     partner: *const sl_zigbee_address_info,
     their_supported_methods: sl_zigbee_dlk_supported_negotiation_method,
     their_supported_secrets: sl_zigbee_dlk_negotiation_supported_shared_secret_source,

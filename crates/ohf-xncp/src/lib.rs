@@ -85,12 +85,14 @@ unsafe fn dispatch(ctx: *mut XncpContext) -> bool {
     false
 }
 
-// The SDK declares sl_zigbee_af_xncp_incoming_custom_frame_cb as SL_WEAK; a strong
-// override in our aggregate archive never gets pulled over it under -flto -fwhole-program.
-// So a tiny strong C shim (xncp_core_shim.c, a direct source object) owns that name and
-// delegates here, which is a plain strong reference that pulls this in like any other.
+// The SDK declares sl_zigbee_af_xncp_incoming_custom_frame_cb as SL_WEAK. Rather than a C
+// shim owning that name, we linker-wrap it: `-Wl,--wrap=sl_zigbee_af_xncp_incoming_custom_frame_cb`
+// redirects the stack's calls to `__wrap_…` (this fn), and the `--wrap` reference pulls it
+// out of the aggregate archive on its own. lld honours the wrap even though the weak default
+// is visible to LTO; GNU ld would call the visible definition directly (binutils PR ld/31956),
+// so this path is LLVM-only.
 #[no_mangle]
-pub unsafe extern "C" fn ohf_xncp_handle_frame(
+pub unsafe extern "C" fn __wrap_sl_zigbee_af_xncp_incoming_custom_frame_cb(
     message_length: u8,
     message_payload: *mut u8,
     reply_payload_length: *mut u8,
