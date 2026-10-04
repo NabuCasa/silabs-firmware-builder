@@ -1,0 +1,12 @@
+[package]
+name = "ohf-xncp"
+edition.workspace = true
+version.workspace = true
+
+[lib]
+# XNCP core: the custom-frame callback + linkme-based command/feature collection,
+# replacing xncp_core.c and the Jinja dispatcher template. Command sets register into
+# XNCP_COMMANDS / XNCP_FEATURES via linkme::distributed_slice.
+
+[dependencies]
+linkme = "0.3"

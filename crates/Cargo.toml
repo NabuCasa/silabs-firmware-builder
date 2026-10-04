@@ -7,6 +7,8 @@ members = [
     "ohf-led-effects",
     "ohf-led-effects-zigbee",
     "ohf-led-effects-openthread",
+    "ohf-xncp",
+    "ohf-xncp-zbt2",
     "ohf-firmware",
 ]
 

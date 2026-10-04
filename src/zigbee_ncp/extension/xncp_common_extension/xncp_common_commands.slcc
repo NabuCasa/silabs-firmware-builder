@@ -26,25 +26,9 @@ toolchain_settings:
   - option: llvm_linker_option
     value: "-Wl,--wrap=sli_zigbee_am_multicast_member"
 template_contribution:
-  - name: xncp_command_table
-    value:
-      name: xncp_common_commands
-  - name: xncp_feature
-    value: XNCP_FEATURE_MEMBER_OF_ALL_GROUPS
-  - name: xncp_feature
-    value: XNCP_FEATURE_MANUAL_SOURCE_ROUTE
-  - name: xncp_feature
-    value: XNCP_FEATURE_MFG_TOKEN_OVERRIDES
-  - name: xncp_feature
-    value: XNCP_FEATURE_BUILD_STRING
-  - name: xncp_feature
-    value: XNCP_FEATURE_FLOW_CONTROL_TYPE
-  - name: xncp_feature
-    value: XNCP_FEATURE_CHIP_INFO
-  - name: xncp_feature
-    value: XNCP_FEATURE_RESTORE_ROUTE_TABLE
-  - name: xncp_feature
-    value: XNCP_FEATURE_COMBINED_SEND
+  # The command table (xncp_common_commands[]) and feature bits are now consumed by the
+  # Rust XNCP core (crates/ohf-xncp) via an extern bridge + XNCP_COMMON_FEATURES, until
+  # this set is itself ported. Only the stack callbacks remain contributions.
   - name: zigbee_af_callback
     value:
       callback_type: event_init

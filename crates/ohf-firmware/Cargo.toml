@@ -18,6 +18,8 @@ ohf-qma6100p = { path = "../ohf-qma6100p", optional = true }
 ohf-led-effects = { path = "../ohf-led-effects", optional = true }
 ohf-led-effects-zigbee = { path = "../ohf-led-effects-zigbee", optional = true }
 ohf-led-effects-openthread = { path = "../ohf-led-effects-openthread", optional = true }
+ohf-xncp = { path = "../ohf-xncp", optional = true }
+ohf-xncp-zbt2 = { path = "../ohf-xncp-zbt2", optional = true }
 
 [features]
 ws2812 = ["dep:ohf-ws2812"]
@@ -25,3 +27,5 @@ qma6100p = ["dep:ohf-qma6100p"]
 led_effects = ["dep:ohf-led-effects"]
 led_effects_zigbee = ["dep:ohf-led-effects-zigbee"]
 led_effects_openthread = ["dep:ohf-led-effects-openthread"]
+xncp_core = ["dep:ohf-xncp"]
+xncp_zbt2 = ["dep:ohf-xncp-zbt2"]
