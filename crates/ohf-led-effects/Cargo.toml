@@ -1,0 +1,15 @@
+[package]
+name = "ohf-led-effects"
+edition.workspace = true
+version.workspace = true
+
+[lib]
+# rlib linked into ohf-firmware. Provides led_effects_base + led_manager (one slcc).
+
+[dependencies]
+ohf-sys = { path = "../ohf-sys" }
+critical-section = "1"
+libm = "0.2"
+
+[build-dependencies]
+serde_json = "1"

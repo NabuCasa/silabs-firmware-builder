@@ -11,3 +11,4 @@ crate-type = ["staticlib"]
 [dependencies]
 ohf-ws2812 = { path = "../ohf-ws2812" }
 ohf-qma6100p = { path = "../ohf-qma6100p" }
+ohf-led-effects = { path = "../ohf-led-effects" }

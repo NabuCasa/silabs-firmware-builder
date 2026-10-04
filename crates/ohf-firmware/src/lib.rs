@@ -7,6 +7,7 @@
 #![no_std]
 
 // Pull each component in so its #[no_mangle] exports land in the staticlib.
+extern crate ohf_led_effects;
 extern crate ohf_qma6100p;
 extern crate ohf_ws2812;
 

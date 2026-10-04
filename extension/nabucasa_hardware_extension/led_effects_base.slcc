@@ -4,9 +4,6 @@ package: custom
 description: LED state machine for network status and tilt detection, base implementation
 category: Platform|Driver|LED
 quality: production
-source:
-  - path: src/led_effects.c
-  - path: src/led_manager.c
 include:
   - path: inc
     file_list:
@@ -20,6 +17,7 @@ provides:
   - name: led_effects_base
   - name: led_manager
 requires:
+  - name: ohf_runtime
   - name: ws2812_driver
   - name: qma6100p_driver
   - name: sleeptimer
