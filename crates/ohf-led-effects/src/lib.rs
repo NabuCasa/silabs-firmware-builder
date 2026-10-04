@@ -45,7 +45,8 @@ const LED_MODE_BLINK: u32 = 2;
 const LED_MODE_PULSE: u32 = 3;
 
 const LED_PRIORITY_BACKGROUND: u32 = 0;
-const LED_PRIORITY_CRITICAL: u32 = 3;
+/// Tilt / factory-reset layer. Exported so the reset-button component can drive it.
+pub const LED_PRIORITY_CRITICAL: u32 = 3;
 const LED_PRIORITY_COUNT: usize = 4;
 
 #[repr(C)]
@@ -63,6 +64,9 @@ const fn rgb8(r: u8, g: u8, b: u8) -> rgb_t {
     rgb_t { r: r as u16 * 257, g: g as u16 * 257, b: b as u16 * 257 }
 }
 const LED_COLOR_WHITE_DIM: rgb_t = rgb8(75, 75, 75);
+// Factory-reset feedback colors (led_manager_colors.h), used by the reset-button component.
+pub const LED_COLOR_RESET_RED: rgb_t = rgb8(255, 0, 0);
+pub const LED_COLOR_RESET_ORANGE: rgb_t = rgb8(255, 40, 0);
 
 // --- External symbols resolved at the firmware link (via the aggregate) ---
 extern "C" {

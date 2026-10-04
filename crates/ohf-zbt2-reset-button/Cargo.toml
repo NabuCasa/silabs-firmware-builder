@@ -1,0 +1,22 @@
+[package]
+name = "ohf-zbt2-reset-button"
+edition.workspace = true
+version.workspace = true
+
+[lib]
+# Pin-hole factory-reset button: blink state machine + button/sleeptimer handling, shared by
+# the ZBT-2 zigbee NCP, OpenThread RCP, and zigbee router. rlib linked into ohf-firmware.
+# Default reset backend is a full NVM3 erase + PSA key wipe (platform-only FFI, works
+# everywhere). The `zigbee_token_reset` feature switches to sl_zigbee_token_factory_reset
+# (preserves frame counters) for the router — gated so the non-zigbee RCP never binds it.
+
+[features]
+zigbee_token_reset = []
+
+[dependencies]
+ohf-sys = { path = "../ohf-sys" }
+ohf-led-effects = { path = "../ohf-led-effects" }
+critical-section = "1"
+
+[build-dependencies]
+ohf-bindgen = { path = "../ohf-bindgen" }

@@ -11,6 +11,12 @@ void ohf_gpio_pin_mode_set(uint32_t port, uint32_t pin, uint32_t mode, uint32_t 
     GPIO_PinModeSet((GPIO_Port_TypeDef)port, pin, (GPIO_Mode_TypeDef)mode, out);
 }
 
+/* NVIC_SystemReset is a CMSIS __STATIC_INLINE (__NO_RETURN), so bindgen can't bind it. */
+void ohf_system_reset(void)
+{
+    NVIC_SystemReset();
+}
+
 /* Zigbee stack node-data token read. halCommonGetToken is a macro, so bindgen can't bind
  * it. Guarded on the zigbee stack being present (STACK_TYPES_HEADER is only defined in
  * zigbee builds): ohf-sys is also compiled for the non-zigbee RCP, where these token types

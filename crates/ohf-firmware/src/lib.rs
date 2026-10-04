@@ -22,6 +22,8 @@ extern crate ohf_xncp_common;
 extern crate ohf_xncp_zbt2;
 #[cfg(feature = "ncp_dlk_policy")]
 extern crate ohf_ncp_dlk_policy;
+#[cfg(feature = "zbt2_reset_button")]
+extern crate ohf_zbt2_reset_button;
 #[cfg(feature = "qma6100p")]
 extern crate ohf_qma6100p;
 #[cfg(feature = "ws2812")]

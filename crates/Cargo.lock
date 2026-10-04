@@ -186,6 +186,7 @@ dependencies = [
  "ohf-xncp",
  "ohf-xncp-common",
  "ohf-xncp-zbt2",
+ "ohf-zbt2-reset-button",
 ]
 
 [[package]]
@@ -269,6 +270,16 @@ dependencies = [
  "ohf-qma6100p",
  "ohf-sys",
  "ohf-xncp",
+]
+
+[[package]]
+name = "ohf-zbt2-reset-button"
+version = "0.1.0"
+dependencies = [
+ "critical-section",
+ "ohf-bindgen",
+ "ohf-led-effects",
+ "ohf-sys",
 ]
 
 [[package]]
