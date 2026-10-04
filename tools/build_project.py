@@ -1141,6 +1141,178 @@ def cmake_configure_and_build(
     )
 
 
+RUST_DIR = PROJECTS_ROOT / "crates"
+
+
+def rust_target_triple(device: str) -> str:
+    """All supported parts are Cortex-M33; MG21 has no FPU (soft-float), rest hard."""
+    if device.startswith("EFR32MG21"):
+        return "thumbv8m.main-none-eabi"
+    return "thumbv8m.main-none-eabihf"
+
+
+def extract_slc_clang_flags(build: ResolvedBuild) -> dict[str, typing.Any]:
+    """Pull the include dirs, device define, and arch flags out of the SLC-generated
+    cmake, so bindgen/cc compile against exactly what the C build sees. Nothing about
+    the chip is hardcoded here; it all comes from what SLC resolved from the YAML."""
+    text = build.project_cmake.read_text()
+    copied = re.search(r'set\(COPIED_SDK_PATH "([^"]+)"\)', text).group(1)
+
+    inc_block = re.search(
+        r"target_include_directories\(slc PUBLIC(.*?)\n\)", text, re.DOTALL
+    ).group(1)
+    includes = []
+    for raw in re.findall(r'"([^"]+)"', inc_block):
+        raw = raw.replace("${COPIED_SDK_PATH}", copied).replace(
+            "${CMAKE_CURRENT_LIST_DIR}", str(build.cmake_dir)
+        )
+        includes.append(str((build.cmake_dir / raw).resolve()))
+
+    device = re.search(
+        r'target_compile_definitions\(slc PUBLIC.*?"(EFR32[A-Z0-9]+)=1"',
+        text,
+        re.DOTALL,
+    ).group(1)
+    arch = sorted(set(re.findall(r"-m(?:cpu|fpu|float-abi)=[\w.+-]+|-mthumb", text)))
+
+    return {"includes": includes, "device": device, "arch": arch}
+
+
+def rust_cargo_env() -> dict[str, str]:
+    return {
+        **os.environ,
+        "PATH": f"{pathlib.Path.home() / '.cargo/bin'}:{os.environ['PATH']}",
+    }
+
+
+def rust_staticlib_archives() -> set[str]:
+    """Archive filenames the workspace's staticlib crates produce (e.g. libohf_ws2812.a)."""
+    meta = json.loads(
+        subprocess.run(
+            ["cargo", "metadata", "--format-version", "1", "--no-deps"],
+            cwd=RUST_DIR,
+            env=rust_cargo_env(),
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+    )
+    return {
+        f"lib{target['name'].replace('-', '_')}.a"
+        for package in meta["packages"]
+        for target in package["targets"]
+        if "staticlib" in target["kind"]
+    }
+
+
+def stub_rust_libraries(build: ResolvedBuild) -> None:
+    """`slc generate` copies each component's `library:` file, but ours don't exist
+    until cargo runs — which needs flags from the generated project. Drop empty
+    placeholder archives into the template so generate can copy them;
+    build_rust_libraries overwrites them with the real archives before the link."""
+    if not RUST_DIR.is_dir():
+        return
+
+    archives = rust_staticlib_archives()
+    ar = build.toolchain_path / "bin/arm-none-eabi-ar"
+
+    for slcc in build.build_template_path.rglob("*.slcc"):
+        data = yaml.load(slcc.read_text())
+        for lib in data.get("library", []):
+            path = pathlib.PurePosixPath(lib["path"])
+            if path.name in archives:
+                stub = slcc.parent / path
+                stub.parent.mkdir(parents=True, exist_ok=True)
+                subprocess.run([ar, "rc", str(stub)], check=True)
+                LOGGER.info("Stubbed Rust library placeholder %s", stub)
+
+
+def resolve_rust_config(
+    c_defines: dict[str, dict], template_env: dict[str, typing.Any]
+) -> dict[str, str]:
+    """The resolved config values, as the Rust crates' build.rs should see them — the
+    same map that patches the C config headers. One source of truth (the manifest) for
+    both languages."""
+    resolved = {}
+    for name, config in c_defines.items():
+        value = str(config["value"])
+        if value.startswith("template:"):
+            value = value.replace("template:", "", 1).format(**template_env)
+        resolved[name] = value
+    return resolved
+
+
+def build_rust_libraries(build: ResolvedBuild, rust_config: dict[str, str]) -> None:
+    """Build the Rust workspace and drop each archive where a component's `library:`
+    entry points. Discovery is by filename: a crate that builds `libfoo.a` is placed
+    at whatever `.../lib/libfoo.a` SLC interpolated into the project. Adding a Rust
+    component needs no change here — just the crate and its slcc `library:`. bindgen/cc
+    flags come from the SLC-generated project, so the chip lives only in the manifest."""
+    if not RUST_DIR.is_dir():
+        return
+
+    triple = rust_target_triple(build.manifest.config["device"])
+    flags = extract_slc_clang_flags(build)
+
+    # Forward the resolved manifest config to the crates' build.rs.
+    config_path = build.build_dir / "rust_build.json"
+    config_path.write_text(json.dumps(rust_config, indent=2))
+
+    inc_args = " ".join(f"-I{d}" for d in flags["includes"])
+    device = flags["device"]
+    # The installed SDK has cmsis_clang.h, which a GCC build does not copy into the
+    # build tree but bindgen's libclang needs.
+    cmsis = build.sdk / "cmsis/Core/Include"
+    sysroot = build.toolchain_path / "arm-none-eabi/include"
+    gcc = build.toolchain_path / "bin/arm-none-eabi-gcc"
+
+    env = {
+        **os.environ,
+        "PATH": f"{pathlib.Path.home() / '.cargo/bin'}:{os.environ['PATH']}",
+        "OHF_BINDGEN_FLAGS": f"--target={triple} -isystem{sysroot} -I{cmsis} {inc_args} -D{device}",
+        "OHF_SHIM_CC": str(gcc),
+        "OHF_SHIM_CFLAGS": f"{' '.join(flags['arch'])} -I{cmsis} {inc_args} -D{device}",
+        "OHF_RUST_CONFIG": str(config_path.resolve()),
+    }
+
+    subprocess_run_verbose(
+        ["cargo", "build", "--release", "--target", triple],
+        "cargo",
+        env=env,
+        cwd=RUST_DIR,
+    )
+
+    built = {p.name: p for p in (RUST_DIR / "target" / triple / "release").glob("*.a")}
+    text = build.project_cmake.read_text()
+    copied = re.search(r'set\(COPIED_SDK_PATH "([^"]+)"\)', text).group(1)
+
+    placed = []
+    for raw in re.findall(r'"([^"]+\.a)"', text):
+        resolved = raw.replace(
+            "${CMAKE_CURRENT_LIST_DIR}", str(build.cmake_dir)
+        ).replace("${COPIED_SDK_PATH}", copied)
+        # `resolved` is already relative to the working dir (it embeds cmake_dir), so
+        # resolve it against the repo root, not cmake_dir again.
+        dest = (PROJECTS_ROOT / resolved).resolve()
+        if dest.name in built and build.build_dir.resolve() in dest.parents:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(built[dest.name], dest)
+            # Strip DWARF: precompiled `core` carries debuginfo with rustc-internal
+            # source paths (library/core/src/*.rs) that fail the reproducibility check.
+            # The C side keeps its own debuginfo.
+            subprocess.run(
+                [
+                    build.toolchain_path / "bin/arm-none-eabi-strip",
+                    "--strip-debug",
+                    str(dest),
+                ],
+                check=True,
+            )
+            placed.append(dest.name)
+
+    LOGGER.info("Placed Rust libraries: %s", placed or "none")
+
+
 def verify_build_reproducibility(
     build: ResolvedBuild, output_artifact: pathlib.Path
 ) -> None:
@@ -1204,6 +1376,7 @@ def main() -> None:
     copy_base_project(build)
     base_project = prepare_project_slcp(build)
 
+    stub_rust_libraries(build)
     run_slc_generate(build, slc=slc, tool_paths=args.tool_paths)
     apply_sdk_patches(build)
     validate_sdk_extensions(build, base_project)
@@ -1250,6 +1423,7 @@ def main() -> None:
         if declared_wraps[target] is not None
     ]
     exclude_definitions_from_lto(build, definitions)
+    build_rust_libraries(build, resolve_rust_config(c_defines, template_env))
     cmake_configure_and_build(build, assemble_build_flags(build, c_flag_defines))
 
     validate_linker_wraps(

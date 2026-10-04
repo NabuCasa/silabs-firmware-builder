@@ -1,0 +1,15 @@
+[package]
+name = "ohf-ws2812"
+edition.workspace = true
+version.workspace = true
+
+[lib]
+# staticlib for standalone build/symbol checks during the first pass; becomes an
+# rlib under the aggregate `ohf-firmware` crate once that is wired.
+crate-type = ["staticlib"]
+
+[dependencies]
+ohf-sys = { path = "../ohf-sys" }
+
+[build-dependencies]
+serde_json = "1"

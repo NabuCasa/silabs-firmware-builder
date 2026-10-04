@@ -4,8 +4,9 @@ package: custom
 description: WS2812 addressable RGB LED driver using SPIDRV
 category: Platform|Driver|LED
 quality: production
-source:
-  - path: src/ws2812.c
+library:
+  # Built by tools/build_project.py (rust/ohf-ws2812) and dropped here before link.
+  - path: lib/libohf_ws2812.a
 include:
   - path: inc
     file_list:

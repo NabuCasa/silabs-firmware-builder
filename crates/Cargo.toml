@@ -1,0 +1,18 @@
+[workspace]
+resolver = "2"
+members = ["ohf-sys", "ohf-ws2812"]
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+
+[profile.release]
+panic = "abort"
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+debug = false
+
+[profile.dev]
+panic = "abort"

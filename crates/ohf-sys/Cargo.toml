@@ -1,0 +1,10 @@
+[package]
+name = "ohf-sys"
+edition.workspace = true
+version.workspace = true
+
+[lib]
+
+[build-dependencies]
+bindgen = "0.73"
+cc = "1"
