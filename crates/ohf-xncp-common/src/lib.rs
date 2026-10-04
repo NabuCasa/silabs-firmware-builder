@@ -1,16 +1,11 @@
-//! Common XNCP command set — Rust port of `xncp_common_commands.c` + `tx_power.c`.
+//! Common XNCP command set — commands 0x0001..0x0009, shared by every coordinator.
 //!
-//! Commands 0x0001..0x0009, shared by every coordinator. Registers into the XNCP core's
-//! linkme slices (`XNCP_COMMANDS` / `XNCP_FEATURES`); SLC decides whether this crate is
-//! linked (feature `xncp_common`). The wire protocol is preserved byte-for-byte.
+//! Handlers are safe `fn(&[u8], &mut ReplyBuf) -> Status` registered into the XNCP core's
+//! linkme slices. `unsafe` is confined to small wrappers over the deep EmberZNet surface
+//! (the internal route table, the legacy buffer manager, `sl_zigbee_send_unicast`) and the
+//! two stack callbacks — everything else, including all frame parsing, is safe.
 //!
-//! This set reaches deep into the EmberZNet stack: the internal route table
-//! (`sli_zigbee_route_table`), the legacy buffer manager, and `sl_zigbee_send_unicast`.
-//! Those bindings are generated in this crate's own build.rs — they can't live in the
-//! shared ohf-sys, which is also compiled for the non-zigbee OpenThread RCP.
-//!
-//! `ezsp_version.c` stays C: it's a direct-object data override of the stack's
-//! `sl_zigbee_version`, not a command.
+//! `ezsp_version.c` stays C: it's a direct-object data override of `sl_zigbee_version`.
 #![no_std]
 #![allow(non_camel_case_types, non_upper_case_globals)]
 
@@ -22,21 +17,17 @@ use critical_section::Mutex;
 use linkme::distributed_slice;
 
 use ohf_xncp::{
-    XncpCommandDef, XncpContext, XNCP_COMMANDS, XNCP_FEATURES, XNCP_FEATURE_BUILD_STRING,
-    XNCP_FEATURE_CHIP_INFO, XNCP_FEATURE_COMBINED_SEND, XNCP_FEATURE_FLOW_CONTROL_TYPE,
-    XNCP_FEATURE_MANUAL_SOURCE_ROUTE, XNCP_FEATURE_MEMBER_OF_ALL_GROUPS,
-    XNCP_FEATURE_MFG_TOKEN_OVERRIDES, XNCP_FEATURE_RESTORE_ROUTE_TABLE,
+    Reader, ReplyBuf, Status, XncpCommandDef, XNCP_COMMANDS, XNCP_FEATURES,
+    XNCP_FEATURE_BUILD_STRING, XNCP_FEATURE_CHIP_INFO, XNCP_FEATURE_COMBINED_SEND,
+    XNCP_FEATURE_FLOW_CONTROL_TYPE, XNCP_FEATURE_MANUAL_SOURCE_ROUTE,
+    XNCP_FEATURE_MEMBER_OF_ALL_GROUPS, XNCP_FEATURE_MFG_TOKEN_OVERRIDES,
+    XNCP_FEATURE_RESTORE_ROUTE_TABLE,
 };
 
 mod bindings {
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
 use bindings::*;
-
-// Low byte of the sl_status_t the wire protocol carries (xncp_core truncates to u8).
-const XNCP_STATUS_OK: u8 = 0x00;
-const XNCP_STATUS_BAD_ARGUMENT: u8 = 0x21; // SL_STATUS_INVALID_PARAMETER
-const XNCP_STATUS_NOT_FOUND: u8 = 0x25; // SL_STATUS_NOT_FOUND
 
 const XNCP_SEND_UNICAST_FLAG_EXTENDED_TIMEOUT: u8 = 1 << 0;
 const XNCP_SEND_UNICAST_FLAG_SOURCE_ROUTE: u8 = 1 << 1;
@@ -52,14 +43,83 @@ const ROUTE_UNUSED: u8 = 3;
 const RELAY_COUNT: usize = SL_ZIGBEE_MAX_SOURCE_ROUTE_RELAY_COUNT as usize;
 const TABLE_SIZE: usize = XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE as usize;
 
-// --- EmberZNet internal tables (data symbols, not emitted by bindgen) ----------------
+// bindgen emits string macros as `b"..\0"`; strip the trailing NUL to match strlen().
+fn c_str_bytes(s: &'static [u8]) -> &'static [u8] {
+    &s[..s.len() - 1]
+}
+
+// --- EmberZNet internal tables (data symbols, wrapped in the typed accessors below) --------
 extern "C" {
     static mut sli_zigbee_route_table: sli_zigbee_route_table_entry_t;
     static mut sli_zigbee_route_table_size: u8;
     static mut sli_zigbee_address_table_size: u8;
 }
 
-// --- Manual source routes (XNCP_FEATURE_MANUAL_SOURCE_ROUTE) -------------------------
+fn pseudo_random() -> u16 {
+    unsafe { sl_zigbee_get_pseudo_random_number() }
+}
+
+fn address_table_size() -> u8 {
+    unsafe { sli_zigbee_address_table_size }
+}
+
+// --- Stack route table (XNCP_FEATURE_RESTORE_ROUTE_TABLE) ----------------------------------
+#[derive(Clone, Copy)]
+struct RouteEntry {
+    destination: u16,
+    next_hop: u16,
+    status: u8,
+    cost: u8,
+}
+
+fn route_table_size() -> u8 {
+    unsafe { sli_zigbee_route_table_size }
+}
+
+fn route_entry_ptr(index: u8) -> *mut sli_zigbee_route_table_entry_t {
+    // The symbol is the first element of the stack's route table array.
+    unsafe { addr_of_mut!(sli_zigbee_route_table).add(index as usize) }
+}
+
+fn route_table_get(index: u8) -> RouteEntry {
+    let e = unsafe { &*route_entry_ptr(index) };
+    RouteEntry {
+        destination: e.destination,
+        next_hop: e.nextHop,
+        status: e.status,
+        cost: e.cost,
+    }
+}
+
+fn route_table_set(index: u8, v: RouteEntry) {
+    let e = unsafe { &mut *route_entry_ptr(index) };
+    e.destination = v.destination;
+    e.nextHop = v.next_hop;
+    e.status = v.status;
+    e.cost = v.cost;
+    e.networkIndex = 0;
+}
+
+// Picks the slot for a fake route (num_relays == 0 case): an existing entry for `destination`,
+// else a free (UNUSED) slot, else a random one.
+fn find_free_routing_table_entry(destination: u16) -> u8 {
+    let size = route_table_size();
+    let mut index: u8 = 0xFF;
+    for i in 0..size {
+        let e = route_table_get(i);
+        if e.destination == destination {
+            return i;
+        } else if e.status == ROUTE_UNUSED {
+            index = i;
+        }
+    }
+    if index == 0xFF {
+        index = (pseudo_random() % size as u16) as u8;
+    }
+    index
+}
+
+// --- Manual source routes (XNCP_FEATURE_MANUAL_SOURCE_ROUTE) -------------------------------
 #[derive(Clone, Copy)]
 struct ManualSourceRoute {
     active: bool,
@@ -78,33 +138,13 @@ const EMPTY_ROUTE: ManualSourceRoute = ManualSourceRoute {
 static MANUAL_SOURCE_ROUTES: Mutex<RefCell<[ManualSourceRoute; TABLE_SIZE]>> =
     Mutex::new(RefCell::new([EMPTY_ROUTE; TABLE_SIZE]));
 
-#[inline]
-fn build_u16(low: u8, high: u8) -> u16 {
-    u16::from_le_bytes([low, high])
-}
-
-unsafe fn push(ctx: &mut XncpContext, byte: u8) {
-    let off = *ctx.reply_length as usize;
-    *ctx.reply.add(off) = byte;
-    *ctx.reply_length += 1;
-}
-
-unsafe fn push_bytes(ctx: &mut XncpContext, src: &[u8]) {
-    let off = *ctx.reply_length as usize;
-    core::ptr::copy_nonoverlapping(src.as_ptr(), ctx.reply.add(off), src.len());
-    *ctx.reply_length += src.len() as u8;
-}
-
-// bindgen emits string macros as `b"..\0"`; strip the trailing NUL to match strlen().
-fn c_str_bytes(s: &'static [u8]) -> &'static [u8] {
-    &s[..s.len() - 1]
-}
-
-fn install_manual_source_route(node_id: u16, relay_bytes: *const u8, num_relays: u8) {
+// `relay_bytes` is little-endian u16 relays; its length is validated by the callers.
+fn install_manual_source_route(node_id: u16, relay_bytes: &[u8]) {
+    let num_relays = (relay_bytes.len() / 2) as u8;
     critical_section::with(|cs| {
         let mut routes = MANUAL_SOURCE_ROUTES.borrow(cs).borrow_mut();
 
-        let mut insertion = unsafe { sl_zigbee_get_pseudo_random_number() } as usize % TABLE_SIZE;
+        let mut insertion = pseudo_random() as usize % TABLE_SIZE;
         for i in 0..TABLE_SIZE {
             if !routes[i].active {
                 insertion = i;
@@ -115,9 +155,8 @@ fn install_manual_source_route(node_id: u16, relay_bytes: *const u8, num_relays:
         }
 
         let route = &mut routes[insertion];
-        for i in 0..num_relays as usize {
-            route.relays[i] =
-                unsafe { build_u16(*relay_bytes.add(2 * i), *relay_bytes.add(2 * i + 1)) };
+        for (slot, chunk) in route.relays.iter_mut().zip(relay_bytes.chunks_exact(2)) {
+            *slot = u16::from_le_bytes([chunk[0], chunk[1]]);
         }
         route.destination = node_id;
         route.num_relays = num_relays;
@@ -125,139 +164,194 @@ fn install_manual_source_route(node_id: u16, relay_bytes: *const u8, num_relays:
     });
 }
 
-// --- Commands -----------------------------------------------------------------------
+// --- Commands -----------------------------------------------------------------------------
 
-unsafe extern "C" fn handle_set_source_route(ctx: *mut XncpContext) -> bool {
-    let ctx = &mut *ctx;
-
-    if ctx.payload_length < 2 || ctx.payload_length % 2 != 0 {
-        *ctx.status = XNCP_STATUS_BAD_ARGUMENT;
-        return true;
+fn handle_set_source_route(req: &[u8], _reply: &mut ReplyBuf) -> Status {
+    if req.len() < 2 || req.len() % 2 != 0 {
+        return Status::BAD_ARGUMENT;
     }
-
-    let num_relays = (ctx.payload_length - 2) / 2;
-    if num_relays as usize > RELAY_COUNT {
-        *ctx.status = XNCP_STATUS_BAD_ARGUMENT;
-        return true;
+    let relay_bytes = &req[2..];
+    if relay_bytes.len() / 2 > RELAY_COUNT {
+        return Status::BAD_ARGUMENT;
     }
-
-    let node_id = build_u16(*ctx.payload, *ctx.payload.add(1));
-    install_manual_source_route(node_id, ctx.payload.add(2), num_relays);
-
-    *ctx.status = XNCP_STATUS_OK;
-    true
+    let node_id = u16::from_le_bytes([req[0], req[1]]);
+    install_manual_source_route(node_id, relay_bytes);
+    Status::OK
 }
 
-unsafe extern "C" fn handle_get_mfg_token_override(ctx: *mut XncpContext) -> bool {
-    let ctx = &mut *ctx;
-
-    if ctx.payload_length != 1 {
-        *ctx.status = XNCP_STATUS_BAD_ARGUMENT;
-        return true;
-    }
-
-    let token_id = *ctx.payload as u32;
-    let value = if token_id == SL_ZIGBEE_EZSP_MFG_STRING {
+fn handle_get_mfg_token_override(req: &[u8], reply: &mut ReplyBuf) -> Status {
+    let &[token_id] = req else {
+        return Status::BAD_ARGUMENT;
+    };
+    let value = if token_id as u32 == SL_ZIGBEE_EZSP_MFG_STRING {
         c_str_bytes(XNCP_MFG_MANUF_NAME)
-    } else if token_id == SL_ZIGBEE_EZSP_MFG_BOARD_NAME {
+    } else if token_id as u32 == SL_ZIGBEE_EZSP_MFG_BOARD_NAME {
         c_str_bytes(XNCP_MFG_BOARD_NAME)
     } else {
-        *ctx.status = XNCP_STATUS_NOT_FOUND;
-        return true;
+        return Status::NOT_FOUND;
     };
-
-    push_bytes(ctx, value);
-    *ctx.status = XNCP_STATUS_OK;
-    true
+    reply.push_bytes(value);
+    Status::OK
 }
 
-unsafe extern "C" fn handle_get_build_string(ctx: *mut XncpContext) -> bool {
-    let ctx = &mut *ctx;
-    push_bytes(ctx, c_str_bytes(XNCP_BUILD_STRING));
-    *ctx.status = XNCP_STATUS_OK;
-    true
+fn handle_get_build_string(_req: &[u8], reply: &mut ReplyBuf) -> Status {
+    reply.push_bytes(c_str_bytes(XNCP_BUILD_STRING));
+    Status::OK
 }
 
-unsafe extern "C" fn handle_get_flow_control_type(ctx: *mut XncpContext) -> bool {
-    let ctx = &mut *ctx;
-
+fn handle_get_flow_control_type(_req: &[u8], reply: &mut ReplyBuf) -> Status {
     let flow = if XNCP_FLOW_CONTROL_TYPE as u32 == usartHwFlowControlCtsAndRts as u32 {
         FLOW_CONTROL_TYPE_HARDWARE
     } else {
         FLOW_CONTROL_TYPE_SOFTWARE
     };
-
-    push(ctx, flow);
-    *ctx.status = XNCP_STATUS_OK;
-    true
+    reply.push(flow);
+    Status::OK
 }
 
-unsafe extern "C" fn handle_get_chip_info(ctx: *mut XncpContext) -> bool {
-    let ctx = &mut *ctx;
-
-    push_bytes(ctx, &(RAM_MEM_SIZE as u32).to_le_bytes());
-
+fn handle_get_chip_info(_req: &[u8], reply: &mut ReplyBuf) -> Status {
+    reply.push_u32_le(RAM_MEM_SIZE as u32);
     let part = c_str_bytes(PART_NUMBER);
-    push(ctx, part.len() as u8);
-    push_bytes(ctx, part);
-
-    *ctx.status = XNCP_STATUS_OK;
-    true
+    reply.push(part.len() as u8);
+    reply.push_bytes(part);
+    Status::OK
 }
 
-// --- Route table management (XNCP_FEATURE_RESTORE_ROUTE_TABLE) -----------------------
-
-unsafe extern "C" fn handle_set_route_table_entry(ctx: *mut XncpContext) -> bool {
-    let ctx = &mut *ctx;
-
-    if ctx.payload_length != 7 {
-        *ctx.status = XNCP_STATUS_BAD_ARGUMENT;
-        return true;
+fn handle_set_route_table_entry(req: &[u8], _reply: &mut ReplyBuf) -> Status {
+    let &[index, d0, d1, n0, n1, status, cost] = req else {
+        return Status::BAD_ARGUMENT;
+    };
+    if index >= route_table_size() {
+        return Status::BAD_ARGUMENT;
     }
-
-    let index = *ctx.payload;
-    if index >= sli_zigbee_route_table_size {
-        *ctx.status = XNCP_STATUS_BAD_ARGUMENT;
-        return true;
-    }
-
-    let entry = addr_of_mut!(sli_zigbee_route_table).add(index as usize);
-    (*entry).destination = build_u16(*ctx.payload.add(1), *ctx.payload.add(2));
-    (*entry).nextHop = build_u16(*ctx.payload.add(3), *ctx.payload.add(4));
-    (*entry).status = *ctx.payload.add(5);
-    (*entry).cost = *ctx.payload.add(6);
-    (*entry).networkIndex = 0;
-
-    *ctx.status = XNCP_STATUS_OK;
-    true
+    route_table_set(
+        index,
+        RouteEntry {
+            destination: u16::from_le_bytes([d0, d1]),
+            next_hop: u16::from_le_bytes([n0, n1]),
+            status,
+            cost,
+        },
+    );
+    Status::OK
 }
 
-unsafe extern "C" fn handle_get_route_table_entry(ctx: *mut XncpContext) -> bool {
-    let ctx = &mut *ctx;
-
-    if ctx.payload_length != 1 {
-        *ctx.status = XNCP_STATUS_BAD_ARGUMENT;
-        return true;
+fn handle_get_route_table_entry(req: &[u8], reply: &mut ReplyBuf) -> Status {
+    let &[index] = req else {
+        return Status::BAD_ARGUMENT;
+    };
+    if index >= route_table_size() {
+        return Status::BAD_ARGUMENT;
     }
-
-    let index = *ctx.payload;
-    if index >= sli_zigbee_route_table_size {
-        *ctx.status = XNCP_STATUS_BAD_ARGUMENT;
-        return true;
-    }
-
-    let entry = addr_of_mut!(sli_zigbee_route_table).add(index as usize);
-    push_bytes(ctx, &(*entry).destination.to_le_bytes());
-    push_bytes(ctx, &(*entry).nextHop.to_le_bytes());
-    push(ctx, (*entry).status);
-    push(ctx, (*entry).cost);
-
-    *ctx.status = XNCP_STATUS_OK;
-    true
+    let e = route_table_get(index);
+    reply.push_u16_le(e.destination);
+    reply.push_u16_le(e.next_hop);
+    reply.push(e.status);
+    reply.push(e.cost);
+    Status::OK
 }
 
-// --- TX power info (XNCP_FEATURE_TX_POWER_INFO is contributed by the ZBT-2 set) ------
-// Country-specific TX power table, ported from tx_power.c. Returned by 0x0008.
+fn handle_get_tx_power_info(req: &[u8], reply: &mut ReplyBuf) -> Status {
+    let &[c1, c2] = req else {
+        return Status::BAD_ARGUMENT;
+    };
+    let (recommended, max) = get_tx_power_for_country(c1, c2);
+    reply.push(recommended as u8);
+    reply.push(max as u8);
+    Status::OK
+}
+
+// Mirrors the host set_extended_timeout logic: skip if already set, else set it, creating an
+// address table entry first if none exists.
+fn apply_extended_timeout(eui64: &[u8], node_id: u16, extended_timeout: bool) {
+    // The SDK's eui64 APIs take a non-const pointer but only read these 8 bytes.
+    let eui = eui64.as_ptr() as *mut u8;
+
+    let current = unsafe { sl_zigbee_get_extended_timeout(eui) } == SL_STATUS_OK;
+    if current == extended_timeout {
+        return;
+    }
+
+    let mut existing_node_id: u16 = 0;
+    let found = unsafe { sl_zigbee_lookup_node_id_by_eui64(eui, &mut existing_node_id) };
+    if found == SL_STATUS_OK && existing_node_id != SL_ZIGBEE_TABLE_ENTRY_UNUSED_NODE_ID as u16 {
+        unsafe { sl_zigbee_set_extended_timeout(eui, extended_timeout) };
+        return;
+    }
+
+    // No address table entry exists; replace a random one so the timeout sticks.
+    let index = (pseudo_random() % address_table_size() as u16) as u8;
+    unsafe {
+        sl_zigbee_set_address_table_info(index, eui, node_id);
+        sl_zigbee_set_extended_timeout(eui, extended_timeout);
+    }
+}
+
+fn send_unicast(destination: u16, aps: &mut sl_zigbee_aps_frame_t, tag: u16, message: &[u8]) -> (u32, u8) {
+    let mut aps_sequence: u8 = 0;
+    let status = unsafe {
+        sl_zigbee_send_unicast(
+            SL_ZIGBEE_OUTGOING_DIRECT as _,
+            destination,
+            aps,
+            tag,
+            message.len() as u8,
+            message.as_ptr(),
+            &mut aps_sequence,
+        )
+    };
+    (status, aps_sequence)
+}
+
+fn handle_send_unicast(req: &[u8], reply: &mut ReplyBuf) -> Status {
+    let mut r = Reader::new(req);
+
+    // flags(1) + destination(2) + aps_frame(11) + message_tag(1)
+    if r.remaining() < 15 {
+        return Status::BAD_ARGUMENT;
+    }
+    let flags = r.u8().unwrap();
+    let destination = r.u16_le().unwrap();
+    let mut aps_frame = sl_zigbee_aps_frame_t {
+        profileId: r.u16_le().unwrap(),
+        clusterId: r.u16_le().unwrap(),
+        sourceEndpoint: r.u8().unwrap(),
+        destinationEndpoint: r.u8().unwrap(),
+        options: r.u16_le().unwrap() as _,
+        groupId: r.u16_le().unwrap(),
+        sequence: r.u8().unwrap(),
+        radius: 0,
+    };
+    let message_tag = r.u8().unwrap();
+
+    if flags & XNCP_SEND_UNICAST_FLAG_EXTENDED_TIMEOUT != 0 {
+        if r.remaining() < 9 {
+            return Status::BAD_ARGUMENT;
+        }
+        let eui64 = r.bytes(8).unwrap();
+        let extended_timeout = r.u8().unwrap() != 0;
+        apply_extended_timeout(eui64, destination, extended_timeout);
+    }
+
+    if flags & XNCP_SEND_UNICAST_FLAG_SOURCE_ROUTE != 0 {
+        let Some(num_relays) = r.u8() else {
+            return Status::BAD_ARGUMENT;
+        };
+        let num_relays = num_relays as usize;
+        if num_relays > RELAY_COUNT || r.remaining() < num_relays * 2 {
+            return Status::BAD_ARGUMENT;
+        }
+        install_manual_source_route(destination, r.bytes(num_relays * 2).unwrap());
+    }
+
+    let (status, aps_sequence) =
+        send_unicast(destination, &mut aps_frame, message_tag as u16, r.rest());
+    reply.push_u32_le(status);
+    reply.push(aps_sequence);
+    Status::OK
+}
+
+// --- TX power table (ported from tx_power.c; 0x0008 returns it) ----------------------------
 static COUNTRY_TX_POWERS: &[(u8, u8, i8, i8)] = &[
     // EU Member States
     (b'A', b'T', 10, 10),
@@ -314,192 +408,49 @@ static COUNTRY_TX_POWERS: &[(u8, u8, i8, i8)] = &[
 ];
 
 fn get_tx_power_for_country(c1: u8, c2: u8) -> (i8, i8) {
-    for &(a, b, recommended, max) in COUNTRY_TX_POWERS {
-        if a == c1 && b == c2 {
-            return (recommended, max);
-        }
-    }
-    (
-        XNCP_DEFAULT_RECOMMENDED_TX_POWER_DBM as i8,
-        XNCP_DEFAULT_MAX_TX_POWER_DBM as i8,
-    )
+    COUNTRY_TX_POWERS
+        .iter()
+        .find(|&&(a, b, _, _)| a == c1 && b == c2)
+        .map(|&(_, _, recommended, max)| (recommended, max))
+        .unwrap_or((
+            XNCP_DEFAULT_RECOMMENDED_TX_POWER_DBM as i8,
+            XNCP_DEFAULT_MAX_TX_POWER_DBM as i8,
+        ))
 }
 
-unsafe extern "C" fn handle_get_tx_power_info(ctx: *mut XncpContext) -> bool {
-    let ctx = &mut *ctx;
+// --- Stack callbacks ----------------------------------------------------------------------
 
-    if ctx.payload_length != 2 {
-        *ctx.status = XNCP_STATUS_BAD_ARGUMENT;
-        return true;
-    }
-
-    let (recommended, max) = get_tx_power_for_country(*ctx.payload, *ctx.payload.add(1));
-    *ctx.status = XNCP_STATUS_OK;
-    push(ctx, recommended as u8);
-    push(ctx, max as u8);
-    true
-}
-
-// --- Combined send (XNCP_FEATURE_COMBINED_SEND) -------------------------------------
-
-// Mirrors the host set_extended_timeout logic locally: skip if already set, otherwise
-// set it, creating an address table entry first if none exists.
-unsafe fn apply_extended_timeout(eui64: *mut u8, node_id: u16, extended_timeout: bool) {
-    let current = sl_zigbee_get_extended_timeout(eui64) == SL_STATUS_OK;
-    if current == extended_timeout {
-        return;
-    }
-
-    let mut existing_node_id: u16 = 0;
-    if sl_zigbee_lookup_node_id_by_eui64(eui64, &mut existing_node_id) == SL_STATUS_OK
-        && existing_node_id != SL_ZIGBEE_TABLE_ENTRY_UNUSED_NODE_ID as u16
-    {
-        sl_zigbee_set_extended_timeout(eui64, extended_timeout);
-        return;
-    }
-
-    // No address table entry exists; replace a random one so the timeout sticks.
-    let index = (sl_zigbee_get_pseudo_random_number() % sli_zigbee_address_table_size as u16) as u8;
-    sl_zigbee_set_address_table_info(index, eui64, node_id);
-    sl_zigbee_set_extended_timeout(eui64, extended_timeout);
-}
-
-unsafe extern "C" fn handle_send_unicast(ctx: *mut XncpContext) -> bool {
-    let ctx = &mut *ctx;
-
-    let mut p = ctx.payload;
-    let end = ctx.payload.add(ctx.payload_length as usize);
-    let remaining = |p: *const u8| end as isize - p as isize;
-
-    // flags(1) + destination(2) + aps_frame(11) + message_tag(1)
-    if remaining(p) < 15 {
-        *ctx.status = XNCP_STATUS_BAD_ARGUMENT;
-        return true;
-    }
-
-    let flags = *p;
-    p = p.add(1);
-
-    let destination = build_u16(*p, *p.add(1));
-    p = p.add(2);
-
-    let mut aps_frame: sl_zigbee_aps_frame_t = core::mem::zeroed();
-    aps_frame.profileId = build_u16(*p, *p.add(1));
-    p = p.add(2);
-    aps_frame.clusterId = build_u16(*p, *p.add(1));
-    p = p.add(2);
-    aps_frame.sourceEndpoint = *p;
-    p = p.add(1);
-    aps_frame.destinationEndpoint = *p;
-    p = p.add(1);
-    aps_frame.options = build_u16(*p, *p.add(1)) as _;
-    p = p.add(2);
-    aps_frame.groupId = build_u16(*p, *p.add(1));
-    p = p.add(2);
-    aps_frame.sequence = *p;
-    p = p.add(1);
-    aps_frame.radius = 0;
-
-    let message_tag = *p;
-    p = p.add(1);
-
-    if flags & XNCP_SEND_UNICAST_FLAG_EXTENDED_TIMEOUT != 0 {
-        if remaining(p) < 9 {
-            *ctx.status = XNCP_STATUS_BAD_ARGUMENT;
-            return true;
-        }
-        let eui64 = p;
-        p = p.add(8);
-        let extended_timeout = *p != 0;
-        p = p.add(1);
-        apply_extended_timeout(eui64, destination, extended_timeout);
-    }
-
-    if flags & XNCP_SEND_UNICAST_FLAG_SOURCE_ROUTE != 0 {
-        if remaining(p) < 1 {
-            *ctx.status = XNCP_STATUS_BAD_ARGUMENT;
-            return true;
-        }
-        let num_relays = *p;
-        p = p.add(1);
-        if num_relays as usize > RELAY_COUNT || remaining(p) < (num_relays as isize * 2) {
-            *ctx.status = XNCP_STATUS_BAD_ARGUMENT;
-            return true;
-        }
-        install_manual_source_route(destination, p, num_relays);
-        p = p.add(num_relays as usize * 2);
-    }
-
-    let message_length = remaining(p) as u8;
-
-    let mut aps_sequence: u8 = 0;
-    let status = sl_zigbee_send_unicast(
-        SL_ZIGBEE_OUTGOING_DIRECT as _,
-        destination,
-        &mut aps_frame,
-        message_tag as u16,
-        message_length,
-        p,
-        &mut aps_sequence,
-    );
-
-    push_bytes(ctx, &(status as u32).to_le_bytes());
-    push(ctx, aps_sequence);
-
-    *ctx.status = XNCP_STATUS_OK;
-    true
-}
-
-// --- Stack callbacks ----------------------------------------------------------------
-
-// SDK init callback (registered via zigbee_af_callback event_init). The static table is
-// already zero-initialized (active = false); kept to own the registered symbol and match
-// the C init exactly.
+// SDK init callback (zigbee_af_callback event_init). The table is already zero-initialized;
+// kept to own the registered symbol and match the C init.
 #[no_mangle]
 pub extern "C" fn xncp_common_init(_init_level: u8) {
     critical_section::with(|cs| {
-        let mut routes = MANUAL_SOURCE_ROUTES.borrow(cs).borrow_mut();
-        for route in routes.iter_mut() {
+        for route in MANUAL_SOURCE_ROUTES.borrow(cs).borrow_mut().iter_mut() {
             route.active = false;
         }
     });
 }
 
-// Multicast override (XNCP_FEATURE_MEMBER_OF_ALL_GROUPS). Pulled in by the linker's
-// --wrap=sli_zigbee_am_multicast_member (toolchain_settings in the slcc). We want all
+// Multicast override (XNCP_FEATURE_MEMBER_OF_ALL_GROUPS), pulled in by --wrap. We want all
 // group packets, so ignore binding/multicast table logic.
 #[no_mangle]
 pub extern "C" fn __wrap_sli_zigbee_am_multicast_member(_multicast_id: u16) -> bool {
     true
 }
 
-// Picks the route table slot to overwrite with a fake route (num_relays == 0 case):
-// reuse an entry already bound to `destination`, else a free (UNUSED) slot, else a
-// random one. Operates on the stack's own route table, not our manual table.
-unsafe fn find_free_routing_table_entry(destination: u16) -> *mut sli_zigbee_route_table_entry_t {
-    let size = sli_zigbee_route_table_size;
-    let base = addr_of_mut!(sli_zigbee_route_table);
-    let mut index: u8 = 0xFF;
-
-    for i in 0..size {
-        let entry = base.add(i as usize);
-        if (*entry).destination == destination {
-            return entry;
-        } else if (*entry).status == ROUTE_UNUSED {
-            index = i;
-        }
-    }
-
-    if index == 0xFF {
-        index = (sl_zigbee_get_pseudo_random_number() % size as u16) as u8;
-    }
-
-    base.add(index as usize)
+// The `append_to_linked_buffers(buf, data, len)` macro expands to `really_append(&buf, …)`;
+// the callback hands us the header pointer, so that `&buf` is the pointer itself.
+unsafe fn append_to_header(header: *mut sli_buffer_manager_buffer_t, data: &[u8]) {
+    sl_legacy_buffer_manager_really_append_to_linked_buffers(
+        header,
+        data.as_ptr() as *mut u8,
+        data.len() as u16,
+        true,
+    );
 }
 
-// Source-route override (XNCP_FEATURE_MANUAL_SOURCE_ROUTE), registered via the
-// zigbee_stack_callback override_append_source_route contribution. `header` is really an
-// sli_buffer_manager_buffer_t* (uint16_t*) that the buffer manager updates in place.
+// Source-route override (zigbee_stack_callback override_append_source_route). `header` is an
+// sli_buffer_manager_buffer_t* the buffer manager updates in place.
 #[no_mangle]
 pub unsafe extern "C" fn nc_zigbee_override_append_source_route(
     destination: u16,
@@ -511,80 +462,90 @@ pub unsafe extern "C" fn nc_zigbee_override_append_source_route(
     critical_section::with(|cs| {
         let mut routes = MANUAL_SOURCE_ROUTES.borrow(cs).borrow_mut();
 
-        let idx = routes
+        let Some(idx) = routes
             .iter()
-            .position(|r| r.active && r.destination == destination);
-        let Some(idx) = idx else {
+            .position(|r| r.active && r.destination == destination)
+        else {
             *consumed = false;
             return;
         };
-
         *consumed = true;
 
-        // Empty source routes are invalid per the spec: instead drop a fake route into
-        // the stack's route table so EmberZNet just sends the packet directly.
+        // Empty source routes are invalid per the spec: drop a fake route into the stack's
+        // route table so EmberZNet just sends the packet directly.
         if routes[idx].num_relays == 0 {
-            let entry = find_free_routing_table_entry(destination);
-            (*entry).destination = destination;
-            (*entry).nextHop = destination;
-            (*entry).status = ROUTE_ACTIVE;
-            (*entry).cost = 0;
-            (*entry).networkIndex = 0;
+            route_table_set(
+                find_free_routing_table_entry(destination),
+                RouteEntry {
+                    destination,
+                    next_hop: destination,
+                    status: ROUTE_ACTIVE,
+                    cost: 0,
+                },
+            );
             return;
         }
 
         let num_relays = routes[idx].num_relays;
         let relay_index = num_relays - 1;
-
         routes[idx].active = false; // Disable the route after a single use.
 
-        append_to_header(header, &num_relays, 1);
-        append_to_header(header, &relay_index, 1);
-
+        append_to_header(header, &[num_relays]);
+        append_to_header(header, &[relay_index]);
         for i in 0..num_relays {
             let relay = routes[idx].relays[(num_relays - i - 1) as usize];
-            append_to_header(header, relay.to_le_bytes().as_ptr(), 2);
+            append_to_header(header, &relay.to_le_bytes());
         }
     });
 }
 
-// The `sl_legacy_buffer_manager_append_to_linked_buffers(buf, data, len)` macro expands
-// to `really_append(&buf, data, len, true)`; the callback hands us the header pointer, so
-// that `&buf` is the pointer itself.
-#[inline]
-unsafe fn append_to_header(header: *mut sli_buffer_manager_buffer_t, data: *const u8, len: u16) {
-    sl_legacy_buffer_manager_really_append_to_linked_buffers(header, data as *mut u8, len, true);
-}
-
-// --- Registration -------------------------------------------------------------------
+// --- Registration -------------------------------------------------------------------------
 
 #[distributed_slice(XNCP_COMMANDS)]
-static CMD_SET_SOURCE_ROUTE: XncpCommandDef =
-    XncpCommandDef { command_id: 0x0001, handler: Some(handle_set_source_route) };
+static CMD_SET_SOURCE_ROUTE: XncpCommandDef = XncpCommandDef {
+    command_id: 0x0001,
+    handler: handle_set_source_route,
+};
 #[distributed_slice(XNCP_COMMANDS)]
-static CMD_GET_MFG_TOKEN: XncpCommandDef =
-    XncpCommandDef { command_id: 0x0002, handler: Some(handle_get_mfg_token_override) };
+static CMD_GET_MFG_TOKEN: XncpCommandDef = XncpCommandDef {
+    command_id: 0x0002,
+    handler: handle_get_mfg_token_override,
+};
 #[distributed_slice(XNCP_COMMANDS)]
-static CMD_GET_BUILD_STRING: XncpCommandDef =
-    XncpCommandDef { command_id: 0x0003, handler: Some(handle_get_build_string) };
+static CMD_GET_BUILD_STRING: XncpCommandDef = XncpCommandDef {
+    command_id: 0x0003,
+    handler: handle_get_build_string,
+};
 #[distributed_slice(XNCP_COMMANDS)]
-static CMD_GET_FLOW_CONTROL: XncpCommandDef =
-    XncpCommandDef { command_id: 0x0004, handler: Some(handle_get_flow_control_type) };
+static CMD_GET_FLOW_CONTROL: XncpCommandDef = XncpCommandDef {
+    command_id: 0x0004,
+    handler: handle_get_flow_control_type,
+};
 #[distributed_slice(XNCP_COMMANDS)]
-static CMD_GET_CHIP_INFO: XncpCommandDef =
-    XncpCommandDef { command_id: 0x0005, handler: Some(handle_get_chip_info) };
+static CMD_GET_CHIP_INFO: XncpCommandDef = XncpCommandDef {
+    command_id: 0x0005,
+    handler: handle_get_chip_info,
+};
 #[distributed_slice(XNCP_COMMANDS)]
-static CMD_SET_ROUTE_TABLE_ENTRY: XncpCommandDef =
-    XncpCommandDef { command_id: 0x0006, handler: Some(handle_set_route_table_entry) };
+static CMD_SET_ROUTE_TABLE_ENTRY: XncpCommandDef = XncpCommandDef {
+    command_id: 0x0006,
+    handler: handle_set_route_table_entry,
+};
 #[distributed_slice(XNCP_COMMANDS)]
-static CMD_GET_ROUTE_TABLE_ENTRY: XncpCommandDef =
-    XncpCommandDef { command_id: 0x0007, handler: Some(handle_get_route_table_entry) };
+static CMD_GET_ROUTE_TABLE_ENTRY: XncpCommandDef = XncpCommandDef {
+    command_id: 0x0007,
+    handler: handle_get_route_table_entry,
+};
 #[distributed_slice(XNCP_COMMANDS)]
-static CMD_GET_TX_POWER_INFO: XncpCommandDef =
-    XncpCommandDef { command_id: 0x0008, handler: Some(handle_get_tx_power_info) };
+static CMD_GET_TX_POWER_INFO: XncpCommandDef = XncpCommandDef {
+    command_id: 0x0008,
+    handler: handle_get_tx_power_info,
+};
 #[distributed_slice(XNCP_COMMANDS)]
-static CMD_SEND_UNICAST: XncpCommandDef =
-    XncpCommandDef { command_id: 0x0009, handler: Some(handle_send_unicast) };
+static CMD_SEND_UNICAST: XncpCommandDef = XncpCommandDef {
+    command_id: 0x0009,
+    handler: handle_send_unicast,
+};
 
 #[distributed_slice(XNCP_FEATURES)]
 static COMMON_FEATURES: u32 = XNCP_FEATURE_MEMBER_OF_ALL_GROUPS

@@ -1,36 +1,113 @@
-//! XNCP core — Rust port of `xncp_core.c` + the Jinja dispatcher template.
+//! XNCP core — the custom-frame protocol and command dispatch.
 //!
-//! The custom-frame callback parses the frame, answers `get_supported_features`, and
-//! dispatches to command handlers. Command sets (common, ZBT-2, …) register into
-//! `XNCP_COMMANDS` / `XNCP_FEATURES` at link time via `linkme::distributed_slice` — no
-//! codegen, and only the sets SLC enabled are linked in, so mutually-exclusive sets can't
-//! collide.
+//! The SDK hands us raw `(ptr, len)` buffers; the callback at the bottom does the *one*
+//! `unsafe` conversion to slices, and everything above it is safe Rust. Command sets register
+//! handlers into `XNCP_COMMANDS` / feature bits into `XNCP_FEATURES` at link time via
+//! `linkme::distributed_slice`; handlers are plain safe `fn(&[u8], &mut ReplyBuf) -> Status`.
 //!
-//! The wire protocol (`{command_id, status}` framing, feature bitmask, the
-//! `sl_zigbee_af_xncp_incoming_custom_frame_cb` entry) is preserved exactly.
+//! Convention: parsing untrusted request bytes returns [`Status::BAD_ARGUMENT`] on a short
+//! or malformed frame (the host can send anything), while writing the reply panics on
+//! overflow — an over-long reply is our bug, and the stack caps custom frames at 119 bytes.
 #![no_std]
 #![allow(non_camel_case_types)]
 
 use linkme::distributed_slice;
 
-// --- xncp_types.h mirror: the C ABI shared with the still-C common command set ---
-#[repr(C)]
-pub struct XncpContext {
-    pub command_id: u16,
-    pub payload: *mut u8,
-    pub payload_length: u8,
-    pub reply: *mut u8,
-    pub reply_length: *mut u8,
-    pub status: *mut u8,
-    pub response_id: *mut u16,
+/// The wire status byte: the low byte of the `sl_status_t` the protocol carries.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct Status(pub u8);
+
+impl Status {
+    pub const OK: Status = Status(0x00); // SL_STATUS_OK
+    pub const BAD_ARGUMENT: Status = Status(0x21); // SL_STATUS_INVALID_PARAMETER
+    pub const NOT_FOUND: Status = Status(0x25); // SL_STATUS_NOT_FOUND
 }
 
-pub type XncpHandler = unsafe extern "C" fn(ctx: *mut XncpContext) -> bool;
+/// A cursor over the request payload. Every read is bounds-checked; a short read yields
+/// `None`, which handlers map to [`Status::BAD_ARGUMENT`].
+pub struct Reader<'a> {
+    buf: &'a [u8],
+    pos: usize,
+}
 
-#[repr(C)]
+impl<'a> Reader<'a> {
+    pub fn new(buf: &'a [u8]) -> Self {
+        Self { buf, pos: 0 }
+    }
+
+    pub fn remaining(&self) -> usize {
+        self.buf.len() - self.pos
+    }
+
+    pub fn u8(&mut self) -> Option<u8> {
+        let v = *self.buf.get(self.pos)?;
+        self.pos += 1;
+        Some(v)
+    }
+
+    pub fn u16_le(&mut self) -> Option<u16> {
+        let b = self.buf.get(self.pos..self.pos + 2)?;
+        self.pos += 2;
+        Some(u16::from_le_bytes([b[0], b[1]]))
+    }
+
+    pub fn bytes(&mut self, n: usize) -> Option<&'a [u8]> {
+        let b = self.buf.get(self.pos..self.pos + n)?;
+        self.pos += n;
+        Some(b)
+    }
+
+    /// The not-yet-read remainder.
+    pub fn rest(&self) -> &'a [u8] {
+        &self.buf[self.pos..]
+    }
+}
+
+/// A bounded writer over the SDK's reply buffer. `push*` panic on overflow: the protocol caps
+/// a custom-frame reply at 119 bytes, so exceeding it is a bug, and we are `panic = "abort"`.
+pub struct ReplyBuf<'a> {
+    buf: &'a mut [u8],
+    len: usize,
+}
+
+impl<'a> ReplyBuf<'a> {
+    pub fn new(buf: &'a mut [u8]) -> Self {
+        Self { buf, len: 0 }
+    }
+
+    pub fn push(&mut self, byte: u8) {
+        self.buf[self.len] = byte;
+        self.len += 1;
+    }
+
+    pub fn push_bytes(&mut self, bytes: &[u8]) {
+        self.buf[self.len..self.len + bytes.len()].copy_from_slice(bytes);
+        self.len += bytes.len();
+    }
+
+    pub fn push_u16_le(&mut self, v: u16) {
+        self.push_bytes(&v.to_le_bytes());
+    }
+
+    pub fn push_u32_le(&mut self, v: u32) {
+        self.push_bytes(&v.to_le_bytes());
+    }
+
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+}
+
+/// A command handler: parse `req`, write the response payload into `reply`, return the status.
+pub type XncpHandler = fn(req: &[u8], reply: &mut ReplyBuf) -> Status;
+
 pub struct XncpCommandDef {
     pub command_id: u16,
-    pub handler: Option<XncpHandler>,
+    pub handler: XncpHandler,
 }
 
 // Feature flags — command sets contribute the ones they implement.
@@ -49,10 +126,10 @@ const XNCP_CMD_GET_SUPPORTED_FEATURES_REQ: u16 = 0x0000;
 const XNCP_CMD_UNKNOWN: u16 = 0xFFFF;
 const XNCP_CMD_RESPONSE_BIT: u16 = 0x8000;
 
-// Low byte of the sl_status_t the wire protocol carries (xncp_core.c truncated to u8).
-const XNCP_STATUS_OK: u8 = 0x00; // SL_STATUS_OK
-const XNCP_STATUS_BAD_ARGUMENT: u8 = 0x21; // SL_STATUS_INVALID_PARAMETER
-const XNCP_STATUS_NOT_FOUND: u8 = 0x25; // SL_STATUS_NOT_FOUND
+// Whole reply buffer the SDK lets us write; the custom-frame reply is capped at 119 bytes.
+const REPLY_BUF_LEN: usize = 119;
+// Reply framing: {response_id: u16 le, status: u8} header, then the handler's payload.
+const REPLY_HEADER_LEN: usize = 3;
 
 /// Command handlers, collected across all enabled command-set crates at link time.
 #[distributed_slice]
@@ -63,87 +140,57 @@ pub static XNCP_COMMANDS: [XncpCommandDef];
 pub static XNCP_FEATURES: [u32];
 
 fn supported_features() -> u32 {
-    let mut features = 0;
-    for &bit in XNCP_FEATURES.iter() {
-        features |= bit;
-    }
-    features
+    XNCP_FEATURES.iter().fold(0, |acc, &bit| acc | bit)
 }
 
-unsafe fn dispatch(ctx: *mut XncpContext) -> bool {
-    let command_id = (*ctx).command_id;
+/// Dispatch one request frame: write any response payload into `reply` and return the
+/// `(response_id, status)` for the reply header. Pure safe Rust.
+fn dispatch(message: &[u8], reply: &mut ReplyBuf) -> (u16, Status) {
+    // frame = {command_id: u16 le, req_status: u8 (unused), payload…}
+    if message.len() < 3 {
+        return (XNCP_CMD_UNKNOWN, Status::BAD_ARGUMENT);
+    }
+    let command_id = u16::from_le_bytes([message[0], message[1]]);
+    let payload = &message[3..];
 
-    for cmd in XNCP_COMMANDS.iter() {
-        if cmd.command_id == command_id {
-            if let Some(handler) = cmd.handler {
-                *(*ctx).response_id = command_id | XNCP_CMD_RESPONSE_BIT;
-                return handler(ctx);
-            }
-        }
+    if command_id == XNCP_CMD_GET_SUPPORTED_FEATURES_REQ {
+        reply.push_u32_le(supported_features());
+        return (command_id | XNCP_CMD_RESPONSE_BIT, Status::OK);
     }
 
-    false
+    match XNCP_COMMANDS.iter().find(|c| c.command_id == command_id) {
+        Some(cmd) => (command_id | XNCP_CMD_RESPONSE_BIT, (cmd.handler)(payload, reply)),
+        None => (XNCP_CMD_UNKNOWN, Status::NOT_FOUND),
+    }
 }
 
-// The SDK declares sl_zigbee_af_xncp_incoming_custom_frame_cb as SL_WEAK. Rather than a C
-// shim owning that name, we linker-wrap it: `-Wl,--wrap=sl_zigbee_af_xncp_incoming_custom_frame_cb`
-// redirects the stack's calls to `__wrap_…` (this fn), and the `--wrap` reference pulls it
-// out of the aggregate archive on its own. lld honours the wrap even though the weak default
-// is visible to LTO; GNU ld would call the visible definition directly (binutils PR ld/31956),
-// so this path is LLVM-only.
+/// Build the reply frame for `message` into `reply` (length `REPLY_BUF_LEN`), returning its
+/// total length: a `{response_id: u16 le, status: u8}` header followed by the handler payload.
+fn handle_frame(message: &[u8], reply: &mut [u8]) -> u8 {
+    let (header, body) = reply.split_at_mut(REPLY_HEADER_LEN);
+    let mut payload = ReplyBuf::new(body);
+
+    let (response_id, status) = dispatch(message, &mut payload);
+
+    let payload_len = payload.len();
+    header[0] = (response_id & 0xFF) as u8;
+    header[1] = (response_id >> 8) as u8;
+    header[2] = status.0;
+    (REPLY_HEADER_LEN + payload_len) as u8
+}
+
+// The SDK declares sl_zigbee_af_xncp_incoming_custom_frame_cb as SL_WEAK; we linker-wrap it
+// (`-Wl,--wrap=…`, LLVM) onto this entry point. This is the only place raw SDK buffers cross
+// into Rust, so it is the only `unsafe` in the dispatch path.
 #[no_mangle]
 pub unsafe extern "C" fn __wrap_sl_zigbee_af_xncp_incoming_custom_frame_cb(
     message_length: u8,
-    message_payload: *mut u8,
+    message_payload: *const u8,
     reply_payload_length: *mut u8,
     reply_payload: *mut u8,
 ) -> u32 {
-    let mut rsp_status: u8 = XNCP_STATUS_OK;
-    let mut rsp_command_id: u16 = XNCP_CMD_UNKNOWN;
-
-    'respond: {
-        if message_length < 3 {
-            rsp_status = XNCP_STATUS_BAD_ARGUMENT;
-            break 'respond;
-        }
-
-        let req_command_id =
-            (*message_payload as u16) | ((*message_payload.add(1) as u16) << 8);
-        // messagePayload[2] (req status) is unused. Strip the 3-byte header.
-        let payload = message_payload.add(3);
-        let payload_length = message_length - 3;
-
-        // Leave space for the reply header.
-        *reply_payload_length = 3;
-
-        if req_command_id == XNCP_CMD_GET_SUPPORTED_FEATURES_REQ {
-            let features = supported_features();
-            rsp_command_id = XNCP_CMD_GET_SUPPORTED_FEATURES_REQ | XNCP_CMD_RESPONSE_BIT;
-            *reply_payload.add(3) = (features & 0xFF) as u8;
-            *reply_payload.add(4) = ((features >> 8) & 0xFF) as u8;
-            *reply_payload.add(5) = ((features >> 16) & 0xFF) as u8;
-            *reply_payload.add(6) = ((features >> 24) & 0xFF) as u8;
-            *reply_payload_length = 7;
-            break 'respond;
-        }
-
-        let mut ctx = XncpContext {
-            command_id: req_command_id,
-            payload,
-            payload_length,
-            reply: reply_payload,
-            reply_length: reply_payload_length,
-            status: &mut rsp_status,
-            response_id: &mut rsp_command_id,
-        };
-
-        if !dispatch(&mut ctx) {
-            rsp_status = XNCP_STATUS_NOT_FOUND;
-        }
-    }
-
-    *reply_payload.add(0) = (rsp_command_id & 0xFF) as u8;
-    *reply_payload.add(1) = ((rsp_command_id >> 8) & 0xFF) as u8;
-    *reply_payload.add(2) = rsp_status;
-    XNCP_STATUS_OK as u32
+    let message = core::slice::from_raw_parts(message_payload, message_length as usize);
+    let reply = core::slice::from_raw_parts_mut(reply_payload, REPLY_BUF_LEN);
+    *reply_payload_length = handle_frame(message, reply);
+    Status::OK.0 as u32
 }
