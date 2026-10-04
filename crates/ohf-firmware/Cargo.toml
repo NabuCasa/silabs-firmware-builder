@@ -21,6 +21,7 @@ ohf-led-effects-openthread = { path = "../ohf-led-effects-openthread", optional 
 ohf-xncp = { path = "../ohf-xncp", optional = true }
 ohf-xncp-common = { path = "../ohf-xncp-common", optional = true }
 ohf-xncp-zbt2 = { path = "../ohf-xncp-zbt2", optional = true }
+ohf-ncp-dlk-policy = { path = "../ohf-ncp-dlk-policy", optional = true }
 
 [features]
 ws2812 = ["dep:ohf-ws2812"]
@@ -31,3 +32,4 @@ led_effects_openthread = ["dep:ohf-led-effects-openthread"]
 xncp_core = ["dep:ohf-xncp"]
 xncp_common = ["dep:ohf-xncp-common"]
 xncp_zbt2 = ["dep:ohf-xncp-zbt2"]
+ncp_dlk_policy = ["dep:ohf-ncp-dlk-policy"]

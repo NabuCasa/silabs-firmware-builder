@@ -20,6 +20,8 @@ extern crate ohf_xncp;
 extern crate ohf_xncp_common;
 #[cfg(feature = "xncp_zbt2")]
 extern crate ohf_xncp_zbt2;
+#[cfg(feature = "ncp_dlk_policy")]
+extern crate ohf_ncp_dlk_policy;
 #[cfg(feature = "qma6100p")]
 extern crate ohf_qma6100p;
 #[cfg(feature = "ws2812")]

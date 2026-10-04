@@ -173,6 +173,7 @@ dependencies = [
  "ohf-led-effects",
  "ohf-led-effects-openthread",
  "ohf-led-effects-zigbee",
+ "ohf-ncp-dlk-policy",
  "ohf-qma6100p",
  "ohf-ws2812",
  "ohf-xncp",
@@ -200,6 +201,13 @@ dependencies = [
 [[package]]
 name = "ohf-led-effects-zigbee"
 version = "0.1.0"
+
+[[package]]
+name = "ohf-ncp-dlk-policy"
+version = "0.1.0"
+dependencies = [
+ "bindgen",
+]
 
 [[package]]
 name = "ohf-qma6100p"

@@ -14,9 +14,15 @@ description: >-
 category: Zigbee|NCP
 quality: production
 source:
-  - path: src/ncp_dlk_policy.c
+  # Strong override of the SDK's weak callback; delegates to the Rust policy
+  # (crates/ohf-ncp-dlk-policy).
+  - path: src/ncp_dlk_policy_shim.c
 provides:
   - name: ncp_dlk_policy
 requires:
+  - name: ohf_runtime
   - name: zigbee_r23_support
   - name: zigbee_dynamic_commissioning
+template_contribution:
+  - name: ohf_rust_feature
+    value: ncp_dlk_policy
