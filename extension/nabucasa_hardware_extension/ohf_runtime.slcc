@@ -1,0 +1,14 @@
+id: ohf_runtime
+label: OHF Rust Runtime
+package: custom
+description: >
+  The single static library aggregating all Rust-backed components (crates/ohf-firmware),
+  built by tools/build_project.py and dropped here before link. It carries the one Rust
+  #[panic_handler]; component crates are rlibs linked into it. Rust-backed components
+  `require` this instead of declaring their own `library:`.
+category: Platform|Rust
+quality: production
+library:
+  - path: lib/libohf_firmware.a
+provides:
+  - name: ohf_runtime

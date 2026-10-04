@@ -135,6 +135,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "ohf-firmware"
+version = "0.1.0"
+dependencies = [
+ "ohf-qma6100p",
+ "ohf-ws2812",
+]
+
+[[package]]
+name = "ohf-qma6100p"
+version = "0.1.0"
+dependencies = [
+ "ohf-sys",
+]
+
+[[package]]
 name = "ohf-sys"
 version = "0.1.0"
 dependencies = [

@@ -4,9 +4,8 @@ edition.workspace = true
 version.workspace = true
 
 [lib]
-# staticlib for standalone build/symbol checks during the first pass; becomes an
-# rlib under the aggregate `ohf-firmware` crate once that is wired.
-crate-type = ["staticlib"]
+# rlib: linked into the single aggregate staticlib (ohf-firmware), which owns the
+# one #[panic_handler]. Component crates must not be staticlibs (duplicate handler).
 
 [dependencies]
 ohf-sys = { path = "../ohf-sys" }

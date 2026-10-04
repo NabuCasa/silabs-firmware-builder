@@ -1,0 +1,13 @@
+[package]
+name = "ohf-firmware"
+edition.workspace = true
+version.workspace = true
+
+[lib]
+# The single staticlib linked into the firmware: it pulls in the component rlibs and
+# provides the one #[panic_handler], so core/the handler appear exactly once.
+crate-type = ["staticlib"]
+
+[dependencies]
+ohf-ws2812 = { path = "../ohf-ws2812" }
+ohf-qma6100p = { path = "../ohf-qma6100p" }

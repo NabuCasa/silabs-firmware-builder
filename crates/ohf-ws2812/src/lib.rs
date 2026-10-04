@@ -213,10 +213,3 @@ pub extern "C" fn ws2812_led_driver_init() {
         sl_led_init(&sl_led_ws2812.0.led_common as *const sl_led_t);
     }
 }
-
-// Temporary while ohf-ws2812 is a standalone staticlib; moves to the aggregate
-// `ohf-firmware` crate (routing into the SDK crash handler) once that is wired.
-#[panic_handler]
-fn panic(_info: &core::panic::PanicInfo) -> ! {
-    loop {}
-}
