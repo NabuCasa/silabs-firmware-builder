@@ -5,30 +5,30 @@ description: Common XNCP commands for all coordinators
 category: Zigbee|NCP
 quality: production
 source:
-  - path: src/xncp_common_commands.c
-  - path: src/tx_power.c
+  # The command set itself is now Rust (crates/ohf-xncp-common), registered into the XNCP
+  # core's linkme slices. Only ezsp_version.c stays C: it's a direct-object data override
+  # of the stack's sl_zigbee_version, not a command.
   - path: src/ezsp_version.c
-include:
-  - path: inc
-    file_list:
-    - path: xncp_common_commands.h
-    - path: tx_power.h
 config_file:
+  # Shared config: SLC patches the manifest overrides in; both ezsp_version.c and the Rust
+  # crate's bindgen read the resolved values from here.
   - path: config/xncp_config.h
     file_id: xncp_config
 provides:
   - name: xncp_common_commands
 requires:
   - name: xncp_core
+  - name: ohf_runtime
 toolchain_settings:
   - option: gcc_linker_option
     value: "-Wl,--wrap=sli_zigbee_am_multicast_member"
   - option: llvm_linker_option
     value: "-Wl,--wrap=sli_zigbee_am_multicast_member"
 template_contribution:
-  # The command table (xncp_common_commands[]) and feature bits are now consumed by the
-  # Rust XNCP core (crates/ohf-xncp) via an extern bridge + XNCP_COMMON_FEATURES, until
-  # this set is itself ported. Only the stack callbacks remain contributions.
+  - name: ohf_rust_feature
+    value: xncp_common
+  # Stack callbacks implemented by the Rust crate (strong #[no_mangle] symbols pulled in
+  # by autogen's registration / the linker --wrap above).
   - name: zigbee_af_callback
     value:
       callback_type: event_init

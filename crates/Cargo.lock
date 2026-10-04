@@ -176,6 +176,7 @@ dependencies = [
  "ohf-qma6100p",
  "ohf-ws2812",
  "ohf-xncp",
+ "ohf-xncp-common",
  "ohf-xncp-zbt2",
 ]
 
@@ -229,6 +230,16 @@ name = "ohf-xncp"
 version = "0.1.0"
 dependencies = [
  "linkme",
+]
+
+[[package]]
+name = "ohf-xncp-common"
+version = "0.1.0"
+dependencies = [
+ "bindgen",
+ "critical-section",
+ "linkme",
+ "ohf-xncp",
 ]
 
 [[package]]

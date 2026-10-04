@@ -1,9 +1,10 @@
 //! XNCP core — Rust port of `xncp_core.c` + the Jinja dispatcher template.
 //!
 //! The custom-frame callback parses the frame, answers `get_supported_features`, and
-//! dispatches to command handlers. Command sets register into `XNCP_COMMANDS` /
-//! `XNCP_FEATURES` at link time via `linkme::distributed_slice` — no codegen, and only
-//! the sets SLC enabled are linked in, so mutually-exclusive sets can't collide.
+//! dispatches to command handlers. Command sets (common, ZBT-2, …) register into
+//! `XNCP_COMMANDS` / `XNCP_FEATURES` at link time via `linkme::distributed_slice` — no
+//! codegen, and only the sets SLC enabled are linked in, so mutually-exclusive sets can't
+//! collide.
 //!
 //! The wire protocol (`{command_id, status}` framing, feature bitmask, the
 //! `sl_zigbee_af_xncp_incoming_custom_frame_cb` entry) is preserved exactly.
@@ -61,23 +62,8 @@ pub static XNCP_COMMANDS: [XncpCommandDef];
 #[distributed_slice]
 pub static XNCP_FEATURES: [u32];
 
-// --- Transitional bridge to the still-C common command set -------------------
-// The C `xncp_common_commands[]` table (sentinel-terminated) and its advertised
-// features, walked until the common set is ported to Rust (then both go away).
-extern "C" {
-    static xncp_common_commands: XncpCommandDef;
-}
-const XNCP_COMMON_FEATURES: u32 = XNCP_FEATURE_MEMBER_OF_ALL_GROUPS
-    | XNCP_FEATURE_MANUAL_SOURCE_ROUTE
-    | XNCP_FEATURE_MFG_TOKEN_OVERRIDES
-    | XNCP_FEATURE_BUILD_STRING
-    | XNCP_FEATURE_FLOW_CONTROL_TYPE
-    | XNCP_FEATURE_CHIP_INFO
-    | XNCP_FEATURE_RESTORE_ROUTE_TABLE
-    | XNCP_FEATURE_COMBINED_SEND;
-
 fn supported_features() -> u32 {
-    let mut features = XNCP_COMMON_FEATURES;
+    let mut features = 0;
     for &bit in XNCP_FEATURES.iter() {
         features |= bit;
     }
@@ -96,21 +82,7 @@ unsafe fn dispatch(ctx: *mut XncpContext) -> bool {
         }
     }
 
-    // Bridge: walk the C common table until its {0, NULL} sentinel.
-    let mut p: *const XncpCommandDef = core::ptr::addr_of!(xncp_common_commands);
-    loop {
-        let def = &*p;
-        match def.handler {
-            None => return false,
-            Some(handler) => {
-                if def.command_id == command_id {
-                    *(*ctx).response_id = command_id | XNCP_CMD_RESPONSE_BIT;
-                    return handler(ctx);
-                }
-            }
-        }
-        p = p.add(1);
-    }
+    false
 }
 
 // The SDK declares sl_zigbee_af_xncp_incoming_custom_frame_cb as SL_WEAK; a strong

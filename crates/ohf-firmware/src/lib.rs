@@ -16,6 +16,8 @@ extern crate ohf_led_effects_zigbee;
 extern crate ohf_led_effects_openthread;
 #[cfg(feature = "xncp_core")]
 extern crate ohf_xncp;
+#[cfg(feature = "xncp_common")]
+extern crate ohf_xncp_common;
 #[cfg(feature = "xncp_zbt2")]
 extern crate ohf_xncp_zbt2;
 #[cfg(feature = "qma6100p")]

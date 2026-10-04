@@ -7,11 +7,6 @@ quality: production
 source:
   # Strong override of the SDK's weak XNCP callback; delegates to the Rust core.
   - path: src/xncp_core_shim.c
-include:
-  # xncp_types.h stays: the still-C common command set includes it.
-  - path: inc
-    file_list:
-    - path: xncp_types.h
 provides:
   - name: xncp_core
 requires:

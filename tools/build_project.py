@@ -1152,9 +1152,9 @@ def rust_target_triple(device: str) -> str:
 
 
 def extract_slc_clang_flags(build: ResolvedBuild) -> dict[str, typing.Any]:
-    """Pull the include dirs, device define, and arch flags out of the SLC-generated
-    cmake, so bindgen/cc compile against exactly what the C build sees. Nothing about
-    the chip is hardcoded here; it all comes from what SLC resolved from the YAML."""
+    """Pull the include dirs, preprocessor defines, and arch flags out of the SLC-generated
+    cmake, so bindgen/cc compile against exactly what the C build sees. Nothing about the
+    chip is hardcoded here; it all comes from what SLC resolved from the YAML."""
     text = build.project_cmake.read_text()
     copied = re.search(r'set\(COPIED_SDK_PATH "([^"]+)"\)', text).group(1)
 
@@ -1168,14 +1168,18 @@ def extract_slc_clang_flags(build: ResolvedBuild) -> dict[str, typing.Any]:
         )
         includes.append(str((build.cmake_dir / raw).resolve()))
 
-    device = re.search(
-        r'target_compile_definitions\(slc PUBLIC.*?"(EFR32[A-Z0-9]+)=1"',
-        text,
-        re.DOTALL,
+    # The full define set (device, PLATFORM_HEADER, STACK_TYPES_HEADER, CORTEXM3, …). The
+    # deep zigbee stack headers don't parse without these, so forward all of them, not just
+    # the chip. cmake escapes inner quotes as \" — unescape to the real -D value.
+    defs_block = re.search(
+        r"target_compile_definitions\(slc PUBLIC(.*?)\n\)", text, re.DOTALL
     ).group(1)
+    defines = [
+        d.replace('\\"', '"') for d in re.findall(r'"((?:[^"\\]|\\.)*)"', defs_block)
+    ]
     arch = sorted(set(re.findall(r"-m(?:cpu|fpu|float-abi)=[\w.+-]+|-mthumb", text)))
 
-    return {"includes": includes, "device": device, "arch": arch}
+    return {"includes": includes, "defines": defines, "arch": arch}
 
 
 def rust_cargo_env() -> dict[str, str]:
@@ -1268,7 +1272,7 @@ def build_rust_libraries(build: ResolvedBuild, rust_config: dict[str, str]) -> N
     config_path.write_text(json.dumps(rust_config, indent=2))
 
     inc_args = " ".join(f"-I{d}" for d in flags["includes"])
-    device = flags["device"]
+    define_args = " ".join(f"-D{d}" for d in flags["defines"])
     # The installed SDK has cmsis_clang.h, which a GCC build does not copy into the
     # build tree but bindgen's libclang needs.
     cmsis = build.sdk / "cmsis/Core/Include"
@@ -1278,9 +1282,9 @@ def build_rust_libraries(build: ResolvedBuild, rust_config: dict[str, str]) -> N
     env = {
         **os.environ,
         "PATH": f"{pathlib.Path.home() / '.cargo/bin'}:{os.environ['PATH']}",
-        "OHF_BINDGEN_FLAGS": f"--target={triple} -isystem{sysroot} -I{cmsis} {inc_args} -D{device}",
+        "OHF_BINDGEN_FLAGS": f"--target={triple} -isystem{sysroot} -I{cmsis} {inc_args} {define_args}",
         "OHF_SHIM_CC": str(gcc),
-        "OHF_SHIM_CFLAGS": f"{' '.join(flags['arch'])} -I{cmsis} {inc_args} -D{device}",
+        "OHF_SHIM_CFLAGS": f"{' '.join(flags['arch'])} -I{cmsis} {inc_args} {define_args}",
         "OHF_RUST_CONFIG": str(config_path.resolve()),
     }
 

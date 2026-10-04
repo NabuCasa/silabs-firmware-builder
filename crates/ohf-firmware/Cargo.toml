@@ -19,6 +19,7 @@ ohf-led-effects = { path = "../ohf-led-effects", optional = true }
 ohf-led-effects-zigbee = { path = "../ohf-led-effects-zigbee", optional = true }
 ohf-led-effects-openthread = { path = "../ohf-led-effects-openthread", optional = true }
 ohf-xncp = { path = "../ohf-xncp", optional = true }
+ohf-xncp-common = { path = "../ohf-xncp-common", optional = true }
 ohf-xncp-zbt2 = { path = "../ohf-xncp-zbt2", optional = true }
 
 [features]
@@ -28,4 +29,5 @@ led_effects = ["dep:ohf-led-effects"]
 led_effects_zigbee = ["dep:ohf-led-effects-zigbee"]
 led_effects_openthread = ["dep:ohf-led-effects-openthread"]
 xncp_core = ["dep:ohf-xncp"]
+xncp_common = ["dep:ohf-xncp-common"]
 xncp_zbt2 = ["dep:ohf-xncp-zbt2"]

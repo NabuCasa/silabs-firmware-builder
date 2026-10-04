@@ -1,0 +1,18 @@
+[package]
+name = "ohf-xncp-common"
+edition.workspace = true
+version.workspace = true
+
+[lib]
+# Common XNCP command set (0x0001..0x0009) for all coordinators. rlib linked into
+# ohf-firmware; registers into the XNCP core's linkme slices. Has its own bindgen for
+# the deep EmberZNet stack surface (route table, buffer manager, send_unicast) — that
+# surface can't live in the shared ohf-sys, which is also built for the non-zigbee RCP.
+
+[dependencies]
+ohf-xncp = { path = "../ohf-xncp" }
+critical-section = "1"
+linkme = "0.3"
+
+[build-dependencies]
+bindgen = "0.73"
