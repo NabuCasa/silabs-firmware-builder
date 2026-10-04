@@ -167,6 +167,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "ohf-bindgen"
+version = "0.1.0"
+dependencies = [
+ "bindgen",
+]
+
+[[package]]
 name = "ohf-firmware"
 version = "0.1.0"
 dependencies = [
@@ -209,7 +216,7 @@ dependencies = [
 name = "ohf-ncp-dlk-policy"
 version = "0.1.0"
 dependencies = [
- "bindgen",
+ "ohf-bindgen",
 ]
 
 [[package]]
@@ -223,9 +230,9 @@ dependencies = [
 name = "ohf-sys"
 version = "0.1.0"
 dependencies = [
- "bindgen",
  "cc",
  "critical-section",
+ "ohf-bindgen",
 ]
 
 [[package]]
@@ -247,9 +254,9 @@ dependencies = [
 name = "ohf-xncp-common"
 version = "0.1.0"
 dependencies = [
- "bindgen",
  "critical-section",
  "linkme",
+ "ohf-bindgen",
  "ohf-xncp",
 ]
 

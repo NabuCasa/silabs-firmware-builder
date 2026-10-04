@@ -11,5 +11,5 @@ version.workspace = true
 critical-section = { version = "1", features = ["restore-state-u32"] }
 
 [build-dependencies]
-bindgen = "0.73"
+ohf-bindgen = { path = "../ohf-bindgen" }
 cc = "1"

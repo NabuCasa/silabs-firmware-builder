@@ -15,4 +15,4 @@ critical-section = "1"
 linkme = "0.3"
 
 [build-dependencies]
-bindgen = "0.73"
+ohf-bindgen = { path = "../ohf-bindgen" }

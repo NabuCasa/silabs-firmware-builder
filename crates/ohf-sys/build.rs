@@ -1,62 +1,53 @@
 use std::env;
 use std::path::PathBuf;
 
-// All clang/cc flags (SDK includes, device define, sysroot, arch, --target) come from
-// SLC's generated project, forwarded by build_project.py. Nothing is hardcoded here.
-// Missing/garbage flags should crash the build, not degrade it.
+// Clang/cc flags (SDK includes, defines, sysroot, arch, --target) come from SLC's generated
+// project, forwarded by build_project.py. Nothing is hardcoded here.
 fn main() {
-    println!("cargo:rerun-if-env-changed=OHF_BINDGEN_FLAGS");
+    ohf_bindgen::write(
+        ohf_bindgen::builder()
+            .allowlist_type("I2C_TransferSeq_TypeDef")
+            .allowlist_type("sl_led_t")
+            .allowlist_type("sl_led_rgb_pwm_t")
+            .allowlist_type("sl_led_state_t")
+            .allowlist_type("sl_status_t")
+            .allowlist_type("SPIDRV_Handle_t")
+            .allowlist_type("GPIO_Mode_TypeDef")
+            .allowlist_type("sl_sleeptimer_timer_handle_t")
+            .allowlist_type("CORE_irqState_t")
+            // SL_ENUM[_GENERIC] variants (gpioMode*, SL_GPIO_PORT_*) live in the separate
+            // `name_enum` type, allowlisted by name. These back symbol-valued config
+            // (WS2812_EN_PORT). Both GPIO port spellings a *_EN_PORT config might use:
+            // SL_GPIO_PORT_* (sl_device_gpio) and gpioPort* (emlib GPIO_Port_TypeDef).
+            .allowlist_type("GPIO_Mode_TypeDef_enum")
+            .allowlist_type("GPIO_Port_TypeDef_enum")
+            .allowlist_type("sl_gpio_port_t_enum")
+            .allowlist_function("I2CSPM_Transfer")
+            .allowlist_function("sl_udelay_wait")
+            .allowlist_function("sl_led_init")
+            .allowlist_function("SPIDRV_MTransmit")
+            .allowlist_function("sl_led_turn_on")
+            .allowlist_function("sl_led_turn_off")
+            .allowlist_function("sl_led_set_rgb_color")
+            .allowlist_function("sl_sleeptimer_start_periodic_timer_ms")
+            .allowlist_function("sl_sleeptimer_stop_timer")
+            .allowlist_function("CORE_EnterCritical")
+            .allowlist_function("CORE_ExitCritical")
+            .allowlist_var("I2C_FLAG_.*")
+            .allowlist_var("SL_STATUS_OK")
+            .allowlist_var("SL_LED_CURRENT_STATE_.*")
+            .opaque_type("SPIDRV_HandleData"),
+    );
+
+    // Compile the generic inline/macro SDK wrappers (shims.c) into ohf-sys, so the real
+    // symbols they expose (GPIO_PinModeSet, the zigbee token read, …) bundle into the
+    // staticlib. Uses the SDK's own compiler (gcc or clang) + arch/include flags.
     println!("cargo:rerun-if-env-changed=OHF_SHIM_CC");
     println!("cargo:rerun-if-env-changed=OHF_SHIM_CFLAGS");
-    println!("cargo:rerun-if-changed=wrapper.h");
     println!("cargo:rerun-if-changed=shims.c");
 
-    let out = PathBuf::from(env::var("OUT_DIR").unwrap());
     let manifest = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
-
-    let clang_args: Vec<String> = env::var("OHF_BINDGEN_FLAGS")
-        .expect("OHF_BINDGEN_FLAGS (SLC-derived clang args)")
-        .split_whitespace()
-        .map(str::to_owned)
-        .collect();
-
-    let bindings = bindgen::Builder::default()
-        .header("wrapper.h")
-        .use_core()
-        .layout_tests(false)
-        .generate_comments(false)
-        // Emit enum variants under their C names (gpioModePushPull), not
-        // EnumName_variant.
-        .prepend_enum_name(false)
-        .allowlist_type(
-            "I2C_TransferSeq_TypeDef|sl_led_t|sl_led_rgb_pwm_t|sl_led_state_t|sl_status_t|\
-             SPIDRV_Handle_t|GPIO_Mode_TypeDef|sl_sleeptimer_timer_handle_t|CORE_irqState_t",
-        )
-        .allowlist_function(
-            "I2CSPM_Transfer|sl_udelay_wait|sl_led_init|SPIDRV_MTransmit|\
-             sl_led_turn_on|sl_led_turn_off|sl_led_set_rgb_color|\
-             sl_sleeptimer_start_periodic_timer_ms|sl_sleeptimer_stop_timer|\
-             CORE_EnterCritical|CORE_ExitCritical",
-        )
-        .allowlist_var("I2C_FLAG_.*|SL_STATUS_OK|SL_LED_CURRENT_STATE_.*")
-        // SL_ENUM[_GENERIC] expands to `typedef T name; enum name##_enum {...}`, so the
-        // variants (gpioMode*, SL_GPIO_PORT_*) live in the separate `_enum` type, which
-        // must be allowlisted by name. These back symbol-valued config (WS2812_EN_PORT).
-        // Both GPIO port spellings a manifest might use for a *_EN_PORT config:
-        // SL_GPIO_PORT_* (sl_device_gpio) and gpioPort* (emlib GPIO_Port_TypeDef).
-        .allowlist_type("GPIO_Mode_TypeDef_enum|GPIO_Port_TypeDef_enum|sl_gpio_port_t_enum")
-        .opaque_type("SPIDRV_HandleData")
-        // SL_STATUS_OK etc. are cast macros bindgen can't constant-fold alone.
-        .clang_macro_fallback()
-        .clang_args(&clang_args)
-        .generate()
-        .expect("bindgen failed");
-
-    bindings.write_to_file(out.join("bindings.rs")).unwrap();
-
-    // Compile the generic inline-SDK wrappers (shims.c) into ohf-sys, so the real
-    // symbols they expose for __STATIC_INLINE helpers (GPIO_PinModeSet, …) bundle into
-    // the staticlib. gcc + the SDK arch/include flags, not clang.
+    let out = PathBuf::from(env::var("OUT_DIR").unwrap());
     let mut cc = cc::Build::new();
     cc.compiler(env::var("OHF_SHIM_CC").expect("OHF_SHIM_CC"));
     cc.file(manifest.join("shims.c")).include(&manifest).include(&out);
