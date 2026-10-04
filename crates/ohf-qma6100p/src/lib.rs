@@ -1,7 +1,8 @@
 //! QMA6100P 3-axis accelerometer driver — Rust port of `qma6100p.c`.
 //!
-//! Register-level I2C driver over I2CSPM. Exports the same C ABI the LED subsystem
-//! calls: `qma6100p_system_init` (the stack_init hook) and `qma6100p_read_{raw,acc}_xyz`.
+//! Register-level I2C driver over I2CSPM. `qma6100p_system_init` (the stack_init hook) and
+//! `qma6100p_read_raw_xyz` stay C exports (the latter is called by the Z-Wave LED code); Rust
+//! callers use the safe `read_acceleration()`.
 #![no_std]
 
 use ohf_sys::{
@@ -91,26 +92,25 @@ unsafe fn init(i2cspm: *mut I2C_TypeDef) {
     write_reg(i2cspm, QMA6100P_REG_POWER_MANAGEMENT, QMA6100P_PM_MODE_ACTIVE | QMA6100P_PM_MCLK_51_2K);
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn qma6100p_read_raw_xyz(i2cspm: *mut I2C_TypeDef, data: *mut i16) {
+fn read_raw() -> [i16; 3] {
     let mut buf = [0u8; 6];
-    read_reg(i2cspm, QMA6100P_XOUTL, buf.as_mut_ptr(), 6);
-
-    let combine = |hi: u8, lo: u8| (((hi as u16) << 8) | lo as u16) as i16;
+    unsafe { read_reg(sl_i2cspm_inst, QMA6100P_XOUTL, buf.as_mut_ptr(), 6) };
     // 14-bit left-justified samples; shift the sign-extended value down by 2.
-    *data.add(0) = combine(buf[1], buf[0]) >> 2;
-    *data.add(1) = combine(buf[3], buf[2]) >> 2;
-    *data.add(2) = combine(buf[5], buf[4]) >> 2;
+    [
+        i16::from_be_bytes([buf[1], buf[0]]) >> 2,
+        i16::from_be_bytes([buf[3], buf[2]]) >> 2,
+        i16::from_be_bytes([buf[5], buf[4]]) >> 2,
+    ]
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn qma6100p_read_acc_xyz(i2cspm: *mut I2C_TypeDef, accdata: *mut f32) {
-    let mut raw = [0i16; 3];
-    qma6100p_read_raw_xyz(i2cspm, raw.as_mut_ptr());
+pub fn read_acceleration() -> [f32; 3] {
+    read_raw().map(|v| (v as f32 * QMA6100P_M_G * -1.0) / 1024.0)
+}
 
-    for i in 0..3 {
-        *accdata.add(i) = (raw[i] as f32 * QMA6100P_M_G * -1.0) / 1024.0;
-    }
+// C ABI for the Z-Wave LED code (the only cross-language caller); Rust uses read_raw directly.
+#[no_mangle]
+pub unsafe extern "C" fn qma6100p_read_raw_xyz(_i2cspm: *mut I2C_TypeDef, data: *mut i16) {
+    data.copy_from_nonoverlapping(read_raw().as_ptr(), 3);
 }
 
 #[no_mangle]

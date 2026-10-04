@@ -11,5 +11,4 @@ version.workspace = true
 ohf-xncp = { path = "../ohf-xncp" }
 ohf-led-effects = { path = "../ohf-led-effects" }
 ohf-qma6100p = { path = "../ohf-qma6100p" }
-ohf-sys = { path = "../ohf-sys" }
 linkme = "0.3"

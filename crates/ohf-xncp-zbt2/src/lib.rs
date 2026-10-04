@@ -1,24 +1,16 @@
 //! ZBT-2 XNCP commands — LED control (0x0F00) and accelerometer read (0x0F01).
-//!
-//! Registers safe handlers into the XNCP core's linkme slices; calls the already-Rust
-//! LED/accel crates directly. The only `unsafe` is the one accelerometer FFI read.
 #![no_std]
 
 use linkme::distributed_slice;
 
 use ohf_led_effects::{led_manager_set_color, rgb_t};
-use ohf_qma6100p::qma6100p_read_acc_xyz;
-use ohf_sys::I2C_TypeDef;
+use ohf_qma6100p::read_acceleration;
 use ohf_xncp::{
     ReplyBuf, Status, XncpCommandDef, XNCP_COMMANDS, XNCP_FEATURES, XNCP_FEATURE_LED_CONTROL,
     XNCP_FEATURE_TX_POWER_INFO,
 };
 
 const LED_PRIORITY_MANUAL: u32 = 1;
-
-extern "C" {
-    static sl_i2cspm_inst: *mut I2C_TypeDef;
-}
 
 fn handle_set_led_state(req: &[u8], _reply: &mut ReplyBuf) -> Status {
     let color = match req {
@@ -42,11 +34,7 @@ fn handle_set_led_state(req: &[u8], _reply: &mut ReplyBuf) -> Status {
 }
 
 fn handle_get_accelerometer(_req: &[u8], reply: &mut ReplyBuf) -> Status {
-    let mut xyz = [0.0f32; 3];
-    // SAFETY: FFI read into a local array via the SDK's I2C instance.
-    unsafe { qma6100p_read_acc_xyz(sl_i2cspm_inst, xyz.as_mut_ptr()) };
-
-    for value in xyz {
+    for value in read_acceleration() {
         reply.push_bytes(&value.to_le_bytes());
     }
     Status::OK

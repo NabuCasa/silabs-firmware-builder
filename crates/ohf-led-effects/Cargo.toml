@@ -8,6 +8,7 @@ version.workspace = true
 
 [dependencies]
 ohf-sys = { path = "../ohf-sys" }
+ohf-qma6100p = { path = "../ohf-qma6100p" }
 critical-section = "1"
 libm = "0.2"
 

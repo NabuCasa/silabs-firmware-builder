@@ -195,6 +195,7 @@ version = "0.1.0"
 dependencies = [
  "critical-section",
  "libm",
+ "ohf-qma6100p",
  "ohf-sys",
  "serde_json",
 ]
@@ -268,7 +269,6 @@ dependencies = [
  "linkme",
  "ohf-led-effects",
  "ohf-qma6100p",
- "ohf-sys",
  "ohf-xncp",
 ]
 
