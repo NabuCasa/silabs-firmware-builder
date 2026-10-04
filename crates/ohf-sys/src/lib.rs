@@ -15,6 +15,10 @@ extern "C" {
     /// Generic wrapper over the inline `GPIO_PinModeSet` (defined in shims.c, compiled
     /// into this crate). `mode` is a `gpioMode*` value.
     pub fn ohf_gpio_pin_mode_set(port: u32, pin: u32, mode: u32, out: u32);
+
+    /// Reads TOKEN_STACK_NODE_DATA via the `halCommonGetToken` macro (defined in shims.c).
+    /// Only present in zigbee builds; callers (ohf-led-effects-zigbee) are zigbee-only too.
+    pub fn ohf_zigbee_stack_node_data(pan_id: *mut u16, channel: *mut u8);
 }
 
 // The critical-section impl, backed by the SDK's CORE_Enter/ExitCritical. Registering

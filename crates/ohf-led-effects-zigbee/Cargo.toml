@@ -6,5 +6,8 @@ version.workspace = true
 [lib]
 # Zigbee per-stack LED wrapper. rlib gated behind ohf-firmware's `led_effects_zigbee`
 # feature, which SLC enables only for Zigbee builds (so it never co-links with the
-# OpenThread wrapper). No deps: it calls led_effects_* (ohf-led-effects) and the token
-# shim (SLC-compiled) as extern "C" symbols resolved at the firmware link.
+# OpenThread wrapper). Calls led_effects_* (ohf-led-effects) as extern "C" symbols
+# resolved at the firmware link; the stack node-data token read comes from ohf-sys.
+
+[dependencies]
+ohf-sys = { path = "../ohf-sys" }

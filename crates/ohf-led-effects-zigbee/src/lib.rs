@@ -1,13 +1,13 @@
 //! Zigbee LED wrapper — Rust port of `led_effects_zigbee.c`.
 //!
-//! Translates Zigbee stack state into `led_effects_set_network_state`. The only part
-//! that can't be Rust is reading the stack node-data token (`halCommonGetToken` is a
-//! macro); that's a one-function SLC-compiled shim, so the logic stays here.
+//! Translates Zigbee stack state into `led_effects_set_network_state`. The one part that
+//! can't be Rust is reading the stack node-data token (`halCommonGetToken` is a macro);
+//! that C shim now lives in ohf-sys alongside the other macro/inline wrappers.
 #![no_std]
 
+use ohf_sys::ohf_zigbee_stack_node_data;
+
 extern "C" {
-    /// SLC-compiled shim (led_effects_zigbee_shim.c): reads TOKEN_STACK_NODE_DATA.
-    fn ohf_zigbee_stack_node_data(pan_id: *mut u16, channel: *mut u8);
     // From ohf-led-effects, resolved at the firmware link via the aggregate.
     fn led_effects_init();
     fn led_effects_set_network_state(network_formed: bool);

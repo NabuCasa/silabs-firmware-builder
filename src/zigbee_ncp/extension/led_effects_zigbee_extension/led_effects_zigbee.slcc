@@ -4,14 +4,9 @@ package: custom
 description: LED state machine for network status and tilt detection, Zigbee implementation
 category: Zigbee|NCP
 quality: production
-source:
-  # Only the token-read shim stays C; the wrapper logic is crates/ohf-led-effects-zigbee.
-  - path: src/led_effects_zigbee_shim.c
-include:
-  - path: inc
-    file_list:
-    - path: led_effects_zigbee.h
 provides:
+  # Fully Rust (crates/ohf-led-effects-zigbee); the stack node-data token read moved to
+  # ohf-sys's shims.c. The stack callbacks below are the Rust #[no_mangle] entry points.
   - name: led_effects
 requires:
   - name: ohf_runtime

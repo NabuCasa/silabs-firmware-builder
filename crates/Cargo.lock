@@ -201,6 +201,9 @@ dependencies = [
 [[package]]
 name = "ohf-led-effects-zigbee"
 version = "0.1.0"
+dependencies = [
+ "ohf-sys",
+]
 
 [[package]]
 name = "ohf-ncp-dlk-policy"
