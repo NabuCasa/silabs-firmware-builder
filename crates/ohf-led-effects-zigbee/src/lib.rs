@@ -17,7 +17,8 @@ extern "C" {
 pub extern "C" fn device_has_stored_network_settings() -> bool {
     let mut pan_id: u16 = 0;
     let mut channel: u8 = 0;
-    unsafe { ohf_zigbee_stack_node_data(&mut pan_id, &mut channel) };
+    let mut node_type: u8 = 0;
+    unsafe { ohf_zigbee_stack_node_data(&mut pan_id, &mut channel, &mut node_type) };
 
     pan_id != 0xFFFF && (11..=26).contains(&channel)
 }

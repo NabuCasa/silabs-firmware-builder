@@ -25,11 +25,12 @@ void ohf_system_reset(void)
 #include "sl_token_api.h"
 #include STACK_TYPES_HEADER
 
-void ohf_zigbee_stack_node_data(uint16_t *pan_id, uint8_t *channel)
+void ohf_zigbee_stack_node_data(uint16_t *pan_id, uint8_t *channel, uint8_t *node_type)
 {
     tokTypeStackNodeData node_data;
     halCommonGetToken(&node_data, TOKEN_STACK_NODE_DATA);
     *pan_id = node_data.panId;
     *channel = node_data.radioFreqChannel;
+    *node_type = node_data.nodeType;
 }
 #endif

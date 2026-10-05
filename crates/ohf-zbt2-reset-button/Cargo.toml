@@ -14,7 +14,7 @@ version.workspace = true
 zigbee_token_reset = []
 
 [dependencies]
-ohf-sys = { path = "../ohf-sys" }
+ohf-sys = { path = "../ohf-sys", features = ["factory_erase"] }
 ohf-led-effects = { path = "../ohf-led-effects" }
 critical-section = "1"
 

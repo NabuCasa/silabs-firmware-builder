@@ -12,6 +12,9 @@ fn main() {
             .allowlist_var("SL_TOKEN_TYPE_STATIC_DEVICE")
             .allowlist_var("SL_TOKEN_STATIC_TOKEN_SIZE_OFFSET")
             .allowlist_var("TOKEN_MFG_EUI_64")
-            .allowlist_var("TOKEN_MFG_EUI_64_SIZE"),
+            .allowlist_var("TOKEN_MFG_EUI_64_SIZE")
+            // Node types for the nvram-reset check.
+            .allowlist_var("SL_ZIGBEE_ROUTER")
+            .allowlist_var("SL_ZIGBEE_UNKNOWN_DEVICE"),
     );
 }

@@ -7,9 +7,6 @@
 #include "sl_button.h"
 #include "sl_simple_button.h"
 #include "sl_sleeptimer.h"
-#include "nvm3_default.h"
-#include "nvm3_generic.h"
-#include "psa/crypto.h"
 #ifdef OHF_ZIGBEE_TOKEN_RESET
 #include "stack/include/sl_zigbee.h"
 #include "stack/include/stack-info.h"

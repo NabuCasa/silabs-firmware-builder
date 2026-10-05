@@ -5,6 +5,10 @@ version.workspace = true
 
 [lib]
 
+[features]
+# Pulls the nvm3/psa surface for `factory_erase`; enabled by the reset button and router.
+factory_erase = []
+
 [dependencies]
 # ohf-sys provides the critical-section impl (backed by CORE_Enter/ExitCritical) so
 # components can use critical_section::Mutex for compile-time-checked shared state.

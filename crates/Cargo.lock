@@ -234,6 +234,7 @@ name = "ohf-router"
 version = "0.1.0"
 dependencies = [
  "ohf-bindgen",
+ "ohf-sys",
 ]
 
 [[package]]

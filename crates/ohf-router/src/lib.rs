@@ -11,3 +11,5 @@ mod bindings {
 mod beacon_filter;
 #[cfg(feature = "eui64_unique")]
 mod eui64_unique;
+#[cfg(feature = "nvram_reset")]
+mod nvram_reset;

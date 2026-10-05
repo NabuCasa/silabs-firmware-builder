@@ -32,12 +32,6 @@ extern "C" {
     static sl_button_pin_hole_button: sl_button_t;
 }
 
-// PSA key range the Zigbee stack uses (from zbt2_reset_button.c).
-#[cfg(not(feature = "zigbee_token_reset"))]
-const ZB_PSA_KEY_ID_MIN: u32 = 0x0003_0000;
-#[cfg(not(feature = "zigbee_token_reset"))]
-const ZB_PSA_KEY_ID_MAX: u32 = 0x0003_FFFF;
-
 // --- Shared state ------------------------------------------------------------------
 struct State {
     reset_cycle: u8,
@@ -79,27 +73,20 @@ unsafe fn start_ms(
     sl_sleeptimer_start_timer(timer.get(), ticks, callback, core::ptr::null_mut(), 0, 0);
 }
 
-// --- Reset backend -----------------------------------------------------------------
-unsafe fn reset_adapter() -> ! {
+// --- Reset backend. Each branch ends in a no-return reset. -------------------------
+unsafe fn reset_adapter() {
     #[cfg(feature = "zigbee_token_reset")]
     {
         led_manager_set_color(LED_PRIORITY_CRITICAL, LED_COLOR_RESET_ORANGE);
         // Zigbee token reset — preserves frame counters and boot counter.
         sl_zigbee_token_factory_reset(true, true);
+        ohf_sys::ohf_system_reset();
     }
     #[cfg(not(feature = "zigbee_token_reset"))]
     {
         led_manager_set_color(LED_PRIORITY_CRITICAL, ohf_led_effects::LED_COLOR_RESET_RED);
-        // Full NVM3 erase + PSA key wipe.
-        nvm3_initDefault();
-        nvm3_eraseAll(nvm3_defaultHandle);
-        let mut key_id = ZB_PSA_KEY_ID_MIN;
-        while key_id <= ZB_PSA_KEY_ID_MAX {
-            psa_destroy_key(key_id);
-            key_id += 1;
-        }
+        ohf_sys::factory_erase();
     }
-    ohf_sys::ohf_system_reset()
 }
 
 // --- Blink state machine -----------------------------------------------------------
