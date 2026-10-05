@@ -1256,20 +1256,6 @@ def extract_slc_clang_flags(build: ResolvedBuild) -> dict[str, typing.Any]:
     return {"includes": includes, "defines": defines, "arch": arch}
 
 
-def stub_rust_libraries(build: ResolvedBuild) -> None:
-    """Placeholder archives for `slc generate` to copy, replaced before the link."""
-    for slcc in build.build_template_path.rglob("*.slcc"):
-        data = yaml.load(slcc.read_text())
-        for lib in data.get("library", []):
-            path = pathlib.PurePosixPath(lib["path"])
-            if path.name == RUST_LIBRARY:
-                stub = slcc.parent / path
-                stub.parent.mkdir(parents=True, exist_ok=True)
-                ar = rust_toolchain_binaries(build)["ar"]
-                subprocess.run([ar, "rc", str(stub)], check=True)
-                LOGGER.info("Stubbed Rust library placeholder %s", stub)
-
-
 def resolve_rust_config(
     c_defines: dict[str, dict], template_env: dict[str, typing.Any]
 ) -> dict[str, str]:
@@ -1357,10 +1343,9 @@ def build_rust_libraries(
         else:
             path.unlink()
 
-    text = build.project_cmake.read_text()
-    raw = re.search(rf'"([^"]+/{RUST_LIBRARY})"', text).group(1)
-    quoted = " ".join(f'"{path}"' for path in objects)
-    build.project_cmake.write_text(text.replace(f'"{raw}"', quoted))
+    quoted = "\n    ".join(f'"{path}"' for path in objects)
+    with build.project_cmake.open("a") as f:
+        f.write(f"\ntarget_link_libraries(slc PUBLIC\n    {quoted}\n)\n")
 
     return objects
 
@@ -1428,7 +1413,6 @@ def main() -> None:
     copy_base_project(build)
     base_project = prepare_project_slcp(build)
 
-    stub_rust_libraries(build)
     run_slc_generate(build, slc=slc, tool_paths=args.tool_paths)
     apply_sdk_patches(build)
     validate_sdk_extensions(build, base_project)

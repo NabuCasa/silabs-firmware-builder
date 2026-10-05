@@ -1,11 +1,9 @@
 id: ohf_runtime
 label: OHF Rust Runtime
 package: custom
-description: The Rust components (crates/ohf-firmware), built by tools/build_project.py
+description: Links the Rust components (crates/ohf-firmware), built by tools/build_project.py
 category: Platform|Rust
 quality: production
-library:
-  - path: lib/libohf_firmware.a
 provides:
   - name: ohf_runtime
 template_file:
