@@ -253,12 +253,55 @@ fn handle_get_route_table_entry(req: &[u8], reply: &mut ReplyBuf) -> Status {
     Status::OK
 }
 
+struct TxPower {
+    recommended_dbm: i8,
+    max_dbm: i8,
+    countries: &'static [[u8; 2]],
+}
+
+#[rustfmt::skip]
+const TX_POWERS: &[TxPower] = &[
+    // RED/ETSI-harmonized region: 10 dBm.
+    TxPower {
+        recommended_dbm: 10,
+        max_dbm: 10,
+        countries: &[
+            // EU member states
+            *b"AT", *b"BE", *b"BG", *b"HR", *b"CY", *b"CZ", *b"DK", *b"EE", *b"FI",
+            *b"FR", *b"DE", *b"GR", *b"HU", *b"IE", *b"IT", *b"LV", *b"LT", *b"LU",
+            *b"MT", *b"NL", *b"PL", *b"PT", *b"RO", *b"SK", *b"SI", *b"ES", *b"SE",
+            // EEA members
+            *b"IS", *b"LI", *b"NO",
+            // Standards harmonized with RED or ETSI
+            *b"CH", *b"GB", *b"TR", *b"AL", *b"BA", *b"GE", *b"MD", *b"ME", *b"MK",
+            *b"RS", *b"UA",
+            // Other CEPT nations
+            *b"AD", *b"AZ", *b"MC", *b"SM", *b"VA",
+        ]
+    },
+    // Testing: a max of 127 effectively disables the cap.
+    TxPower {
+        recommended_dbm: 8,
+        max_dbm: 127,
+        countries: &[*b"??"]
+    },
+];
+
 #[xncp_command(0x0008)]
 fn handle_get_tx_power_info(req: &[u8], reply: &mut ReplyBuf) -> Status {
-    let &[c1, c2] = req else {
+    let Ok(code) = <[u8; 2]>::try_from(req) else {
         return Status::BAD_ARGUMENT;
     };
-    let (recommended, max) = get_tx_power_for_country(c1, c2);
+
+    let (recommended, max) = TX_POWERS
+        .iter()
+        .find(|p| p.countries.contains(&code))
+        .map(|p| (p.recommended_dbm, p.max_dbm))
+        .unwrap_or((
+            XNCP_DEFAULT_RECOMMENDED_TX_POWER_DBM as i8,
+            XNCP_DEFAULT_MAX_TX_POWER_DBM as i8,
+        ));
+
     reply.push(recommended as u8);
     reply.push(max as u8);
     Status::OK
@@ -353,73 +396,6 @@ fn handle_send_unicast(req: &[u8], reply: &mut ReplyBuf) -> Status {
     reply.push_u32_le(status);
     reply.push(aps_sequence);
     Status::OK
-}
-
-// --- TX power table (ported from tx_power.c; 0x0008 returns it) ----------------------------
-static COUNTRY_TX_POWERS: &[(u8, u8, i8, i8)] = &[
-    // EU Member States
-    (b'A', b'T', 10, 10),
-    (b'B', b'E', 10, 10),
-    (b'B', b'G', 10, 10),
-    (b'H', b'R', 10, 10),
-    (b'C', b'Y', 10, 10),
-    (b'C', b'Z', 10, 10),
-    (b'D', b'K', 10, 10),
-    (b'E', b'E', 10, 10),
-    (b'F', b'I', 10, 10),
-    (b'F', b'R', 10, 10),
-    (b'D', b'E', 10, 10),
-    (b'G', b'R', 10, 10),
-    (b'H', b'U', 10, 10),
-    (b'I', b'E', 10, 10),
-    (b'I', b'T', 10, 10),
-    (b'L', b'V', 10, 10),
-    (b'L', b'T', 10, 10),
-    (b'L', b'U', 10, 10),
-    (b'M', b'T', 10, 10),
-    (b'N', b'L', 10, 10),
-    (b'P', b'L', 10, 10),
-    (b'P', b'T', 10, 10),
-    (b'R', b'O', 10, 10),
-    (b'S', b'K', 10, 10),
-    (b'S', b'I', 10, 10),
-    (b'E', b'S', 10, 10),
-    (b'S', b'E', 10, 10),
-    // EEA Members
-    (b'I', b'S', 10, 10),
-    (b'L', b'I', 10, 10),
-    (b'N', b'O', 10, 10),
-    // Standards harmonized with RED or ETSI
-    (b'C', b'H', 10, 10),
-    (b'G', b'B', 10, 10),
-    (b'T', b'R', 10, 10),
-    (b'A', b'L', 10, 10),
-    (b'B', b'A', 10, 10),
-    (b'G', b'E', 10, 10),
-    (b'M', b'D', 10, 10),
-    (b'M', b'E', 10, 10),
-    (b'M', b'K', 10, 10),
-    (b'R', b'S', 10, 10),
-    (b'U', b'A', 10, 10),
-    // Other CEPT nations
-    (b'A', b'D', 10, 10),
-    (b'A', b'Z', 10, 10),
-    (b'M', b'C', 10, 10),
-    (b'S', b'M', 10, 10),
-    (b'V', b'A', 10, 10),
-    // Disable the maximum, for testing
-    (b'?', b'?', 8, 127),
-];
-
-fn get_tx_power_for_country(c1: u8, c2: u8) -> (i8, i8) {
-    COUNTRY_TX_POWERS
-        .iter()
-        .find(|&&(a, b, _, _)| a == c1 && b == c2)
-        .map(|&(_, _, recommended, max)| (recommended, max))
-        .unwrap_or((
-            XNCP_DEFAULT_RECOMMENDED_TX_POWER_DBM as i8,
-            XNCP_DEFAULT_MAX_TX_POWER_DBM as i8,
-        ))
 }
 
 // --- Stack callbacks ----------------------------------------------------------------------
