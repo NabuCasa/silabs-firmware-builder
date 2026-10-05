@@ -31,11 +31,3 @@ extern crate ohf_router;
 extern crate ohf_qma6100p;
 #[cfg(feature = "ws2812")]
 extern crate ohf_ws2812;
-
-use core::panic::PanicInfo;
-
-#[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    // TODO: route into the SDK crash handler (ot_crash_handler / RESET_*).
-    loop {}
-}
