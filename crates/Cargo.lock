@@ -182,6 +182,7 @@ dependencies = [
  "ohf-led-effects-zigbee",
  "ohf-ncp-dlk-policy",
  "ohf-qma6100p",
+ "ohf-router",
  "ohf-ws2812",
  "ohf-xncp",
  "ohf-xncp-common",
@@ -226,6 +227,13 @@ name = "ohf-qma6100p"
 version = "0.1.0"
 dependencies = [
  "ohf-sys",
+]
+
+[[package]]
+name = "ohf-router"
+version = "0.1.0"
+dependencies = [
+ "ohf-bindgen",
 ]
 
 [[package]]

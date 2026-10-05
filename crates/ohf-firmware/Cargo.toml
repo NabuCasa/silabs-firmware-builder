@@ -23,6 +23,7 @@ ohf-xncp-common = { path = "../ohf-xncp-common", optional = true }
 ohf-xncp-zbt2 = { path = "../ohf-xncp-zbt2", optional = true }
 ohf-ncp-dlk-policy = { path = "../ohf-ncp-dlk-policy", optional = true }
 ohf-zbt2-reset-button = { path = "../ohf-zbt2-reset-button", optional = true }
+ohf-router = { path = "../ohf-router", optional = true }
 
 [features]
 ws2812 = ["dep:ohf-ws2812"]
@@ -37,3 +38,5 @@ ncp_dlk_policy = ["dep:ohf-ncp-dlk-policy"]
 zbt2_reset_button = ["dep:ohf-zbt2-reset-button"]
 # Router-only: switches the reset backend to the frame-counter-preserving zigbee token reset.
 zbt2_reset_button_zigbee_token = ["zbt2_reset_button", "ohf-zbt2-reset-button/zigbee_token_reset"]
+router_beacon_filter = ["dep:ohf-router", "ohf-router/beacon_filter"]
+router_eui64_unique = ["dep:ohf-router", "ohf-router/eui64_unique"]

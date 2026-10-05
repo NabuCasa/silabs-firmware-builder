@@ -14,6 +14,7 @@ members = [
     "ohf-xncp-zbt2",
     "ohf-ncp-dlk-policy",
     "ohf-zbt2-reset-button",
+    "ohf-router",
     "ohf-firmware",
 ]
 

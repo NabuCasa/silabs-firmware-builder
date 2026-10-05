@@ -24,6 +24,8 @@ extern crate ohf_xncp_zbt2;
 extern crate ohf_ncp_dlk_policy;
 #[cfg(feature = "zbt2_reset_button")]
 extern crate ohf_zbt2_reset_button;
+#[cfg(any(feature = "router_beacon_filter", feature = "router_eui64_unique"))]
+extern crate ohf_router;
 #[cfg(feature = "qma6100p")]
 extern crate ohf_qma6100p;
 #[cfg(feature = "ws2812")]
