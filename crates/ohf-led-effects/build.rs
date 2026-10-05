@@ -14,13 +14,18 @@ fn main() {
         cfg.get(key).and_then(|v| v.as_str()).unwrap_or(default).to_owned()
     };
 
+    let threshold: f64 = get("LED_EFFECTS_TILT_THRESHOLD_DEG", "16").parse().unwrap();
+    let hysteresis: f64 = get("LED_EFFECTS_TILT_HYSTERESIS_DEG", "4").parse().unwrap();
+    assert!(0.0 <= threshold - hysteresis && threshold <= 90.0);
+    let sin2 = |deg: f64| deg.to_radians().sin().powi(2);
+
     let generated = format!(
         "pub const LED_EFFECTS_UPDATE_INTERVAL_MS: u32 = {} as u32;\n\
-         pub const LED_EFFECTS_TILT_THRESHOLD_DEG: f32 = {} as f32;\n\
-         pub const LED_EFFECTS_TILT_HYSTERESIS_DEG: f32 = {} as f32;\n",
+         pub const LED_EFFECTS_TILT_THRESHOLD_SIN2: f32 = {:?};\n\
+         pub const LED_EFFECTS_TILT_RELEASE_SIN2: f32 = {:?};\n",
         get("LED_EFFECTS_UPDATE_INTERVAL_MS", "4"),
-        get("LED_EFFECTS_TILT_THRESHOLD_DEG", "16"),
-        get("LED_EFFECTS_TILT_HYSTERESIS_DEG", "4"),
+        sin2(threshold) as f32,
+        sin2(threshold - hysteresis) as f32,
     );
 
     fs::write(PathBuf::from(env::var("OUT_DIR").unwrap()).join("config.rs"), generated).unwrap();

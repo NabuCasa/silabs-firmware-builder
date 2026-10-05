@@ -242,16 +242,13 @@ pub extern "C" fn led_manager_set_color(priority: u32, color: Rgb) {
     set_pattern(priority, &pattern);
 }
 
-fn calculate_tilt_angle() -> f32 {
+// `asin(|horizontal| / |total|) > threshold`, compared as squared sines to avoid the
+// trigonometry. Both sides are monotonic over 0-90 degrees.
+fn is_tilted(threshold_sin2: f32) -> bool {
     let [ax, ay, az] = ohf_qma6100p::read_acceleration();
-
-    let total_mag = libm::sqrtf(ax * ax + ay * ay + az * az);
-    if total_mag < 0.1 {
-        return 0.0;
-    }
-    let horizontal_mag = libm::sqrtf(ax * ax + ay * ay);
-    let tilt_rad = libm::asinf(horizontal_mag / total_mag);
-    tilt_rad * 180.0 / core::f32::consts::PI
+    let horizontal = ax * ax + ay * ay;
+    let total = horizontal + az * az;
+    total >= 0.01 && horizontal > threshold_sin2 * total
 }
 
 extern "C" fn tilt_monitor_callback(_handle: *mut sl_sleeptimer_timer_handle_t, _data: *mut c_void) {
@@ -262,13 +259,12 @@ extern "C" fn tilt_monitor_callback(_handle: *mut sl_sleeptimer_timer_handle_t, 
         return;
     }
 
-    let tilt_angle = calculate_tilt_angle();
     let was_tilted = WAS_TILTED.load(Ordering::SeqCst);
-    let is_tilted = if was_tilted {
-        tilt_angle > (LED_EFFECTS_TILT_THRESHOLD_DEG - LED_EFFECTS_TILT_HYSTERESIS_DEG)
+    let is_tilted = is_tilted(if was_tilted {
+        LED_EFFECTS_TILT_RELEASE_SIN2
     } else {
-        tilt_angle > LED_EFFECTS_TILT_THRESHOLD_DEG
-    };
+        LED_EFFECTS_TILT_THRESHOLD_SIN2
+    });
 
     if is_tilted && !was_tilted {
         let tilt_pattern = LedPattern {

@@ -37,6 +37,11 @@ source:
   - path: app.c
 
 define:
+  # Nothing formats floats, and float support pulls in soft-float double math
+  - name: PRINTF_DISABLE_SUPPORT_FLOAT
+    value: 1
+  - name: PRINTF_DISABLE_SUPPORT_EXPONENTIAL
+    value: 1
   - name: OPENTHREAD_CONFIG_DEFAULT_TRANSMIT_POWER
     value: 6
 
