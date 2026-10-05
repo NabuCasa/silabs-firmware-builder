@@ -37,9 +37,12 @@ const ROUTE_UNUSED: u8 = 3;
 const RELAY_COUNT: usize = SL_ZIGBEE_MAX_SOURCE_ROUTE_RELAY_COUNT as usize;
 const TABLE_SIZE: usize = XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE as usize;
 
-// bindgen emits string macros as NUL-terminated byte strings
-fn c_str(s: &'static [u8]) -> &'static [u8] {
-    CStr::from_bytes_with_nul(s).unwrap().to_bytes()
+// bindgen emits string macros as NUL-terminated byte strings. Call in a const context.
+const fn c_str(s: &'static [u8]) -> &'static [u8] {
+    match CStr::from_bytes_with_nul(s) {
+        Ok(s) => s.to_bytes(),
+        Err(_) => panic!("not a C string"),
+    }
 }
 
 // EmberZNet internal tables
@@ -169,8 +172,8 @@ fn handle_get_mfg_token_override(req: &[u8], reply: &mut ReplyBuf) -> XncpResult
         return Err(Status::BAD_ARGUMENT);
     };
     let value = match token_id as u32 {
-        SL_ZIGBEE_EZSP_MFG_STRING => c_str(XNCP_MFG_MANUF_NAME),
-        SL_ZIGBEE_EZSP_MFG_BOARD_NAME => c_str(XNCP_MFG_BOARD_NAME),
+        SL_ZIGBEE_EZSP_MFG_STRING => const { c_str(XNCP_MFG_MANUF_NAME) },
+        SL_ZIGBEE_EZSP_MFG_BOARD_NAME => const { c_str(XNCP_MFG_BOARD_NAME) },
         _ => return Err(Status::NOT_FOUND),
     };
     reply.push_bytes(value);
@@ -179,7 +182,7 @@ fn handle_get_mfg_token_override(req: &[u8], reply: &mut ReplyBuf) -> XncpResult
 
 #[xncp_command(0x0003)]
 fn handle_get_build_string(_req: &[u8], reply: &mut ReplyBuf) -> XncpResult {
-    reply.push_bytes(c_str(XNCP_BUILD_STRING));
+    reply.push_bytes(const { c_str(XNCP_BUILD_STRING) });
     Ok(())
 }
 
@@ -197,7 +200,7 @@ fn handle_get_flow_control_type(_req: &[u8], reply: &mut ReplyBuf) -> XncpResult
 #[xncp_command(0x0005)]
 fn handle_get_chip_info(_req: &[u8], reply: &mut ReplyBuf) -> XncpResult {
     reply.push_u32_le(RAM_MEM_SIZE as u32);
-    let part = c_str(PART_NUMBER);
+    let part = const { c_str(PART_NUMBER) };
     reply.push(part.len() as u8);
     reply.push_bytes(part);
     Ok(())
