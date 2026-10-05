@@ -236,24 +236,29 @@ pub extern "C" fn led_manager_process_action() {
     }
 }
 
-#[no_mangle]
-pub extern "C" fn led_manager_set_pattern(priority: u32, pattern: *const led_pattern_t) {
+fn set_pattern(priority: u32, pattern: &led_pattern_t) {
     let pri = priority as usize;
-    if pri >= LED_PRIORITY_COUNT || pattern.is_null() {
+    if pri >= LED_PRIORITY_COUNT {
         return;
     }
-    let pat = unsafe { *pattern };
-
     critical_section::with(|cs| {
         let mut layers = LAYERS.borrow(cs).borrow_mut();
         let tick = GLOBAL_TICK.load(Ordering::SeqCst);
-        layers[pri].pattern = pat;
+        layers[pri].pattern = *pattern;
         layers[pri].active = true;
         layers[pri].start_tick = tick;
-        if pat.duration_ms > 0 {
-            layers[pri].expiry_tick = tick + pat.duration_ms / LED_EFFECTS_UPDATE_INTERVAL_MS;
+        if pattern.duration_ms > 0 {
+            layers[pri].expiry_tick = tick + pattern.duration_ms / LED_EFFECTS_UPDATE_INTERVAL_MS;
         }
     });
+}
+
+// C ABI for the still-C router callbacks (zbt2_router_callbacks.c); Rust uses set_pattern.
+#[no_mangle]
+pub extern "C" fn led_manager_set_pattern(priority: u32, pattern: *const led_pattern_t) {
+    if let Some(pattern) = unsafe { pattern.as_ref() } {
+        set_pattern(priority, pattern);
+    }
 }
 
 #[no_mangle]
@@ -277,7 +282,7 @@ pub extern "C" fn led_manager_set_color(priority: u32, color: rgb_t) {
         brightness_min: 0,
         brightness_max: 0,
     };
-    led_manager_set_pattern(priority, &pattern);
+    set_pattern(priority, &pattern);
 }
 
 fn calculate_tilt_angle() -> f32 {
@@ -317,7 +322,7 @@ extern "C" fn tilt_monitor_callback(_handle: *mut sl_sleeptimer_timer_handle_t, 
             brightness_min: 0,
             brightness_max: 0,
         };
-        led_manager_set_pattern(LED_PRIORITY_CRITICAL, &tilt_pattern);
+        set_pattern(LED_PRIORITY_CRITICAL, &tilt_pattern);
     } else if !is_tilted && was_tilted {
         led_manager_clear_pattern(LED_PRIORITY_CRITICAL);
     }
@@ -348,7 +353,7 @@ pub extern "C" fn led_effects_set_network_state(network_formed: bool) {
             brightness_min: 6554, // ~10%
             brightness_max: 65535,
         };
-        led_manager_set_pattern(LED_PRIORITY_BACKGROUND, &search_pattern);
+        set_pattern(LED_PRIORITY_BACKGROUND, &search_pattern);
 
         if !IS_MONITORING.swap(true, Ordering::SeqCst) {
             MONITOR_TICKS.store(0, Ordering::SeqCst);

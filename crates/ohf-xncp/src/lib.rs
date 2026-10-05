@@ -1,13 +1,9 @@
-//! XNCP core — the custom-frame protocol and command dispatch.
+//! XNCP core — the custom-frame protocol and command dispatch. Command sets register handlers
+//! into `XNCP_COMMANDS` and feature bits into `XNCP_FEATURES` via `linkme::distributed_slice`.
 //!
-//! The SDK hands us raw `(ptr, len)` buffers; the callback at the bottom does the *one*
-//! `unsafe` conversion to slices, and everything above it is safe Rust. Command sets register
-//! handlers into `XNCP_COMMANDS` / feature bits into `XNCP_FEATURES` at link time via
-//! `linkme::distributed_slice`; handlers are plain safe `fn(&[u8], &mut ReplyBuf) -> Status`.
-//!
-//! Convention: parsing untrusted request bytes returns [`Status::BAD_ARGUMENT`] on a short
-//! or malformed frame (the host can send anything), while writing the reply panics on
-//! overflow — an over-long reply is our bug, and the stack caps custom frames at 119 bytes.
+//! Convention: parsing untrusted request bytes returns `Status::BAD_ARGUMENT` on a malformed
+//! frame, while writing the reply panics on overflow (an over-long reply is our bug; the stack
+//! caps custom frames at 119 bytes).
 #![no_std]
 #![allow(non_camel_case_types)]
 

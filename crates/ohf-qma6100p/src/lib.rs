@@ -1,8 +1,6 @@
 //! QMA6100P 3-axis accelerometer driver — Rust port of `qma6100p.c`.
 //!
-//! Register-level I2C driver over I2CSPM. `qma6100p_system_init` (the stack_init hook) and
-//! `qma6100p_read_raw_xyz` stay C exports (the latter is called by the Z-Wave LED code); Rust
-//! callers use the safe `read_acceleration()`.
+//! `qma6100p_read_raw_xyz` stays a C export: the Z-Wave LED code calls it cross-language.
 #![no_std]
 
 use ohf_sys::{

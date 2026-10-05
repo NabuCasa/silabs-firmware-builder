@@ -1,11 +1,4 @@
 //! Common XNCP command set — commands 0x0001..0x0009, shared by every coordinator.
-//!
-//! Handlers are safe `fn(&[u8], &mut ReplyBuf) -> Status` registered into the XNCP core's
-//! linkme slices. `unsafe` is confined to small wrappers over the deep EmberZNet surface
-//! (the internal route table, the legacy buffer manager, `sl_zigbee_send_unicast`) and the
-//! two stack callbacks — everything else, including all frame parsing, is safe.
-//!
-//! `ezsp_version.c` stays C: it's a direct-object data override of `sl_zigbee_version`.
 #![no_std]
 #![allow(non_camel_case_types, non_upper_case_globals)]
 
