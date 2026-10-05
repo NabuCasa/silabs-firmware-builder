@@ -40,37 +40,44 @@ static STATE: Mutex<RefCell<State>> = Mutex::new(RefCell::new(State {
 static RESET_TIMER: SyncCell<sl_sleeptimer_timer_handle_t> = SyncCell::new(ZERO_TIMER);
 static BLINK_TIMER: SyncCell<sl_sleeptimer_timer_handle_t> = SyncCell::new(ZERO_TIMER);
 
-unsafe fn start_ms(
+fn start_ms(
     timer: &SyncCell<sl_sleeptimer_timer_handle_t>,
     timeout_ms: u32,
     callback: sl_sleeptimer_timer_callback_t,
 ) {
     let mut ticks: u32 = 0;
-    sl_sleeptimer_ms32_to_tick(timeout_ms, &mut ticks);
-    sl_sleeptimer_start_timer(timer.get(), ticks, callback, core::ptr::null_mut(), 0, 0);
+    unsafe {
+        sl_sleeptimer_ms32_to_tick(timeout_ms, &mut ticks);
+        sl_sleeptimer_start_timer(timer.get(), ticks, callback, core::ptr::null_mut(), 0, 0);
+    }
 }
 
-unsafe fn reset_adapter() {
-    #[cfg(feature = "zigbee_token_reset")]
-    {
-        led_manager_set_color(LED_PRIORITY_CRITICAL, LED_COLOR_RESET_ORANGE);
+fn stop(timer: &SyncCell<sl_sleeptimer_timer_handle_t>) {
+    unsafe { sl_sleeptimer_stop_timer(timer.get()) };
+}
+
+#[cfg(feature = "zigbee_token_reset")]
+fn reset_adapter() -> ! {
+    led_manager_set_color(LED_PRIORITY_CRITICAL, LED_COLOR_RESET_ORANGE);
+    unsafe {
         // Keeps the frame counters and boot counter
         sl_zigbee_token_factory_reset(true, true);
-        ohf_sys::ohf_system_reset();
-    }
-    #[cfg(not(feature = "zigbee_token_reset"))]
-    {
-        led_manager_set_color(LED_PRIORITY_CRITICAL, ohf_led_effects::LED_COLOR_RESET_RED);
-        ohf_sys::factory_erase();
+        ohf_sys::ohf_system_reset()
     }
 }
 
-unsafe extern "C" fn reset_timer_callback(_handle: *mut sl_sleeptimer_timer_handle_t, _data: *mut c_void) {
+#[cfg(not(feature = "zigbee_token_reset"))]
+fn reset_adapter() -> ! {
+    led_manager_set_color(LED_PRIORITY_CRITICAL, ohf_led_effects::LED_COLOR_RESET_RED);
+    ohf_sys::factory_erase()
+}
+
+extern "C" fn reset_timer_callback(_handle: *mut sl_sleeptimer_timer_handle_t, _data: *mut c_void) {
     critical_section::with(|cs| STATE.borrow(cs).borrow_mut().reset_cycle += 1);
     start_ms(&BLINK_TIMER, ZBT2_RESET_BUTTON_BLINK_START_DELAY_MS, Some(blink_task));
 }
 
-unsafe extern "C" fn blink_task(_handle: *mut sl_sleeptimer_timer_handle_t, _data: *mut c_void) {
+extern "C" fn blink_task(_handle: *mut sl_sleeptimer_timer_handle_t, _data: *mut c_void) {
     let led_on = critical_section::with(|cs| STATE.borrow(cs).borrow().led_on);
 
     if led_on {
@@ -104,9 +111,9 @@ unsafe extern "C" fn blink_task(_handle: *mut sl_sleeptimer_timer_handle_t, _dat
     }
 }
 
-unsafe fn handle_state(pressed: bool) {
-    sl_sleeptimer_stop_timer(RESET_TIMER.get());
-    sl_sleeptimer_stop_timer(BLINK_TIMER.get());
+fn handle_state(pressed: bool) {
+    stop(&RESET_TIMER);
+    stop(&BLINK_TIMER);
 
     if pressed {
         critical_section::with(|cs| {
