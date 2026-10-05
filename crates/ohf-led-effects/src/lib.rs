@@ -11,7 +11,6 @@
 //! (zbt2_router_callbacks, zbt2_reset_button, the per-stack wrappers): the `#[repr(C)]`
 //! types below mirror that header, which stays as the contract.
 #![no_std]
-#![allow(non_camel_case_types, non_upper_case_globals)]
 
 use core::cell::{RefCell, UnsafeCell};
 use core::ffi::c_void;
@@ -29,7 +28,7 @@ include!(concat!(env!("OUT_DIR"), "/config.rs"));
 // --- C ABI types (mirror led_manager.h / led_manager_colors.h, the shared contract) ---
 #[repr(C)]
 #[derive(Clone, Copy)]
-pub struct rgb_t {
+pub struct Rgb {
     pub r: u16,
     pub g: u16,
     pub b: u16,
@@ -50,22 +49,22 @@ const LED_PRIORITY_COUNT: usize = 4;
 
 #[repr(C)]
 #[derive(Clone, Copy)]
-pub struct led_pattern_t {
+pub struct LedPattern {
     pub mode: u32,
-    pub color: rgb_t,
+    pub color: Rgb,
     pub period_ms: u16,
     pub duration_ms: u32,
     pub brightness_min: u16,
     pub brightness_max: u16,
 }
 
-const fn rgb8(r: u8, g: u8, b: u8) -> rgb_t {
-    rgb_t { r: r as u16 * 257, g: g as u16 * 257, b: b as u16 * 257 }
+const fn rgb8(r: u8, g: u8, b: u8) -> Rgb {
+    Rgb { r: r as u16 * 257, g: g as u16 * 257, b: b as u16 * 257 }
 }
-const LED_COLOR_WHITE_DIM: rgb_t = rgb8(75, 75, 75);
+const LED_COLOR_WHITE_DIM: Rgb = rgb8(75, 75, 75);
 // Factory-reset feedback colors (led_manager_colors.h), used by the reset-button component.
-pub const LED_COLOR_RESET_RED: rgb_t = rgb8(255, 0, 0);
-pub const LED_COLOR_RESET_ORANGE: rgb_t = rgb8(255, 40, 0);
+pub const LED_COLOR_RESET_RED: Rgb = rgb8(255, 0, 0);
+pub const LED_COLOR_RESET_ORANGE: Rgb = rgb8(255, 40, 0);
 
 // --- External symbols resolved at the firmware link (via the aggregate) ---
 extern "C" {
@@ -101,14 +100,14 @@ const ZERO_TIMER: sl_sleeptimer_timer_handle_t = sl_sleeptimer_timer_handle_t {
 
 #[derive(Clone, Copy)]
 struct Layer {
-    pattern: led_pattern_t,
+    pattern: LedPattern,
     active: bool,
     start_tick: u32,
     expiry_tick: u32,
 }
 
 const ZERO_LAYER: Layer = Layer {
-    pattern: led_pattern_t {
+    pattern: LedPattern {
         mode: LED_MODE_OFF,
         color: rgb8(0, 0, 0),
         period_ms: 0,
@@ -139,7 +138,7 @@ fn led_common() -> *const sl_led_t {
     unsafe { &sl_led_ws2812.led_common as *const sl_led_t }
 }
 
-fn set_rgb(color: rgb_t) {
+fn set_rgb(color: Rgb) {
     unsafe {
         sl_led_set_rgb_color(&sl_led_ws2812, color.r, color.g, color.b);
         sl_led_turn_on(led_common());
@@ -205,7 +204,7 @@ fn update_led_hardware() {
             let (min_b, max_b) = (p.brightness_min as u32, p.brightness_max as u32);
             let brightness = min_b + (max_b - min_b) * tri / 65535;
             let scale = |c: u16| ((c as u32 * brightness) / 65535) as u16;
-            set_rgb(rgb_t { r: scale(p.color.r), g: scale(p.color.g), b: scale(p.color.b) });
+            set_rgb(Rgb { r: scale(p.color.r), g: scale(p.color.g), b: scale(p.color.b) });
         }
         // LED_MODE_OFF and any unknown mode
         _ => unsafe { sl_led_turn_off(led_common()) },
@@ -236,7 +235,7 @@ pub extern "C" fn led_manager_process_action() {
     }
 }
 
-fn set_pattern(priority: u32, pattern: &led_pattern_t) {
+fn set_pattern(priority: u32, pattern: &LedPattern) {
     let pri = priority as usize;
     if pri >= LED_PRIORITY_COUNT {
         return;
@@ -255,7 +254,7 @@ fn set_pattern(priority: u32, pattern: &led_pattern_t) {
 
 // C ABI for the still-C router callbacks (zbt2_router_callbacks.c); Rust uses set_pattern.
 #[no_mangle]
-pub extern "C" fn led_manager_set_pattern(priority: u32, pattern: *const led_pattern_t) {
+pub extern "C" fn led_manager_set_pattern(priority: u32, pattern: *const LedPattern) {
     if let Some(pattern) = unsafe { pattern.as_ref() } {
         set_pattern(priority, pattern);
     }
@@ -273,8 +272,8 @@ pub extern "C" fn led_manager_clear_pattern(priority: u32) {
 }
 
 #[no_mangle]
-pub extern "C" fn led_manager_set_color(priority: u32, color: rgb_t) {
-    let pattern = led_pattern_t {
+pub extern "C" fn led_manager_set_color(priority: u32, color: Rgb) {
+    let pattern = LedPattern {
         mode: LED_MODE_STATIC,
         color,
         period_ms: 0,
@@ -314,7 +313,7 @@ extern "C" fn tilt_monitor_callback(_handle: *mut sl_sleeptimer_timer_handle_t, 
     };
 
     if is_tilted && !was_tilted {
-        let tilt_pattern = led_pattern_t {
+        let tilt_pattern = LedPattern {
             mode: LED_MODE_BLINK,
             color: LED_COLOR_WHITE_DIM,
             period_ms: 500,
@@ -345,7 +344,7 @@ pub extern "C" fn led_effects_set_network_state(network_formed: bool) {
         }
     } else {
         // Searching: pulse white on the background layer, start tilt monitoring.
-        let search_pattern = led_pattern_t {
+        let search_pattern = LedPattern {
             mode: LED_MODE_PULSE,
             color: LED_COLOR_WHITE_DIM,
             period_ms: 2760,

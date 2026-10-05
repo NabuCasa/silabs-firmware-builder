@@ -11,7 +11,7 @@ pub fn xncp_command(attr: TokenStream, item: TokenStream) -> TokenStream {
     let id = parse_macro_input!(attr as Expr);
     let func = parse_macro_input!(item as ItemFn);
     let name = &func.sig.ident;
-    let reg = format_ident!("__XNCP_CMD_{}", name);
+    let reg = format_ident!("__XNCP_CMD_{}", name.to_string().to_uppercase());
 
     quote! {
         #func

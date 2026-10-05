@@ -3,7 +3,7 @@
 
 use linkme::distributed_slice;
 
-use ohf_led_effects::{led_manager_set_color, rgb_t};
+use ohf_led_effects::{led_manager_set_color, Rgb};
 use ohf_qma6100p::read_acceleration;
 use ohf_xncp::{ReplyBuf, Status, XNCP_FEATURES, XNCP_FEATURE_LED_CONTROL, XNCP_FEATURE_TX_POWER_INFO};
 use ohf_xncp_macros::xncp_command;
@@ -14,13 +14,13 @@ const LED_PRIORITY_MANUAL: u32 = 1;
 fn handle_set_led_state(req: &[u8], _reply: &mut ReplyBuf) -> Status {
     let color = match req {
         // One byte per channel, taken as the high byte.
-        &[r, g, b] => rgb_t {
+        &[r, g, b] => Rgb {
             r: (r as u16) << 8,
             g: (g as u16) << 8,
             b: (b as u16) << 8,
         },
         // Full 16-bit per channel, big-endian.
-        &[rh, rl, gh, gl, bh, bl] => rgb_t {
+        &[rh, rl, gh, gl, bh, bl] => Rgb {
             r: u16::from_be_bytes([rh, rl]),
             g: u16::from_be_bytes([gh, gl]),
             b: u16::from_be_bytes([bh, bl]),
