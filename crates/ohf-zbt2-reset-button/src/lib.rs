@@ -1,7 +1,6 @@
 //! ZBT-2 pin-hole reset button. Holding it blinks 1, 2, … times, and completing
 //! `ZBT2_RESET_BUTTON_CYCLES` cycles resets the adapter. Releasing early cancels.
 #![no_std]
-#![allow(non_camel_case_types, non_upper_case_globals)]
 
 use core::cell::{RefCell, UnsafeCell};
 use core::ffi::c_void;
@@ -12,6 +11,7 @@ use ohf_led_effects::{
     led_manager_clear_pattern, led_manager_set_color, LED_COLOR_RESET_ORANGE, LED_PRIORITY_CRITICAL,
 };
 
+#[allow(non_camel_case_types, non_upper_case_globals, non_snake_case, dead_code)]
 mod bindings {
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }

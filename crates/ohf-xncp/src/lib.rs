@@ -1,7 +1,6 @@
 //! XNCP custom-frame dispatch. Command sets register into `XNCP_COMMANDS` and
 //! `XNCP_FEATURES`.
 #![no_std]
-#![allow(non_camel_case_types)]
 
 // For `ohf_xncp_macros::xncp_command`
 pub use linkme::distributed_slice;

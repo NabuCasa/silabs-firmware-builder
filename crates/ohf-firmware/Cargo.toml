@@ -4,7 +4,7 @@ edition.workspace = true
 version.workspace = true
 
 [lib]
-# The only staticlib: one copy of `core` and of the panic handler
+# The only staticlib, so there is one copy of `core`
 crate-type = ["staticlib"]
 
 # Feature names match the components' `ohf_rust_feature` slcc contributions

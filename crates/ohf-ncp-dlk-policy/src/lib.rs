@@ -2,8 +2,8 @@
 //! stack falls back to the R21 network key transport. The SDK default commits every R23
 //! joiner to install-code DLK, so joins without an install code fail.
 #![no_std]
-#![allow(non_camel_case_types, non_upper_case_globals)]
 
+#[allow(non_camel_case_types, non_upper_case_globals, non_snake_case, dead_code)]
 mod bindings {
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }

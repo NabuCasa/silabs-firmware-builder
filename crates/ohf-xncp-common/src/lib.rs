@@ -1,6 +1,5 @@
 //! Common XNCP command set — commands 0x0001..0x0009, shared by every coordinator.
 #![no_std]
-#![allow(non_camel_case_types, non_upper_case_globals)]
 
 use core::cell::RefCell;
 use core::ffi::c_void;
@@ -19,6 +18,7 @@ use ohf_xncp::{
     XNCP_FEATURE_RESTORE_ROUTE_TABLE,
 };
 
+#[allow(non_camel_case_types, non_upper_case_globals, non_snake_case, dead_code)]
 mod bindings {
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
