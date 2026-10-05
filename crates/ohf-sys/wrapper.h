@@ -10,7 +10,6 @@
 #include "em_gpio.h"
 #include "sl_device_gpio.h"
 #include "sl_sleeptimer.h"
-#include "em_core.h"
 #ifdef OHF_FACTORY_ERASE
 #include "nvm3_default.h"
 #include "nvm3_generic.h"

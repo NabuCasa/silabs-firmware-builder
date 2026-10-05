@@ -13,7 +13,6 @@ fn main() {
             .allowlist_type("SPIDRV_Handle_t")
             .allowlist_type("GPIO_Mode_TypeDef")
             .allowlist_type("sl_sleeptimer_timer_handle_t")
-            .allowlist_type("CORE_irqState_t")
             // SL_ENUM[_GENERIC] variants (gpioMode*, SL_GPIO_PORT_*) live in the separate
             // `name_enum` type, allowlisted by name. These back symbol-valued config
             // (WS2812_EN_PORT). Both GPIO port spellings a *_EN_PORT config might use:
@@ -30,8 +29,6 @@ fn main() {
             .allowlist_function("sl_led_set_rgb_color")
             .allowlist_function("sl_sleeptimer_start_periodic_timer_ms")
             .allowlist_function("sl_sleeptimer_stop_timer")
-            .allowlist_function("CORE_EnterCritical")
-            .allowlist_function("CORE_ExitCritical")
             .allowlist_var("I2C_FLAG_.*")
             .allowlist_var("SL_STATUS_OK")
             .allowlist_var("SL_LED_CURRENT_STATE_.*")

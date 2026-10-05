@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "ohf-bindgen",
     "ohf-sys",
+    "ohf-rt",
     "ohf-ws2812",
     "ohf-qma6100p",
     "ohf-led-effects",

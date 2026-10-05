@@ -6,6 +6,9 @@
 //! component whose C-ABI exports go unreferenced for a given config.
 #![no_std]
 
+// Always linked: provides the critical-section impl the components rely on.
+extern crate ohf_rt;
+
 // Pull each enabled component in so its #[no_mangle] exports land in the staticlib.
 // Features are selected by SLC (see Cargo.toml).
 #[cfg(feature = "led_effects")]

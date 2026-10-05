@@ -13,6 +13,7 @@ crate-type = ["staticlib"]
 # ohf_rust_features.txt); build_project.py passes it as --features. SLC selects; cargo
 # follows. Adding a component = a crate here + its feature + the slcc contribution.
 [dependencies]
+ohf-rt = { path = "../ohf-rt" }
 ohf-ws2812 = { path = "../ohf-ws2812", optional = true }
 ohf-qma6100p = { path = "../ohf-qma6100p", optional = true }
 ohf-led-effects = { path = "../ohf-led-effects", optional = true }

@@ -11,11 +11,6 @@ factory_erase = []
 # SDK token access (zigbee builds only: the token headers don't exist elsewhere).
 tokens = []
 
-[dependencies]
-# ohf-sys provides the critical-section impl (backed by CORE_Enter/ExitCritical) so
-# components can use critical_section::Mutex for compile-time-checked shared state.
-critical-section = { version = "1", features = ["restore-state-u32"] }
-
 [build-dependencies]
 ohf-bindgen = { path = "../ohf-bindgen" }
 cc = "1"

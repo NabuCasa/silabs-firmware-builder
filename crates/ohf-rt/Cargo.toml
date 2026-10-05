@@ -1,0 +1,14 @@
+[package]
+name = "ohf-rt"
+edition.workspace = true
+version.workspace = true
+
+[lib]
+# Runtime pieces every Rust-backed firmware needs, whatever components it enables.
+# ohf-firmware always links it. Binds only em_core, which every build has.
+
+[dependencies]
+critical-section = { version = "1", features = ["restore-state-u32"] }
+
+[build-dependencies]
+ohf-bindgen = { path = "../ohf-bindgen" }
