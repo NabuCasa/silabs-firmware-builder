@@ -28,6 +28,10 @@ from .create_gbl import create_gbl
 LOGGER = logging.getLogger(__name__)
 
 PROJECTS_ROOT = pathlib.Path(__file__).parent.parent
+RUST_DIR = PROJECTS_ROOT / "crates"
+
+# All supported parts are Cortex-M33 with a single-precision FPU, linked hard-float.
+RUST_TARGET = "thumbv8m.main-none-eabihf"
 
 yaml = YAML(typ="safe")
 
@@ -1141,16 +1145,6 @@ def cmake_configure_and_build(
     )
 
 
-RUST_DIR = PROJECTS_ROOT / "crates"
-
-
-def rust_target_triple(device: str) -> str:
-    """All supported parts are Cortex-M33; MG21 has no FPU (soft-float), rest hard."""
-    if device.startswith("EFR32MG21"):
-        return "thumbv8m.main-none-eabi"
-    return "thumbv8m.main-none-eabihf"
-
-
 def rust_toolchain_binaries(build: ResolvedBuild) -> dict[str, typing.Any]:
     """The binutils + shim compiler the Rust phase needs, per toolchain. GCC ships
     arm-none-eabi-* GNU binutils + gcc; LLVM ships llvm-* + clang, which needs an explicit
@@ -1163,9 +1157,7 @@ def rust_toolchain_binaries(build: ResolvedBuild) -> dict[str, typing.Any]:
             "strip": tp / "bin/llvm-strip",
             "shim_cc": tp / "bin/clang",
             # clang defaults to the host triple; the shim is bare-metal arm.
-            "shim_target": [
-                f"--target={rust_target_triple(build.manifest.config['device'])}"
-            ],
+            "shim_target": [f"--target={RUST_TARGET}"],
             "sysroot": tp / "lib/clang-runtimes/arm-none-eabi/include",
         }
     return {
@@ -1290,7 +1282,6 @@ def build_rust_libraries(build: ResolvedBuild, rust_config: dict[str, str]) -> N
     if not features:
         return
 
-    triple = rust_target_triple(build.manifest.config["device"])
     flags = extract_slc_clang_flags(build)
 
     # Forward the resolved manifest config to the crates' build.rs.
@@ -1308,7 +1299,7 @@ def build_rust_libraries(build: ResolvedBuild, rust_config: dict[str, str]) -> N
     env = {
         **os.environ,
         "PATH": f"{pathlib.Path.home() / '.cargo/bin'}:{os.environ['PATH']}",
-        "OHF_BINDGEN_FLAGS": f"--target={triple} -isystem{bins['sysroot']} -I{cmsis} {inc_args} {define_args}",
+        "OHF_BINDGEN_FLAGS": f"--target={RUST_TARGET} -isystem{bins['sysroot']} -I{cmsis} {inc_args} {define_args}",
         "OHF_SHIM_CC": str(bins["shim_cc"]),
         "OHF_SHIM_CFLAGS": f"{shim_arch} -I{cmsis} {inc_args} {define_args}",
         "OHF_RUST_CONFIG": str(config_path.resolve()),
@@ -1320,7 +1311,7 @@ def build_rust_libraries(build: ResolvedBuild, rust_config: dict[str, str]) -> N
             "build",
             "--release",
             "--target",
-            triple,
+            RUST_TARGET,
             "-p",
             "ohf-firmware",
             "--no-default-features",
@@ -1332,7 +1323,9 @@ def build_rust_libraries(build: ResolvedBuild, rust_config: dict[str, str]) -> N
         cwd=RUST_DIR,
     )
 
-    built = {p.name: p for p in (RUST_DIR / "target" / triple / "release").glob("*.a")}
+    built = {
+        p.name: p for p in (RUST_DIR / "target" / RUST_TARGET / "release").glob("*.a")
+    }
     text = build.project_cmake.read_text()
     copied = re.search(r'set\(COPIED_SDK_PATH "([^"]+)"\)', text).group(1)
 

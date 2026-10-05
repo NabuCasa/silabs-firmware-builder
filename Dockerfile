@@ -139,6 +139,29 @@ RUN mkdir -p /opt/zstd-gcc \
         && rm -rf /build; \
     fi
 
+# rustup installs the toolchain and targets pinned in rust-toolchain.toml. At build time,
+# cargo runs inside `crates/` and rustup selects this same toolchain from that file.
+FROM trixie-stable AS rust-toolchain
+ARG TARGETARCH
+ENV RUSTUP_HOME=/opt/rust/rustup
+ENV CARGO_HOME=/opt/rust/cargo
+COPY crates/rust-toolchain.toml /tmp/rust/
+RUN set -eux \
+    && apt-get install -y --no-install-recommends \
+        aria2 ca-certificates \
+    && cd /tmp/rust \
+    && if [ "$TARGETARCH" = "arm64" ]; then \
+        aria2c -q -o rustup-init --checksum=sha-256=15f6e4ce9f583b929c996c91562bad6d4454f3281de858b02cdfdef615fac433 \
+            https://static.rust-lang.org/rustup/archive/1.29.1/aarch64-unknown-linux-gnu/rustup-init; \
+       else \
+        aria2c -q -o rustup-init --checksum=sha-256=dda7234360b7f578ca8b0ddcb80145646fa61a67c1720a5abc7051b35c9fcb71 \
+            https://static.rust-lang.org/rustup/archive/1.29.1/x86_64-unknown-linux-gnu/rustup-init; \
+       fi \
+    && chmod +x rustup-init \
+    && ./rustup-init -y --no-modify-path --profile minimal --default-toolchain none \
+    && /opt/rust/cargo/bin/rustup toolchain install \
+    && rm -rf /tmp/rust
+
 # Python virtual environment for the firmware builder script
 FROM trixie-stable AS python-venv
 COPY --from=ghcr.io/astral-sh/uv:0.12.1 /uv /uvx /usr/bin/
@@ -169,13 +192,20 @@ RUN --mount=type=bind,from=trixie-stable,source=/var/lib/apt/lists,target=/var/l
        libpcre2-16-0 \
        libglib2.0-0 \
        # Needed at runtime by the zstd-enabled cc1/cc1plus/lto1 swapped in below (ARM64)
-       libzstd1
+       libzstd1 \
+       # Host compiler and linker for cargo build scripts and proc macros
+       gcc \
+       libc6-dev \
+       # bindgen loads libclang at runtime and needs its builtin headers (stddef.h, ...)
+       libclang1-19 \
+       libclang-common-19-dev
 
 # Copy from parallel stages
 COPY --from=python-venv /opt/pythons /opt/pythons
 COPY --from=python-venv /opt/venv /opt/venv
 COPY --from=silabs-tools /opt/silabs /opt/silabs
 COPY --from=arm-toolchains /opt/toolchains /opt/toolchains
+COPY --from=rust-toolchain /opt/rust /opt/rust
 COPY --from=silabs-sdk /opt/silabs/sdks /opt/silabs/sdks
 COPY --from=zstd-gcc-builder /opt/zstd-gcc /tmp/zstd-gcc
 RUN set -eux \
@@ -193,7 +223,9 @@ RUN set -eux \
     && git config --system --add safe.directory '*'
 
 ENV HOME=/root
-ENV PATH="$PATH:/opt/silabs/bin"
+ENV RUSTUP_HOME=/opt/rust/rustup
+ENV CARGO_HOME=/opt/rust/cargo
+ENV PATH="$PATH:/opt/silabs/bin:/opt/rust/cargo/bin"
 
 WORKDIR /repo
 

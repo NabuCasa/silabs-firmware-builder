@@ -183,6 +183,7 @@ dependencies = [
  "ohf-ncp-dlk-policy",
  "ohf-qma6100p",
  "ohf-router",
+ "ohf-rt",
  "ohf-ws2812",
  "ohf-xncp",
  "ohf-xncp-common",
@@ -238,11 +239,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "ohf-rt"
+version = "0.1.0"
+dependencies = [
+ "critical-section",
+ "ohf-bindgen",
+]
+
+[[package]]
 name = "ohf-sys"
 version = "0.1.0"
 dependencies = [
  "cc",
- "critical-section",
  "ohf-bindgen",
 ]
 
