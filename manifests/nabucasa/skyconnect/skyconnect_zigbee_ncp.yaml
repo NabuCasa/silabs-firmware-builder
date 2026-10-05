@@ -3,7 +3,7 @@ device: EFR32MG21A020F512IM32
 base_project: src/zigbee_ncp
 filename: "{manifest_name}_{ezsp_version}"
 sdk: "simplicity_sdk:2026.6.1"
-toolchain: "14.2.1.20241119"
+toolchain: "llvm:21.1.1"
 
 gbl:
   fw_type: zigbee_ncp
@@ -11,6 +11,9 @@ gbl:
   baudrate: 115200
 
 sdk_extension:
+  - id: nabucasa_hardware
+    vendor: nabucasa
+    version: 1.0.0
   - id: xncp
     vendor: nabucasa
     version: 1.0.0
