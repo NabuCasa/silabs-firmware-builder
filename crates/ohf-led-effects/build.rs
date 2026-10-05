@@ -11,7 +11,10 @@ fn main() {
     let cfg: serde_json::Value = serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
 
     let get = |key: &str, default: &str| {
-        cfg.get(key).and_then(|v| v.as_str()).unwrap_or(default).to_owned()
+        cfg.get(key)
+            .and_then(|v| v.as_str())
+            .unwrap_or(default)
+            .to_owned()
     };
 
     let threshold: f64 = get("LED_EFFECTS_TILT_THRESHOLD_DEG", "16").parse().unwrap();
@@ -28,5 +31,9 @@ fn main() {
         sin2(threshold - hysteresis) as f32,
     );
 
-    fs::write(PathBuf::from(env::var("OUT_DIR").unwrap()).join("config.rs"), generated).unwrap();
+    fs::write(
+        PathBuf::from(env::var("OUT_DIR").unwrap()).join("config.rs"),
+        generated,
+    )
+    .unwrap();
 }

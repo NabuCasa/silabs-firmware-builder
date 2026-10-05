@@ -11,14 +11,18 @@ use linkme::distributed_slice;
 use ohf_xncp_macros::xncp_command;
 
 use ohf_xncp::{
-    Reader, ReplyBuf, Status, XncpResult, XNCP_FEATURES,
-    XNCP_FEATURE_BUILD_STRING, XNCP_FEATURE_CHIP_INFO, XNCP_FEATURE_COMBINED_SEND,
-    XNCP_FEATURE_FLOW_CONTROL_TYPE, XNCP_FEATURE_MANUAL_SOURCE_ROUTE,
-    XNCP_FEATURE_MEMBER_OF_ALL_GROUPS, XNCP_FEATURE_MFG_TOKEN_OVERRIDES,
-    XNCP_FEATURE_RESTORE_ROUTE_TABLE,
+    Reader, ReplyBuf, Status, XncpResult, XNCP_FEATURES, XNCP_FEATURE_BUILD_STRING,
+    XNCP_FEATURE_CHIP_INFO, XNCP_FEATURE_COMBINED_SEND, XNCP_FEATURE_FLOW_CONTROL_TYPE,
+    XNCP_FEATURE_MANUAL_SOURCE_ROUTE, XNCP_FEATURE_MEMBER_OF_ALL_GROUPS,
+    XNCP_FEATURE_MFG_TOKEN_OVERRIDES, XNCP_FEATURE_RESTORE_ROUTE_TABLE,
 };
 
-#[allow(non_camel_case_types, non_upper_case_globals, non_snake_case, dead_code)]
+#[allow(
+    non_camel_case_types,
+    non_upper_case_globals,
+    non_snake_case,
+    dead_code
+)]
 mod bindings {
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
@@ -320,7 +324,12 @@ fn apply_extended_timeout(mut eui64: [u8; 8], node_id: u16, extended_timeout: bo
     }
 }
 
-fn send_unicast(destination: u16, aps: &mut sl_zigbee_aps_frame_t, tag: u16, message: &[u8]) -> (u32, u8) {
+fn send_unicast(
+    destination: u16,
+    aps: &mut sl_zigbee_aps_frame_t,
+    tag: u16,
+    message: &[u8],
+) -> (u32, u8) {
     let mut aps_sequence: u8 = 0;
     let status = unsafe {
         sl_zigbee_send_unicast(
@@ -377,7 +386,8 @@ fn handle_send_unicast(req: &[u8], reply: &mut ReplyBuf) -> XncpResult {
         install_manual_source_route(destination, relays)?;
     }
 
-    let (status, aps_sequence) = send_unicast(destination, &mut aps_frame, message_tag as u16, message);
+    let (status, aps_sequence) =
+        send_unicast(destination, &mut aps_frame, message_tag as u16, message);
     reply.push_u32_le(status);
     reply.push(aps_sequence);
     Ok(())

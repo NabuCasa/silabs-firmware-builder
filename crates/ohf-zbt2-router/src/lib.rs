@@ -5,12 +5,19 @@
 use core::ffi::c_int;
 use core::mem::{size_of, MaybeUninit};
 
-use ohf_led_effects::{clear_pattern, color, search_pulse, set_color, set_network_state, set_pattern};
+use ohf_led_effects::{
+    clear_pattern, color, search_pulse, set_color, set_network_state, set_pattern,
+};
 use ohf_led_effects::{Pattern, Priority, Rgb};
 use ohf_sys::token::has_stored_network;
 use ohf_sys::SyncCell;
 
-#[allow(non_camel_case_types, non_upper_case_globals, non_snake_case, dead_code)]
+#[allow(
+    non_camel_case_types,
+    non_upper_case_globals,
+    non_snake_case,
+    dead_code
+)]
 mod bindings {
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
@@ -72,7 +79,11 @@ fn xy_to_rgb(level: u8, current_x: u16, current_y: u16) -> Rgb {
         };
         (c.clamp(0.0, 1.0) * 65535.0) as u16
     };
-    Rgb { r: gamma(r), g: gamma(g), b: gamma(b) }
+    Rgb {
+        r: gamma(r),
+        g: gamma(g),
+        b: gamma(b),
+    }
 }
 
 // Tanner Helland's color temperature approximation
@@ -100,7 +111,11 @@ fn color_temp_to_rgb(level: u8, mireds: u16) -> Rgb {
 
     let brightness = level as f32 / 254.0;
     let scale = |c: f32| (c.clamp(0.0, 255.0) * 257.0 * brightness) as u16;
-    Rgb { r: scale(red), g: scale(green), b: scale(blue) }
+    Rgb {
+        r: scale(red),
+        g: scale(green),
+        b: scale(blue),
+    }
 }
 
 // A failed read leaves `default`
@@ -125,18 +140,43 @@ fn sync_light_state(endpoint: u8) {
         return;
     }
 
-    let level: u8 =
-        read_attribute(endpoint, ZCL_LEVEL_CONTROL_CLUSTER_ID, ZCL_CURRENT_LEVEL_ATTRIBUTE_ID, 0).max(1);
+    let level: u8 = read_attribute(
+        endpoint,
+        ZCL_LEVEL_CONTROL_CLUSTER_ID,
+        ZCL_CURRENT_LEVEL_ATTRIBUTE_ID,
+        0,
+    )
+    .max(1);
 
     let cluster = ZCL_COLOR_CONTROL_CLUSTER_ID;
-    let color_mode: u8 = read_attribute(endpoint, cluster, ZCL_COLOR_CONTROL_COLOR_MODE_ATTRIBUTE_ID, 0x01);
+    let color_mode: u8 = read_attribute(
+        endpoint,
+        cluster,
+        ZCL_COLOR_CONTROL_COLOR_MODE_ATTRIBUTE_ID,
+        0x01,
+    );
 
     let rgb = if color_mode == COLOR_MODE_TEMPERATURE {
-        let mireds = read_attribute(endpoint, cluster, ZCL_COLOR_CONTROL_COLOR_TEMPERATURE_ATTRIBUTE_ID, 0u16);
+        let mireds = read_attribute(
+            endpoint,
+            cluster,
+            ZCL_COLOR_CONTROL_COLOR_TEMPERATURE_ATTRIBUTE_ID,
+            0u16,
+        );
         color_temp_to_rgb(level, mireds)
     } else {
-        let x = read_attribute(endpoint, cluster, ZCL_COLOR_CONTROL_CURRENT_X_ATTRIBUTE_ID, 0u16);
-        let y = read_attribute(endpoint, cluster, ZCL_COLOR_CONTROL_CURRENT_Y_ATTRIBUTE_ID, 0u16);
+        let x = read_attribute(
+            endpoint,
+            cluster,
+            ZCL_COLOR_CONTROL_CURRENT_X_ATTRIBUTE_ID,
+            0u16,
+        );
+        let y = read_attribute(
+            endpoint,
+            cluster,
+            ZCL_COLOR_CONTROL_CURRENT_Y_ATTRIBUTE_ID,
+            0u16,
+        );
         xy_to_rgb(level, x, y)
     };
 
@@ -144,7 +184,9 @@ fn sync_light_state(endpoint: u8) {
 }
 
 fn retry_commissioning_after(delay_ms: u32) {
-    unsafe { sli_zigbee_af_event_set_delay_ms(COMMISSIONING_RETRY_EVENT.get(), NO_ENDPOINT, delay_ms) };
+    unsafe {
+        sli_zigbee_af_event_set_delay_ms(COMMISSIONING_RETRY_EVENT.get(), NO_ENDPOINT, delay_ms)
+    };
 }
 
 unsafe extern "C" fn commissioning_retry_event_handler(_event: *mut sl_zigbee_af_event_t) {
@@ -185,7 +227,10 @@ pub extern "C" fn zbt2_router_stack_status_cb(status: sl_status_t) {
         clear_pattern(Priority::Manual);
     } else if status == SL_STATUS_NETWORK_UP {
         set_network_state(true);
-        set_pattern(Priority::Notification, Pattern::solid(color::JOIN_GREEN).lasting(JOIN_NOTIFICATION_MS));
+        set_pattern(
+            Priority::Notification,
+            Pattern::solid(color::JOIN_GREEN).lasting(JOIN_NOTIFICATION_MS),
+        );
 
         // Shown once the join notification ends
         sync_light_state(LIGHT_ENDPOINT);
@@ -251,7 +296,8 @@ pub extern "C" fn sl_zigbee_af_identify_start_feedback_cb(endpoint: u8, identify
     );
     set_pattern(
         Priority::Notification,
-        Pattern::blink(color::WHITE_DIM, IDENTIFY_BLINK_PERIOD_MS).lasting(identify_time as u32 * 1000),
+        Pattern::blink(color::WHITE_DIM, IDENTIFY_BLINK_PERIOD_MS)
+            .lasting(identify_time as u32 * 1000),
     );
 }
 

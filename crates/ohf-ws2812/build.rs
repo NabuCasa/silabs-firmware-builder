@@ -9,7 +9,12 @@ fn main() {
     println!("cargo:rerun-if-changed={path}");
     let cfg: serde_json::Value = serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
 
-    let value = |key: &str| cfg[key].as_str().unwrap_or_else(|| panic!("{key} missing from config")).to_owned();
+    let value = |key: &str| {
+        cfg[key]
+            .as_str()
+            .unwrap_or_else(|| panic!("{key} missing from config"))
+            .to_owned()
+    };
 
     // Symbolic values (e.g. SL_GPIO_PORT_C) come from the ohf-sys bindings
     let expr = |v: &str| {

@@ -5,7 +5,10 @@ use linkme::distributed_slice;
 
 use ohf_led_effects::{set_color, Priority, Rgb};
 use ohf_qma6100p::read_acceleration;
-use ohf_xncp::{ReplyBuf, Status, XncpResult, XNCP_FEATURES, XNCP_FEATURE_LED_CONTROL, XNCP_FEATURE_TX_POWER_INFO};
+use ohf_xncp::{
+    ReplyBuf, Status, XncpResult, XNCP_FEATURES, XNCP_FEATURE_LED_CONTROL,
+    XNCP_FEATURE_TX_POWER_INFO,
+};
 use ohf_xncp_macros::xncp_command;
 
 #[xncp_command(0x0F00)]

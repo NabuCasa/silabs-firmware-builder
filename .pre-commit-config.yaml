@@ -5,3 +5,12 @@ repos:
       - id: ruff
         args: [--fix]
       - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: Cargo fmt
+        entry: sh -c 'cd crates && cargo fmt --all'
+        language: system
+        types: [rust]
+        pass_filenames: false

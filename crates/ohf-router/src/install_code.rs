@@ -1,5 +1,7 @@
 //! Provision an install code once. The ZBT-2 ships without one, and R23 routers need it for DLK.
-use crate::bindings::{halCommonCrc16, psa_crypto_init, psa_generate_random, psa_status_t, PSA_SUCCESS};
+use crate::bindings::{
+    halCommonCrc16, psa_crypto_init, psa_generate_random, psa_status_t, PSA_SUCCESS,
+};
 
 const INSTALL_CODE_VALUE_SIZE: usize = 16;
 // flags: bit0 = 0 (valid), bits1-2 = size code 3 (16 bytes) => 0x0006.
@@ -23,7 +25,8 @@ fn install_code_crc(value: &[u8]) -> u16 {
 #[no_mangle]
 pub extern "C" fn router_install_code_init(_init_level: u8) {
     // Only act on a factory-blank token; erased MFG flags read as 0xFFFF.
-    let tok: ohf_sys::tokTypeMfgInstallationCode = ohf_sys::token::get_mfg(ohf_sys::TOKEN_MFG_INSTALLATION_CODE);
+    let tok: ohf_sys::tokTypeMfgInstallationCode =
+        ohf_sys::token::get_mfg(ohf_sys::TOKEN_MFG_INSTALLATION_CODE);
     if tok.flags != 0xFFFF {
         return;
     }

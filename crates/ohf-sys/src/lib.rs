@@ -1,6 +1,11 @@
 //! SDK bindings shared by the components.
 #![no_std]
-#![allow(non_camel_case_types, non_upper_case_globals, non_snake_case, dead_code)]
+#![allow(
+    non_camel_case_types,
+    non_upper_case_globals,
+    non_snake_case,
+    dead_code
+)]
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
@@ -47,7 +52,12 @@ pub mod token {
     pub fn get<T: Copy>(token: u32) -> T {
         let mut v = MaybeUninit::<T>::uninit();
         unsafe {
-            super::halInternalGetTokenData(v.as_mut_ptr() as *mut c_void, key(token), NO_INDEX, size_of::<T>() as u8);
+            super::halInternalGetTokenData(
+                v.as_mut_ptr() as *mut c_void,
+                key(token),
+                NO_INDEX,
+                size_of::<T>() as u8,
+            );
             v.assume_init()
         }
     }
@@ -55,7 +65,12 @@ pub mod token {
     pub fn get_mfg<T: Copy>(token: u32) -> T {
         let mut v = MaybeUninit::<T>::uninit();
         unsafe {
-            super::halInternalGetMfgTokenData(v.as_mut_ptr() as *mut c_void, key(token), NO_INDEX, size_of::<T>() as u32);
+            super::halInternalGetMfgTokenData(
+                v.as_mut_ptr() as *mut c_void,
+                key(token),
+                NO_INDEX,
+                size_of::<T>() as u32,
+            );
             v.assume_init()
         }
     }
@@ -68,7 +83,11 @@ pub mod token {
 
     pub fn set_mfg<T>(token: u32, value: &T) {
         unsafe {
-            super::halInternalSetMfgTokenData(key(token), value as *const T as *mut c_void, size_of::<T>() as u32);
+            super::halInternalSetMfgTokenData(
+                key(token),
+                value as *const T as *mut c_void,
+                size_of::<T>() as u32,
+            );
         }
     }
 }

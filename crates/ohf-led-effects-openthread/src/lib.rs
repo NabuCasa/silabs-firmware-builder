@@ -4,7 +4,9 @@
 use core::ffi::c_void;
 use core::sync::atomic::{AtomicBool, Ordering};
 
-use ohf_sys::{sl_sleeptimer_start_periodic_timer_ms, sl_sleeptimer_timer_handle_t, SyncCell, ZERO_TIMER};
+use ohf_sys::{
+    sl_sleeptimer_start_periodic_timer_ms, sl_sleeptimer_timer_handle_t, SyncCell, ZERO_TIMER,
+};
 
 const SETTINGS_POLL_INTERVAL_MS: u32 = 250;
 

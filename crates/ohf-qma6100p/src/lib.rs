@@ -3,7 +3,8 @@
 
 use ohf_sys::{
     sl_udelay_wait, I2CSPM_Transfer, I2C_TransferReturn_TypeDef, I2C_TransferSeq_TypeDef,
-    I2C_TransferSeq_TypeDef__bindgen_ty_1 as I2cBuf, I2C_TypeDef, I2C_FLAG_WRITE, I2C_FLAG_WRITE_READ,
+    I2C_TransferSeq_TypeDef__bindgen_ty_1 as I2cBuf, I2C_TypeDef, I2C_FLAG_WRITE,
+    I2C_FLAG_WRITE_READ,
 };
 
 const QMA6100P_I2C_ADDR: u16 = 0x24;
@@ -36,8 +37,14 @@ fn transfer(flags: u32, first: &mut [u8], second: &mut [u8]) -> I2C_TransferRetu
         addr: QMA6100P_I2C_ADDR,
         flags: flags as u16,
         buf: [
-            I2cBuf { data: first.as_mut_ptr(), len: first.len() as u16 },
-            I2cBuf { data: second.as_mut_ptr(), len: second.len() as u16 },
+            I2cBuf {
+                data: first.as_mut_ptr(),
+                len: first.len() as u16,
+            },
+            I2cBuf {
+                data: second.as_mut_ptr(),
+                len: second.len() as u16,
+            },
         ],
     };
     unsafe { I2CSPM_Transfer(sl_i2cspm_inst, &mut seq) }
@@ -67,7 +74,10 @@ fn init() {
 
     // recommended initialization sequence
     write_reg(QMA6100P_REG_POWER_MANAGEMENT, QMA6100P_PM_MODE_ACTIVE);
-    write_reg(QMA6100P_REG_POWER_MANAGEMENT, QMA6100P_PM_MODE_ACTIVE | QMA6100P_PM_MCLK_51_2K);
+    write_reg(
+        QMA6100P_REG_POWER_MANAGEMENT,
+        QMA6100P_PM_MODE_ACTIVE | QMA6100P_PM_MCLK_51_2K,
+    );
     write_reg(QMA6100P_REG_INTERNAL_4A, 0x20);
     write_reg(QMA6100P_REG_INTERNAL_56, 0x01);
     write_reg(QMA6100P_REG_INTERNAL_5F, 0x80);
@@ -77,7 +87,10 @@ fn init() {
 
     write_reg(QMA6100P_REG_RANGE, QMA6100P_RANGE_8G);
     write_reg(QMA6100P_REG_BW_ODR, QMA6100P_BW_100);
-    write_reg(QMA6100P_REG_POWER_MANAGEMENT, QMA6100P_PM_MODE_ACTIVE | QMA6100P_PM_MCLK_51_2K);
+    write_reg(
+        QMA6100P_REG_POWER_MANAGEMENT,
+        QMA6100P_PM_MODE_ACTIVE | QMA6100P_PM_MCLK_51_2K,
+    );
 }
 
 fn read_raw() -> [i16; 3] {

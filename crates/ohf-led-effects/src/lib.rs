@@ -23,13 +23,21 @@ pub struct Rgb {
 
 impl Rgb {
     pub const fn rgb8(r: u8, g: u8, b: u8) -> Self {
-        Self { r: r as u16 * 257, g: g as u16 * 257, b: b as u16 * 257 }
+        Self {
+            r: r as u16 * 257,
+            g: g as u16 * 257,
+            b: b as u16 * 257,
+        }
     }
 
     // `brightness` is 0-65535
     fn scaled(self, brightness: u32) -> Self {
         let scale = |c: u16| ((c as u32 * brightness) / 65535) as u16;
-        Self { r: scale(self.r), g: scale(self.g), b: scale(self.b) }
+        Self {
+            r: scale(self.r),
+            g: scale(self.g),
+            b: scale(self.b),
+        }
     }
 }
 
@@ -67,9 +75,15 @@ enum Mode {
     Off,
     Static,
     /// On/off square wave
-    Blink { period_ms: u16 },
+    Blink {
+        period_ms: u16,
+    },
     /// Triangle wave fading between two brightnesses (0-65535)
-    Pulse { period_ms: u16, brightness_min: u16, brightness_max: u16 },
+    Pulse {
+        period_ms: u16,
+        brightness_min: u16,
+        brightness_max: u16,
+    },
 }
 
 #[derive(Clone, Copy)]
@@ -81,28 +95,52 @@ pub struct Pattern {
 }
 
 impl Pattern {
-    pub const OFF: Self = Self { mode: Mode::Off, color: color::BLACK, duration_ms: None };
+    pub const OFF: Self = Self {
+        mode: Mode::Off,
+        color: color::BLACK,
+        duration_ms: None,
+    };
 
     pub const fn solid(color: Rgb) -> Self {
-        Self { mode: Mode::Static, color, duration_ms: None }
+        Self {
+            mode: Mode::Static,
+            color,
+            duration_ms: None,
+        }
     }
 
     pub const fn blink(color: Rgb, period_ms: u16) -> Self {
         assert!(period_ms >= 2);
-        Self { mode: Mode::Blink { period_ms }, color, duration_ms: None }
+        Self {
+            mode: Mode::Blink { period_ms },
+            color,
+            duration_ms: None,
+        }
     }
 
-    pub const fn pulse(color: Rgb, period_ms: u16, brightness_min: u16, brightness_max: u16) -> Self {
+    pub const fn pulse(
+        color: Rgb,
+        period_ms: u16,
+        brightness_min: u16,
+        brightness_max: u16,
+    ) -> Self {
         assert!(period_ms >= 2 && brightness_min <= brightness_max);
         Self {
-            mode: Mode::Pulse { period_ms, brightness_min, brightness_max },
+            mode: Mode::Pulse {
+                period_ms,
+                brightness_min,
+                brightness_max,
+            },
             color,
             duration_ms: None,
         }
     }
 
     pub const fn lasting(self, duration_ms: u32) -> Self {
-        Self { duration_ms: Some(duration_ms), ..self }
+        Self {
+            duration_ms: Some(duration_ms),
+            ..self
+        }
     }
 
     /// The color `elapsed_ms` into the pattern, `None` for off
@@ -114,7 +152,11 @@ impl Pattern {
                 let period = period_ms as u32;
                 (elapsed_ms % period < period / 2).then_some(self.color)
             }
-            Mode::Pulse { period_ms, brightness_min, brightness_max } => {
+            Mode::Pulse {
+                period_ms,
+                brightness_min,
+                brightness_max,
+            } => {
                 let period = period_ms as u32;
                 let half = period / 2;
                 let phase = elapsed_ms % period;
@@ -165,7 +207,10 @@ struct Layers([Option<Layer>; Priority::COUNT]);
 
 impl Layers {
     fn set(&mut self, priority: Priority, pattern: Pattern, tick: u32) {
-        self.0[priority as usize] = Some(Layer { pattern, start_tick: tick });
+        self.0[priority as usize] = Some(Layer {
+            pattern,
+            start_tick: tick,
+        });
     }
 
     fn clear(&mut self, priority: Priority) {
@@ -197,7 +242,10 @@ static MANAGER_INITIALIZED: AtomicBool = AtomicBool::new(false);
 static LED_TIMER: SyncCell<sl_sleeptimer_timer_handle_t> = SyncCell::new(ZERO_TIMER);
 
 // Network state changes can come from an ISR
-static TILT: Mutex<RefCell<Tilt>> = Mutex::new(RefCell::new(Tilt { monitoring: false, tilted: false }));
+static TILT: Mutex<RefCell<Tilt>> = Mutex::new(RefCell::new(Tilt {
+    monitoring: false,
+    tilted: false,
+}));
 
 fn led_common() -> *const sl_led_t {
     unsafe { &sl_led_ws2812.led_common as *const sl_led_t }
@@ -228,7 +276,9 @@ fn update_led_hardware() {
         // Read in the critical section, so a layer can't start after `tick`
         let tick = GLOBAL_TICK.load(Ordering::SeqCst);
         let layer = LAYERS.borrow(cs).borrow_mut().top(tick)?;
-        let elapsed_ms = layer.elapsed_ticks(tick).wrapping_mul(LED_EFFECTS_UPDATE_INTERVAL_MS);
+        let elapsed_ms = layer
+            .elapsed_ticks(tick)
+            .wrapping_mul(LED_EFFECTS_UPDATE_INTERVAL_MS);
         layer.pattern.color_at(elapsed_ms)
     });
 
@@ -345,5 +395,10 @@ pub fn set_network_state(network_formed: bool) {
 
 /// The network search pulse in the given color, for stacks that signal search phases
 pub const fn search_pulse(color: Rgb) -> Pattern {
-    Pattern::pulse(color, SEARCH_PULSE_PERIOD_MS, SEARCH_PULSE_MIN_BRIGHTNESS, 65535)
+    Pattern::pulse(
+        color,
+        SEARCH_PULSE_PERIOD_MS,
+        SEARCH_PULSE_MIN_BRIGHTNESS,
+        65535,
+    )
 }

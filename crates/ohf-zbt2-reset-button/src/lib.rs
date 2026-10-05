@@ -12,7 +12,12 @@ use ohf_sys::{
     sl_sleeptimer_timer_callback_t, sl_sleeptimer_timer_handle_t, SyncCell, ZERO_TIMER,
 };
 
-#[allow(non_camel_case_types, non_upper_case_globals, non_snake_case, dead_code)]
+#[allow(
+    non_camel_case_types,
+    non_upper_case_globals,
+    non_snake_case,
+    dead_code
+)]
 mod bindings {
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
@@ -72,7 +77,11 @@ fn reset_adapter() -> ! {
 
 extern "C" fn reset_timer_callback(_handle: *mut sl_sleeptimer_timer_handle_t, _data: *mut c_void) {
     critical_section::with(|cs| STATE.borrow(cs).borrow_mut().reset_cycle += 1);
-    start_ms(&BLINK_TIMER, ZBT2_RESET_BUTTON_BLINK_START_DELAY_MS, Some(blink_task));
+    start_ms(
+        &BLINK_TIMER,
+        ZBT2_RESET_BUTTON_BLINK_START_DELAY_MS,
+        Some(blink_task),
+    );
 }
 
 extern "C" fn blink_task(_handle: *mut sl_sleeptimer_timer_handle_t, _data: *mut c_void) {
@@ -95,8 +104,16 @@ extern "C" fn blink_task(_handle: *mut sl_sleeptimer_timer_handle_t, _data: *mut
 
         match cycle_done {
             Some(true) => reset_adapter(),
-            Some(false) => start_ms(&RESET_TIMER, ZBT2_RESET_BUTTON_CYCLE_DELAY_MS, Some(reset_timer_callback)),
-            None => start_ms(&BLINK_TIMER, ZBT2_RESET_BUTTON_BLINK_OFF_MS, Some(blink_task)),
+            Some(false) => start_ms(
+                &RESET_TIMER,
+                ZBT2_RESET_BUTTON_CYCLE_DELAY_MS,
+                Some(reset_timer_callback),
+            ),
+            None => start_ms(
+                &BLINK_TIMER,
+                ZBT2_RESET_BUTTON_BLINK_OFF_MS,
+                Some(blink_task),
+            ),
         }
     } else {
         set_color(Priority::Reset, color::RESET_ORANGE);
@@ -105,7 +122,11 @@ extern "C" fn blink_task(_handle: *mut sl_sleeptimer_timer_handle_t, _data: *mut
             s.led_on = true;
             s.blink_count += 1;
         });
-        start_ms(&BLINK_TIMER, ZBT2_RESET_BUTTON_BLINK_ON_MS, Some(blink_task));
+        start_ms(
+            &BLINK_TIMER,
+            ZBT2_RESET_BUTTON_BLINK_ON_MS,
+            Some(blink_task),
+        );
     }
 }
 
@@ -120,7 +141,11 @@ fn handle_state(pressed: bool) {
             s.blink_count = 0;
             s.led_on = false;
         });
-        start_ms(&RESET_TIMER, ZBT2_RESET_BUTTON_CYCLE_DELAY_MS, Some(reset_timer_callback));
+        start_ms(
+            &RESET_TIMER,
+            ZBT2_RESET_BUTTON_CYCLE_DELAY_MS,
+            Some(reset_timer_callback),
+        );
     } else {
         // Released early
         clear_pattern(Priority::Reset);
