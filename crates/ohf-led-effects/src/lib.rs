@@ -25,6 +25,12 @@ impl Rgb {
     pub const fn rgb8(r: u8, g: u8, b: u8) -> Self {
         Self { r: r as u16 * 257, g: g as u16 * 257, b: b as u16 * 257 }
     }
+
+    // `brightness` is 0-65535
+    fn scaled(self, brightness: u32) -> Self {
+        let scale = |c: u16| ((c as u32 * brightness) / 65535) as u16;
+        Self { r: scale(self.r), g: scale(self.g), b: scale(self.b) }
+    }
 }
 
 pub mod color {
@@ -52,54 +58,75 @@ pub enum Priority {
     Reset,
 }
 
-const PRIORITY_COUNT: usize = 5;
+impl Priority {
+    const COUNT: usize = Priority::Reset as usize + 1;
+}
 
 #[derive(Clone, Copy)]
-pub enum Mode {
+enum Mode {
     Off,
     Static,
     /// On/off square wave
-    Blink,
-    /// Triangle wave fading between two brightnesses
-    Pulse,
+    Blink { period_ms: u16 },
+    /// Triangle wave fading between two brightnesses (0-65535)
+    Pulse { period_ms: u16, brightness_min: u16, brightness_max: u16 },
 }
 
 #[derive(Clone, Copy)]
 pub struct Pattern {
-    pub mode: Mode,
-    pub color: Rgb,
-    /// Cycle time for blink and pulse
-    pub period_ms: u16,
-    /// Clear the layer after this long, 0 for never
-    pub duration_ms: u32,
-    pub brightness_min: u16,
-    pub brightness_max: u16,
+    mode: Mode,
+    color: Rgb,
+    /// Clear the layer after this long
+    duration_ms: Option<u32>,
 }
 
 impl Pattern {
-    pub const OFF: Self = Self {
-        mode: Mode::Off,
-        color: color::BLACK,
-        period_ms: 0,
-        duration_ms: 0,
-        brightness_min: 0,
-        brightness_max: 0,
-    };
+    pub const OFF: Self = Self { mode: Mode::Off, color: color::BLACK, duration_ms: None };
 
     pub const fn solid(color: Rgb) -> Self {
-        Self { mode: Mode::Static, color, ..Self::OFF }
+        Self { mode: Mode::Static, color, duration_ms: None }
     }
 
     pub const fn blink(color: Rgb, period_ms: u16) -> Self {
-        Self { mode: Mode::Blink, color, period_ms, ..Self::OFF }
+        assert!(period_ms >= 2);
+        Self { mode: Mode::Blink { period_ms }, color, duration_ms: None }
     }
 
     pub const fn pulse(color: Rgb, period_ms: u16, brightness_min: u16, brightness_max: u16) -> Self {
-        Self { mode: Mode::Pulse, color, period_ms, brightness_min, brightness_max, ..Self::OFF }
+        assert!(period_ms >= 2 && brightness_min <= brightness_max);
+        Self {
+            mode: Mode::Pulse { period_ms, brightness_min, brightness_max },
+            color,
+            duration_ms: None,
+        }
     }
 
     pub const fn lasting(self, duration_ms: u32) -> Self {
-        Self { duration_ms, ..self }
+        Self { duration_ms: Some(duration_ms), ..self }
+    }
+
+    /// The color `elapsed_ms` into the pattern, `None` for off
+    fn color_at(&self, elapsed_ms: u32) -> Option<Rgb> {
+        match self.mode {
+            Mode::Off => None,
+            Mode::Static => Some(self.color),
+            Mode::Blink { period_ms } => {
+                let period = period_ms as u32;
+                (elapsed_ms % period < period / 2).then_some(self.color)
+            }
+            Mode::Pulse { period_ms, brightness_min, brightness_max } => {
+                let period = period_ms as u32;
+                let half = period / 2;
+                let phase = elapsed_ms % period;
+                let triangle = if phase < half {
+                    phase * 65535 / half
+                } else {
+                    65535 - (phase - half) * 65535 / (period - half)
+                };
+                let (min, max) = (brightness_min as u32, brightness_max as u32);
+                Some(self.color.scaled(min + (max - min) * triangle / 65535))
+            }
+        }
     }
 }
 
@@ -118,23 +145,43 @@ extern "C" {
 #[derive(Clone, Copy)]
 struct Layer {
     pattern: Pattern,
-    active: bool,
     start_tick: u32,
 }
 
 impl Layer {
     // Elapsed ticks rather than an absolute expiry, so the tick counter may wrap
+    fn elapsed_ticks(&self, tick: u32) -> u32 {
+        tick.wrapping_sub(self.start_tick)
+    }
+
     fn expired(&self, tick: u32) -> bool {
-        let duration_ticks = self.pattern.duration_ms / LED_EFFECTS_UPDATE_INTERVAL_MS;
-        self.pattern.duration_ms > 0 && tick.wrapping_sub(self.start_tick) >= duration_ticks
+        self.pattern
+            .duration_ms
+            .is_some_and(|ms| self.elapsed_ticks(tick) >= ms / LED_EFFECTS_UPDATE_INTERVAL_MS)
     }
 }
 
-const ZERO_LAYER: Layer = Layer {
-    pattern: Pattern::OFF,
-    active: false,
-    start_tick: 0,
-};
+struct Layers([Option<Layer>; Priority::COUNT]);
+
+impl Layers {
+    fn set(&mut self, priority: Priority, pattern: Pattern, tick: u32) {
+        self.0[priority as usize] = Some(Layer { pattern, start_tick: tick });
+    }
+
+    fn clear(&mut self, priority: Priority) {
+        self.0[priority as usize] = None;
+    }
+
+    /// Retires expired layers and returns the highest remaining one
+    fn top(&mut self, tick: u32) -> Option<Layer> {
+        for slot in &mut self.0 {
+            if slot.is_some_and(|layer| layer.expired(tick)) {
+                *slot = None;
+            }
+        }
+        self.0.iter().rev().flatten().next().copied()
+    }
+}
 
 struct Tilt {
     monitoring: bool,
@@ -142,8 +189,7 @@ struct Tilt {
 }
 
 // Also used from the sleeptimer ISRs
-static LAYERS: Mutex<RefCell<[Layer; PRIORITY_COUNT]>> =
-    Mutex::new(RefCell::new([ZERO_LAYER; PRIORITY_COUNT]));
+static LAYERS: Mutex<RefCell<Layers>> = Mutex::new(RefCell::new(Layers([None; Priority::COUNT])));
 static GLOBAL_TICK: AtomicU32 = AtomicU32::new(0);
 static UPDATE_NEEDED: AtomicBool = AtomicBool::new(false);
 static TILT_CHECK_DUE: AtomicBool = AtomicBool::new(false);
@@ -178,59 +224,17 @@ extern "C" fn led_timer_callback(_handle: *mut sl_sleeptimer_timer_handle_t, _da
 }
 
 fn update_led_hardware() {
-    // Pick the highest active layer and retire expired ones
-    let selected = critical_section::with(|cs| {
-        let mut layers = LAYERS.borrow(cs).borrow_mut();
-        let current_tick = GLOBAL_TICK.load(Ordering::SeqCst);
-        let mut top: Option<usize> = None;
-        for i in (0..PRIORITY_COUNT).rev() {
-            if !layers[i].active {
-                continue;
-            }
-            if layers[i].expired(current_tick) {
-                layers[i].active = false;
-                continue;
-            }
-            if top.is_none() {
-                top = Some(i);
-            }
-        }
-        top.map(|i| (layers[i].pattern, current_tick.wrapping_sub(layers[i].start_tick)))
+    let color = critical_section::with(|cs| {
+        // Read in the critical section, so a layer can't start after `tick`
+        let tick = GLOBAL_TICK.load(Ordering::SeqCst);
+        let layer = LAYERS.borrow(cs).borrow_mut().top(tick)?;
+        let elapsed_ms = layer.elapsed_ticks(tick).wrapping_mul(LED_EFFECTS_UPDATE_INTERVAL_MS);
+        layer.pattern.color_at(elapsed_ms)
     });
 
-    let Some((p, layer_ticks)) = selected else {
-        turn_off();
-        return;
-    };
-
-    let ms_elapsed = layer_ticks.wrapping_mul(LED_EFFECTS_UPDATE_INTERVAL_MS);
-
-    match p.mode {
-        Mode::Off => turn_off(),
-        Mode::Static => set_rgb(p.color),
-        Mode::Blink => {
-            let period = if p.period_ms > 0 { p.period_ms as u32 } else { 500 };
-            if (ms_elapsed % period) < period / 2 {
-                set_rgb(p.color);
-            } else {
-                turn_off();
-            }
-        }
-        Mode::Pulse => {
-            let period = if p.period_ms >= 2 { p.period_ms as u32 } else { 1000 };
-            let half = period / 2;
-            let phase = ms_elapsed % period;
-            let tri = if phase < half {
-                phase * 65535 / half
-            } else {
-                65535 - (phase - half) * 65535 / (period - half)
-            };
-            let min_b = p.brightness_min.min(p.brightness_max) as u32;
-            let max_b = p.brightness_min.max(p.brightness_max) as u32;
-            let brightness = min_b + (max_b - min_b) * tri / 65535;
-            let scale = |c: u16| ((c as u32 * brightness) / 65535) as u16;
-            set_rgb(Rgb { r: scale(p.color.r), g: scale(p.color.g), b: scale(p.color.b) });
-        }
+    match color {
+        Some(color) => set_rgb(color),
+        None => turn_off(),
     }
 }
 
@@ -264,18 +268,13 @@ pub extern "C" fn led_manager_process_action() {
 
 pub fn set_pattern(priority: Priority, pattern: Pattern) {
     critical_section::with(|cs| {
-        let layer = &mut LAYERS.borrow(cs).borrow_mut()[priority as usize];
         let tick = GLOBAL_TICK.load(Ordering::SeqCst);
-        layer.pattern = pattern;
-        layer.active = true;
-        layer.start_tick = tick;
+        LAYERS.borrow(cs).borrow_mut().set(priority, pattern, tick);
     });
 }
 
 pub fn clear_pattern(priority: Priority) {
-    critical_section::with(|cs| {
-        LAYERS.borrow(cs).borrow_mut()[priority as usize].active = false;
-    });
+    critical_section::with(|cs| LAYERS.borrow(cs).borrow_mut().clear(priority));
 }
 
 pub fn set_color(priority: Priority, color: Rgb) {
