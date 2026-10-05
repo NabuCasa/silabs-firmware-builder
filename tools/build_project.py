@@ -254,6 +254,67 @@ def validate_wrap_declarations(project_path: pathlib.Path) -> dict[str, str | No
     return declarations
 
 
+def weak_override_declarations(project_path: pathlib.Path) -> set[str]:
+    """The SDK weak definitions that components declare their Rust code overrides."""
+    declarations = set()
+
+    for slcc in sorted(project_path.rglob("*.slcc", recurse_symlinks=True)):
+        component = yaml.load(slcc.read_text())
+        declarations.update(
+            component.get("metadata", {}).get("nabucasa", {}).get("weak_overrides", [])
+        )
+
+    return declarations
+
+
+def validate_weak_overrides(
+    build: ResolvedBuild, rust_objects: list[pathlib.Path], declared: set[str]
+) -> None:
+    """Check that the Rust objects override exactly the declared weak definitions."""
+    nm = rust_toolchain_binaries(build)["nm"]
+    # Ninja deletes the link's response file once it succeeds, so ask it for the inputs
+    query = subprocess.run(
+        ["ninja", "-t", "query", f"{build.base_project_name}.out"],
+        cwd=build.cmake_dir,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    inputs = [
+        path
+        for line in query.splitlines()
+        if (item := line.strip().removeprefix("|| ").removeprefix("| ")).endswith(
+            (".obj", ".o", ".a")
+        )
+        and (path := (build.cmake_dir / item).resolve()) not in rust_objects
+    ]
+
+    def defined(paths: list[pathlib.Path], kinds: str) -> set[str]:
+        output = subprocess.run(
+            [nm, "--defined-only", "--format=posix", *paths],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+        return {
+            fields[0]
+            for fields in map(str.split, output.splitlines())
+            if len(fields) >= 2 and fields[1] in kinds
+        }
+
+    rust_symbols = defined(rust_objects, "TDBR")
+    overrides = rust_symbols & defined(inputs, "WV")
+    expected = declared & rust_symbols
+
+    LOGGER.info("Rust overrides weak definitions: %s", sorted(overrides))
+
+    if overrides != expected:
+        raise RuntimeError(
+            f"Rust overrides weak definitions it should not: {sorted(overrides - expected)},"
+            f" declared but not overridden: {sorted(expected - overrides)}"
+        )
+
+
 def linker_wrap_targets(build: ResolvedBuild) -> set[str]:
     """The symbols the generated project actually asks the linker to wrap."""
     return set(re.findall(r"-Wl,--wrap=(\w+)", build.project_cmake.read_text()))
@@ -1162,6 +1223,7 @@ def rust_toolchain_binaries(build: ResolvedBuild) -> dict[str, typing.Any]:
     tp = build.toolchain_path
     return {
         "ar": tp / "bin/llvm-ar",
+        "nm": tp / "bin/llvm-nm",
         "clang": tp / "bin/clang",
         "sysroot": tp / "lib/clang-runtimes/arm-none-eabi/include",
     }
@@ -1221,12 +1283,14 @@ def resolve_rust_config(
     return resolved
 
 
-def build_rust_libraries(build: ResolvedBuild, rust_config: dict[str, str]) -> None:
-    """Build the Rust components and replace the placeholder archive."""
+def build_rust_libraries(
+    build: ResolvedBuild, rust_config: dict[str, str]
+) -> list[pathlib.Path]:
+    """Build the Rust components and return the objects linked into the firmware."""
     # Only rendered when a Rust component is enabled
     features_file = build.build_dir / "autogen" / "ohf_rust_features.json"
     if not features_file.exists():
-        return
+        return []
     features = json.loads(features_file.read_text())
 
     flags = extract_slc_clang_flags(build)
@@ -1273,15 +1337,32 @@ def build_rust_libraries(build: ResolvedBuild, rust_config: dict[str, str]) -> N
         cwd=RUST_DIR,
     )
 
+    # The crates are linked as objects, so they are always loaded and their strong
+    # definitions override the SDK's weak ones. `compiler_builtins` is the only native
+    # code and is left out: newlib and compiler-rt provide the runtime, as for C.
+    archive = RUST_DIR / "target" / RUST_TARGET / "release" / RUST_LIBRARY
+    objects_dir = build.build_dir / "rust_objects"
+    objects_dir.mkdir()
+    members = subprocess.run(
+        [bins["ar"], "t", archive], capture_output=True, text=True, check=True
+    ).stdout.split()
+    assert len(members) == len(set(members)), "Duplicate Rust archive members"
+    subprocess.run([bins["ar"], "x", archive], cwd=objects_dir, check=True)
+
+    objects = []
+    for member in members:
+        path = (objects_dir / member).resolve()
+        if path.read_bytes()[:4] == b"BC\xc0\xde":
+            objects.append(path)
+        else:
+            path.unlink()
+
     text = build.project_cmake.read_text()
-    copied = re.search(r'set\(COPIED_SDK_PATH "([^"]+)"\)', text).group(1)
     raw = re.search(rf'"([^"]+/{RUST_LIBRARY})"', text).group(1)
-    # Already relative to the working directory
-    dest = PROJECTS_ROOT / raw.replace(
-        "${CMAKE_CURRENT_LIST_DIR}", str(build.cmake_dir)
-    ).replace("${COPIED_SDK_PATH}", copied)
-    shutil.copy(RUST_DIR / "target" / RUST_TARGET / "release" / RUST_LIBRARY, dest)
-    LOGGER.info("Placed Rust library %s", dest)
+    quoted = " ".join(f'"{path}"' for path in objects)
+    build.project_cmake.write_text(text.replace(f'"{raw}"', quoted))
+
+    return objects
 
 
 def verify_build_reproducibility(
@@ -1352,6 +1433,7 @@ def main() -> None:
     apply_sdk_patches(build)
     validate_sdk_extensions(build, base_project)
     declared_wraps = validate_wrap_declarations(build.base_project_path)
+    declared_overrides = weak_override_declarations(build.base_project_path)
 
     # Template variables for C defines and the output filename
     template_env = {
@@ -1394,8 +1476,11 @@ def main() -> None:
         if declared_wraps[target] is not None
     ]
     exclude_definitions_from_lto(build, definitions)
-    build_rust_libraries(build, resolve_rust_config(c_defines, template_env))
+    rust_objects = build_rust_libraries(
+        build, resolve_rust_config(c_defines, template_env)
+    )
     cmake_configure_and_build(build, assemble_build_flags(build, c_flag_defines))
+    validate_weak_overrides(build, rust_objects, declared_overrides)
 
     validate_linker_wraps(
         elf_path=(build.cmake_dir / build.base_project_name).with_suffix(".out"),

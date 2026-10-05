@@ -139,8 +139,7 @@ RUN mkdir -p /opt/zstd-gcc \
         && rm -rf /build; \
     fi
 
-# rustup installs the toolchain and targets pinned in rust-toolchain.toml. At build time,
-# cargo runs inside `crates/` and rustup selects this same toolchain from that file.
+# The toolchain pinned in crates/rust-toolchain.toml
 FROM trixie-stable AS rust-toolchain
 ARG TARGETARCH
 ENV RUSTUP_HOME=/opt/rust/rustup

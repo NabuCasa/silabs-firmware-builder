@@ -123,9 +123,9 @@ unsafe fn handle_state(pressed: bool) {
     }
 }
 
-// Wraps the SDK's weak sl_button_on_change
+// Overrides the SDK's weak default
 #[no_mangle]
-pub unsafe extern "C" fn __wrap_sl_button_on_change(handle: *const sl_button_t) {
+pub unsafe extern "C" fn sl_button_on_change(handle: *const sl_button_t) {
     if handle == core::ptr::addr_of!(sl_button_pin_hole_button) {
         let pressed = sl_button_get_state(handle) == SL_SIMPLE_BUTTON_PRESSED as sl_button_state_t;
         handle_state(pressed);

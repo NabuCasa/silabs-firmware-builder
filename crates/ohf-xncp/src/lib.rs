@@ -162,9 +162,9 @@ fn handle_frame(message: &[u8], reply: &mut [u8]) -> u8 {
     (REPLY_HEADER_LEN + payload_len) as u8
 }
 
-// Wraps the SDK's weak sl_zigbee_af_xncp_incoming_custom_frame_cb
+// Overrides the SDK's weak default
 #[no_mangle]
-pub unsafe extern "C" fn __wrap_sl_zigbee_af_xncp_incoming_custom_frame_cb(
+pub unsafe extern "C" fn sl_zigbee_af_xncp_incoming_custom_frame_cb(
     message_length: u8,
     message_payload: *const u8,
     reply_payload_length: *mut u8,

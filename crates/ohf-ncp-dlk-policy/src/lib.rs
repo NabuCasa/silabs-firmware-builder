@@ -9,8 +9,9 @@ mod bindings {
 }
 use bindings::*;
 
+// Overrides the SDK's weak default
 #[no_mangle]
-pub unsafe extern "C" fn __wrap_sl_zigbee_zdo_dlk_select_negotiation_parameters_callback(
+pub unsafe extern "C" fn sl_zigbee_zdo_dlk_select_negotiation_parameters_callback(
     partner: *const sl_zigbee_address_info,
     their_supported_methods: sl_zigbee_dlk_supported_negotiation_method,
     their_supported_secrets: sl_zigbee_dlk_negotiation_supported_shared_secret_source,

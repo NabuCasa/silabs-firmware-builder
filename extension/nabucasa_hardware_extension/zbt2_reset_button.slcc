@@ -14,11 +14,11 @@ requires:
   - name: led_manager
   - name: simple_button
   - name: sleeptimer
-toolchain_settings:
-  - option: gcc_linker_option
-    value: "-Wl,--wrap=sl_button_on_change"
-  - option: llvm_linker_option
-    value: "-Wl,--wrap=sl_button_on_change"
 template_contribution:
   - name: ohf_rust_feature
     value: zbt2_reset_button
+
+metadata:
+  nabucasa:
+    weak_overrides:
+      - sl_button_on_change

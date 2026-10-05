@@ -9,11 +9,11 @@ provides:
 requires:
   - name: ohf_runtime
   - name: zigbee_xncp
-toolchain_settings:
-  - option: gcc_linker_option
-    value: "-Wl,--wrap=sl_zigbee_af_xncp_incoming_custom_frame_cb"
-  - option: llvm_linker_option
-    value: "-Wl,--wrap=sl_zigbee_af_xncp_incoming_custom_frame_cb"
 template_contribution:
   - name: ohf_rust_feature
     value: xncp_core
+
+metadata:
+  nabucasa:
+    weak_overrides:
+      - sl_zigbee_af_xncp_incoming_custom_frame_cb
