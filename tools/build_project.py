@@ -1165,17 +1165,19 @@ def rust_toolchain_binaries(build: ResolvedBuild) -> dict[str, typing.Any]:
     if build.toolchain is Toolchain.LLVM:
         return {
             "ar": tp / "bin/llvm-ar",
-            "strip": tp / "bin/llvm-strip",
             "shim_cc": tp / "bin/clang",
             # clang defaults to the host triple; the shim is bare-metal arm.
             "shim_target": [f"--target={RUST_TARGET}"],
+            # Emit LLVM bitcode so the firmware's LTO link optimizes across C and Rust.
+            # rustc's LLVM must not be newer than the toolchain's LLD.
+            "rustflags": ["-Clinker-plugin-lto"],
             "sysroot": tp / "lib/clang-runtimes/arm-none-eabi/include",
         }
     return {
         "ar": tp / "bin/arm-none-eabi-ar",
-        "strip": tp / "bin/arm-none-eabi-strip",
         "shim_cc": tp / "bin/arm-none-eabi-gcc",
         "shim_target": [],
+        "rustflags": [],
         "sysroot": tp / "arm-none-eabi/include",
     }
 
@@ -1314,6 +1316,7 @@ def build_rust_libraries(build: ResolvedBuild, rust_config: dict[str, str]) -> N
         "OHF_SHIM_CC": str(bins["shim_cc"]),
         "OHF_SHIM_CFLAGS": f"{shim_arch} -I{cmsis} {inc_args} {define_args}",
         "OHF_RUST_CONFIG": str(config_path.resolve()),
+        "RUSTFLAGS": " ".join(bins["rustflags"]),
     }
 
     subprocess_run_verbose(
@@ -1351,16 +1354,22 @@ def build_rust_libraries(build: ResolvedBuild, rust_config: dict[str, str]) -> N
         if dest.name in built and build.build_dir.resolve() in dest.parents:
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(built[dest.name], dest)
-            # Strip DWARF: precompiled `core` carries debuginfo with rustc-internal
-            # source paths (library/core/src/*.rs) that fail the reproducibility check.
-            # The C side keeps its own debuginfo.
-            subprocess.run(
-                [bins["strip"], "--strip-debug", str(dest)],
-                check=True,
-            )
             placed.append(dest.name)
 
     LOGGER.info("Placed Rust libraries: %s", placed or "none")
+
+
+def rust_commit_hash() -> str:
+    """The commit of the pinned rustc. Its precompiled `core` is built under /rustc/<hash>."""
+    version = subprocess.run(
+        ["rustc", "-vV"],
+        cwd=RUST_DIR,
+        env=rust_cargo_env(),
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    return re.search(r"^commit-hash: (\w+)$", version, re.MULTILINE).group(1)
 
 
 def verify_build_reproducibility(
@@ -1372,6 +1381,7 @@ def verify_build_reproducibility(
         out_elf,
         {
             str(build.build_dir.resolve()): "/src",
+            f"/rustc/{rust_commit_hash()}": "/src/vendor/rust",  # Rust's `core`
             "/home/buildengineer": "/src/vendor",  # Silicon Labs build machines
             "/github/home": "/src/vendor",  # Silicon Labs Zigbee CI
             "/opt/github": "/src/vendor",  # Silicon Labs Z-Wave CI
