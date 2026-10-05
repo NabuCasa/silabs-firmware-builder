@@ -1256,7 +1256,10 @@ def extract_slc_clang_flags(build: ResolvedBuild) -> dict[str, typing.Any]:
     ]
     arch = sorted(set(re.findall(r"-m(?:cpu|fpu|float-abi)=[\w.+-]+|-mthumb", text)))
 
-    return {"includes": includes, "defines": defines, "arch": arch}
+    # Changes enum layout, so the shim and bindgen must match the C sources (Z-Wave)
+    abi = sorted(set(re.findall(r"-fshort-enums", text)))
+
+    return {"includes": includes, "defines": defines, "arch": arch, "abi": abi}
 
 
 def resolve_rust_config(
@@ -1290,11 +1293,12 @@ def build_rust_libraries(
     inc_args = " ".join(f"-I{d}" for d in flags["includes"])
     define_args = " ".join(f"-D{d}" for d in flags["defines"])
     bins = rust_toolchain_binaries(build)
-    shim_arch = " ".join([f"--target={RUST_TARGET}", *flags["arch"]])
+    abi_args = " ".join(flags["abi"])
+    shim_arch = " ".join([f"--target={RUST_TARGET}", *flags["arch"], *flags["abi"]])
 
     env = {
         **os.environ,
-        "OHF_BINDGEN_FLAGS": f"--target={RUST_TARGET} -isystem{bins['sysroot']} {inc_args} {define_args}",
+        "OHF_BINDGEN_FLAGS": f"--target={RUST_TARGET} {abi_args} -isystem{bins['sysroot']} {inc_args} {define_args}",
         "OHF_SHIM_CC": str(bins["clang"]),
         # Joins the LTO link like the C sources
         "OHF_SHIM_CFLAGS": f"{shim_arch} -flto -fsplit-lto-unit {inc_args} {define_args}",
