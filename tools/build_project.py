@@ -29,8 +29,9 @@ LOGGER = logging.getLogger(__name__)
 
 PROJECTS_ROOT = pathlib.Path(__file__).parent.parent
 RUST_DIR = PROJECTS_ROOT / "crates"
+RUST_LIBRARY = "libohf_firmware.a"
 
-# All supported parts are Cortex-M33 with a single-precision FPU, linked hard-float.
+# All supported parts are Cortex-M33 with a single-precision FPU, linked hard-float
 RUST_TARGET = "thumbv8m.main-none-eabihf"
 
 yaml = YAML(typ="safe")
@@ -355,9 +356,8 @@ def get_elf_source_paths(elf_path: pathlib.Path) -> set[pathlib.PurePosixPath]:
                 cu.get_top_DIE().attributes["DW_AT_comp_dir"].value.decode("utf-8")
             )
 
-            # DWARF 5 indexes files and directories from 0, with the compilation
-            # directory as entry 0. Earlier versions index files from 1 and leave the
-            # compilation directory implicit as directory 0.
+            # DWARF 5 indexes from 0 and lists the compilation directory. Earlier versions
+            # index files from 1 and leave the compilation directory implicit.
             directories = list(line_program["include_directory"])
             files = list(line_program["file_entry"])
             if line_program["version"] < 5:
@@ -1157,9 +1157,7 @@ def cmake_configure_and_build(
 
 
 def rust_toolchain_binaries(build: ResolvedBuild) -> dict[str, typing.Any]:
-    """The LLVM binaries the Rust phase needs. Rust is linked into the firmware as LLVM
-    bitcode, so only LLVM-built firmwares can use Rust components. bindgen uses its own
-    libclang, so it only needs a sysroot with the arm libc headers to parse."""
+    """LLVM binaries for the Rust build, which joins the firmware's LTO link as bitcode."""
     assert build.toolchain is Toolchain.LLVM, "Rust components need the LLVM toolchain"
     tp = build.toolchain_path
     return {
@@ -1170,9 +1168,7 @@ def rust_toolchain_binaries(build: ResolvedBuild) -> dict[str, typing.Any]:
 
 
 def extract_slc_clang_flags(build: ResolvedBuild) -> dict[str, typing.Any]:
-    """Pull the include dirs, preprocessor defines, and arch flags out of the SLC-generated
-    cmake, so bindgen/cc compile against exactly what the C build sees. Nothing about the
-    chip is hardcoded here; it all comes from what SLC resolved from the YAML."""
+    """Include dirs, defines and arch flags from the SLC-generated CMake project."""
     text = build.project_cmake.read_text()
     copied = re.search(r'set\(COPIED_SDK_PATH "([^"]+)"\)', text).group(1)
 
@@ -1186,9 +1182,7 @@ def extract_slc_clang_flags(build: ResolvedBuild) -> dict[str, typing.Any]:
         )
         includes.append(str((build.cmake_dir / raw).resolve()))
 
-    # The full define set (device, PLATFORM_HEADER, STACK_TYPES_HEADER, CORTEXM3, …). The
-    # deep zigbee stack headers don't parse without these, so forward all of them, not just
-    # the chip. cmake escapes inner quotes as \" — unescape to the real -D value.
+    # The zigbee stack headers need the full define set. CMake escapes inner quotes.
     defs_block = re.search(
         r"target_compile_definitions\(slc PUBLIC(.*?)\n\)", text, re.DOTALL
     ).group(1)
@@ -1200,48 +1194,13 @@ def extract_slc_clang_flags(build: ResolvedBuild) -> dict[str, typing.Any]:
     return {"includes": includes, "defines": defines, "arch": arch}
 
 
-def rust_cargo_env() -> dict[str, str]:
-    return {
-        **os.environ,
-        "PATH": f"{pathlib.Path.home() / '.cargo/bin'}:{os.environ['PATH']}",
-    }
-
-
-def rust_staticlib_archives() -> set[str]:
-    """Archive filenames the workspace's staticlib crates produce (e.g. libohf_ws2812.a)."""
-    meta = json.loads(
-        subprocess.run(
-            ["cargo", "metadata", "--format-version", "1", "--no-deps"],
-            cwd=RUST_DIR,
-            env=rust_cargo_env(),
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout
-    )
-    return {
-        f"lib{target['name'].replace('-', '_')}.a"
-        for package in meta["packages"]
-        for target in package["targets"]
-        if "staticlib" in target["kind"]
-    }
-
-
 def stub_rust_libraries(build: ResolvedBuild) -> None:
-    """`slc generate` copies each component's `library:` file, but ours don't exist
-    until cargo runs — which needs flags from the generated project. Drop empty
-    placeholder archives into the template so generate can copy them;
-    build_rust_libraries overwrites them with the real archives before the link."""
-    if not RUST_DIR.is_dir():
-        return
-
-    archives = rust_staticlib_archives()
-
+    """Placeholder archives for `slc generate` to copy, replaced before the link."""
     for slcc in build.build_template_path.rglob("*.slcc"):
         data = yaml.load(slcc.read_text())
         for lib in data.get("library", []):
             path = pathlib.PurePosixPath(lib["path"])
-            if path.name in archives:
+            if path.name == RUST_LIBRARY:
                 stub = slcc.parent / path
                 stub.parent.mkdir(parents=True, exist_ok=True)
                 ar = rust_toolchain_binaries(build)["ar"]
@@ -1252,9 +1211,7 @@ def stub_rust_libraries(build: ResolvedBuild) -> None:
 def resolve_rust_config(
     c_defines: dict[str, dict], template_env: dict[str, typing.Any]
 ) -> dict[str, str]:
-    """The resolved config values, as the Rust crates' build.rs should see them — the
-    same map that patches the C config headers. One source of truth (the manifest) for
-    both languages."""
+    """Manifest config values for the crates' build scripts."""
     resolved = {}
     for name, config in c_defines.items():
         value = str(config["value"])
@@ -1265,26 +1222,15 @@ def resolve_rust_config(
 
 
 def build_rust_libraries(build: ResolvedBuild, rust_config: dict[str, str]) -> None:
-    """Build the Rust workspace and drop each archive where a component's `library:`
-    entry points. Discovery is by filename: a crate that builds `libfoo.a` is placed
-    at whatever `.../lib/libfoo.a` SLC interpolated into the project. Adding a Rust
-    component needs no change here — just the crate and its slcc `library:`. bindgen/cc
-    flags come from the SLC-generated project, so the chip lives only in the manifest."""
-    if not RUST_DIR.is_dir():
-        return
-
-    # SLC renders the enabled Rust components' `ohf_rust_feature` contributions here (a
-    # JSON array); its absence means no Rust components are in this build.
+    """Build the Rust components and replace the placeholder archive."""
+    # Only rendered when a Rust component is enabled
     features_file = build.build_dir / "autogen" / "ohf_rust_features.json"
     if not features_file.exists():
         return
     features = json.loads(features_file.read_text())
-    if not features:
-        return
 
     flags = extract_slc_clang_flags(build)
 
-    # Forward the resolved manifest config to the crates' build.rs.
     config_path = build.build_dir / "rust_build.json"
     config_path.write_text(json.dumps(rust_config, indent=2))
 
@@ -1292,23 +1238,18 @@ def build_rust_libraries(build: ResolvedBuild, rust_config: dict[str, str]) -> N
     define_args = " ".join(f"-D{d}" for d in flags["defines"])
     bins = rust_toolchain_binaries(build)
     shim_arch = " ".join([f"--target={RUST_TARGET}", *flags["arch"]])
-    # The installed SDK has cmsis_clang.h, which a GCC build does not copy into the
-    # build tree but bindgen's libclang needs.
-    cmsis = build.sdk / "cmsis/Core/Include"
 
     env = {
         **os.environ,
-        "PATH": f"{pathlib.Path.home() / '.cargo/bin'}:{os.environ['PATH']}",
-        "OHF_BINDGEN_FLAGS": f"--target={RUST_TARGET} -isystem{bins['sysroot']} -I{cmsis} {inc_args} {define_args}",
+        "OHF_BINDGEN_FLAGS": f"--target={RUST_TARGET} -isystem{bins['sysroot']} {inc_args} {define_args}",
         "OHF_SHIM_CC": str(bins["clang"]),
-        # The shim joins the LTO link like the C sources, as a split LTO unit
-        "OHF_SHIM_CFLAGS": f"{shim_arch} -flto -fsplit-lto-unit -I{cmsis} {inc_args} {define_args}",
+        # Joins the LTO link like the C sources
+        "OHF_SHIM_CFLAGS": f"{shim_arch} -flto -fsplit-lto-unit {inc_args} {define_args}",
         "OHF_RUST_CONFIG": str(config_path.resolve()),
-        # Emit LLVM bitcode so the firmware's LTO link optimizes across C and Rust.
-        # rustc's LLVM must not be newer than the toolchain's LLD. SLC compiles with
-        # -fwhole-program-vtables, which needs every LTO unit split. Panics trap.
+        # Bitcode for the firmware's LTO link, so rustc's LLVM must not be newer than LLD.
+        # SLC compiles with -fwhole-program-vtables, which needs every LTO unit split.
         "RUSTFLAGS": "-Clinker-plugin-lto -Zsplit-lto-unit -Zunstable-options -Cpanic=immediate-abort",
-        # build-std and the -Z flags are unstable; this unlocks them on the pinned stable
+        # Unlocks the unstable flags on the pinned stable toolchain
         "RUSTC_BOOTSTRAP": "1",
     }
 
@@ -1319,7 +1260,7 @@ def build_rust_libraries(build: ResolvedBuild, rust_config: dict[str, str]) -> N
             "--release",
             "--target",
             RUST_TARGET,
-            # Compile `core` from source as bitcode, so the LTO link optimizes it too
+            # `core` as bitcode too
             "-Zbuild-std=core",
             "-p",
             "ohf-firmware",
@@ -1332,39 +1273,15 @@ def build_rust_libraries(build: ResolvedBuild, rust_config: dict[str, str]) -> N
         cwd=RUST_DIR,
     )
 
-    built = {
-        p.name: p for p in (RUST_DIR / "target" / RUST_TARGET / "release").glob("*.a")
-    }
     text = build.project_cmake.read_text()
     copied = re.search(r'set\(COPIED_SDK_PATH "([^"]+)"\)', text).group(1)
-
-    placed = []
-    for raw in re.findall(r'"([^"]+\.a)"', text):
-        resolved = raw.replace(
-            "${CMAKE_CURRENT_LIST_DIR}", str(build.cmake_dir)
-        ).replace("${COPIED_SDK_PATH}", copied)
-        # `resolved` is already relative to the working dir (it embeds cmake_dir), so
-        # resolve it against the repo root, not cmake_dir again.
-        dest = (PROJECTS_ROOT / resolved).resolve()
-        if dest.name in built and build.build_dir.resolve() in dest.parents:
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy(built[dest.name], dest)
-            placed.append(dest.name)
-
-    LOGGER.info("Placed Rust libraries: %s", placed or "none")
-
-
-def rust_commit_hash() -> str:
-    """The commit of the pinned rustc. Its precompiled `core` is built under /rustc/<hash>."""
-    version = subprocess.run(
-        ["rustc", "-vV"],
-        cwd=RUST_DIR,
-        env=rust_cargo_env(),
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout
-    return re.search(r"^commit-hash: (\w+)$", version, re.MULTILINE).group(1)
+    raw = re.search(rf'"([^"]+/{RUST_LIBRARY})"', text).group(1)
+    # Already relative to the working directory
+    dest = PROJECTS_ROOT / raw.replace(
+        "${CMAKE_CURRENT_LIST_DIR}", str(build.cmake_dir)
+    ).replace("${COPIED_SDK_PATH}", copied)
+    shutil.copy(RUST_DIR / "target" / RUST_TARGET / "release" / RUST_LIBRARY, dest)
+    LOGGER.info("Placed Rust library %s", dest)
 
 
 def verify_build_reproducibility(
@@ -1376,7 +1293,6 @@ def verify_build_reproducibility(
         out_elf,
         {
             str(build.build_dir.resolve()): "/src",
-            f"/rustc/{rust_commit_hash()}": "/src/vendor/rust",  # Rust's `core`
             "/home/buildengineer": "/src/vendor",  # Silicon Labs build machines
             "/github/home": "/src/vendor",  # Silicon Labs Zigbee CI
             "/opt/github": "/src/vendor",  # Silicon Labs Z-Wave CI
