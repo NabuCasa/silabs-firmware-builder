@@ -5,8 +5,6 @@ description: LED state machine for network status and tilt detection, Zigbee imp
 category: Zigbee|NCP
 quality: production
 provides:
-  # Fully Rust (crates/ohf-led-effects-zigbee); the stack node-data token read moved to
-  # ohf-sys's shims.c. The stack callbacks below are the Rust #[no_mangle] entry points.
   - name: led_effects
 requires:
   - name: ohf_runtime

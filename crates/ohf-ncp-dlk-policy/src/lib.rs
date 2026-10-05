@@ -1,17 +1,6 @@
-//! NCP dynamic link key policy — Rust port of `ncp_dlk_policy.c`.
-//!
-//! Overrides the stack's weak `sl_zigbee_zdo_dlk_select_negotiation_parameters_callback`.
-//! The default commits the trust center to install-code DLK for any R23 joiner (they all
-//! advertise install-code support) and never falls back to the R21 well-known-key network
-//! key transport, so joins without a provisioned install code die. This policy only agrees
-//! to negotiate when a link key is provisioned for the joiner's exact EUI64, and otherwise
-//! returns an error — which the stack turns into the legacy key transport.
-//!
-//! The SDK's default is `SL_WEAK`; we linker-wrap it straight onto this Rust function
-//! (`-Wl,--wrap=sl_zigbee_zdo_dlk_select_negotiation_parameters_callback` redirects the
-//! stack's calls to `__wrap_…`, and the `--wrap` reference pulls it out of the aggregate
-//! archive). lld honours the wrap over the LTO-visible weak default; GNU ld (PR ld/31956)
-//! would call the weak default directly, so this path is LLVM-only.
+//! Negotiate DLK only when a link key is provisioned for the joiner's EUI64. Otherwise the
+//! stack falls back to the R21 network key transport. The SDK default commits every R23
+//! joiner to install-code DLK, so joins without an install code fail.
 #![no_std]
 #![allow(non_camel_case_types, non_upper_case_globals)]
 

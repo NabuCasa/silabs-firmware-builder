@@ -1,8 +1,4 @@
-//! OpenThread LED wrapper — Rust port of `led_effects_openthread.c`.
-//!
-//! Polls the OpenThread network state every 250ms and drives
-//! `led_effects_set_network_state` on change. All OT APIs are real symbols, so this is
-//! pure Rust (no shim).
+//! LED network state, polled from OpenThread.
 #![no_std]
 
 use core::cell::UnsafeCell;
@@ -14,11 +10,9 @@ use ohf_sys::{sl_sleeptimer_start_periodic_timer_ms, sl_sleeptimer_timer_handle_
 const SETTINGS_POLL_INTERVAL_MS: u32 = 250;
 
 extern "C" {
-    // `otInstance` is opaque to us; `otPanId` is uint16_t.
     fn otGetInstance() -> *mut c_void;
     fn otLinkGetPanId(instance: *mut c_void) -> u16;
     fn otPlatRadioIsEnabled(instance: *mut c_void) -> bool;
-    // From ohf-led-effects, resolved at the firmware link via the aggregate.
     fn led_effects_init();
     fn led_effects_set_network_state(network_formed: bool);
 }

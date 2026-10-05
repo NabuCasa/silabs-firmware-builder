@@ -1,5 +1,4 @@
-//! Rust port of `router_eui64_unique.c` — linker-wraps `sl_token_manager_get_data` to invert
-//! the upper EUI64 octets, so a former coordinator reused as a router gets a unique address.
+//! Invert the upper EUI64 octets, so a former coordinator gets a new address as a router.
 use core::ffi::c_void;
 
 use crate::bindings::{

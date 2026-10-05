@@ -5,13 +5,9 @@ description: Common XNCP commands for all coordinators
 category: Zigbee|NCP
 quality: production
 source:
-  # The command set itself is now Rust (crates/ohf-xncp-common), registered into the XNCP
-  # core's linkme slices. Only ezsp_version.c stays C: it's a direct-object data override
-  # of the stack's sl_zigbee_version, not a command.
+  # Overrides the stack's sl_zigbee_version data
   - path: src/ezsp_version.c
 config_file:
-  # Shared config: SLC patches the manifest overrides in; both ezsp_version.c and the Rust
-  # crate's bindgen read the resolved values from here.
   - path: config/xncp_config.h
     file_id: xncp_config
 provides:
@@ -27,12 +23,6 @@ toolchain_settings:
 template_contribution:
   - name: ohf_rust_feature
     value: xncp_common
-  # Stack callbacks implemented by the Rust crate (strong #[no_mangle] symbols pulled in
-  # by autogen's registration / the linker --wrap above).
-  - name: zigbee_af_callback
-    value:
-      callback_type: event_init
-      function_name: xncp_common_init
   - name: zigbee_stack_callback
     priority: -9999
     value:

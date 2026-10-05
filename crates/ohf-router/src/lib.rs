@@ -1,5 +1,4 @@
-//! Zigbee router components for the ZBT-2 router firmware. Each is behind a cargo feature
-//! matching its `ohf_rust_feature`; SLC enables only the components the manifest adds.
+//! Zigbee router components, one cargo feature each.
 #![no_std]
 #![allow(non_camel_case_types, non_upper_case_globals)]
 

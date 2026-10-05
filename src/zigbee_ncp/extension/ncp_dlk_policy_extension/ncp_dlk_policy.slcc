@@ -20,11 +20,6 @@ requires:
   - name: zigbee_r23_support
   - name: zigbee_dynamic_commissioning
 toolchain_settings:
-  # Linker-wrap the SDK's weak DLK callback straight onto the Rust policy
-  # (__wrap_sl_zigbee_zdo_dlk_select_negotiation_parameters_callback in
-  # crates/ohf-ncp-dlk-policy) instead of a C shim. lld honours the wrap over the
-  # LTO-visible weak default; GNU ld (PR ld/31956) would call it directly, so
-  # validate_linker_wraps will fail a GCC build here.
   - option: gcc_linker_option
     value: "-Wl,--wrap=sl_zigbee_zdo_dlk_select_negotiation_parameters_callback"
   - option: llvm_linker_option

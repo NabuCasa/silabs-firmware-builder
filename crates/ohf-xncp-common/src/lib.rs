@@ -27,7 +27,6 @@ use bindings::*;
 const XNCP_SEND_UNICAST_FLAG_EXTENDED_TIMEOUT: u8 = 1 << 0;
 const XNCP_SEND_UNICAST_FLAG_SOURCE_ROUTE: u8 = 1 << 1;
 
-// Flow control types reported to the host (handle_get_flow_control_type).
 const FLOW_CONTROL_TYPE_SOFTWARE: u8 = 0x00;
 const FLOW_CONTROL_TYPE_HARDWARE: u8 = 0x01;
 
@@ -43,7 +42,7 @@ fn c_str_bytes(s: &'static [u8]) -> &'static [u8] {
     &s[..s.len() - 1]
 }
 
-// --- EmberZNet internal tables (data symbols, wrapped in the typed accessors below) --------
+// EmberZNet internal tables
 extern "C" {
     static mut sli_zigbee_route_table: sli_zigbee_route_table_entry_t;
     static mut sli_zigbee_route_table_size: u8;
@@ -58,7 +57,6 @@ fn address_table_size() -> u8 {
     unsafe { sli_zigbee_address_table_size }
 }
 
-// --- Stack route table (XNCP_FEATURE_RESTORE_ROUTE_TABLE) ----------------------------------
 #[derive(Clone, Copy)]
 struct RouteEntry {
     destination: u16,
@@ -114,7 +112,6 @@ fn find_free_routing_table_entry(destination: u16) -> u8 {
     index
 }
 
-// --- Manual source routes (XNCP_FEATURE_MANUAL_SOURCE_ROUTE) -------------------------------
 #[derive(Clone, Copy)]
 struct ManualSourceRoute {
     active: bool,
@@ -158,8 +155,6 @@ fn install_manual_source_route(node_id: u16, relay_bytes: &[u8]) {
         route.active = true;
     });
 }
-
-// --- Commands -----------------------------------------------------------------------------
 
 #[xncp_command(0x0001)]
 fn handle_set_source_route(req: &[u8], _reply: &mut ReplyBuf) -> Status {
@@ -307,8 +302,7 @@ fn handle_get_tx_power_info(req: &[u8], reply: &mut ReplyBuf) -> Status {
     Status::OK
 }
 
-// Mirrors the host set_extended_timeout logic: skip if already set, else set it, creating an
-// address table entry first if none exists.
+// Like the host's set_extended_timeout: creates an address table entry if none exists
 fn apply_extended_timeout(eui64: &[u8], node_id: u16, extended_timeout: bool) {
     // The SDK's eui64 APIs take a non-const pointer but only read these 8 bytes.
     let eui = eui64.as_ptr() as *mut u8;
@@ -398,21 +392,7 @@ fn handle_send_unicast(req: &[u8], reply: &mut ReplyBuf) -> Status {
     Status::OK
 }
 
-// --- Stack callbacks ----------------------------------------------------------------------
-
-// SDK init callback (zigbee_af_callback event_init). The table is already zero-initialized;
-// kept to own the registered symbol and match the C init.
-#[no_mangle]
-pub extern "C" fn xncp_common_init(_init_level: u8) {
-    critical_section::with(|cs| {
-        for route in MANUAL_SOURCE_ROUTES.borrow(cs).borrow_mut().iter_mut() {
-            route.active = false;
-        }
-    });
-}
-
-// Multicast override (XNCP_FEATURE_MEMBER_OF_ALL_GROUPS), pulled in by --wrap. We want all
-// group packets, so ignore binding/multicast table logic.
+// XNCP_FEATURE_MEMBER_OF_ALL_GROUPS: receive every group's packets
 #[no_mangle]
 pub extern "C" fn __wrap_sli_zigbee_am_multicast_member(_multicast_id: u16) -> bool {
     true
@@ -429,8 +409,7 @@ unsafe fn append_to_header(header: *mut sli_buffer_manager_buffer_t, data: &[u8]
     );
 }
 
-// Source-route override (zigbee_stack_callback override_append_source_route). `header` is an
-// sli_buffer_manager_buffer_t* the buffer manager updates in place.
+// `header` is a sli_buffer_manager_buffer_t* that the buffer manager updates in place
 #[no_mangle]
 pub unsafe extern "C" fn nc_zigbee_override_append_source_route(
     destination: u16,
@@ -478,9 +457,6 @@ pub unsafe extern "C" fn nc_zigbee_override_append_source_route(
         }
     });
 }
-
-// --- Registration -------------------------------------------------------------------------
-
 
 #[distributed_slice(XNCP_FEATURES)]
 static COMMON_FEATURES: u32 = XNCP_FEATURE_MEMBER_OF_ALL_GROUPS

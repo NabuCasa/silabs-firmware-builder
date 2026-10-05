@@ -1,5 +1,4 @@
-//! Rust port of `router_beacon_filter.c` — linker-wraps `sli_zigbee_stack_get_stored_beacon`
-//! to drop beacons from networks we must not join.
+//! Drop beacons from networks we must not join.
 use crate::bindings::{sl_status_t, sl_zigbee_beacon_data_t, SL_STATUS_NOT_FOUND, SL_STATUS_OK};
 
 extern "C" {

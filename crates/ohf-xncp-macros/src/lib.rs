@@ -1,7 +1,4 @@
-//! `#[xncp_command(id)]` — register a handler fn into the XNCP core's command table.
-//!
-//! Applied to `fn(&[u8], &mut ReplyBuf) -> Status`, it leaves the fn as-is and emits the
-//! `linkme` static that registers it, so the handler and its command id live together.
+//! `#[xncp_command(id)]` registers a handler into `XNCP_COMMANDS`.
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{parse_macro_input, Expr, ItemFn};

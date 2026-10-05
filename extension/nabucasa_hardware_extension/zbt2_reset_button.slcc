@@ -5,8 +5,6 @@ description: Pin-hole reset button handler for factory reset with LED feedback
 category: Platform|Driver|Button
 quality: production
 config_file:
-  # Timing/cycle config, read by the Rust crate's bindgen. (ERASE_COUNTERS is superseded by
-  # the zbt2_reset_button_zigbee_token component / cargo feature.)
   - path: config/zbt2_reset_button_config.h
     file_id: zbt2_reset_button_config
 provides:
@@ -17,10 +15,6 @@ requires:
   - name: simple_button
   - name: sleeptimer
 toolchain_settings:
-  # Linker-wrap the SDK's weak sl_button_on_change onto the Rust handler
-  # (__wrap_sl_button_on_change in crates/ohf-zbt2-reset-button) instead of a C override.
-  # lld honours the wrap over the LTO-visible weak default; GNU ld (PR ld/31956) would call
-  # it directly, so validate_linker_wraps will fail a GCC build here.
   - option: gcc_linker_option
     value: "-Wl,--wrap=sl_button_on_change"
   - option: llvm_linker_option

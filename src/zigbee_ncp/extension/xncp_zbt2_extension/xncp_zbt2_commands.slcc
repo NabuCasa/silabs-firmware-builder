@@ -13,6 +13,5 @@ requires:
   - name: qma6100p_driver
   - name: led_effects
 template_contribution:
-  # Commands + features now register via linkme in crates/ohf-xncp-zbt2.
   - name: ohf_rust_feature
     value: xncp_zbt2

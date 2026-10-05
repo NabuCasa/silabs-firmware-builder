@@ -1,15 +1,12 @@
-//! Rust port of `router_install_code.c` — one-time self-provisioning of the install-code MFG
-//! token. The ZBT-2 ships without one, so an R23 router has no pre-shared secret for DLK; if
-//! the token is blank, generate one from the TRNG, write it, and reset.
+//! Provision an install code once. The ZBT-2 ships without one, and R23 routers need it for DLK.
 use crate::bindings::{halCommonCrc16, psa_crypto_init, psa_generate_random, psa_status_t, PSA_SUCCESS};
 
 const INSTALL_CODE_VALUE_SIZE: usize = 16;
 // flags: bit0 = 0 (valid), bits1-2 = size code 3 (16 bytes) => 0x0006.
 const INSTALL_CODE_FLAGS_16B: u16 = 0x0006;
 
-// Bit-reverse a byte. The Zigbee install-code CRC and halCommonCrc16 differ in bit/byte order,
-// so inputs are reversed in and the result reversed + ones'-complemented out — matching
-// sli_zigbee_af_install_code_to_key() so the coordinator derives the same key.
+// The Zigbee install-code CRC and halCommonCrc16 differ in bit and byte order. This matches
+// sli_zigbee_af_install_code_to_key(), so the coordinator derives the same key.
 fn reverse(b: u8) -> u8 {
     let b = b as u32;
     (((b * 0x0802 & 0x22110) | (b * 0x8020 & 0x88440)) * 0x10101 >> 16) as u8

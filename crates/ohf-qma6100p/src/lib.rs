@@ -1,6 +1,4 @@
-//! QMA6100P 3-axis accelerometer driver — Rust port of `qma6100p.c`.
-//!
-//! `qma6100p_read_raw_xyz` stays a C export: the Z-Wave LED code calls it cross-language.
+//! QMA6100P accelerometer driver.
 #![no_std]
 
 use ohf_sys::{
@@ -8,7 +6,6 @@ use ohf_sys::{
     I2C_TransferSeq_TypeDef__bindgen_ty_1 as I2cBuf, I2C_TypeDef, I2C_FLAG_WRITE, I2C_FLAG_WRITE_READ,
 };
 
-// Device constants (from the QMA6100P datasheet; the driver's own, not the SDK's).
 const QMA6100P_I2C_ADDR: u16 = 0x24;
 const QMA6100P_M_G: f32 = 9.80665;
 
@@ -29,8 +26,7 @@ const QMA6100P_RANGE_8G: u8 = 0x04;
 const QMA6100P_BW_100: u8 = 0;
 
 extern "C" {
-    // Per-instance handle from the project autogen (sl_i2cspm_instances.h), referenced
-    // by name like any other instance global.
+    // From the project's autogen
     static sl_i2cspm_inst: *mut I2C_TypeDef;
 }
 
@@ -105,7 +101,7 @@ pub fn read_acceleration() -> [f32; 3] {
     read_raw().map(|v| (v as f32 * QMA6100P_M_G * -1.0) / 1024.0)
 }
 
-// C ABI for the Z-Wave LED code (the only cross-language caller); Rust uses read_raw directly.
+// For the Z-Wave LED code
 #[no_mangle]
 pub unsafe extern "C" fn qma6100p_read_raw_xyz(_i2cspm: *mut I2C_TypeDef, data: *mut i16) {
     data.copy_from_nonoverlapping(read_raw().as_ptr(), 3);

@@ -1,11 +1,7 @@
-//! Zigbee LED wrapper — Rust port of `led_effects_zigbee.c`.
-//!
-//! Translates Zigbee stack state into `led_effects_set_network_state`, reading the stack
-//! node-data token through `ohf_sys::token`.
+//! LED network state from the Zigbee stack.
 #![no_std]
 
 extern "C" {
-    // From ohf-led-effects, resolved at the firmware link via the aggregate.
     fn led_effects_init();
     fn led_effects_set_network_state(network_formed: bool);
 }

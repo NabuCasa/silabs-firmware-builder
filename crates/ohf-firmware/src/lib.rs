@@ -1,16 +1,9 @@
-//! Aggregate of the Rust-backed firmware components into one staticlib.
-//!
-//! Component crates are `no_std` rlibs with no panic handler; this crate links them
-//! and provides the single `#[panic_handler]`, so `rust_begin_unwind` and `core`
-//! appear exactly once in the final link. The firmware's linker gc-sections drops any
-//! component whose C-ABI exports go unreferenced for a given config.
+//! Links the enabled components into one staticlib.
 #![no_std]
 
-// Always linked: provides the critical-section impl the components rely on.
+// The critical-section impl
 extern crate ohf_rt;
 
-// Pull each enabled component in so its #[no_mangle] exports land in the staticlib.
-// Features are selected by SLC (see Cargo.toml).
 #[cfg(feature = "led_effects")]
 extern crate ohf_led_effects;
 #[cfg(feature = "led_effects_zigbee")]

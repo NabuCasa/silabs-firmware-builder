@@ -1,18 +1,8 @@
-//! Shared bindgen scaffolding for the OHF component crates (a build-dependency).
-//!
-//! Every crate that binds SDK headers needs the same setup: the clang args SLC emitted
-//! (`OHF_BINDGEN_FLAGS`, forwarded by build_project.py), `no_std` output, bare enum-variant
-//! names, the macro-constant fallback, and writing `OUT_DIR/bindings.rs`. Only the allowlist
-//! — which symbols the crate actually binds — differs, so that's all a component's build.rs
-//! supplies: `ohf_bindgen::write(ohf_bindgen::builder().allowlist_type(..)...)`.
+//! Shared bindgen setup for the components' build scripts.
 use std::env;
 use std::path::PathBuf;
 
-/// A `bindgen::Builder` with the common OHF options and the SLC-derived clang args applied.
-/// The caller adds its `allowlist_*` (and any crate-specific tweak like `opaque_type`) and
-/// hands the result to [`write`]. Emits the rerun-if lines for a crate-root `wrapper.h`.
-///
-/// Missing/garbage flags should crash the build, not silently degrade it.
+/// A builder for the crate's `wrapper.h`, with the clang args SLC generated.
 pub fn builder() -> bindgen::Builder {
     println!("cargo:rerun-if-env-changed=OHF_BINDGEN_FLAGS");
     println!("cargo:rerun-if-changed=wrapper.h");
@@ -28,11 +18,9 @@ pub fn builder() -> bindgen::Builder {
         .use_core()
         .layout_tests(false)
         .generate_comments(false)
-        // Emit enum variants under their bare C names (gpioModePushPull, DLK_PROTOCOL_*),
-        // not EnumName_variant. SL_ENUM variants live in a separate `name_enum` type, which
-        // the caller allowlists by name.
+        // Bare C variant names, e.g. gpioModePushPull
         .prepend_enum_name(false)
-        // Cast macros (SL_STATUS_OK, config symbols) bindgen can't constant-fold alone.
+        // Constant-fold cast macros such as SL_STATUS_OK
         .clang_macro_fallback()
         .clang_args(&clang_args)
 }

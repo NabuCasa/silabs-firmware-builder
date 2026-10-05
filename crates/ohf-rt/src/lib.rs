@@ -4,9 +4,6 @@
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
-// The critical-section impl, backed by the SDK's CORE_Enter/ExitCritical. Registering
-// it here lets any component use `critical_section::with` and `critical_section::Mutex`
-// for shared state the compiler only lets you touch while interrupts are masked.
 struct SdkCriticalSection;
 critical_section::set_impl!(SdkCriticalSection);
 

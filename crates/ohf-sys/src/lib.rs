@@ -1,27 +1,18 @@
-//! FFI to the Silicon Labs SDK.
-//!
-//! Every type, constant, and (real, non-inline) function declaration is
-//! bindgen-generated at build time from the SDK headers, using the include/define
-//! flags SLC emitted (`OHF_BINDGEN_FLAGS`, supplied by `build_project.py`). We
-//! hand-pick only the *surface* — the `#include`s in `wrapper.h` and the allowlist
-//! in `build.rs` — never the layouts. Inline/macro-only SDK helpers can't be bound
-//! and get a thin C shim in the owning component instead.
+//! SDK bindings shared by the components.
 #![no_std]
 #![allow(non_camel_case_types, non_upper_case_globals, non_snake_case, dead_code)]
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 extern "C" {
-    /// Generic wrapper over the inline `GPIO_PinModeSet` (defined in shims.c, compiled
-    /// into this crate). `mode` is a `gpioMode*` value.
+    /// `GPIO_PinModeSet`, which is inline. `mode` is a `gpioMode*` value.
     pub fn ohf_gpio_pin_mode_set(port: u32, pin: u32, mode: u32, out: u32);
 
-    /// Wrapper over the inline, no-return `NVIC_SystemReset` (defined in shims.c).
+    /// `NVIC_SystemReset`, which is inline.
     pub fn ohf_system_reset() -> !;
 }
 
-/// Safe SDK token access. The SDK's token macros can't be bound (they paste a size), but the
-/// underlying halInternal* functions can; the size is just size_of::<T>().
+/// The token macros paste in the size, so call the functions behind them.
 #[cfg(feature = "tokens")]
 pub mod token {
     use core::ffi::c_void;
@@ -57,9 +48,7 @@ pub mod token {
     }
 }
 
-/// Factory-erase and reboot: full NVM3 erase + PSA key wipe, then reset. Shared by the reset
-/// button and the router's nvram reset. Gated behind the `factory_erase` feature so firmwares
-/// that don't need it (e.g. Z-Wave) don't pull the nvm3/psa surface.
+/// Erase NVM3 and the Zigbee PSA keys, then reset.
 #[cfg(feature = "factory_erase")]
 pub fn factory_erase() -> ! {
     // The Zigbee stack's PSA key id range.

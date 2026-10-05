@@ -123,8 +123,5 @@ c_defines:
   SL_SIMPLE_BUTTON_PIN_HOLE_BUTTON_PORT: SL_GPIO_PORT_C
   SL_SIMPLE_BUTTON_PIN_HOLE_BUTTON_PIN: 5
 
-  # Reset button backend (preserve frame counters for Zigbee security) is now selected by
-  # the zbt2_reset_button_zigbee_token component above, not ERASE_COUNTERS.
-
   # Product ID to prevent cross-flashing across devices
   SL_APPLICATION_PRODUCT_ID: '{0xF4, 0x5E, 0x03, 0x17, 0xD5, 0x84, 0xAD, 0xA4, 0x7D, 0xDA, 0x6C, 0x95, 0x11, 0x2F, 0x24, 0xFA}'

@@ -1,7 +1,7 @@
 id: xncp_core
 label: XNCP Core
 package: custom
-description: Extensible NCP command framework with Jinja-generated dispatcher
+description: Extensible NCP command framework
 category: Zigbee|NCP
 quality: production
 provides:
@@ -10,11 +10,6 @@ requires:
   - name: ohf_runtime
   - name: zigbee_xncp
 toolchain_settings:
-  # Linker-wrap the SDK's weak XNCP callback straight onto the Rust implementation
-  # (__wrap_sl_zigbee_af_xncp_incoming_custom_frame_cb in crates/ohf-xncp) instead of a C
-  # shim. The --wrap reference pulls the symbol out of the aggregate archive on its own.
-  # lld honours the wrap over the LTO-visible weak default; GNU ld (PR ld/31956) would call
-  # the weak default directly, so validate_linker_wraps will fail a GCC build here.
   - option: gcc_linker_option
     value: "-Wl,--wrap=sl_zigbee_af_xncp_incoming_custom_frame_cb"
   - option: llvm_linker_option

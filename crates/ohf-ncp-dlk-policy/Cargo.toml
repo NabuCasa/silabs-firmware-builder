@@ -3,8 +3,6 @@ name = "ohf-ncp-dlk-policy"
 edition.workspace = true
 version.workspace = true
 
-# ncp_dlk_policy_shim.c owns the SDK's weak callback and calls into this crate: a
-# strong definition in the archive does not override the weak default
 [dependencies]
 
 [build-dependencies]
