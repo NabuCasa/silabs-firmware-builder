@@ -1157,28 +1157,15 @@ def cmake_configure_and_build(
 
 
 def rust_toolchain_binaries(build: ResolvedBuild) -> dict[str, typing.Any]:
-    """The binutils + shim compiler the Rust phase needs, per toolchain. GCC ships
-    arm-none-eabi-* GNU binutils + gcc; LLVM ships llvm-* + clang, which needs an explicit
-    --target and has its libc sysroot baked in. bindgen always uses its own libclang, so it
-    only needs a sysroot pointing at some arm libc headers to parse."""
+    """The LLVM binaries the Rust phase needs. Rust is linked into the firmware as LLVM
+    bitcode, so only LLVM-built firmwares can use Rust components. bindgen uses its own
+    libclang, so it only needs a sysroot with the arm libc headers to parse."""
+    assert build.toolchain is Toolchain.LLVM, "Rust components need the LLVM toolchain"
     tp = build.toolchain_path
-    if build.toolchain is Toolchain.LLVM:
-        return {
-            "ar": tp / "bin/llvm-ar",
-            "shim_cc": tp / "bin/clang",
-            # clang defaults to the host triple; the shim is bare-metal arm.
-            "shim_target": [f"--target={RUST_TARGET}"],
-            # Emit LLVM bitcode so the firmware's LTO link optimizes across C and Rust.
-            # rustc's LLVM must not be newer than the toolchain's LLD.
-            "rustflags": ["-Clinker-plugin-lto"],
-            "sysroot": tp / "lib/clang-runtimes/arm-none-eabi/include",
-        }
     return {
-        "ar": tp / "bin/arm-none-eabi-ar",
-        "shim_cc": tp / "bin/arm-none-eabi-gcc",
-        "shim_target": [],
-        "rustflags": [],
-        "sysroot": tp / "arm-none-eabi/include",
+        "ar": tp / "bin/llvm-ar",
+        "clang": tp / "bin/clang",
+        "sysroot": tp / "lib/clang-runtimes/arm-none-eabi/include",
     }
 
 
@@ -1249,7 +1236,6 @@ def stub_rust_libraries(build: ResolvedBuild) -> None:
         return
 
     archives = rust_staticlib_archives()
-    ar = rust_toolchain_binaries(build)["ar"]
 
     for slcc in build.build_template_path.rglob("*.slcc"):
         data = yaml.load(slcc.read_text())
@@ -1258,6 +1244,7 @@ def stub_rust_libraries(build: ResolvedBuild) -> None:
             if path.name in archives:
                 stub = slcc.parent / path
                 stub.parent.mkdir(parents=True, exist_ok=True)
+                ar = rust_toolchain_binaries(build)["ar"]
                 subprocess.run([ar, "rc", str(stub)], check=True)
                 LOGGER.info("Stubbed Rust library placeholder %s", stub)
 
@@ -1304,7 +1291,7 @@ def build_rust_libraries(build: ResolvedBuild, rust_config: dict[str, str]) -> N
     inc_args = " ".join(f"-I{d}" for d in flags["includes"])
     define_args = " ".join(f"-D{d}" for d in flags["defines"])
     bins = rust_toolchain_binaries(build)
-    shim_arch = " ".join(bins["shim_target"] + flags["arch"])
+    shim_arch = " ".join([f"--target={RUST_TARGET}", *flags["arch"]])
     # The installed SDK has cmsis_clang.h, which a GCC build does not copy into the
     # build tree but bindgen's libclang needs.
     cmsis = build.sdk / "cmsis/Core/Include"
@@ -1313,10 +1300,16 @@ def build_rust_libraries(build: ResolvedBuild, rust_config: dict[str, str]) -> N
         **os.environ,
         "PATH": f"{pathlib.Path.home() / '.cargo/bin'}:{os.environ['PATH']}",
         "OHF_BINDGEN_FLAGS": f"--target={RUST_TARGET} -isystem{bins['sysroot']} -I{cmsis} {inc_args} {define_args}",
-        "OHF_SHIM_CC": str(bins["shim_cc"]),
-        "OHF_SHIM_CFLAGS": f"{shim_arch} -I{cmsis} {inc_args} {define_args}",
+        "OHF_SHIM_CC": str(bins["clang"]),
+        # The shim joins the LTO link like the C sources, as a split LTO unit
+        "OHF_SHIM_CFLAGS": f"{shim_arch} -flto -fsplit-lto-unit -I{cmsis} {inc_args} {define_args}",
         "OHF_RUST_CONFIG": str(config_path.resolve()),
-        "RUSTFLAGS": " ".join(bins["rustflags"]),
+        # Emit LLVM bitcode so the firmware's LTO link optimizes across C and Rust.
+        # rustc's LLVM must not be newer than the toolchain's LLD. SLC compiles with
+        # -fwhole-program-vtables, which needs every LTO unit split. Panics trap.
+        "RUSTFLAGS": "-Clinker-plugin-lto -Zsplit-lto-unit -Zunstable-options -Cpanic=immediate-abort",
+        # build-std and the -Z flags are unstable; this unlocks them on the pinned stable
+        "RUSTC_BOOTSTRAP": "1",
     }
 
     subprocess_run_verbose(
@@ -1326,6 +1319,8 @@ def build_rust_libraries(build: ResolvedBuild, rust_config: dict[str, str]) -> N
             "--release",
             "--target",
             RUST_TARGET,
+            # Compile `core` from source as bitcode, so the LTO link optimizes it too
+            "-Zbuild-std=core",
             "-p",
             "ohf-firmware",
             "--no-default-features",

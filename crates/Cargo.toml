@@ -26,7 +26,9 @@ version = "0.1.0"
 [profile.release]
 panic = "abort"
 opt-level = "z"
-lto = true
+# The firmware link does LTO across C and Rust. rustc's own LTO output carries no
+# summary, which LLD treats as an unsplit LTO unit.
+lto = false
 codegen-units = 1
 strip = true
 debug = false
