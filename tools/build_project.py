@@ -271,6 +271,9 @@ def validate_weak_overrides(
     build: ResolvedBuild, rust_objects: list[pathlib.Path], declared: set[str]
 ) -> None:
     """Check that the Rust objects override exactly the declared weak definitions."""
+    if not rust_objects:
+        return
+
     nm = rust_toolchain_binaries(build)["nm"]
     # Ninja deletes the link's response file once it succeeds, so ask it for the inputs
     query = subprocess.run(

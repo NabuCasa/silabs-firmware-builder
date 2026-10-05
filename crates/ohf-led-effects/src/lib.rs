@@ -131,12 +131,9 @@ fn update_led_hardware() {
         top.map(|i| (layers[i].pattern, current_tick.wrapping_sub(layers[i].start_tick)))
     });
 
-    let (p, layer_ticks) = match selected {
-        Some(x) => x,
-        None => {
-            unsafe { sl_led_turn_off(led_common()) }
-            return;
-        }
+    let Some((p, layer_ticks)) = selected else {
+        unsafe { sl_led_turn_off(led_common()) }
+        return;
     };
 
     let ms_elapsed = layer_ticks.wrapping_mul(LED_EFFECTS_UPDATE_INTERVAL_MS);

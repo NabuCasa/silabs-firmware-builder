@@ -30,65 +30,59 @@ extern "C" {
     static sl_i2cspm_inst: *mut I2C_TypeDef;
 }
 
-unsafe fn read_reg(
-    i2cspm: *mut I2C_TypeDef,
-    reg: u8,
-    data: *mut u8,
-    len: u16,
-) -> I2C_TransferReturn_TypeDef {
-    let mut reg = reg;
+// Two buffers: written then read for WRITE_READ, or only the first for WRITE
+fn transfer(flags: u32, first: &mut [u8], second: &mut [u8]) -> I2C_TransferReturn_TypeDef {
     let mut seq = I2C_TransferSeq_TypeDef {
         addr: QMA6100P_I2C_ADDR,
-        flags: I2C_FLAG_WRITE_READ as u16,
+        flags: flags as u16,
         buf: [
-            I2cBuf { data: &mut reg, len: 1 },
-            I2cBuf { data, len },
+            I2cBuf { data: first.as_mut_ptr(), len: first.len() as u16 },
+            I2cBuf { data: second.as_mut_ptr(), len: second.len() as u16 },
         ],
     };
-    I2CSPM_Transfer(i2cspm, &mut seq)
+    unsafe { I2CSPM_Transfer(sl_i2cspm_inst, &mut seq) }
 }
 
-unsafe fn write_reg(i2cspm: *mut I2C_TypeDef, reg: u8, value: u8) -> I2C_TransferReturn_TypeDef {
-    let mut buf = [reg, value];
-    let mut seq = I2C_TransferSeq_TypeDef {
-        addr: QMA6100P_I2C_ADDR,
-        flags: I2C_FLAG_WRITE as u16,
-        buf: [
-            I2cBuf { data: buf.as_mut_ptr(), len: 2 },
-            I2cBuf { data: core::ptr::null_mut(), len: 0 },
-        ],
-    };
-    I2CSPM_Transfer(i2cspm, &mut seq)
+fn read_reg(reg: u8, data: &mut [u8]) -> I2C_TransferReturn_TypeDef {
+    transfer(I2C_FLAG_WRITE_READ, &mut [reg], data)
 }
 
-unsafe fn init(i2cspm: *mut I2C_TypeDef) {
-    let mut id: u8 = 0;
-    read_reg(i2cspm, QMA6100P_CHIP_ID, &mut id, 1);
+fn write_reg(reg: u8, value: u8) -> I2C_TransferReturn_TypeDef {
+    transfer(I2C_FLAG_WRITE, &mut [reg, value], &mut [])
+}
+
+fn delay_us(us: u32) {
+    unsafe { sl_udelay_wait(us) }
+}
+
+fn init() {
+    let mut id = [0];
+    read_reg(QMA6100P_CHIP_ID, &mut id);
 
     // software reset
-    write_reg(i2cspm, QMA6100P_REG_RESET, QMA6100P_RESET_CMD);
-    sl_udelay_wait(5000);
-    write_reg(i2cspm, QMA6100P_REG_RESET, QMA6100P_RESET_CLR);
-    sl_udelay_wait(10000);
+    write_reg(QMA6100P_REG_RESET, QMA6100P_RESET_CMD);
+    delay_us(5000);
+    write_reg(QMA6100P_REG_RESET, QMA6100P_RESET_CLR);
+    delay_us(10000);
 
     // recommended initialization sequence
-    write_reg(i2cspm, QMA6100P_REG_POWER_MANAGEMENT, QMA6100P_PM_MODE_ACTIVE);
-    write_reg(i2cspm, QMA6100P_REG_POWER_MANAGEMENT, QMA6100P_PM_MODE_ACTIVE | QMA6100P_PM_MCLK_51_2K);
-    write_reg(i2cspm, QMA6100P_REG_INTERNAL_4A, 0x20);
-    write_reg(i2cspm, QMA6100P_REG_INTERNAL_56, 0x01);
-    write_reg(i2cspm, QMA6100P_REG_INTERNAL_5F, 0x80);
-    sl_udelay_wait(2000);
-    write_reg(i2cspm, QMA6100P_REG_INTERNAL_5F, 0x00);
-    sl_udelay_wait(10000);
+    write_reg(QMA6100P_REG_POWER_MANAGEMENT, QMA6100P_PM_MODE_ACTIVE);
+    write_reg(QMA6100P_REG_POWER_MANAGEMENT, QMA6100P_PM_MODE_ACTIVE | QMA6100P_PM_MCLK_51_2K);
+    write_reg(QMA6100P_REG_INTERNAL_4A, 0x20);
+    write_reg(QMA6100P_REG_INTERNAL_56, 0x01);
+    write_reg(QMA6100P_REG_INTERNAL_5F, 0x80);
+    delay_us(2000);
+    write_reg(QMA6100P_REG_INTERNAL_5F, 0x00);
+    delay_us(10000);
 
-    write_reg(i2cspm, QMA6100P_REG_RANGE, QMA6100P_RANGE_8G);
-    write_reg(i2cspm, QMA6100P_REG_BW_ODR, QMA6100P_BW_100);
-    write_reg(i2cspm, QMA6100P_REG_POWER_MANAGEMENT, QMA6100P_PM_MODE_ACTIVE | QMA6100P_PM_MCLK_51_2K);
+    write_reg(QMA6100P_REG_RANGE, QMA6100P_RANGE_8G);
+    write_reg(QMA6100P_REG_BW_ODR, QMA6100P_BW_100);
+    write_reg(QMA6100P_REG_POWER_MANAGEMENT, QMA6100P_PM_MODE_ACTIVE | QMA6100P_PM_MCLK_51_2K);
 }
 
 fn read_raw() -> [i16; 3] {
     let mut buf = [0u8; 6];
-    unsafe { read_reg(sl_i2cspm_inst, QMA6100P_XOUTL, buf.as_mut_ptr(), 6) };
+    read_reg(QMA6100P_XOUTL, &mut buf);
     // 14-bit left-justified samples; shift the sign-extended value down by 2.
     [
         i16::from_be_bytes([buf[1], buf[0]]) >> 2,
@@ -109,5 +103,5 @@ pub unsafe extern "C" fn qma6100p_read_raw_xyz(_i2cspm: *mut I2C_TypeDef, data: 
 
 #[no_mangle]
 pub extern "C" fn qma6100p_system_init() {
-    unsafe { init(sl_i2cspm_inst) }
+    init()
 }
