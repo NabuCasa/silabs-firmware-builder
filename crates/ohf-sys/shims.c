@@ -16,21 +16,3 @@ void ohf_system_reset(void)
 {
     NVIC_SystemReset();
 }
-
-/* Zigbee stack node-data token read. halCommonGetToken is a macro, so bindgen can't bind
- * it. Guarded on the zigbee stack being present (STACK_TYPES_HEADER is only defined in
- * zigbee builds): ohf-sys is also compiled for the non-zigbee RCP, where these token types
- * don't exist. */
-#ifdef STACK_TYPES_HEADER
-#include "sl_token_api.h"
-#include STACK_TYPES_HEADER
-
-void ohf_zigbee_stack_node_data(uint16_t *pan_id, uint8_t *channel, uint8_t *node_type)
-{
-    tokTypeStackNodeData node_data;
-    halCommonGetToken(&node_data, TOKEN_STACK_NODE_DATA);
-    *pan_id = node_data.panId;
-    *channel = node_data.radioFreqChannel;
-    *node_type = node_data.nodeType;
-}
-#endif

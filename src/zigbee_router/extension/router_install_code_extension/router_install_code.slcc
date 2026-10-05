@@ -10,10 +10,6 @@ description: >-
   so the next boot reads a valid token.
 category: Zigbee|Router
 quality: production
-source:
-  # Thin C shim for the macro-based MFG-token read/write; the provisioning logic is Rust
-  # (crates/ohf-router).
-  - path: src/router_install_code_shim.c
 provides:
   - name: router_install_code
 requires:

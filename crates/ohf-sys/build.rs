@@ -50,6 +50,18 @@ fn main() {
             .allowlist_var("nvm3_defaultHandle");
     }
 
+    if std::env::var_os("CARGO_FEATURE_TOKENS").is_some() {
+        builder = builder
+            .clang_arg("-DOHF_TOKENS")
+            .allowlist_function("halInternalGetTokenData")
+            .allowlist_function("halInternalGetMfgTokenData")
+            .allowlist_function("halInternalSetMfgTokenData")
+            .allowlist_type("tokTypeStackNodeData")
+            .allowlist_type("tokTypeMfgInstallationCode")
+            .allowlist_var("TOKEN_STACK_NODE_DATA")
+            .allowlist_var("TOKEN_MFG_INSTALLATION_CODE");
+    }
+
     ohf_bindgen::write(builder);
 
     // Compile the generic inline/macro SDK wrappers (shims.c) into ohf-sys, so the real

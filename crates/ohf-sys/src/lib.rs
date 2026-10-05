@@ -16,13 +16,45 @@ extern "C" {
     /// into this crate). `mode` is a `gpioMode*` value.
     pub fn ohf_gpio_pin_mode_set(port: u32, pin: u32, mode: u32, out: u32);
 
-    /// Reads TOKEN_STACK_NODE_DATA via the `halCommonGetToken` macro (defined in shims.c).
-    /// Only present in zigbee builds; callers (ohf-led-effects-zigbee, ohf-router) are
-    /// zigbee-only too.
-    pub fn ohf_zigbee_stack_node_data(pan_id: *mut u16, channel: *mut u8, node_type: *mut u8);
-
     /// Wrapper over the inline, no-return `NVIC_SystemReset` (defined in shims.c).
     pub fn ohf_system_reset() -> !;
+}
+
+/// Safe SDK token access. The SDK's token macros can't be bound (they paste a size), but the
+/// underlying halInternal* functions can; the size is just size_of::<T>().
+#[cfg(feature = "tokens")]
+pub mod token {
+    use core::ffi::c_void;
+    use core::mem::{size_of, MaybeUninit};
+
+    const NO_INDEX: u8 = 0x7F;
+
+    // bindgen emits the TOKEN_* keys as u32; the halInternal* API takes u16.
+    fn key(token: u32) -> u16 {
+        u16::try_from(token).unwrap()
+    }
+
+    pub fn get<T: Copy>(token: u32) -> T {
+        let mut v = MaybeUninit::<T>::uninit();
+        unsafe {
+            super::halInternalGetTokenData(v.as_mut_ptr() as *mut c_void, key(token), NO_INDEX, size_of::<T>() as u8);
+            v.assume_init()
+        }
+    }
+
+    pub fn get_mfg<T: Copy>(token: u32) -> T {
+        let mut v = MaybeUninit::<T>::uninit();
+        unsafe {
+            super::halInternalGetMfgTokenData(v.as_mut_ptr() as *mut c_void, key(token), NO_INDEX, size_of::<T>() as u32);
+            v.assume_init()
+        }
+    }
+
+    pub fn set_mfg<T>(token: u32, value: &T) {
+        unsafe {
+            super::halInternalSetMfgTokenData(key(token), value as *const T as *mut c_void, size_of::<T>() as u32);
+        }
+    }
 }
 
 /// Factory-erase and reboot: full NVM3 erase + PSA key wipe, then reset. Shared by the reset

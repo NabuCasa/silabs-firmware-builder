@@ -8,6 +8,8 @@ version.workspace = true
 [features]
 # Pulls the nvm3/psa surface for `factory_erase`; enabled by the reset button and router.
 factory_erase = []
+# SDK token access (zigbee builds only: the token headers don't exist elsewhere).
+tokens = []
 
 [dependencies]
 # ohf-sys provides the critical-section impl (backed by CORE_Enter/ExitCritical) so

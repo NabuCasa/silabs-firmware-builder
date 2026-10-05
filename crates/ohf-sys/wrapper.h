@@ -16,3 +16,7 @@
 #include "nvm3_generic.h"
 #include "psa/crypto.h"
 #endif
+#ifdef OHF_TOKENS
+#include "sl_token_api.h"
+#include "sl_token_manufacturing_api.h"
+#endif
