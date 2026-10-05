@@ -41,3 +41,4 @@ zbt2_reset_button_zigbee_token = ["zbt2_reset_button", "ohf-zbt2-reset-button/zi
 router_beacon_filter = ["dep:ohf-router", "ohf-router/beacon_filter"]
 router_eui64_unique = ["dep:ohf-router", "ohf-router/eui64_unique"]
 router_nvram_reset = ["dep:ohf-router", "ohf-router/nvram_reset"]
+router_install_code = ["dep:ohf-router", "ohf-router/install_code"]

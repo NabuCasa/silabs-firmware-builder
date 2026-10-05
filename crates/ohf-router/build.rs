@@ -15,6 +15,11 @@ fn main() {
             .allowlist_var("TOKEN_MFG_EUI_64_SIZE")
             // Node types for the nvram-reset check.
             .allowlist_var("SL_ZIGBEE_ROUTER")
-            .allowlist_var("SL_ZIGBEE_UNKNOWN_DEVICE"),
+            .allowlist_var("SL_ZIGBEE_UNKNOWN_DEVICE")
+            // Install-code provisioning: Zigbee CRC + PSA randomness.
+            .allowlist_function("halCommonCrc16")
+            .allowlist_function("psa_crypto_init")
+            .allowlist_function("psa_generate_random")
+            .allowlist_var("PSA_SUCCESS"),
     );
 }

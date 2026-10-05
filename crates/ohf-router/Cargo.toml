@@ -12,6 +12,7 @@ version.workspace = true
 beacon_filter = []
 eui64_unique = []
 nvram_reset = ["dep:ohf-sys"]
+install_code = ["dep:ohf-sys"]
 
 [dependencies]
 ohf-sys = { path = "../ohf-sys", features = ["factory_erase"], optional = true }

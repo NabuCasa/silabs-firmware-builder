@@ -27,7 +27,8 @@ extern crate ohf_zbt2_reset_button;
 #[cfg(any(
     feature = "router_beacon_filter",
     feature = "router_eui64_unique",
-    feature = "router_nvram_reset"
+    feature = "router_nvram_reset",
+    feature = "router_install_code"
 ))]
 extern crate ohf_router;
 #[cfg(feature = "qma6100p")]

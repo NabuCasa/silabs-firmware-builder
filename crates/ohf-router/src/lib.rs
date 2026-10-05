@@ -13,3 +13,5 @@ mod beacon_filter;
 mod eui64_unique;
 #[cfg(feature = "nvram_reset")]
 mod nvram_reset;
+#[cfg(feature = "install_code")]
+mod install_code;
