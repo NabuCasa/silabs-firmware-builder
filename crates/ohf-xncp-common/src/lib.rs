@@ -9,8 +9,10 @@ use core::ptr::addr_of_mut;
 use critical_section::Mutex;
 use linkme::distributed_slice;
 
+use ohf_xncp_macros::xncp_command;
+
 use ohf_xncp::{
-    Reader, ReplyBuf, Status, XncpCommandDef, XNCP_COMMANDS, XNCP_FEATURES,
+    Reader, ReplyBuf, Status, XNCP_FEATURES,
     XNCP_FEATURE_BUILD_STRING, XNCP_FEATURE_CHIP_INFO, XNCP_FEATURE_COMBINED_SEND,
     XNCP_FEATURE_FLOW_CONTROL_TYPE, XNCP_FEATURE_MANUAL_SOURCE_ROUTE,
     XNCP_FEATURE_MEMBER_OF_ALL_GROUPS, XNCP_FEATURE_MFG_TOKEN_OVERRIDES,
@@ -159,6 +161,7 @@ fn install_manual_source_route(node_id: u16, relay_bytes: &[u8]) {
 
 // --- Commands -----------------------------------------------------------------------------
 
+#[xncp_command(0x0001)]
 fn handle_set_source_route(req: &[u8], _reply: &mut ReplyBuf) -> Status {
     if req.len() < 2 || req.len() % 2 != 0 {
         return Status::BAD_ARGUMENT;
@@ -172,6 +175,7 @@ fn handle_set_source_route(req: &[u8], _reply: &mut ReplyBuf) -> Status {
     Status::OK
 }
 
+#[xncp_command(0x0002)]
 fn handle_get_mfg_token_override(req: &[u8], reply: &mut ReplyBuf) -> Status {
     let &[token_id] = req else {
         return Status::BAD_ARGUMENT;
@@ -187,11 +191,13 @@ fn handle_get_mfg_token_override(req: &[u8], reply: &mut ReplyBuf) -> Status {
     Status::OK
 }
 
+#[xncp_command(0x0003)]
 fn handle_get_build_string(_req: &[u8], reply: &mut ReplyBuf) -> Status {
     reply.push_bytes(c_str_bytes(XNCP_BUILD_STRING));
     Status::OK
 }
 
+#[xncp_command(0x0004)]
 fn handle_get_flow_control_type(_req: &[u8], reply: &mut ReplyBuf) -> Status {
     let flow = if XNCP_FLOW_CONTROL_TYPE as u32 == usartHwFlowControlCtsAndRts as u32 {
         FLOW_CONTROL_TYPE_HARDWARE
@@ -202,6 +208,7 @@ fn handle_get_flow_control_type(_req: &[u8], reply: &mut ReplyBuf) -> Status {
     Status::OK
 }
 
+#[xncp_command(0x0005)]
 fn handle_get_chip_info(_req: &[u8], reply: &mut ReplyBuf) -> Status {
     reply.push_u32_le(RAM_MEM_SIZE as u32);
     let part = c_str_bytes(PART_NUMBER);
@@ -210,6 +217,7 @@ fn handle_get_chip_info(_req: &[u8], reply: &mut ReplyBuf) -> Status {
     Status::OK
 }
 
+#[xncp_command(0x0006)]
 fn handle_set_route_table_entry(req: &[u8], _reply: &mut ReplyBuf) -> Status {
     let &[index, d0, d1, n0, n1, status, cost] = req else {
         return Status::BAD_ARGUMENT;
@@ -229,6 +237,7 @@ fn handle_set_route_table_entry(req: &[u8], _reply: &mut ReplyBuf) -> Status {
     Status::OK
 }
 
+#[xncp_command(0x0007)]
 fn handle_get_route_table_entry(req: &[u8], reply: &mut ReplyBuf) -> Status {
     let &[index] = req else {
         return Status::BAD_ARGUMENT;
@@ -244,6 +253,7 @@ fn handle_get_route_table_entry(req: &[u8], reply: &mut ReplyBuf) -> Status {
     Status::OK
 }
 
+#[xncp_command(0x0008)]
 fn handle_get_tx_power_info(req: &[u8], reply: &mut ReplyBuf) -> Status {
     let &[c1, c2] = req else {
         return Status::BAD_ARGUMENT;
@@ -296,6 +306,7 @@ fn send_unicast(destination: u16, aps: &mut sl_zigbee_aps_frame_t, tag: u16, mes
     (status, aps_sequence)
 }
 
+#[xncp_command(0x0009)]
 fn handle_send_unicast(req: &[u8], reply: &mut ReplyBuf) -> Status {
     let mut r = Reader::new(req);
 
@@ -494,51 +505,6 @@ pub unsafe extern "C" fn nc_zigbee_override_append_source_route(
 
 // --- Registration -------------------------------------------------------------------------
 
-#[distributed_slice(XNCP_COMMANDS)]
-static CMD_SET_SOURCE_ROUTE: XncpCommandDef = XncpCommandDef {
-    command_id: 0x0001,
-    handler: handle_set_source_route,
-};
-#[distributed_slice(XNCP_COMMANDS)]
-static CMD_GET_MFG_TOKEN: XncpCommandDef = XncpCommandDef {
-    command_id: 0x0002,
-    handler: handle_get_mfg_token_override,
-};
-#[distributed_slice(XNCP_COMMANDS)]
-static CMD_GET_BUILD_STRING: XncpCommandDef = XncpCommandDef {
-    command_id: 0x0003,
-    handler: handle_get_build_string,
-};
-#[distributed_slice(XNCP_COMMANDS)]
-static CMD_GET_FLOW_CONTROL: XncpCommandDef = XncpCommandDef {
-    command_id: 0x0004,
-    handler: handle_get_flow_control_type,
-};
-#[distributed_slice(XNCP_COMMANDS)]
-static CMD_GET_CHIP_INFO: XncpCommandDef = XncpCommandDef {
-    command_id: 0x0005,
-    handler: handle_get_chip_info,
-};
-#[distributed_slice(XNCP_COMMANDS)]
-static CMD_SET_ROUTE_TABLE_ENTRY: XncpCommandDef = XncpCommandDef {
-    command_id: 0x0006,
-    handler: handle_set_route_table_entry,
-};
-#[distributed_slice(XNCP_COMMANDS)]
-static CMD_GET_ROUTE_TABLE_ENTRY: XncpCommandDef = XncpCommandDef {
-    command_id: 0x0007,
-    handler: handle_get_route_table_entry,
-};
-#[distributed_slice(XNCP_COMMANDS)]
-static CMD_GET_TX_POWER_INFO: XncpCommandDef = XncpCommandDef {
-    command_id: 0x0008,
-    handler: handle_get_tx_power_info,
-};
-#[distributed_slice(XNCP_COMMANDS)]
-static CMD_SEND_UNICAST: XncpCommandDef = XncpCommandDef {
-    command_id: 0x0009,
-    handler: handle_send_unicast,
-};
 
 #[distributed_slice(XNCP_FEATURES)]
 static COMMON_FEATURES: u32 = XNCP_FEATURE_MEMBER_OF_ALL_GROUPS

@@ -9,6 +9,7 @@ members = [
     "ohf-led-effects-zigbee",
     "ohf-led-effects-openthread",
     "ohf-xncp",
+    "ohf-xncp-macros",
     "ohf-xncp-common",
     "ohf-xncp-zbt2",
     "ohf-ncp-dlk-policy",

@@ -11,6 +11,7 @@ version.workspace = true
 
 [dependencies]
 ohf-xncp = { path = "../ohf-xncp" }
+ohf-xncp-macros = { path = "../ohf-xncp-macros" }
 critical-section = "1"
 linkme = "0.3"
 

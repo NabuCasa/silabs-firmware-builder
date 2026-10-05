@@ -7,7 +7,8 @@
 #![no_std]
 #![allow(non_camel_case_types)]
 
-use linkme::distributed_slice;
+// Re-exported so `ohf_xncp_macros::xncp_command` can reference it by path.
+pub use linkme::distributed_slice;
 
 /// The wire status byte: the low byte of the `sl_status_t` the protocol carries.
 #[derive(Clone, Copy, PartialEq, Eq)]
