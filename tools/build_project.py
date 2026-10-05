@@ -351,19 +351,30 @@ def get_elf_source_paths(elf_path: pathlib.Path) -> set[pathlib.PurePosixPath]:
 
         for cu in dwarf.iter_CUs():
             line_program = dwarf.line_program_for_CU(cu)
+            comp_dir = (
+                cu.get_top_DIE().attributes["DW_AT_comp_dir"].value.decode("utf-8")
+            )
+
+            # DWARF 5 indexes files and directories from 0, with the compilation
+            # directory as entry 0. Earlier versions index files from 1 and leave the
+            # compilation directory implicit as directory 0.
+            directories = list(line_program["include_directory"])
+            files = list(line_program["file_entry"])
+            if line_program["version"] < 5:
+                directories.insert(0, comp_dir.encode("utf-8"))
+                files.insert(0, None)
 
             for entry in line_program.get_entries():
                 state = entry.state
                 if state is None:
                     continue
 
-                file_entry = line_program["file_entry"][state.file - 1]
-                directory = line_program["include_directory"][
-                    file_entry.dir_index - 1
-                ].decode("utf-8")
+                file_entry = files[state.file]
+                directory = directories[file_entry.dir_index].decode("utf-8")
                 filename = file_entry.name.decode("utf-8")
 
-                paths.add(pathlib.PurePosixPath(f"{directory}/{filename}"))
+                # Relative directories are relative to the compilation directory
+                paths.add(pathlib.PurePosixPath(comp_dir, directory, filename))
 
     return paths
 
