@@ -2,13 +2,16 @@
 //! `ZBT2_RESET_BUTTON_CYCLES` cycles resets the adapter. Releasing early cancels.
 #![no_std]
 
-use core::cell::{RefCell, UnsafeCell};
+use core::cell::RefCell;
 use core::ffi::c_void;
-use core::mem::MaybeUninit;
 
 use critical_section::Mutex;
 use ohf_led_effects::{
     led_manager_clear_pattern, led_manager_set_color, LED_COLOR_RESET_ORANGE, LED_PRIORITY_CRITICAL,
+};
+use ohf_sys::{
+    sl_sleeptimer_ms32_to_tick, sl_sleeptimer_start_timer, sl_sleeptimer_stop_timer,
+    sl_sleeptimer_timer_callback_t, sl_sleeptimer_timer_handle_t, SyncCell, ZERO_TIMER,
 };
 
 #[allow(non_camel_case_types, non_upper_case_globals, non_snake_case, dead_code)]
@@ -34,20 +37,6 @@ static STATE: Mutex<RefCell<State>> = Mutex::new(RefCell::new(State {
     led_on: false,
 }));
 
-// Sleeptimer handles, which the SDK writes to
-struct SyncCell<T>(UnsafeCell<T>);
-unsafe impl<T> Sync for SyncCell<T> {}
-impl<T> SyncCell<T> {
-    const fn new(v: T) -> Self {
-        Self(UnsafeCell::new(v))
-    }
-    fn get(&self) -> *mut T {
-        self.0.get()
-    }
-}
-
-const ZERO_TIMER: sl_sleeptimer_timer_handle_t =
-    unsafe { MaybeUninit::zeroed().assume_init() };
 static RESET_TIMER: SyncCell<sl_sleeptimer_timer_handle_t> = SyncCell::new(ZERO_TIMER);
 static BLINK_TIMER: SyncCell<sl_sleeptimer_timer_handle_t> = SyncCell::new(ZERO_TIMER);
 

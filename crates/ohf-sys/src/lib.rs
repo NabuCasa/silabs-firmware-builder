@@ -4,6 +4,25 @@
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
+use core::cell::UnsafeCell;
+use core::mem::MaybeUninit;
+
+/// A static that the SDK or a single context writes to
+pub struct SyncCell<T>(UnsafeCell<T>);
+unsafe impl<T> Sync for SyncCell<T> {}
+
+impl<T> SyncCell<T> {
+    pub const fn new(v: T) -> Self {
+        Self(UnsafeCell::new(v))
+    }
+
+    pub fn get(&self) -> *mut T {
+        self.0.get()
+    }
+}
+
+pub const ZERO_TIMER: sl_sleeptimer_timer_handle_t = unsafe { MaybeUninit::zeroed().assume_init() };
+
 extern "C" {
     /// `GPIO_PinModeSet`, which is inline. `mode` is a `gpioMode*` value.
     pub fn ohf_gpio_pin_mode_set(port: u32, pin: u32, mode: u32, out: u32);

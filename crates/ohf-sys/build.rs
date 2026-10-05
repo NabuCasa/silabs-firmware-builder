@@ -25,6 +25,8 @@ fn main() {
             .allowlist_function("sl_led_set_rgb_color")
             .allowlist_function("sl_sleeptimer_start_periodic_timer_ms")
             .allowlist_function("sl_sleeptimer_stop_timer")
+            .allowlist_function("sl_sleeptimer_start_timer")
+            .allowlist_function("sl_sleeptimer_ms32_to_tick")
             .allowlist_var("I2C_FLAG_.*")
             .allowlist_var("SL_STATUS_OK")
             .allowlist_var("SL_LED_CURRENT_STATE_.*")
