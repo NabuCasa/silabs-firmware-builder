@@ -2,7 +2,7 @@
 #![no_std]
 
 use core::cell::RefCell;
-use core::ffi::c_void;
+use core::ffi::{c_void, CStr};
 use core::ptr::addr_of_mut;
 
 use critical_section::Mutex;
@@ -11,7 +11,7 @@ use linkme::distributed_slice;
 use ohf_xncp_macros::xncp_command;
 
 use ohf_xncp::{
-    Reader, ReplyBuf, Status, XNCP_FEATURES,
+    Reader, ReplyBuf, Status, XncpResult, XNCP_FEATURES,
     XNCP_FEATURE_BUILD_STRING, XNCP_FEATURE_CHIP_INFO, XNCP_FEATURE_COMBINED_SEND,
     XNCP_FEATURE_FLOW_CONTROL_TYPE, XNCP_FEATURE_MANUAL_SOURCE_ROUTE,
     XNCP_FEATURE_MEMBER_OF_ALL_GROUPS, XNCP_FEATURE_MFG_TOKEN_OVERRIDES,
@@ -37,9 +37,9 @@ const ROUTE_UNUSED: u8 = 3;
 const RELAY_COUNT: usize = SL_ZIGBEE_MAX_SOURCE_ROUTE_RELAY_COUNT as usize;
 const TABLE_SIZE: usize = XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE as usize;
 
-// bindgen emits string macros as `b"..\0"`; strip the trailing NUL to match strlen().
-fn c_str_bytes(s: &'static [u8]) -> &'static [u8] {
-    &s[..s.len() - 1]
+// bindgen emits string macros as NUL-terminated byte strings
+fn c_str(s: &'static [u8]) -> &'static [u8] {
+    CStr::from_bytes_with_nul(s).unwrap().to_bytes()
 }
 
 // EmberZNet internal tables
@@ -70,7 +70,8 @@ fn route_table_size() -> u8 {
 }
 
 fn route_entry_ptr(index: u8) -> *mut sli_zigbee_route_table_entry_t {
-    // The symbol is the first element of the stack's route table array.
+    assert!(index < route_table_size());
+    // The symbol is the first element of the stack's route table array
     unsafe { addr_of_mut!(sli_zigbee_route_table).add(index as usize) }
 }
 
@@ -93,23 +94,20 @@ fn route_table_set(index: u8, v: RouteEntry) {
     e.networkIndex = 0;
 }
 
-// Picks the slot for a fake route (num_relays == 0 case): an existing entry for `destination`,
-// else a free (UNUSED) slot, else a random one.
+// The slot for a fake route: an existing entry for `destination`, else the last unused
+// one, else a random one
 fn find_free_routing_table_entry(destination: u16) -> u8 {
     let size = route_table_size();
-    let mut index: u8 = 0xFF;
+    let mut unused = None;
     for i in 0..size {
         let e = route_table_get(i);
         if e.destination == destination {
             return i;
         } else if e.status == ROUTE_UNUSED {
-            index = i;
+            unused = Some(i);
         }
     }
-    if index == 0xFF {
-        index = (pseudo_random() % size as u16) as u8;
-    }
-    index
+    unused.unwrap_or_else(|| (pseudo_random() % size as u16) as u8)
 }
 
 #[derive(Clone, Copy)]
@@ -130,95 +128,88 @@ const EMPTY_ROUTE: ManualSourceRoute = ManualSourceRoute {
 static MANUAL_SOURCE_ROUTES: Mutex<RefCell<[ManualSourceRoute; TABLE_SIZE]>> =
     Mutex::new(RefCell::new([EMPTY_ROUTE; TABLE_SIZE]));
 
-// `relay_bytes` is little-endian u16 relays; its length is validated by the callers.
-fn install_manual_source_route(node_id: u16, relay_bytes: &[u8]) {
-    let num_relays = (relay_bytes.len() / 2) as u8;
+// Replaces the route for `node_id`, else takes the last free slot, else a random one.
+// `relays` holds little-endian u16 node ids.
+fn install_manual_source_route(node_id: u16, relays: &[u8]) -> XncpResult {
+    if relays.len() % 2 != 0 || relays.len() / 2 > RELAY_COUNT {
+        return Err(Status::BAD_ARGUMENT);
+    }
+
     critical_section::with(|cs| {
         let mut routes = MANUAL_SOURCE_ROUTES.borrow(cs).borrow_mut();
 
-        let mut insertion = pseudo_random() as usize % TABLE_SIZE;
-        for i in 0..TABLE_SIZE {
-            if !routes[i].active {
-                insertion = i;
-            } else if routes[i].destination == node_id {
-                insertion = i;
-                break;
-            }
-        }
+        let index = routes
+            .iter()
+            .position(|r| r.active && r.destination == node_id)
+            .or_else(|| routes.iter().rposition(|r| !r.active))
+            .unwrap_or_else(|| pseudo_random() as usize % TABLE_SIZE);
 
-        let route = &mut routes[insertion];
-        for (slot, chunk) in route.relays.iter_mut().zip(relay_bytes.chunks_exact(2)) {
-            *slot = u16::from_le_bytes([chunk[0], chunk[1]]);
+        let route = &mut routes[index];
+        for (slot, relay) in route.relays.iter_mut().zip(relays.chunks_exact(2)) {
+            *slot = u16::from_le_bytes([relay[0], relay[1]]);
         }
         route.destination = node_id;
-        route.num_relays = num_relays;
+        route.num_relays = (relays.len() / 2) as u8;
         route.active = true;
     });
+
+    Ok(())
 }
 
 #[xncp_command(0x0001)]
-fn handle_set_source_route(req: &[u8], _reply: &mut ReplyBuf) -> Status {
-    if req.len() < 2 || req.len() % 2 != 0 {
-        return Status::BAD_ARGUMENT;
-    }
-    let relay_bytes = &req[2..];
-    if relay_bytes.len() / 2 > RELAY_COUNT {
-        return Status::BAD_ARGUMENT;
-    }
-    let node_id = u16::from_le_bytes([req[0], req[1]]);
-    install_manual_source_route(node_id, relay_bytes);
-    Status::OK
+fn handle_set_source_route(req: &[u8], _reply: &mut ReplyBuf) -> XncpResult {
+    let mut req = Reader::new(req);
+    let node_id = req.u16_le()?;
+    install_manual_source_route(node_id, req.rest())
 }
 
 #[xncp_command(0x0002)]
-fn handle_get_mfg_token_override(req: &[u8], reply: &mut ReplyBuf) -> Status {
+fn handle_get_mfg_token_override(req: &[u8], reply: &mut ReplyBuf) -> XncpResult {
     let &[token_id] = req else {
-        return Status::BAD_ARGUMENT;
+        return Err(Status::BAD_ARGUMENT);
     };
-    let value = if token_id as u32 == SL_ZIGBEE_EZSP_MFG_STRING {
-        c_str_bytes(XNCP_MFG_MANUF_NAME)
-    } else if token_id as u32 == SL_ZIGBEE_EZSP_MFG_BOARD_NAME {
-        c_str_bytes(XNCP_MFG_BOARD_NAME)
-    } else {
-        return Status::NOT_FOUND;
+    let value = match token_id as u32 {
+        SL_ZIGBEE_EZSP_MFG_STRING => c_str(XNCP_MFG_MANUF_NAME),
+        SL_ZIGBEE_EZSP_MFG_BOARD_NAME => c_str(XNCP_MFG_BOARD_NAME),
+        _ => return Err(Status::NOT_FOUND),
     };
     reply.push_bytes(value);
-    Status::OK
+    Ok(())
 }
 
 #[xncp_command(0x0003)]
-fn handle_get_build_string(_req: &[u8], reply: &mut ReplyBuf) -> Status {
-    reply.push_bytes(c_str_bytes(XNCP_BUILD_STRING));
-    Status::OK
+fn handle_get_build_string(_req: &[u8], reply: &mut ReplyBuf) -> XncpResult {
+    reply.push_bytes(c_str(XNCP_BUILD_STRING));
+    Ok(())
 }
 
 #[xncp_command(0x0004)]
-fn handle_get_flow_control_type(_req: &[u8], reply: &mut ReplyBuf) -> Status {
+fn handle_get_flow_control_type(_req: &[u8], reply: &mut ReplyBuf) -> XncpResult {
     let flow = if XNCP_FLOW_CONTROL_TYPE as u32 == usartHwFlowControlCtsAndRts as u32 {
         FLOW_CONTROL_TYPE_HARDWARE
     } else {
         FLOW_CONTROL_TYPE_SOFTWARE
     };
     reply.push(flow);
-    Status::OK
+    Ok(())
 }
 
 #[xncp_command(0x0005)]
-fn handle_get_chip_info(_req: &[u8], reply: &mut ReplyBuf) -> Status {
+fn handle_get_chip_info(_req: &[u8], reply: &mut ReplyBuf) -> XncpResult {
     reply.push_u32_le(RAM_MEM_SIZE as u32);
-    let part = c_str_bytes(PART_NUMBER);
+    let part = c_str(PART_NUMBER);
     reply.push(part.len() as u8);
     reply.push_bytes(part);
-    Status::OK
+    Ok(())
 }
 
 #[xncp_command(0x0006)]
-fn handle_set_route_table_entry(req: &[u8], _reply: &mut ReplyBuf) -> Status {
+fn handle_set_route_table_entry(req: &[u8], _reply: &mut ReplyBuf) -> XncpResult {
     let &[index, d0, d1, n0, n1, status, cost] = req else {
-        return Status::BAD_ARGUMENT;
+        return Err(Status::BAD_ARGUMENT);
     };
     if index >= route_table_size() {
-        return Status::BAD_ARGUMENT;
+        return Err(Status::BAD_ARGUMENT);
     }
     route_table_set(
         index,
@@ -229,23 +220,23 @@ fn handle_set_route_table_entry(req: &[u8], _reply: &mut ReplyBuf) -> Status {
             cost,
         },
     );
-    Status::OK
+    Ok(())
 }
 
 #[xncp_command(0x0007)]
-fn handle_get_route_table_entry(req: &[u8], reply: &mut ReplyBuf) -> Status {
+fn handle_get_route_table_entry(req: &[u8], reply: &mut ReplyBuf) -> XncpResult {
     let &[index] = req else {
-        return Status::BAD_ARGUMENT;
+        return Err(Status::BAD_ARGUMENT);
     };
     if index >= route_table_size() {
-        return Status::BAD_ARGUMENT;
+        return Err(Status::BAD_ARGUMENT);
     }
     let e = route_table_get(index);
     reply.push_u16_le(e.destination);
     reply.push_u16_le(e.next_hop);
     reply.push(e.status);
     reply.push(e.cost);
-    Status::OK
+    Ok(())
 }
 
 struct TxPower {
@@ -283,9 +274,9 @@ const TX_POWERS: &[TxPower] = &[
 ];
 
 #[xncp_command(0x0008)]
-fn handle_get_tx_power_info(req: &[u8], reply: &mut ReplyBuf) -> Status {
+fn handle_get_tx_power_info(req: &[u8], reply: &mut ReplyBuf) -> XncpResult {
     let Ok(code) = <[u8; 2]>::try_from(req) else {
-        return Status::BAD_ARGUMENT;
+        return Err(Status::BAD_ARGUMENT);
     };
 
     let (recommended, max) = TX_POWERS
@@ -299,13 +290,12 @@ fn handle_get_tx_power_info(req: &[u8], reply: &mut ReplyBuf) -> Status {
 
     reply.push(recommended as u8);
     reply.push(max as u8);
-    Status::OK
+    Ok(())
 }
 
 // Like the host's set_extended_timeout: creates an address table entry if none exists
-fn apply_extended_timeout(eui64: &[u8], node_id: u16, extended_timeout: bool) {
-    // The SDK's eui64 APIs take a non-const pointer but only read these 8 bytes.
-    let eui = eui64.as_ptr() as *mut u8;
+fn apply_extended_timeout(mut eui64: [u8; 8], node_id: u16, extended_timeout: bool) {
+    let eui = eui64.as_mut_ptr();
 
     let current = unsafe { sl_zigbee_get_extended_timeout(eui) } == SL_STATUS_OK;
     if current == extended_timeout {
@@ -344,52 +334,50 @@ fn send_unicast(destination: u16, aps: &mut sl_zigbee_aps_frame_t, tag: u16, mes
 }
 
 #[xncp_command(0x0009)]
-fn handle_send_unicast(req: &[u8], reply: &mut ReplyBuf) -> Status {
-    let mut r = Reader::new(req);
-
-    // flags(1) + destination(2) + aps_frame(11) + message_tag(1)
-    if r.remaining() < 15 {
-        return Status::BAD_ARGUMENT;
-    }
-    let flags = r.u8().unwrap();
-    let destination = r.u16_le().unwrap();
+fn handle_send_unicast(req: &[u8], reply: &mut ReplyBuf) -> XncpResult {
+    let mut req = Reader::new(req);
+    let flags = req.u8()?;
+    let destination = req.u16_le()?;
     let mut aps_frame = sl_zigbee_aps_frame_t {
-        profileId: r.u16_le().unwrap(),
-        clusterId: r.u16_le().unwrap(),
-        sourceEndpoint: r.u8().unwrap(),
-        destinationEndpoint: r.u8().unwrap(),
-        options: r.u16_le().unwrap() as _,
-        groupId: r.u16_le().unwrap(),
-        sequence: r.u8().unwrap(),
+        profileId: req.u16_le()?,
+        clusterId: req.u16_le()?,
+        sourceEndpoint: req.u8()?,
+        destinationEndpoint: req.u8()?,
+        options: req.u16_le()? as _,
+        groupId: req.u16_le()?,
+        sequence: req.u8()?,
         radius: 0,
     };
-    let message_tag = r.u8().unwrap();
+    let message_tag = req.u8()?;
 
-    if flags & XNCP_SEND_UNICAST_FLAG_EXTENDED_TIMEOUT != 0 {
-        if r.remaining() < 9 {
-            return Status::BAD_ARGUMENT;
+    // Parse everything before acting on any of it
+    let extended_timeout = if flags & XNCP_SEND_UNICAST_FLAG_EXTENDED_TIMEOUT != 0 {
+        Some((req.array::<8>()?, req.u8()? != 0))
+    } else {
+        None
+    };
+    let relays = if flags & XNCP_SEND_UNICAST_FLAG_SOURCE_ROUTE != 0 {
+        let num_relays = req.u8()? as usize;
+        if num_relays > RELAY_COUNT {
+            return Err(Status::BAD_ARGUMENT);
         }
-        let eui64 = r.bytes(8).unwrap();
-        let extended_timeout = r.u8().unwrap() != 0;
-        apply_extended_timeout(eui64, destination, extended_timeout);
+        Some(req.bytes(num_relays * 2)?)
+    } else {
+        None
+    };
+    let message = req.rest();
+
+    if let Some((eui64, enabled)) = extended_timeout {
+        apply_extended_timeout(eui64, destination, enabled);
+    }
+    if let Some(relays) = relays {
+        install_manual_source_route(destination, relays)?;
     }
 
-    if flags & XNCP_SEND_UNICAST_FLAG_SOURCE_ROUTE != 0 {
-        let Some(num_relays) = r.u8() else {
-            return Status::BAD_ARGUMENT;
-        };
-        let num_relays = num_relays as usize;
-        if num_relays > RELAY_COUNT || r.remaining() < num_relays * 2 {
-            return Status::BAD_ARGUMENT;
-        }
-        install_manual_source_route(destination, r.bytes(num_relays * 2).unwrap());
-    }
-
-    let (status, aps_sequence) =
-        send_unicast(destination, &mut aps_frame, message_tag as u16, r.rest());
+    let (status, aps_sequence) = send_unicast(destination, &mut aps_frame, message_tag as u16, message);
     reply.push_u32_le(status);
     reply.push(aps_sequence);
-    Status::OK
+    Ok(())
 }
 
 // XNCP_FEATURE_MEMBER_OF_ALL_GROUPS: receive every group's packets
@@ -421,9 +409,9 @@ pub unsafe extern "C" fn nc_zigbee_override_append_source_route(
     critical_section::with(|cs| {
         let mut routes = MANUAL_SOURCE_ROUTES.borrow(cs).borrow_mut();
 
-        let Some(idx) = routes
-            .iter()
-            .position(|r| r.active && r.destination == destination)
+        let Some(route) = routes
+            .iter_mut()
+            .find(|r| r.active && r.destination == destination)
         else {
             *consumed = false;
             return;
@@ -432,7 +420,7 @@ pub unsafe extern "C" fn nc_zigbee_override_append_source_route(
 
         // Empty source routes are invalid per the spec: drop a fake route into the stack's
         // route table so EmberZNet just sends the packet directly.
-        if routes[idx].num_relays == 0 {
+        if route.num_relays == 0 {
             route_table_set(
                 find_free_routing_table_entry(destination),
                 RouteEntry {
@@ -445,14 +433,12 @@ pub unsafe extern "C" fn nc_zigbee_override_append_source_route(
             return;
         }
 
-        let num_relays = routes[idx].num_relays;
-        let relay_index = num_relays - 1;
-        routes[idx].active = false; // Disable the route after a single use.
+        // Single use
+        route.active = false;
 
-        append_to_header(header, &[num_relays]);
-        append_to_header(header, &[relay_index]);
-        for i in 0..num_relays {
-            let relay = routes[idx].relays[(num_relays - i - 1) as usize];
+        // {relay count, relay index, relays in reverse order}
+        append_to_header(header, &[route.num_relays, route.num_relays - 1]);
+        for relay in route.relays[..route.num_relays as usize].iter().rev() {
             append_to_header(header, &relay.to_le_bytes());
         }
     });

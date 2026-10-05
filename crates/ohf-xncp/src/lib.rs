@@ -15,42 +15,43 @@ impl Status {
     pub const NOT_FOUND: Status = Status(0x25); // SL_STATUS_NOT_FOUND
 }
 
-/// Bounds-checked cursor over the request payload
+/// What a command handler returns. An error status replies with an empty payload.
+pub type XncpResult = Result<(), Status>;
+
+/// Cursor over the request payload. Reading past the end is a malformed request.
 pub struct Reader<'a> {
     buf: &'a [u8],
-    pos: usize,
 }
 
 impl<'a> Reader<'a> {
     pub fn new(buf: &'a [u8]) -> Self {
-        Self { buf, pos: 0 }
+        Self { buf }
     }
 
-    pub fn remaining(&self) -> usize {
-        self.buf.len() - self.pos
+    pub fn bytes(&mut self, n: usize) -> Result<&'a [u8], Status> {
+        if n > self.buf.len() {
+            return Err(Status::BAD_ARGUMENT);
+        }
+        let (head, tail) = self.buf.split_at(n);
+        self.buf = tail;
+        Ok(head)
     }
 
-    pub fn u8(&mut self) -> Option<u8> {
-        let v = *self.buf.get(self.pos)?;
-        self.pos += 1;
-        Some(v)
+    pub fn array<const N: usize>(&mut self) -> Result<[u8; N], Status> {
+        Ok(self.bytes(N)?.try_into().unwrap())
     }
 
-    pub fn u16_le(&mut self) -> Option<u16> {
-        let b = self.buf.get(self.pos..self.pos + 2)?;
-        self.pos += 2;
-        Some(u16::from_le_bytes([b[0], b[1]]))
+    pub fn u8(&mut self) -> Result<u8, Status> {
+        Ok(self.array::<1>()?[0])
     }
 
-    pub fn bytes(&mut self, n: usize) -> Option<&'a [u8]> {
-        let b = self.buf.get(self.pos..self.pos + n)?;
-        self.pos += n;
-        Some(b)
+    pub fn u16_le(&mut self) -> Result<u16, Status> {
+        self.array().map(u16::from_le_bytes)
     }
 
     /// The not-yet-read remainder.
-    pub fn rest(&self) -> &'a [u8] {
-        &self.buf[self.pos..]
+    pub fn rest(self) -> &'a [u8] {
+        self.buf
     }
 }
 
@@ -88,8 +89,8 @@ impl<'a> ReplyBuf<'a> {
     }
 }
 
-/// A command handler: parse `req`, write the response payload into `reply`, return the status.
-pub type XncpHandler = fn(req: &[u8], reply: &mut ReplyBuf) -> Status;
+/// A command handler: parse `req` and write the response payload into `reply`.
+pub type XncpHandler = fn(req: &[u8], reply: &mut ReplyBuf) -> XncpResult;
 
 pub struct XncpCommandDef {
     pub command_id: u16,
@@ -128,24 +129,24 @@ fn supported_features() -> u32 {
     XNCP_FEATURES.iter().fold(0, |acc, &bit| acc | bit)
 }
 
-/// Returns the `(response_id, status)` for the reply header.
-fn dispatch(message: &[u8], reply: &mut ReplyBuf) -> (u16, Status) {
-    // frame = {command_id: u16 le, req_status: u8 (unused), payload…}
-    if message.len() < 3 {
-        return (XNCP_CMD_UNKNOWN, Status::BAD_ARGUMENT);
-    }
-    let command_id = u16::from_le_bytes([message[0], message[1]]);
-    let payload = &message[3..];
+/// Returns the response id for the reply header.
+fn dispatch(message: &[u8], reply: &mut ReplyBuf) -> (u16, XncpResult) {
+    // {command_id: u16 le, status: u8 (unused), payload}
+    let &[id_lo, id_hi, _, ref payload @ ..] = message else {
+        return (XNCP_CMD_UNKNOWN, Err(Status::BAD_ARGUMENT));
+    };
+    let command_id = u16::from_le_bytes([id_lo, id_hi]);
 
-    if command_id == XNCP_CMD_GET_SUPPORTED_FEATURES_REQ {
+    let result = if command_id == XNCP_CMD_GET_SUPPORTED_FEATURES_REQ {
         reply.push_u32_le(supported_features());
-        return (command_id | XNCP_CMD_RESPONSE_BIT, Status::OK);
-    }
+        Ok(())
+    } else if let Some(cmd) = XNCP_COMMANDS.iter().find(|c| c.command_id == command_id) {
+        (cmd.handler)(payload, reply)
+    } else {
+        return (XNCP_CMD_UNKNOWN, Err(Status::NOT_FOUND));
+    };
 
-    match XNCP_COMMANDS.iter().find(|c| c.command_id == command_id) {
-        Some(cmd) => (command_id | XNCP_CMD_RESPONSE_BIT, (cmd.handler)(payload, reply)),
-        None => (XNCP_CMD_UNKNOWN, Status::NOT_FOUND),
-    }
+    (command_id | XNCP_CMD_RESPONSE_BIT, result)
 }
 
 /// Returns the total reply length.
@@ -153,16 +154,19 @@ fn handle_frame(message: &[u8], reply: &mut [u8]) -> u8 {
     let (header, body) = reply.split_at_mut(REPLY_HEADER_LEN);
     let mut payload = ReplyBuf::new(body);
 
-    let (response_id, status) = dispatch(message, &mut payload);
+    let (response_id, result) = dispatch(message, &mut payload);
+    let (status, payload_len) = match result {
+        Ok(()) => (Status::OK, payload.len()),
+        Err(status) => (status, 0),
+    };
 
-    let payload_len = payload.len();
-    header[0] = (response_id & 0xFF) as u8;
-    header[1] = (response_id >> 8) as u8;
+    header[..2].copy_from_slice(&response_id.to_le_bytes());
     header[2] = status.0;
     (REPLY_HEADER_LEN + payload_len) as u8
 }
 
-// Overrides the SDK's weak default
+// Overrides the SDK's weak default. The stack passes the request and a reply buffer of
+// the full custom-frame size.
 #[no_mangle]
 pub unsafe extern "C" fn sl_zigbee_af_xncp_incoming_custom_frame_cb(
     message_length: u8,

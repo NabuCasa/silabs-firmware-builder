@@ -1,17 +1,17 @@
-//! ZBT-2 XNCP commands — LED control (0x0F00) and accelerometer read (0x0F01).
+//! ZBT-2 XNCP commands: LED control (0x0F00) and accelerometer read (0x0F01).
 #![no_std]
 
 use linkme::distributed_slice;
 
 use ohf_led_effects::{led_manager_set_color, Rgb};
 use ohf_qma6100p::read_acceleration;
-use ohf_xncp::{ReplyBuf, Status, XNCP_FEATURES, XNCP_FEATURE_LED_CONTROL, XNCP_FEATURE_TX_POWER_INFO};
+use ohf_xncp::{ReplyBuf, Status, XncpResult, XNCP_FEATURES, XNCP_FEATURE_LED_CONTROL, XNCP_FEATURE_TX_POWER_INFO};
 use ohf_xncp_macros::xncp_command;
 
 const LED_PRIORITY_MANUAL: u32 = 1;
 
 #[xncp_command(0x0F00)]
-fn handle_set_led_state(req: &[u8], _reply: &mut ReplyBuf) -> Status {
+fn handle_set_led_state(req: &[u8], _reply: &mut ReplyBuf) -> XncpResult {
     let color = match req {
         // One byte per channel, taken as the high byte.
         &[r, g, b] => Rgb {
@@ -25,19 +25,19 @@ fn handle_set_led_state(req: &[u8], _reply: &mut ReplyBuf) -> Status {
             g: u16::from_be_bytes([gh, gl]),
             b: u16::from_be_bytes([bh, bl]),
         },
-        _ => return Status::BAD_ARGUMENT,
+        _ => return Err(Status::BAD_ARGUMENT),
     };
 
     led_manager_set_color(LED_PRIORITY_MANUAL, color);
-    Status::OK
+    Ok(())
 }
 
 #[xncp_command(0x0F01)]
-fn handle_get_accelerometer(_req: &[u8], reply: &mut ReplyBuf) -> Status {
+fn handle_get_accelerometer(_req: &[u8], reply: &mut ReplyBuf) -> XncpResult {
     for value in read_acceleration() {
         reply.push_bytes(&value.to_le_bytes());
     }
-    Status::OK
+    Ok(())
 }
 
 #[distributed_slice(XNCP_FEATURES)]
