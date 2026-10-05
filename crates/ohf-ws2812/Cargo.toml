@@ -3,10 +3,6 @@ name = "ohf-ws2812"
 edition.workspace = true
 version.workspace = true
 
-[lib]
-# rlib: linked into the single aggregate staticlib (ohf-firmware), which owns the
-# one #[panic_handler]. Component crates must not be staticlibs (duplicate handler).
-
 [dependencies]
 ohf-sys = { path = "../ohf-sys" }
 critical-section = "1"

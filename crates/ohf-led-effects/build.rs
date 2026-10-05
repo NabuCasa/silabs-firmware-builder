@@ -2,9 +2,7 @@ use std::env;
 use std::fs;
 use std::path::PathBuf;
 
-// Config consts from the resolved manifest (rust_build.json). These have defaults in
-// the SDK config header; the Rust crate owns the same defaults, overridden if the
-// manifest sets them.
+// Defaults match the component's config header
 fn main() {
     println!("cargo:rerun-if-env-changed=OHF_RUST_CONFIG");
 

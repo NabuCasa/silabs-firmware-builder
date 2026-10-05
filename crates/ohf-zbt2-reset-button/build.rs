@@ -1,7 +1,3 @@
-// Clang flags come from SLC's generated project via OHF_BINDGEN_FLAGS. Shared bindgen setup
-// lives in ohf-bindgen; only this crate's allowlist is stated here. The zigbee token reset
-// surface is added only under the zigbee_token_reset feature (and gated in wrapper.h via
-// OHF_ZIGBEE_TOKEN_RESET), so the non-zigbee RCP build never pulls zigbee headers.
 fn main() {
     let mut builder = ohf_bindgen::builder()
         .allowlist_type("sl_button_t")
@@ -16,6 +12,7 @@ fn main() {
         .allowlist_var("SL_SIMPLE_BUTTON_PRESSED")
         .allowlist_var("ZBT2_RESET_BUTTON_.*");
 
+    // The RCP build has no zigbee stack headers
     if std::env::var_os("CARGO_FEATURE_ZIGBEE_TOKEN_RESET").is_some() {
         builder = builder
             .clang_arg("-DOHF_ZIGBEE_TOKEN_RESET")

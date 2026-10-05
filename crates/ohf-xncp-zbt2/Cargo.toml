@@ -3,10 +3,6 @@ name = "ohf-xncp-zbt2"
 edition.workspace = true
 version.workspace = true
 
-[lib]
-# ZBT-2 XNCP commands (LED control, accelerometer). Registers into the core's linkme
-# slices; calls the LED/accel crates directly.
-
 [dependencies]
 ohf-xncp = { path = "../ohf-xncp" }
 ohf-xncp-macros = { path = "../ohf-xncp-macros" }

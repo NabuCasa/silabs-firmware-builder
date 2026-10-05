@@ -3,11 +3,6 @@ name = "ohf-router"
 edition.workspace = true
 version.workspace = true
 
-[lib]
-# Zigbee router components (ZBT-2 router firmware only). Each is a cargo feature gating a
-# module; SLC enables the matching ohf_rust_feature per component. rlib linked into
-# ohf-firmware. Own bindgen for the router's zigbee/token surface.
-
 [features]
 beacon_filter = []
 eui64_unique = []

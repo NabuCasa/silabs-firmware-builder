@@ -3,9 +3,6 @@ name = "ohf-led-effects"
 edition.workspace = true
 version.workspace = true
 
-[lib]
-# rlib linked into ohf-firmware. Provides led_effects_base + led_manager (one slcc).
-
 [dependencies]
 ohf-sys = { path = "../ohf-sys" }
 ohf-qma6100p = { path = "../ohf-qma6100p" }

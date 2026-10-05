@@ -3,8 +3,5 @@ name = "ohf-qma6100p"
 edition.workspace = true
 version.workspace = true
 
-[lib]
-# rlib: linked into the aggregate staticlib (ohf-firmware). No config_file, no build.rs.
-
 [dependencies]
 ohf-sys = { path = "../ohf-sys" }

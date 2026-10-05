@@ -2,9 +2,6 @@ use std::env;
 use std::fs;
 use std::path::PathBuf;
 
-// Generate the component's config consts from the resolved manifest values that
-// build_project.py forwards (rust_build.json). The manifest is the single source of
-// truth; nothing is hardcoded here.
 fn main() {
     println!("cargo:rerun-if-env-changed=OHF_RUST_CONFIG");
 
@@ -14,8 +11,7 @@ fn main() {
 
     let value = |key: &str| cfg[key].as_str().unwrap_or_else(|| panic!("{key} missing from config")).to_owned();
 
-    // A value is either a numeric literal or an SDK symbol (e.g. SL_GPIO_PORT_C) that
-    // bindgen emits in ohf-sys. Emit it verbatim as a Rust expression either way.
+    // Symbolic values (e.g. SL_GPIO_PORT_C) come from the ohf-sys bindings
     let expr = |v: &str| {
         if v.as_bytes()[0].is_ascii_digit() {
             v.to_owned()

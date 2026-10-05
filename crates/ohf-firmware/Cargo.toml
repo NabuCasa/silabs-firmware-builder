@@ -4,14 +4,10 @@ edition.workspace = true
 version.workspace = true
 
 [lib]
-# The single staticlib linked into the firmware: it pulls in the component rlibs and
-# provides the one #[panic_handler], so core/the handler appear exactly once.
+# The only staticlib: one copy of `core` and of the panic handler
 crate-type = ["staticlib"]
 
-# Each component is an optional dep behind a feature whose name matches the component's
-# `ohf_rust_feature` slcc contribution. SLC renders the enabled set (autogen/
-# ohf_rust_features.txt); build_project.py passes it as --features. SLC selects; cargo
-# follows. Adding a component = a crate here + its feature + the slcc contribution.
+# Feature names match the components' `ohf_rust_feature` slcc contributions
 [dependencies]
 ohf-rt = { path = "../ohf-rt" }
 ohf-ws2812 = { path = "../ohf-ws2812", optional = true }
@@ -37,7 +33,6 @@ xncp_common = ["dep:ohf-xncp-common"]
 xncp_zbt2 = ["dep:ohf-xncp-zbt2"]
 ncp_dlk_policy = ["dep:ohf-ncp-dlk-policy"]
 zbt2_reset_button = ["dep:ohf-zbt2-reset-button"]
-# Router-only: switches the reset backend to the frame-counter-preserving zigbee token reset.
 zbt2_reset_button_zigbee_token = ["zbt2_reset_button", "ohf-zbt2-reset-button/zigbee_token_reset"]
 router_beacon_filter = ["dep:ohf-router", "ohf-router/beacon_filter"]
 router_eui64_unique = ["dep:ohf-router", "ohf-router/eui64_unique"]

@@ -1,4 +1,3 @@
-// Clang flags come from SLC's generated project via OHF_BINDGEN_FLAGS.
 fn main() {
     ohf_bindgen::write(
         ohf_bindgen::builder()

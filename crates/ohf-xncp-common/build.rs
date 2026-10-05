@@ -1,6 +1,3 @@
-// Clang flags come from SLC's generated project via OHF_BINDGEN_FLAGS. The shared bindgen
-// setup lives in ohf-bindgen; only this crate's allowlist is stated here — one entry per
-// symbol (or `.*` group), which bindgen accumulates.
 fn main() {
     ohf_bindgen::write(
         ohf_bindgen::builder()
@@ -22,7 +19,6 @@ fn main() {
             .allowlist_var("SL_ZIGBEE_EZSP_MFG_.*")
             .allowlist_var("RAM_MEM_SIZE")
             .allowlist_var("PART_NUMBER")
-            // The resolved XNCP_* config macros from the generated xncp_config.h.
             .allowlist_var("XNCP_.*")
             .allowlist_var("usartHwFlowControl.*"),
     );

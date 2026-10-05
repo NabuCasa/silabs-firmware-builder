@@ -1,8 +1,6 @@
 use std::env;
 use std::path::PathBuf;
 
-// Clang/cc flags (SDK includes, defines, sysroot, arch, --target) come from SLC's generated
-// project, forwarded by build_project.py. Nothing is hardcoded here.
 fn main() {
     let mut builder = ohf_bindgen::builder()
             .allowlist_type("I2C_TransferSeq_TypeDef")
@@ -13,10 +11,8 @@ fn main() {
             .allowlist_type("SPIDRV_Handle_t")
             .allowlist_type("GPIO_Mode_TypeDef")
             .allowlist_type("sl_sleeptimer_timer_handle_t")
-            // SL_ENUM[_GENERIC] variants (gpioMode*, SL_GPIO_PORT_*) live in the separate
-            // `name_enum` type, allowlisted by name. These back symbol-valued config
-            // (WS2812_EN_PORT). Both GPIO port spellings a *_EN_PORT config might use:
-            // SL_GPIO_PORT_* (sl_device_gpio) and gpioPort* (emlib GPIO_Port_TypeDef).
+            // SL_ENUM variants live in the separate `*_enum` types. Both GPIO port
+            // spellings back symbolic config such as WS2812_EN_PORT.
             .allowlist_type("GPIO_Mode_TypeDef_enum")
             .allowlist_type("GPIO_Port_TypeDef_enum")
             .allowlist_type("sl_gpio_port_t_enum")
@@ -34,9 +30,6 @@ fn main() {
             .allowlist_var("SL_LED_CURRENT_STATE_.*")
             .opaque_type("SPIDRV_HandleData");
 
-    // factory_erase (nvm3 wipe + PSA key wipe) is opt-in: it's shared by the reset button and
-    // the router's nvram reset, but ohf-sys is also built for firmwares (e.g. Z-Wave) that
-    // don't need it, so only pull the nvm3/psa surface when the feature is enabled.
     if std::env::var_os("CARGO_FEATURE_FACTORY_ERASE").is_some() {
         builder = builder
             .clang_arg("-DOHF_FACTORY_ERASE")
@@ -61,9 +54,6 @@ fn main() {
 
     ohf_bindgen::write(builder);
 
-    // Compile the generic inline/macro SDK wrappers (shims.c) into ohf-sys, so the real
-    // symbols they expose (GPIO_PinModeSet, the zigbee token read, …) bundle into the
-    // staticlib. Uses the SDK's own compiler (gcc or clang) + arch/include flags.
     println!("cargo:rerun-if-env-changed=OHF_SHIM_CC");
     println!("cargo:rerun-if-env-changed=OHF_SHIM_CFLAGS");
     println!("cargo:rerun-if-changed=shims.c");

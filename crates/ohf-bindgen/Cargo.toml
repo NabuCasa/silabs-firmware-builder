@@ -3,11 +3,5 @@ name = "ohf-bindgen"
 edition.workspace = true
 version.workspace = true
 
-[lib]
-# Host-only helper used as a build-dependency by the components that run bindgen. It owns
-# the bindgen setup shared across every such crate (clang args from OHF_BINDGEN_FLAGS, the
-# no_std/enum/macro-fallback options, writing OUT_DIR/bindings.rs), so each component's
-# build.rs only states its own allowlist — the one thing that genuinely differs.
-
 [dependencies]
 bindgen = "0.73"

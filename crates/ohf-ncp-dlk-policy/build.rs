@@ -1,10 +1,7 @@
-// Clang flags come from SLC's generated project via OHF_BINDGEN_FLAGS. The shared bindgen
-// setup lives in ohf-bindgen; only this crate's allowlist is stated here — one entry per
-// symbol (or SL_ENUM `.*` group), which bindgen accumulates.
 fn main() {
     ohf_bindgen::write(
         ohf_bindgen::builder()
-            // DLK negotiation enums: SL_ENUM, so the variants live in the `.*_enum` types.
+            // SL_ENUM variants live in the separate `*_enum` types
             .allowlist_type("sl_zigbee_dlk_.*")
             .allowlist_type("sl_zigbee_address_info")
             .allowlist_type("sl_zigbee_sec_man_.*")

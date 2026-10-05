@@ -3,12 +3,8 @@ name = "ohf-ncp-dlk-policy"
 edition.workspace = true
 version.workspace = true
 
-[lib]
-# NCP dynamic link key policy. rlib linked into ohf-firmware. A strong C shim
-# (ncp_dlk_policy_shim.c) owns the SDK's weak callback name and delegates here — a Rust
-# override in the aggregate archive won't win over the weak default under -flto
-# -fwhole-program. Own bindgen for the DLK negotiation + security-manager surface.
-
+# ncp_dlk_policy_shim.c owns the SDK's weak callback and calls into this crate: a
+# strong definition in the archive does not override the weak default
 [dependencies]
 
 [build-dependencies]

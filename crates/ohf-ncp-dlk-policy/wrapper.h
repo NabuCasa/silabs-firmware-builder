@@ -1,5 +1,3 @@
-/* The DLK-negotiation + security-manager surface the policy binds. The allowlist in
- * build.rs controls what is emitted; these includes just make the declarations visible. */
 #include "sl_component_catalog.h"
 #include "sl_status.h"
 #include "stack/include/sl_zigbee.h"
