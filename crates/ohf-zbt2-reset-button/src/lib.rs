@@ -56,7 +56,7 @@ fn stop(timer: &SyncCell<sl_sleeptimer_timer_handle_t>) {
 
 #[cfg(feature = "zigbee_token_reset")]
 fn reset_adapter() -> ! {
-    set_color(Priority::Critical, color::RESET_ORANGE);
+    set_color(Priority::Reset, color::RESET_ORANGE);
     unsafe {
         // Keeps the frame counters and boot counter
         sl_zigbee_token_factory_reset(true, true);
@@ -66,7 +66,7 @@ fn reset_adapter() -> ! {
 
 #[cfg(not(feature = "zigbee_token_reset"))]
 fn reset_adapter() -> ! {
-    set_color(Priority::Critical, color::RESET_RED);
+    set_color(Priority::Reset, color::RESET_RED);
     ohf_sys::factory_erase()
 }
 
@@ -80,7 +80,7 @@ extern "C" fn blink_task(_handle: *mut sl_sleeptimer_timer_handle_t, _data: *mut
 
     if led_on {
         // Reveal the layer below
-        clear_pattern(Priority::Critical);
+        clear_pattern(Priority::Reset);
 
         let cycle_done = critical_section::with(|cs| {
             let mut s = STATE.borrow(cs).borrow_mut();
@@ -99,7 +99,7 @@ extern "C" fn blink_task(_handle: *mut sl_sleeptimer_timer_handle_t, _data: *mut
             None => start_ms(&BLINK_TIMER, ZBT2_RESET_BUTTON_BLINK_OFF_MS, Some(blink_task)),
         }
     } else {
-        set_color(Priority::Critical, color::RESET_ORANGE);
+        set_color(Priority::Reset, color::RESET_ORANGE);
         critical_section::with(|cs| {
             let mut s = STATE.borrow(cs).borrow_mut();
             s.led_on = true;
@@ -123,7 +123,7 @@ fn handle_state(pressed: bool) {
         start_ms(&RESET_TIMER, ZBT2_RESET_BUTTON_CYCLE_DELAY_MS, Some(reset_timer_callback));
     } else {
         // Released early
-        clear_pattern(Priority::Critical);
+        clear_pattern(Priority::Reset);
         critical_section::with(|cs| STATE.borrow(cs).borrow_mut().led_on = false);
     }
 }

@@ -47,11 +47,12 @@ pub enum Priority {
     Manual,
     /// Short feedback, such as joining or identify
     Notification,
-    /// Tilt and factory reset
-    Critical,
+    Tilt,
+    /// Factory reset button
+    Reset,
 }
 
-const PRIORITY_COUNT: usize = 4;
+const PRIORITY_COUNT: usize = 5;
 
 #[derive(Clone, Copy)]
 pub enum Mode {
@@ -314,9 +315,9 @@ fn check_tilt() {
         }
         tilt.tilted = tilted;
         if tilted {
-            set_pattern(Priority::Critical, Pattern::blink(color::WHITE_DIM, 500));
+            set_pattern(Priority::Tilt, Pattern::blink(color::WHITE_DIM, 500));
         } else {
-            clear_pattern(Priority::Critical);
+            clear_pattern(Priority::Tilt);
         }
     });
 }
@@ -332,9 +333,8 @@ pub fn set_network_state(network_formed: bool) {
         critical_section::with(|cs| {
             let mut tilt = TILT.borrow(cs).borrow_mut();
             tilt.monitoring = false;
-            // Only clear our own tilt warning: the reset button shares the layer
             if core::mem::take(&mut tilt.tilted) {
-                clear_pattern(Priority::Critical);
+                clear_pattern(Priority::Tilt);
             }
         });
     } else {
