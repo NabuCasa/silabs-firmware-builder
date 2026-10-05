@@ -20,6 +20,8 @@ extern crate ohf_xncp_zbt2;
 extern crate ohf_ncp_dlk_policy;
 #[cfg(feature = "zbt2_reset_button")]
 extern crate ohf_zbt2_reset_button;
+#[cfg(feature = "zbt2_router_callbacks")]
+extern crate ohf_zbt2_router;
 #[cfg(any(
     feature = "router_beacon_filter",
     feature = "router_eui64_unique",

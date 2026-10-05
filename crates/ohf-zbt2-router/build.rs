@@ -1,0 +1,30 @@
+fn main() {
+    ohf_bindgen::write(
+        ohf_bindgen::builder()
+            .allowlist_type("sl_zigbee_af_event_t")
+            .allowlist_type("sl_zigbee_debug_print_type")
+            .allowlist_function("sl_zigbee_af_read_server_attribute")
+            .allowlist_function("sl_zigbee_af_network_state")
+            .allowlist_function("sl_zigbee_af_network_steering_start")
+            // The event and debug print APIs are macros over these
+            .allowlist_function("sli_zigbee_af_event_internal_init")
+            .allowlist_function("sli_zigbee_af_event_set_active")
+            .allowlist_function("sli_zigbee_af_event_set_delay_ms")
+            .allowlist_function("sli_zigbee_debug_print")
+            .allowlist_var("SL_ZIGBEE_DEBUG_APP_GROUP_ENABLED")
+            .allowlist_var("SL_ZIGBEE_JOINED_NETWORK")
+            .allowlist_var("SL_STATUS_OK")
+            .allowlist_var("SL_STATUS_NETWORK_UP")
+            .allowlist_var("SL_STATUS_NETWORK_DOWN")
+            .allowlist_var("CLUSTER_MASK_SERVER")
+            .allowlist_var("ZCL_ON_OFF_CLUSTER_ID")
+            .allowlist_var("ZCL_ON_OFF_ATTRIBUTE_ID")
+            .allowlist_var("ZCL_LEVEL_CONTROL_CLUSTER_ID")
+            .allowlist_var("ZCL_CURRENT_LEVEL_ATTRIBUTE_ID")
+            .allowlist_var("ZCL_COLOR_CONTROL_CLUSTER_ID")
+            .allowlist_var("ZCL_COLOR_CONTROL_COLOR_MODE_ATTRIBUTE_ID")
+            .allowlist_var("ZCL_COLOR_CONTROL_COLOR_TEMPERATURE_ATTRIBUTE_ID")
+            .allowlist_var("ZCL_COLOR_CONTROL_CURRENT_X_ATTRIBUTE_ID")
+            .allowlist_var("ZCL_COLOR_CONTROL_CURRENT_Y_ATTRIBUTE_ID"),
+    );
+}

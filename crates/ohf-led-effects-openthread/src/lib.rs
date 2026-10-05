@@ -12,8 +12,6 @@ extern "C" {
     fn otGetInstance() -> *mut c_void;
     fn otLinkGetPanId(instance: *mut c_void) -> u16;
     fn otPlatRadioIsEnabled(instance: *mut c_void) -> bool;
-    fn led_effects_init();
-    fn led_effects_set_network_state(network_formed: bool);
 }
 
 static NETWORK_HAS_SETTINGS: AtomicBool = AtomicBool::new(false);
@@ -28,23 +26,17 @@ extern "C" fn network_state_poll_callback(
         let pan_id = otLinkGetPanId(instance);
         let has_network = pan_id != 0xFFFF && otPlatRadioIsEnabled(instance);
 
-        if has_network != NETWORK_HAS_SETTINGS.load(Ordering::SeqCst) {
-            NETWORK_HAS_SETTINGS.store(has_network, Ordering::SeqCst);
-            led_effects_set_network_state(has_network);
+        if has_network != NETWORK_HAS_SETTINGS.swap(has_network, Ordering::SeqCst) {
+            ohf_led_effects::set_network_state(has_network);
         }
     }
 }
 
 #[no_mangle]
-pub extern "C" fn device_has_stored_network_settings() -> bool {
-    NETWORK_HAS_SETTINGS.load(Ordering::SeqCst)
-}
-
-#[no_mangle]
 pub extern "C" fn led_effects_system_init() {
+    ohf_led_effects::init();
+    ohf_led_effects::set_network_state(NETWORK_HAS_SETTINGS.load(Ordering::SeqCst));
     unsafe {
-        led_effects_init();
-        led_effects_set_network_state(device_has_stored_network_settings());
         sl_sleeptimer_start_periodic_timer_ms(
             POLL_TIMER.get(),
             SETTINGS_POLL_INTERVAL_MS,

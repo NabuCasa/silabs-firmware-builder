@@ -1,8 +1,11 @@
 [package]
-name = "ohf-led-effects-zigbee"
+name = "ohf-zbt2-router"
 edition.workspace = true
 version.workspace = true
 
 [dependencies]
 ohf-sys = { path = "../ohf-sys", features = ["tokens"] }
 ohf-led-effects = { path = "../ohf-led-effects" }
+
+[build-dependencies]
+ohf-bindgen = { path = "../ohf-bindgen" }

@@ -60,6 +60,12 @@ pub mod token {
         }
     }
 
+    /// Whether the stack has network settings stored
+    pub fn has_stored_network() -> bool {
+        let node: super::tokTypeStackNodeData = get(super::TOKEN_STACK_NODE_DATA);
+        node.panId != 0xFFFF && (11..=26).contains(&node.radioFreqChannel)
+    }
+
     pub fn set_mfg<T>(token: u32, value: &T) {
         unsafe {
             super::halInternalSetMfgTokenData(key(token), value as *const T as *mut c_void, size_of::<T>() as u32);

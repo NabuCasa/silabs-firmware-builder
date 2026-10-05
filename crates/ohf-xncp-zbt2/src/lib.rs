@@ -3,12 +3,10 @@
 
 use linkme::distributed_slice;
 
-use ohf_led_effects::{led_manager_set_color, Rgb};
+use ohf_led_effects::{set_color, Priority, Rgb};
 use ohf_qma6100p::read_acceleration;
 use ohf_xncp::{ReplyBuf, Status, XncpResult, XNCP_FEATURES, XNCP_FEATURE_LED_CONTROL, XNCP_FEATURE_TX_POWER_INFO};
 use ohf_xncp_macros::xncp_command;
-
-const LED_PRIORITY_MANUAL: u32 = 1;
 
 #[xncp_command(0x0F00)]
 fn handle_set_led_state(req: &[u8], _reply: &mut ReplyBuf) -> XncpResult {
@@ -28,7 +26,7 @@ fn handle_set_led_state(req: &[u8], _reply: &mut ReplyBuf) -> XncpResult {
         _ => return Err(Status::BAD_ARGUMENT),
     };
 
-    led_manager_set_color(LED_PRIORITY_MANUAL, color);
+    set_color(Priority::Manual, color);
     Ok(())
 }
 

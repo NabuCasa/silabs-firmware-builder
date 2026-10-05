@@ -1,0 +1,5 @@
+#include "sl_component_catalog.h"
+#include "sl_status.h"
+#include "app/framework/include/af.h"
+#include "network-steering.h"
+#include "sl_zigbee_debug_print.h"

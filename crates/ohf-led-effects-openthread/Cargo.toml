@@ -5,3 +5,4 @@ version.workspace = true
 
 [dependencies]
 ohf-sys = { path = "../ohf-sys" }
+ohf-led-effects = { path = "../ohf-led-effects" }

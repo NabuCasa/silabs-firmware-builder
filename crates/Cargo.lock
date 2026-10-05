@@ -183,6 +183,7 @@ dependencies = [
  "ohf-xncp-common",
  "ohf-xncp-zbt2",
  "ohf-zbt2-reset-button",
+ "ohf-zbt2-router",
 ]
 
 [[package]]
@@ -199,6 +200,7 @@ dependencies = [
 name = "ohf-led-effects-openthread"
 version = "0.1.0"
 dependencies = [
+ "ohf-led-effects",
  "ohf-sys",
 ]
 
@@ -206,6 +208,7 @@ dependencies = [
 name = "ohf-led-effects-zigbee"
 version = "0.1.0"
 dependencies = [
+ "ohf-led-effects",
  "ohf-sys",
 ]
 
@@ -298,6 +301,15 @@ name = "ohf-zbt2-reset-button"
 version = "0.1.0"
 dependencies = [
  "critical-section",
+ "ohf-bindgen",
+ "ohf-led-effects",
+ "ohf-sys",
+]
+
+[[package]]
+name = "ohf-zbt2-router"
+version = "0.1.0"
+dependencies = [
  "ohf-bindgen",
  "ohf-led-effects",
  "ohf-sys",

@@ -4,10 +4,6 @@ package: custom
 description: LED state machine for network status and tilt detection, OpenThread implementation
 category: Thread|NCP
 quality: production
-include:
-  - path: inc
-    file_list:
-    - path: led_effects_openthread.h
 provides:
   - name: led_effects
 requires:

@@ -1,26 +1,15 @@
 //! LED network state from the Zigbee stack.
 #![no_std]
 
-extern "C" {
-    fn led_effects_init();
-    fn led_effects_set_network_state(network_formed: bool);
-}
-
-#[no_mangle]
-pub extern "C" fn device_has_stored_network_settings() -> bool {
-    let node: ohf_sys::tokTypeStackNodeData = ohf_sys::token::get(ohf_sys::TOKEN_STACK_NODE_DATA);
-    node.panId != 0xFFFF && (11..=26).contains(&node.radioFreqChannel)
-}
+use ohf_sys::token::has_stored_network;
 
 #[no_mangle]
 pub extern "C" fn led_effects_system_init(_init_level: u8) {
-    unsafe {
-        led_effects_init();
-        led_effects_set_network_state(device_has_stored_network_settings());
-    }
+    ohf_led_effects::init();
+    ohf_led_effects::set_network_state(has_stored_network());
 }
 
 #[no_mangle]
 pub extern "C" fn led_effects_stack_status_callback(_status: u32) {
-    unsafe { led_effects_set_network_state(device_has_stored_network_settings()) }
+    ohf_led_effects::set_network_state(has_stored_network());
 }
