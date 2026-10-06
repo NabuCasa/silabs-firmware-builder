@@ -116,6 +116,7 @@ const XNCP_CMD_RESPONSE_BIT: u16 = 0x8000;
 const REPLY_BUF_LEN: usize = 119;
 // {response_id: u16 le, status: u8}
 const REPLY_HEADER_LEN: usize = 3;
+pub const REPLY_PAYLOAD_LEN: usize = REPLY_BUF_LEN - REPLY_HEADER_LEN;
 
 /// Command handlers, collected across all enabled command-set crates at link time.
 #[distributed_slice]

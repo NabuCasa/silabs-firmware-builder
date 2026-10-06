@@ -11,10 +11,11 @@ use linkme::distributed_slice;
 use ohf_xncp_macros::xncp_command;
 
 use ohf_xncp::{
-    Reader, ReplyBuf, Status, XncpResult, XNCP_FEATURES, XNCP_FEATURE_BUILD_STRING,
-    XNCP_FEATURE_CHIP_INFO, XNCP_FEATURE_COMBINED_SEND, XNCP_FEATURE_FLOW_CONTROL_TYPE,
-    XNCP_FEATURE_MANUAL_SOURCE_ROUTE, XNCP_FEATURE_MEMBER_OF_ALL_GROUPS,
-    XNCP_FEATURE_MFG_TOKEN_OVERRIDES, XNCP_FEATURE_RESTORE_ROUTE_TABLE,
+    Reader, ReplyBuf, Status, XncpResult, REPLY_PAYLOAD_LEN, XNCP_FEATURES,
+    XNCP_FEATURE_BUILD_STRING, XNCP_FEATURE_CHIP_INFO, XNCP_FEATURE_COMBINED_SEND,
+    XNCP_FEATURE_FLOW_CONTROL_TYPE, XNCP_FEATURE_MANUAL_SOURCE_ROUTE,
+    XNCP_FEATURE_MEMBER_OF_ALL_GROUPS, XNCP_FEATURE_MFG_TOKEN_OVERRIDES,
+    XNCP_FEATURE_RESTORE_ROUTE_TABLE,
 };
 
 #[allow(
@@ -42,11 +43,17 @@ const RELAY_COUNT: usize = SL_ZIGBEE_MAX_SOURCE_ROUTE_RELAY_COUNT as usize;
 const TABLE_SIZE: usize = XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE as usize;
 
 // bindgen emits string macros as NUL-terminated byte strings. Call in a const context.
-const fn c_str(s: &'static [u8]) -> &'static [u8] {
-    match CStr::from_bytes_with_nul(s) {
+/// A config string, which must fit in a reply after `offset` bytes
+const fn reply_str(s: &'static [u8], offset: usize) -> &'static [u8] {
+    let s = match CStr::from_bytes_with_nul(s) {
         Ok(s) => s.to_bytes(),
         Err(_) => panic!("not a C string"),
-    }
+    };
+    assert!(
+        offset + s.len() <= REPLY_PAYLOAD_LEN,
+        "too long for an XNCP reply"
+    );
+    s
 }
 
 // EmberZNet internal tables
@@ -176,8 +183,8 @@ fn handle_get_mfg_token_override(req: &[u8], reply: &mut ReplyBuf) -> XncpResult
         return Err(Status::BAD_ARGUMENT);
     };
     let value = match token_id as u32 {
-        SL_ZIGBEE_EZSP_MFG_STRING => const { c_str(XNCP_MFG_MANUF_NAME) },
-        SL_ZIGBEE_EZSP_MFG_BOARD_NAME => const { c_str(XNCP_MFG_BOARD_NAME) },
+        SL_ZIGBEE_EZSP_MFG_STRING => const { reply_str(XNCP_MFG_MANUF_NAME, 0) },
+        SL_ZIGBEE_EZSP_MFG_BOARD_NAME => const { reply_str(XNCP_MFG_BOARD_NAME, 0) },
         _ => return Err(Status::NOT_FOUND),
     };
     reply.push_bytes(value);
@@ -186,7 +193,7 @@ fn handle_get_mfg_token_override(req: &[u8], reply: &mut ReplyBuf) -> XncpResult
 
 #[xncp_command(0x0003)]
 fn handle_get_build_string(_req: &[u8], reply: &mut ReplyBuf) -> XncpResult {
-    reply.push_bytes(const { c_str(XNCP_BUILD_STRING) });
+    reply.push_bytes(const { reply_str(XNCP_BUILD_STRING, 0) });
     Ok(())
 }
 
@@ -204,7 +211,8 @@ fn handle_get_flow_control_type(_req: &[u8], reply: &mut ReplyBuf) -> XncpResult
 #[xncp_command(0x0005)]
 fn handle_get_chip_info(_req: &[u8], reply: &mut ReplyBuf) -> XncpResult {
     reply.push_u32_le(RAM_MEM_SIZE as u32);
-    let part = const { c_str(PART_NUMBER) };
+    // After {ram_size: u32 le, part_len: u8}
+    let part = const { reply_str(PART_NUMBER, 5) };
     reply.push(part.len() as u8);
     reply.push_bytes(part);
     Ok(())
