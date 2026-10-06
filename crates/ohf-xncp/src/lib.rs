@@ -5,14 +5,25 @@
 // For `ohf_xncp_macros::xncp_command`
 pub use linkme::distributed_slice;
 
+#[allow(non_camel_case_types, dead_code)]
+mod bindings {
+    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+}
+use bindings::*;
+
 /// The wire status byte: the low byte of the `sl_status_t` the protocol carries.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Status(pub u8);
 
 impl Status {
-    pub const OK: Status = Status(0x00); // SL_STATUS_OK
-    pub const BAD_ARGUMENT: Status = Status(0x21); // SL_STATUS_INVALID_PARAMETER
-    pub const NOT_FOUND: Status = Status(0x2D); // SL_STATUS_NOT_FOUND
+    pub const OK: Status = Status::from_sl_status(SL_STATUS_OK);
+    pub const BAD_ARGUMENT: Status = Status::from_sl_status(SL_STATUS_INVALID_PARAMETER);
+    pub const NOT_FOUND: Status = Status::from_sl_status(SL_STATUS_NOT_FOUND);
+
+    const fn from_sl_status(status: sl_status_t) -> Status {
+        assert!(status <= 0xFF, "does not fit the wire status byte");
+        Status(status as u8)
+    }
 }
 
 /// What a command handler returns. An error status replies with an empty payload.

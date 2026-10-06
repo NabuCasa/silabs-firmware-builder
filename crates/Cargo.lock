@@ -271,6 +271,7 @@ name = "ohf-xncp"
 version = "0.1.0"
 dependencies = [
  "linkme",
+ "ohf-bindgen",
 ]
 
 [[package]]

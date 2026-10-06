@@ -5,3 +5,6 @@ version.workspace = true
 
 [dependencies]
 linkme = "0.3"
+
+[build-dependencies]
+ohf-bindgen = { path = "../ohf-bindgen" }
