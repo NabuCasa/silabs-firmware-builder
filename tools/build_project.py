@@ -1403,7 +1403,14 @@ def build_rust_libraries(
 
     quoted = "\n    ".join(f'"{path}"' for path in objects)
     with build.project_cmake.open("a") as f:
-        f.write(f"\ntarget_link_libraries(slc PUBLIC\n    {quoted}\n)\n")
+        # Executable sources, so they precede the SDK archives like C objects: a strong
+        # Rust definition then keeps the archive member defining it from being pulled.
+        # `slc` is an object library, which drops external objects, and the executable
+        # is only defined after this file is included.
+        f.write(
+            f"\ncmake_language(DEFER CALL target_sources {build.base_project_name}"
+            f" PRIVATE\n    {quoted}\n)\n"
+        )
 
     return objects
 
