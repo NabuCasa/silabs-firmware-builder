@@ -1305,6 +1305,7 @@ def build_rust_libraries(
 
     config_path = build.build_dir / "rust_build.json"
     config_path.write_text(json.dumps(rust_config, indent=2))
+    target_dir = (build.build_dir / "cargo").resolve()
 
     inc_args = " ".join(f"-I{d}" for d in flags["includes"])
     define_args = " ".join(f"-D{d}" for d in flags["defines"])
@@ -1331,8 +1332,12 @@ def build_rust_libraries(
             "cargo",
             "build",
             "--release",
+            "--locked",
             "--target",
             RUST_TARGET,
+            # Bindings depend on the build's config headers, which cargo doesn't track
+            "--target-dir",
+            target_dir,
             # `core` as bitcode too
             "-Zbuild-std=core",
             "-p",
