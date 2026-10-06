@@ -58,7 +58,8 @@ const fn reply_str(s: &'static [u8], offset: usize) -> &'static [u8] {
 
 // EmberZNet internal tables
 extern "C" {
-    static mut sli_zigbee_route_table: sli_zigbee_route_table_entry_t;
+    // Sized by `sli_zigbee_route_table_size`
+    static mut sli_zigbee_route_table: [sli_zigbee_route_table_entry_t; 0];
     static mut sli_zigbee_route_table_size: u8;
     static mut sli_zigbee_address_table_size: u8;
 }
@@ -85,8 +86,11 @@ fn route_table_size() -> u8 {
 
 fn route_entry_ptr(index: u8) -> *mut sli_zigbee_route_table_entry_t {
     assert!(index < route_table_size());
-    // The symbol is the first element of the stack's route table array
-    unsafe { addr_of_mut!(sli_zigbee_route_table).add(index as usize) }
+    unsafe {
+        addr_of_mut!(sli_zigbee_route_table)
+            .cast::<sli_zigbee_route_table_entry_t>()
+            .add(index as usize)
+    }
 }
 
 fn route_table_get(index: u8) -> RouteEntry {
