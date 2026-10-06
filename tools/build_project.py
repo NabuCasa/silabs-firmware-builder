@@ -254,15 +254,32 @@ def validate_wrap_declarations(project_path: pathlib.Path) -> dict[str, str | No
     return declarations
 
 
-def weak_override_declarations(project_path: pathlib.Path) -> set[str]:
-    """The SDK weak definitions that components declare their Rust code overrides."""
+def weak_override_declarations(build: ResolvedBuild) -> set[str]:
+    """The SDK weak definitions that the enabled Rust components declare they override."""
+
+    # The project has every slcc, enabled or not, so scope them by the enabled features
+    features_file = build.build_dir / "autogen" / "ohf_rust_features.json"
+    if not features_file.exists():
+        return set()
+
+    features = set(json.loads(features_file.read_text()))
     declarations = set()
 
-    for slcc in sorted(project_path.rglob("*.slcc", recurse_symlinks=True)):
+    for slcc in sorted(build.base_project_path.rglob("*.slcc", recurse_symlinks=True)):
         component = yaml.load(slcc.read_text())
-        declarations.update(
+        overrides = (
             component.get("metadata", {}).get("nabucasa", {}).get("weak_overrides", [])
         )
+        if not overrides:
+            continue
+
+        (feature,) = [
+            contribution["value"]
+            for contribution in component["template_contribution"]
+            if contribution["name"] == "ohf_rust_feature"
+        ]
+        if feature in features:
+            declarations.update(overrides)
 
     return declarations
 
@@ -307,14 +324,13 @@ def validate_weak_overrides(
 
     rust_symbols = defined(rust_objects, "TDBR")
     overrides = rust_symbols & defined(inputs, "WV")
-    expected = declared & rust_symbols
 
     LOGGER.info("Rust overrides weak definitions: %s", sorted(overrides))
 
-    if overrides != expected:
+    if overrides != declared:
         raise RuntimeError(
-            f"Rust overrides weak definitions it should not: {sorted(overrides - expected)},"
-            f" declared but not overridden: {sorted(expected - overrides)}"
+            f"Rust overrides weak definitions it should not: {sorted(overrides - declared)},"
+            f" declared but not overridden: {sorted(declared - overrides)}"
         )
 
 
@@ -1424,7 +1440,7 @@ def main() -> None:
     apply_sdk_patches(build)
     validate_sdk_extensions(build, base_project)
     declared_wraps = validate_wrap_declarations(build.base_project_path)
-    declared_overrides = weak_override_declarations(build.base_project_path)
+    declared_overrides = weak_override_declarations(build)
 
     # Template variables for C defines and the output filename
     template_env = {
