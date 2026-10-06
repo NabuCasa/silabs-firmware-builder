@@ -17,8 +17,7 @@ extern crate ohf_qma6100p;
 #[cfg(any(
     feature = "router_beacon_filter",
     feature = "router_eui64_unique",
-    feature = "router_nvram_reset",
-    feature = "router_install_code"
+    feature = "router_nvram_reset"
 ))]
 extern crate ohf_router;
 #[cfg(feature = "ws2812")]

@@ -46,12 +46,8 @@ fn main() {
         builder = builder
             .clang_arg("-DOHF_TOKENS")
             .allowlist_function("halInternalGetTokenData")
-            .allowlist_function("halInternalGetMfgTokenData")
-            .allowlist_function("halInternalSetMfgTokenData")
             .allowlist_type("tokTypeStackNodeData")
-            .allowlist_type("tokTypeMfgInstallationCode")
-            .allowlist_var("TOKEN_STACK_NODE_DATA")
-            .allowlist_var("TOKEN_MFG_INSTALLATION_CODE");
+            .allowlist_var("TOKEN_STACK_NODE_DATA");
     }
 
     ohf_bindgen::write(builder);

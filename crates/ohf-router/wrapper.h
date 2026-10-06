@@ -3,5 +3,3 @@
 #include "stack/include/sl_zigbee.h"
 #include "sl_token_manager_defines.h"
 #include "sl_token_manager_manufacturing.h"
-#include "crc.h"
-#include "psa/crypto.h"
