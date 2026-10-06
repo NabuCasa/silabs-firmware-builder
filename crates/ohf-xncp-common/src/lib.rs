@@ -431,42 +431,45 @@ pub unsafe extern "C" fn nc_zigbee_override_append_source_route(
 ) {
     let header = header as *mut sli_buffer_manager_buffer_t;
 
-    critical_section::with(|cs| {
+    let route = critical_section::with(|cs| {
         let mut routes = MANUAL_SOURCE_ROUTES.borrow(cs).borrow_mut();
-
-        let Some(route) = routes
+        let route = routes
             .iter_mut()
-            .find(|r| r.active && r.destination == destination)
-        else {
-            *consumed = false;
-            return;
-        };
-        *consumed = true;
+            .find(|r| r.active && r.destination == destination)?;
 
-        // Empty source routes are invalid per the spec: drop a fake route into the stack's
-        // route table so EmberZNet just sends the packet directly.
-        if route.num_relays == 0 {
-            route_table_set(
-                find_free_routing_table_entry(destination),
-                RouteEntry {
-                    destination,
-                    next_hop: destination,
-                    status: ROUTE_ACTIVE,
-                    cost: 0,
-                },
-            );
-            return;
+        // Single use, except for the empty routes below
+        if route.num_relays != 0 {
+            route.active = false;
         }
-
-        // Single use
-        route.active = false;
-
-        // {relay count, relay index, relays in reverse order}
-        append_to_header(header, &[route.num_relays, route.num_relays - 1]);
-        for relay in route.relays[..route.num_relays as usize].iter().rev() {
-            append_to_header(header, &relay.to_le_bytes());
-        }
+        Some(*route)
     });
+
+    let Some(route) = route else {
+        *consumed = false;
+        return;
+    };
+    *consumed = true;
+
+    // Empty source routes are invalid per the spec: drop a fake route into the stack's
+    // route table so EmberZNet just sends the packet directly.
+    if route.num_relays == 0 {
+        route_table_set(
+            find_free_routing_table_entry(destination),
+            RouteEntry {
+                destination,
+                next_hop: destination,
+                status: ROUTE_ACTIVE,
+                cost: 0,
+            },
+        );
+        return;
+    }
+
+    // {relay count, relay index, relays in reverse order}
+    append_to_header(header, &[route.num_relays, route.num_relays - 1]);
+    for relay in route.relays[..route.num_relays as usize].iter().rev() {
+        append_to_header(header, &relay.to_le_bytes());
+    }
 }
 
 #[distributed_slice(XNCP_FEATURES)]
