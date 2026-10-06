@@ -14,3 +14,4 @@ critical-section = "1"
 
 [build-dependencies]
 ohf-bindgen = { path = "../ohf-bindgen" }
+ohf-config = { path = "../ohf-config" }

@@ -8,4 +8,4 @@ ohf-sys = { path = "../ohf-sys" }
 critical-section = "1"
 
 [build-dependencies]
-serde_json = "1"
+ohf-config = { path = "../ohf-config" }

@@ -168,6 +168,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "ohf-config"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "ohf-firmware"
 version = "0.1.0"
 dependencies = [
@@ -254,8 +261,8 @@ name = "ohf-ws2812"
 version = "0.1.0"
 dependencies = [
  "critical-section",
+ "ohf-config",
  "ohf-sys",
- "serde_json",
 ]
 
 [[package]]
@@ -301,6 +308,7 @@ version = "0.1.0"
 dependencies = [
  "critical-section",
  "ohf-bindgen",
+ "ohf-config",
  "ohf-led-effects",
  "ohf-sys",
 ]

@@ -1,0 +1,48 @@
+//! The `rust_config` a component's slcc declares, resolved against the manifest.
+use std::cell::RefCell;
+use std::collections::{BTreeMap, BTreeSet};
+use std::env;
+use std::fs;
+
+/// Every declared key must be read, so a value the manifest sets always takes effect.
+pub struct Config {
+    values: BTreeMap<String, String>,
+    read: RefCell<BTreeSet<String>>,
+}
+
+impl Config {
+    /// The config of the component with this `ohf_rust_feature`
+    pub fn load(feature: &str) -> Self {
+        println!("cargo:rerun-if-env-changed=OHF_RUST_CONFIG");
+        let path = env::var("OHF_RUST_CONFIG").unwrap();
+        println!("cargo:rerun-if-changed={path}");
+
+        let mut all: BTreeMap<String, BTreeMap<String, String>> =
+            serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+
+        Self {
+            values: all
+                .remove(feature)
+                .unwrap_or_else(|| panic!("{feature} has no rust_config")),
+            read: RefCell::new(BTreeSet::new()),
+        }
+    }
+
+    pub fn get(&self, key: &str) -> &str {
+        self.read.borrow_mut().insert(key.to_owned());
+        self.values
+            .get(key)
+            .unwrap_or_else(|| panic!("{key} is not in rust_config"))
+    }
+}
+
+impl Drop for Config {
+    fn drop(&mut self) {
+        let read = self.read.borrow();
+        let unread: Vec<_> = self.values.keys().filter(|k| !read.contains(*k)).collect();
+        assert!(
+            unread.is_empty(),
+            "rust_config declares unread keys: {unread:?}"
+        );
+    }
+}

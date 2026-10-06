@@ -8,9 +8,6 @@ include:
   - path: inc
     file_list:
     - path: ws2812.h
-config_file:
-  - path: config/ws2812_config.h
-    file_id: ws2812_config
 provides:
   - name: ws2812_driver
 requires:
@@ -26,3 +23,10 @@ template_contribution:
       handler: ws2812_led_driver_init
   - name: ohf_rust_feature
     value: ws2812
+
+metadata:
+  nabucasa:
+    rust_config:
+      WS2812_NUM_LEDS: null
+      WS2812_EN_PORT: null
+      WS2812_EN_PIN: null

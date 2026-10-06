@@ -254,34 +254,75 @@ def validate_wrap_declarations(project_path: pathlib.Path) -> dict[str, str | No
     return declarations
 
 
-def weak_override_declarations(build: ResolvedBuild) -> set[str]:
-    """The SDK weak definitions that the enabled Rust components declare they override."""
+def enabled_rust_components(build: ResolvedBuild) -> dict[str, dict[str, typing.Any]]:
+    """The `metadata.nabucasa` of each enabled Rust component, by its cargo feature."""
 
-    # The project has every slcc, enabled or not, so scope them by the enabled features
+    # Only rendered when a Rust component is enabled
     features_file = build.build_dir / "autogen" / "ohf_rust_features.json"
     if not features_file.exists():
-        return set()
+        return {}
 
     features = set(json.loads(features_file.read_text()))
-    declarations = set()
+    components = {}
 
+    # The project has every slcc, enabled or not, so scope them by the enabled features
     for slcc in sorted(build.base_project_path.rglob("*.slcc", recurse_symlinks=True)):
         component = yaml.load(slcc.read_text())
-        overrides = (
-            component.get("metadata", {}).get("nabucasa", {}).get("weak_overrides", [])
-        )
-        if not overrides:
-            continue
-
-        (feature,) = [
+        rust_features = [
             contribution["value"]
-            for contribution in component["template_contribution"]
+            for contribution in component.get("template_contribution", [])
             if contribution["name"] == "ohf_rust_feature"
         ]
-        if feature in features:
-            declarations.update(overrides)
+        if not rust_features:
+            continue
 
-    return declarations
+        (feature,) = rust_features
+        if feature in features:
+            assert feature not in components, f"{feature} is enabled by two components"
+            components[feature] = component.get("metadata", {}).get("nabucasa", {})
+
+    return components
+
+
+def weak_override_declarations(build: ResolvedBuild) -> set[str]:
+    """The SDK weak definitions that the enabled Rust components declare they override."""
+    return {
+        override
+        for metadata in enabled_rust_components(build).values()
+        for override in metadata.get("weak_overrides", [])
+    }
+
+
+def resolve_rust_config(
+    build: ResolvedBuild,
+    c_defines: dict[str, dict],
+    template_env: dict[str, typing.Any],
+) -> dict[str, dict[str, str]]:
+    """Each enabled Rust component's `rust_config`, with the manifest's values applied."""
+    resolved = {}
+
+    for feature, metadata in enabled_rust_components(build).items():
+        config = {}
+
+        # A null default must be set by the manifest
+        for name, default in metadata.get("rust_config", {}).items():
+            if name in c_defines:
+                value = str(c_defines[name]["value"])
+            elif default is not None:
+                value = str(default)
+            else:
+                LOGGER.error("%s requires %s to be set", feature, name)
+                sys.exit(1)
+
+            if value.startswith("template:"):
+                value = value.replace("template:", "", 1).format(**template_env)
+
+            config[name] = value
+
+        if config:
+            resolved[feature] = config
+
+    return resolved
 
 
 def validate_weak_overrides(
@@ -1278,21 +1319,8 @@ def extract_slc_clang_flags(build: ResolvedBuild) -> dict[str, typing.Any]:
     return {"includes": includes, "defines": defines, "arch": arch, "abi": abi}
 
 
-def resolve_rust_config(
-    c_defines: dict[str, dict], template_env: dict[str, typing.Any]
-) -> dict[str, str]:
-    """Manifest config values for the crates' build scripts."""
-    resolved = {}
-    for name, config in c_defines.items():
-        value = str(config["value"])
-        if value.startswith("template:"):
-            value = value.replace("template:", "", 1).format(**template_env)
-        resolved[name] = value
-    return resolved
-
-
 def build_rust_libraries(
-    build: ResolvedBuild, rust_config: dict[str, str]
+    build: ResolvedBuild, rust_config: dict[str, dict[str, str]]
 ) -> list[pathlib.Path]:
     """Build the Rust components and return the objects linked into the firmware."""
     # Only rendered when a Rust component is enabled
@@ -1469,9 +1497,12 @@ def main() -> None:
         template_env=template_env,
     )
 
+    rust_config = resolve_rust_config(build, c_defines, template_env)
+
     unused_defines = (
         set(c_defines)
         - written_defines
+        - {define for config in rust_config.values() for define in config}
         - {define for define, config in c_defines.items() if config["type"] == "c_flag"}
     )
     if unused_defines:
@@ -1490,9 +1521,7 @@ def main() -> None:
         if declared_wraps[target] is not None
     ]
     exclude_definitions_from_lto(build, definitions)
-    rust_objects = build_rust_libraries(
-        build, resolve_rust_config(c_defines, template_env)
-    )
+    rust_objects = build_rust_libraries(build, rust_config)
     cmake_configure_and_build(build, assemble_build_flags(build, c_flag_defines))
     validate_weak_overrides(build, rust_objects, declared_overrides)
 

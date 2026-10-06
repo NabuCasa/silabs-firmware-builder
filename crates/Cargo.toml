@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "ohf-bindgen",
+    "ohf-config",
     "ohf-sys",
     "ohf-rt",
     "ohf-ws2812",
