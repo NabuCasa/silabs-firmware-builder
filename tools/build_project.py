@@ -1547,6 +1547,7 @@ def main() -> None:
         project_name=build.base_project_name,
         sdk_version=build.sdk_version,
         gbl_metadata=build.manifest.gbl,
+        rust_config=rust_config,
     )
 
     output_artifact = (build.cmake_dir / build.base_project_name).with_suffix(".gbl")

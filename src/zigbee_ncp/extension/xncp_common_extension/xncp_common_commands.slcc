@@ -4,12 +4,6 @@ package: custom
 description: Common XNCP commands for all coordinators
 category: Zigbee|NCP
 quality: production
-source:
-  # Overrides the stack's sl_zigbee_version data
-  - path: src/ezsp_version.c
-config_file:
-  - path: config/xncp_config.h
-    file_id: xncp_config
 provides:
   - name: xncp_common_commands
 requires:
@@ -28,3 +22,18 @@ template_contribution:
     value:
       callback_type: override_append_source_route
       function_name: nc_zigbee_override_append_source_route
+
+metadata:
+  nabucasa:
+    rust_config:
+      XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE: 200
+      XNCP_MFG_MANUF_NAME: ""
+      XNCP_MFG_BOARD_NAME: ""
+      XNCP_BUILD_STRING: ""
+      # Override only if external flow control differs from the UART's (e.g. ZBT-2)
+      XNCP_FLOW_CONTROL_TYPE: OHF_VCOM_FLOW_CONTROL_TYPE
+      # The EZSP version's special number, 0xFF keeps the stack's
+      XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE: 0xFF
+      # For countries without an explicit entry
+      XNCP_DEFAULT_RECOMMENDED_TX_POWER_DBM: 8
+      XNCP_DEFAULT_MAX_TX_POWER_DBM: 8
