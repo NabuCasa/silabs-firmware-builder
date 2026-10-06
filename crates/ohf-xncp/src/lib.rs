@@ -12,7 +12,7 @@ pub struct Status(pub u8);
 impl Status {
     pub const OK: Status = Status(0x00); // SL_STATUS_OK
     pub const BAD_ARGUMENT: Status = Status(0x21); // SL_STATUS_INVALID_PARAMETER
-    pub const NOT_FOUND: Status = Status(0x25); // SL_STATUS_NOT_FOUND
+    pub const NOT_FOUND: Status = Status(0x2D); // SL_STATUS_NOT_FOUND
 }
 
 /// What a command handler returns. An error status replies with an empty payload.
