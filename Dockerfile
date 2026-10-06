@@ -161,6 +161,15 @@ RUN set -eux \
     && /opt/rust/cargo/bin/rustup toolchain install \
     && rm -rf /tmp/rust
 
+# Firmware builds run offline. A bare `fetch` covers every platform, including the host's
+# build dependencies, and `--target` is needed for `core`'s.
+RUN --mount=type=bind,source=crates,target=/tmp/crates \
+    set -eux \
+    && cd /tmp/crates \
+    && /opt/rust/cargo/bin/cargo fetch --locked \
+    && RUSTC_BOOTSTRAP=1 /opt/rust/cargo/bin/cargo fetch --locked \
+        --target thumbv8m.main-none-eabihf -Zbuild-std=core
+
 # Python virtual environment for the firmware builder script
 FROM trixie-stable AS python-venv
 COPY --from=ghcr.io/astral-sh/uv:0.12.1 /uv /uvx /usr/bin/
