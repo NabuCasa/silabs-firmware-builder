@@ -7,6 +7,3 @@ version.workspace = true
 ohf-sys = { path = "../ohf-sys" }
 ohf-qma6100p = { path = "../ohf-qma6100p" }
 critical-section = "1"
-
-[build-dependencies]
-serde_json = "1"

@@ -8,9 +8,6 @@ include:
   - path: inc
     file_list:
     - path: led_manager.h
-config_file:
-  - path: config/led_effects_config.h
-    file_id: led_effects_config
 provides:
   - name: led_effects_base
   - name: led_manager

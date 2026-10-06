@@ -193,7 +193,6 @@ dependencies = [
  "critical-section",
  "ohf-qma6100p",
  "ohf-sys",
- "serde_json",
 ]
 
 [[package]]
