@@ -1354,8 +1354,10 @@ def build_rust_libraries(
     # The crates are linked as objects, so they are always loaded and their strong
     # definitions override the SDK's weak ones. `compiler_builtins` is the only native
     # code and is left out: newlib and compiler-rt provide the runtime, as for C.
-    archive = RUST_DIR / "target" / RUST_TARGET / "release" / RUST_LIBRARY
+    archive = target_dir / RUST_TARGET / "release" / RUST_LIBRARY
     objects_dir = build.build_dir / "rust_objects"
+    if objects_dir.exists():
+        shutil.rmtree(objects_dir)
     objects_dir.mkdir()
     members = subprocess.run(
         [bins["ar"], "t", archive], capture_output=True, text=True, check=True
