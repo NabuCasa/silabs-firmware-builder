@@ -47,9 +47,9 @@ c_defines:
   # SDK bug: the PCLK divider is set to 1 for the MGM210, it is set to 2 everywhere else
   SL_CLOCK_MANAGER_PCLK_DIVIDER: SL_CLOCK_MANAGER_PCLK_DIV_MIN
 
-  XNCP_MFG_MANUF_NAME: '"Nabu Casa"'
-  XNCP_MFG_BOARD_NAME: '"Home Assistant Yellow"'
-  XNCP_BUILD_STRING: template:"{now:%Y%m%d%H%M%S}"
+  XNCP_MFG_MANUF_NAME: Nabu Casa
+  XNCP_MFG_BOARD_NAME: Home Assistant Yellow
+  XNCP_BUILD_STRING: template:{now:%Y%m%d%H%M%S}
   XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE: 200
 
   SL_ZIGBEE_APS_UNICAST_MESSAGE_COUNT: 64

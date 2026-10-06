@@ -4,6 +4,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fs;
 
+use cexpr::expr::EvalResult;
+
 /// Every declared key must be read, so a value the manifest sets always takes effect.
 pub struct Config {
     values: BTreeMap<String, String>,
@@ -33,6 +35,20 @@ impl Config {
         self.values
             .get(key)
             .unwrap_or_else(|| panic!("{key} is not in rust_config"))
+    }
+
+    /// A string's bytes. A value in double quotes is a C string literal, as a C define
+    /// would need, and its escapes are decoded.
+    pub fn get_bytes(&self, key: &str) -> Vec<u8> {
+        let v = self.get(key);
+        if !v.starts_with('"') {
+            return v.as_bytes().to_vec();
+        }
+
+        match cexpr::literal::parse(v.as_bytes()).unwrap().1 {
+            EvalResult::Str(s) => s,
+            other => panic!("{key} is not a C string literal: {other:?}"),
+        }
     }
 }
 

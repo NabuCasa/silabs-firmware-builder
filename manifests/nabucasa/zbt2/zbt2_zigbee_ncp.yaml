@@ -64,9 +64,9 @@ configuration:
 c_defines:
   XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE: 1
 
-  XNCP_MFG_MANUF_NAME: '"Nabu Casa"'
-  XNCP_MFG_BOARD_NAME: '"Home Assistant Connect ZBT-2"'
-  XNCP_BUILD_STRING: template:"{now:%Y%m%d%H%M%S}"
+  XNCP_MFG_MANUF_NAME: Nabu Casa
+  XNCP_MFG_BOARD_NAME: Home Assistant Connect ZBT-2
+  XNCP_BUILD_STRING: template:{now:%Y%m%d%H%M%S}
   XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE: 200
 
   # The hardware flow control is only between the S3 and the MG24. The application

@@ -171,6 +171,7 @@ dependencies = [
 name = "ohf-config"
 version = "0.1.0"
 dependencies = [
+ "cexpr",
  "serde_json",
 ]
 
