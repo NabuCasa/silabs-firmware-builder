@@ -73,11 +73,4 @@ void qma6100p_system_init(void);
  */
 void qma6100p_read_raw_xyz(sl_i2cspm_t *i2cspm, int16_t data[3]);
 
-/**
- * @brief Read calibrated 3-axis acceleration data in m/s^2
- * @param i2cspm Pointer to I2CSPM instance to use
- * @param accdata Array to store 3-axis acceleration in m/s^2
- */
-void qma6100p_read_acc_xyz(sl_i2cspm_t *i2cspm, float accdata[3]);
-
 #endif /* QMA6100P_H_ */
