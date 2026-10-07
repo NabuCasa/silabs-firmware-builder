@@ -454,6 +454,11 @@ pub unsafe extern "C" fn nc_zigbee_override_append_source_route(
 ) {
     let header = header as *mut sli_buffer_manager_buffer_t;
 
+    if header.is_null() {
+        *consumed = false;
+        return;
+    }
+
     let route = critical_section::with(|cs| {
         let mut routes = MANUAL_SOURCE_ROUTES.borrow(cs).borrow_mut();
         let route = routes
