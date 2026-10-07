@@ -2,7 +2,7 @@
 //! `XNCP_FEATURES`.
 #![no_std]
 
-// For `ohf_xncp_macros::xncp_command`
+// For `ohf_xncp_macros`
 pub use linkme::distributed_slice;
 
 #[allow(non_camel_case_types, dead_code)]
@@ -108,16 +108,28 @@ pub struct XncpCommandDef {
     pub handler: XncpHandler,
 }
 
-pub const XNCP_FEATURE_MEMBER_OF_ALL_GROUPS: u32 = 1 << 0;
-pub const XNCP_FEATURE_MANUAL_SOURCE_ROUTE: u32 = 1 << 1;
-pub const XNCP_FEATURE_MFG_TOKEN_OVERRIDES: u32 = 1 << 2;
-pub const XNCP_FEATURE_BUILD_STRING: u32 = 1 << 3;
-pub const XNCP_FEATURE_FLOW_CONTROL_TYPE: u32 = 1 << 4;
-pub const XNCP_FEATURE_CHIP_INFO: u32 = 1 << 5;
-pub const XNCP_FEATURE_RESTORE_ROUTE_TABLE: u32 = 1 << 6;
-pub const XNCP_FEATURE_TX_POWER_INFO: u32 = 1 << 7;
-pub const XNCP_FEATURE_COMBINED_SEND: u32 = 1 << 8;
-pub const XNCP_FEATURE_LED_CONTROL: u32 = 1 << 31;
+/// A bit index in the reported feature mask. rustc rejects duplicate discriminants.
+#[derive(Clone, Copy)]
+#[repr(u8)]
+pub enum XncpFeature {
+    MemberOfAllGroups = 0,
+    ManualSourceRoute = 1,
+    MfgTokenOverrides = 2,
+    BuildString = 3,
+    FlowControlType = 4,
+    ChipInfo = 5,
+    RestoreRouteTable = 6,
+    TxPowerInfo = 7,
+    CombinedSend = 8,
+    LedControl = 31,
+}
+
+impl XncpFeature {
+    pub const fn bit(self) -> u32 {
+        assert!((self as u8) < 32, "does not fit the feature mask");
+        1 << self as u8
+    }
+}
 
 const XNCP_CMD_GET_SUPPORTED_FEATURES_REQ: u16 = 0x0000;
 const XNCP_CMD_UNKNOWN: u16 = 0xFFFF;
@@ -131,12 +143,12 @@ pub const REPLY_PAYLOAD_LEN: usize = SL_ZIGBEE_MAX_CUSTOM_EZSP_MESSAGE_PAYLOAD -
 #[distributed_slice]
 pub static XNCP_COMMANDS: [XncpCommandDef];
 
-/// Feature bits, OR-ed into the reported mask.
+/// Features, OR-ed into the reported mask. Registered by `ohf_xncp_macros`.
 #[distributed_slice]
-pub static XNCP_FEATURES: [u32];
+pub static XNCP_FEATURES: [XncpFeature];
 
 fn supported_features() -> u32 {
-    XNCP_FEATURES.iter().fold(0, |acc, &bit| acc | bit)
+    XNCP_FEATURES.iter().fold(0, |acc, f| acc | f.bit())
 }
 
 /// Returns the response id for the reply header.

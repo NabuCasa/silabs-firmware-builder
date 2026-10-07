@@ -1,4 +1,4 @@
-//! Common XNCP command set — commands 0x0001..0x0009, shared by every coordinator.
+//! Common XNCP command setshared by every coordinator.
 #![no_std]
 
 use core::cell::RefCell;
@@ -6,17 +6,10 @@ use core::ffi::{c_void, CStr};
 use core::ptr::addr_of_mut;
 
 use critical_section::Mutex;
-use linkme::distributed_slice;
 
-use ohf_xncp_macros::xncp_command;
+use ohf_xncp_macros::{xncp_command, xncp_feature};
 
-use ohf_xncp::{
-    Reader, ReplyBuf, Status, XncpResult, REPLY_PAYLOAD_LEN, XNCP_FEATURES,
-    XNCP_FEATURE_BUILD_STRING, XNCP_FEATURE_CHIP_INFO, XNCP_FEATURE_COMBINED_SEND,
-    XNCP_FEATURE_FLOW_CONTROL_TYPE, XNCP_FEATURE_MANUAL_SOURCE_ROUTE,
-    XNCP_FEATURE_MEMBER_OF_ALL_GROUPS, XNCP_FEATURE_MFG_TOKEN_OVERRIDES,
-    XNCP_FEATURE_RESTORE_ROUTE_TABLE,
-};
+use ohf_xncp::{Reader, ReplyBuf, Status, XncpFeature, XncpResult, REPLY_PAYLOAD_LEN};
 
 #[allow(
     non_camel_case_types,
@@ -197,14 +190,14 @@ fn install_manual_source_route(node_id: u16, relays: &[u8]) -> XncpResult {
     Ok(())
 }
 
-#[xncp_command(0x0001)]
+#[xncp_command(0x0001, feature = XncpFeature::ManualSourceRoute)]
 fn handle_set_source_route(req: &[u8], _reply: &mut ReplyBuf) -> XncpResult {
     let mut req = Reader::new(req);
     let node_id = req.u16_le()?;
     install_manual_source_route(node_id, req.rest())
 }
 
-#[xncp_command(0x0002)]
+#[xncp_command(0x0002, feature = XncpFeature::MfgTokenOverrides)]
 fn handle_get_mfg_token_override(req: &[u8], reply: &mut ReplyBuf) -> XncpResult {
     let &[token_id] = req else {
         return Err(Status::BAD_ARGUMENT);
@@ -218,13 +211,13 @@ fn handle_get_mfg_token_override(req: &[u8], reply: &mut ReplyBuf) -> XncpResult
     Ok(())
 }
 
-#[xncp_command(0x0003)]
+#[xncp_command(0x0003, feature = XncpFeature::BuildString)]
 fn handle_get_build_string(_req: &[u8], reply: &mut ReplyBuf) -> XncpResult {
     reply.push_bytes(const { reply_str(XNCP_BUILD_STRING, 0) });
     Ok(())
 }
 
-#[xncp_command(0x0004)]
+#[xncp_command(0x0004, feature = XncpFeature::FlowControlType)]
 fn handle_get_flow_control_type(_req: &[u8], reply: &mut ReplyBuf) -> XncpResult {
     let flow = if XNCP_FLOW_CONTROL_TYPE == usartHwFlowControlCtsAndRts as u32 {
         FLOW_CONTROL_TYPE_HARDWARE
@@ -235,7 +228,7 @@ fn handle_get_flow_control_type(_req: &[u8], reply: &mut ReplyBuf) -> XncpResult
     Ok(())
 }
 
-#[xncp_command(0x0005)]
+#[xncp_command(0x0005, feature = XncpFeature::ChipInfo)]
 fn handle_get_chip_info(_req: &[u8], reply: &mut ReplyBuf) -> XncpResult {
     reply.push_u32_le(RAM_MEM_SIZE as u32);
     // After {ram_size: u32 le, part_len: u8}
@@ -245,7 +238,7 @@ fn handle_get_chip_info(_req: &[u8], reply: &mut ReplyBuf) -> XncpResult {
     Ok(())
 }
 
-#[xncp_command(0x0006)]
+#[xncp_command(0x0006, feature = XncpFeature::RestoreRouteTable)]
 fn handle_set_route_table_entry(req: &[u8], _reply: &mut ReplyBuf) -> XncpResult {
     let &[index, d0, d1, n0, n1, status, cost] = req else {
         return Err(Status::BAD_ARGUMENT);
@@ -265,7 +258,7 @@ fn handle_set_route_table_entry(req: &[u8], _reply: &mut ReplyBuf) -> XncpResult
     Ok(())
 }
 
-#[xncp_command(0x0007)]
+#[xncp_command(0x0007, feature = XncpFeature::RestoreRouteTable, allow_duplicate = true)]
 fn handle_get_route_table_entry(req: &[u8], reply: &mut ReplyBuf) -> XncpResult {
     let &[index] = req else {
         return Err(Status::BAD_ARGUMENT);
@@ -315,7 +308,7 @@ const TX_POWERS: &[TxPower] = &[
     },
 ];
 
-#[xncp_command(0x0008)]
+#[xncp_command(0x0008, feature = XncpFeature::TxPowerInfo)]
 fn handle_get_tx_power_info(req: &[u8], reply: &mut ReplyBuf) -> XncpResult {
     let Ok(code) = <[u8; 2]>::try_from(req) else {
         return Err(Status::BAD_ARGUMENT);
@@ -380,7 +373,7 @@ fn send_unicast(
     (status, aps_sequence)
 }
 
-#[xncp_command(0x0009)]
+#[xncp_command(0x0009, feature = XncpFeature::CombinedSend)]
 fn handle_send_unicast(req: &[u8], reply: &mut ReplyBuf) -> XncpResult {
     let mut req = Reader::new(req);
     let flags = req.u8()?;
@@ -428,7 +421,9 @@ fn handle_send_unicast(req: &[u8], reply: &mut ReplyBuf) -> XncpResult {
     Ok(())
 }
 
-// XNCP_FEATURE_MEMBER_OF_ALL_GROUPS: receive every group's packets
+// Receive every group's packets
+xncp_feature!(XncpFeature::MemberOfAllGroups);
+
 #[no_mangle]
 pub extern "C" fn __wrap_sli_zigbee_am_multicast_member(_multicast_id: u16) -> bool {
     true
@@ -499,13 +494,3 @@ pub unsafe extern "C" fn nc_zigbee_override_append_source_route(
         append_to_header(header, &relay.to_le_bytes());
     }
 }
-
-#[distributed_slice(XNCP_FEATURES)]
-static COMMON_FEATURES: u32 = XNCP_FEATURE_MEMBER_OF_ALL_GROUPS
-    | XNCP_FEATURE_MANUAL_SOURCE_ROUTE
-    | XNCP_FEATURE_MFG_TOKEN_OVERRIDES
-    | XNCP_FEATURE_BUILD_STRING
-    | XNCP_FEATURE_FLOW_CONTROL_TYPE
-    | XNCP_FEATURE_CHIP_INFO
-    | XNCP_FEATURE_RESTORE_ROUTE_TABLE
-    | XNCP_FEATURE_COMBINED_SEND;
