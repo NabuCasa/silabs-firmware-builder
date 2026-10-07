@@ -123,11 +123,9 @@ const XNCP_CMD_GET_SUPPORTED_FEATURES_REQ: u16 = 0x0000;
 const XNCP_CMD_UNKNOWN: u16 = 0xFFFF;
 const XNCP_CMD_RESPONSE_BIT: u16 = 0x8000;
 
-// Custom-frame replies are capped at 119 bytes
-const REPLY_BUF_LEN: usize = 119;
 // {response_id: u16 le, status: u8}
 const REPLY_HEADER_LEN: usize = 3;
-pub const REPLY_PAYLOAD_LEN: usize = REPLY_BUF_LEN - REPLY_HEADER_LEN;
+pub const REPLY_PAYLOAD_LEN: usize = SL_ZIGBEE_MAX_CUSTOM_EZSP_MESSAGE_PAYLOAD - REPLY_HEADER_LEN;
 
 /// Command handlers, collected across all enabled command-set crates at link time.
 #[distributed_slice]
@@ -187,7 +185,8 @@ pub unsafe extern "C" fn sl_zigbee_af_xncp_incoming_custom_frame_cb(
     reply_payload: *mut u8,
 ) -> u32 {
     let message = core::slice::from_raw_parts(message_payload, message_length as usize);
-    let reply = core::slice::from_raw_parts_mut(reply_payload, REPLY_BUF_LEN);
+    let reply =
+        core::slice::from_raw_parts_mut(reply_payload, SL_ZIGBEE_MAX_CUSTOM_EZSP_MESSAGE_PAYLOAD);
     *reply_payload_length = handle_frame(message, reply);
     Status::OK.0 as u32
 }
