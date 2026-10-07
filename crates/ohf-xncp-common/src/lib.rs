@@ -35,9 +35,6 @@ const FLOW_CONTROL_TYPE_HARDWARE: u8 = 0x01;
 const ROUTE_ACTIVE: u8 = 0;
 const ROUTE_UNUSED: u8 = 3;
 
-const RELAY_COUNT: usize = SL_ZIGBEE_MAX_SOURCE_ROUTE_RELAY_COUNT as usize;
-const TABLE_SIZE: usize = XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE;
-
 // bindgen emits string macros as NUL-terminated byte strings
 const fn c_str(s: &'static [u8]) -> &'static [u8] {
     match CStr::from_bytes_with_nul(s) {
@@ -149,23 +146,26 @@ struct ManualSourceRoute {
     active: bool,
     destination: u16,
     num_relays: u8,
-    relays: [u16; RELAY_COUNT],
+    relays: [u16; SL_ZIGBEE_MAX_SOURCE_ROUTE_RELAY_COUNT],
 }
 
 const EMPTY_ROUTE: ManualSourceRoute = ManualSourceRoute {
     active: false,
     destination: 0,
     num_relays: 0,
-    relays: [0; RELAY_COUNT],
+    relays: [0; SL_ZIGBEE_MAX_SOURCE_ROUTE_RELAY_COUNT],
 };
 
-static MANUAL_SOURCE_ROUTES: Mutex<RefCell<[ManualSourceRoute; TABLE_SIZE]>> =
-    Mutex::new(RefCell::new([EMPTY_ROUTE; TABLE_SIZE]));
+static MANUAL_SOURCE_ROUTES: Mutex<
+    RefCell<[ManualSourceRoute; XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE]>,
+> = Mutex::new(RefCell::new(
+    [EMPTY_ROUTE; XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE],
+));
 
 // Replaces the route for `node_id`, else takes the last free slot, else a random one.
 // `relays` holds little-endian u16 node ids.
 fn install_manual_source_route(node_id: u16, relays: &[u8]) -> XncpResult {
-    if relays.len() % 2 != 0 || relays.len() / 2 > RELAY_COUNT {
+    if relays.len() % 2 != 0 || relays.len() / 2 > SL_ZIGBEE_MAX_SOURCE_ROUTE_RELAY_COUNT {
         return Err(Status::BAD_ARGUMENT);
     }
 
@@ -176,7 +176,7 @@ fn install_manual_source_route(node_id: u16, relays: &[u8]) -> XncpResult {
             .iter()
             .position(|r| r.active && r.destination == node_id)
             .or_else(|| routes.iter().rposition(|r| !r.active))
-            .unwrap_or_else(|| pseudo_random() as usize % TABLE_SIZE);
+            .unwrap_or_else(|| pseudo_random() as usize % XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE);
 
         let route = &mut routes[index];
         for (slot, relay) in route.relays.iter_mut().zip(relays.chunks_exact(2)) {
@@ -398,7 +398,7 @@ fn handle_send_unicast(req: &[u8], reply: &mut ReplyBuf) -> XncpResult {
     };
     let relays = if flags & XNCP_SEND_UNICAST_FLAG_SOURCE_ROUTE != 0 {
         let num_relays = req.u8()? as usize;
-        if num_relays > RELAY_COUNT {
+        if num_relays > SL_ZIGBEE_MAX_SOURCE_ROUTE_RELAY_COUNT {
             return Err(Status::BAD_ARGUMENT);
         }
         Some(req.bytes(num_relays * 2)?)

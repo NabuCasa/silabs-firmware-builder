@@ -21,7 +21,7 @@ fn main() {
             .allowlist_var("SL_STATUS_OK")
             .allowlist_var("SL_ZIGBEE_OUTGOING_DIRECT")
             .allowlist_var("SL_ZIGBEE_TABLE_ENTRY_UNUSED_NODE_ID")
-            .allowlist_var("SL_ZIGBEE_MAX_SOURCE_ROUTE_RELAY_COUNT")
+            .allowlist_var_as("SL_ZIGBEE_MAX_SOURCE_ROUTE_RELAY_COUNT", "usize")
             .allowlist_var("SL_ZIGBEE_EZSP_MFG_.*")
             .allowlist_var("RAM_MEM_SIZE")
             .allowlist_var("PART_NUMBER")
