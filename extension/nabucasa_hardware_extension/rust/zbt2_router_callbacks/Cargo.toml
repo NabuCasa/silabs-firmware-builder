@@ -1,0 +1,7 @@
+[package]
+name = "zbt2_router_callbacks"
+edition.workspace = true
+version.workspace = true
+
+[build-dependencies]
+ohf-bindgen = { path = "../ohf-bindgen" }

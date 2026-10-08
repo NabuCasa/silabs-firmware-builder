@@ -101,8 +101,6 @@ name = "led_effects_base"
 version = "0.1.0"
 dependencies = [
  "critical-section",
- "ohf-bindgen",
- "ohf-config",
  "ohf-sys",
  "ohf_runtime",
  "qma6100p_driver",
@@ -186,7 +184,6 @@ name = "ncp_dlk_policy"
 version = "0.1.0"
 dependencies = [
  "ohf-bindgen",
- "ohf-config",
  "ohf_runtime",
 ]
 
@@ -243,6 +240,7 @@ version = "0.1.0"
 dependencies = [
  "cc",
  "ohf-bindgen",
+ "ohf_runtime",
 ]
 
 [[package]]
@@ -251,7 +249,6 @@ version = "0.1.0"
 dependencies = [
  "critical-section",
  "ohf-bindgen",
- "ohf-config",
 ]
 
 [[package]]
@@ -324,7 +321,6 @@ name = "router_beacon_filter"
 version = "0.1.0"
 dependencies = [
  "ohf-bindgen",
- "ohf-config",
  "ohf_runtime",
 ]
 
@@ -333,7 +329,6 @@ name = "router_eui64_unique"
 version = "0.1.0"
 dependencies = [
  "ohf-bindgen",
- "ohf-config",
  "ohf_runtime",
 ]
 
@@ -342,7 +337,6 @@ name = "router_nvram_reset"
 version = "0.1.0"
 dependencies = [
  "ohf-bindgen",
- "ohf-config",
  "ohf-sys",
  "ohf_runtime",
 ]
@@ -440,7 +434,6 @@ name = "ws2812_driver"
 version = "0.1.0"
 dependencies = [
  "critical-section",
- "ohf-bindgen",
  "ohf-config",
  "ohf-sys",
  "ohf_runtime",
@@ -464,7 +457,6 @@ version = "0.1.0"
 dependencies = [
  "linkme",
  "ohf-bindgen",
- "ohf-config",
  "ohf_runtime",
  "xncp_macros",
 ]
@@ -511,7 +503,6 @@ version = "0.1.0"
 dependencies = [
  "led_effects_base",
  "ohf-bindgen",
- "ohf-config",
  "ohf-sys",
  "ohf_runtime",
  "ws2812_driver",

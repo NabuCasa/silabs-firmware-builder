@@ -18,7 +18,5 @@ metadata:
   nabucasa:
     crate:
       path: rust/xncp_core
-      dependencies:
-        linkme: "0.3"
     weak_overrides:
       - sl_zigbee_af_xncp_incoming_custom_frame_cb

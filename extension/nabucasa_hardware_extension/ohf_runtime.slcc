@@ -17,5 +17,3 @@ metadata:
   nabucasa:
     crate:
       path: rust/ohf_runtime
-      dependencies:
-        critical-section: { version: "1", features: [restore-state-u32] }

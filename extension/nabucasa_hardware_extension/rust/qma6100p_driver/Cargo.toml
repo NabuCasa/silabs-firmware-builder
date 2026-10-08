@@ -1,0 +1,4 @@
+[package]
+name = "qma6100p_driver"
+edition.workspace = true
+version.workspace = true

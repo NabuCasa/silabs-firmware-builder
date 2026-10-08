@@ -1,10 +1,10 @@
 """Generate the cargo workspace of a build from the SLC components' slcc files.
 
-A Rust component is a slcc with `metadata.nabucasa.crate` and a crate directory holding
-`src/`, an optional `build.rs` and `wrapper.h`, but no manifest. Its cargo dependencies
-are the enabled components providing what it `requires`, so SLC resolves the dependency
-graph and this module only writes it down. A crate under `crates/` keeps its manifest and
-is linked into the workspace as-is.
+A Rust component is a slcc with `metadata.nabucasa.crate` pointing at a crate directory.
+The crate's manifest declares everything SLC has no notion of: registry dependencies,
+build dependencies, features. Its dependencies on other components are the enabled
+components providing what the slcc `requires`, so SLC resolves the dependency graph and
+this module adds the result to a copy of the manifest in the build's workspace.
 """
 
 from __future__ import annotations
@@ -36,9 +36,6 @@ RUST_TARGET = "thumbv8m.main-none-eabihf"
 
 AGGREGATOR = "ohf-firmware"
 COMPONENT_CONTRIBUTION = "ohf_rust_component"
-
-# Crates with no component, used by the build scripts
-BUILD_DEPENDENCIES = ["ohf-bindgen", "ohf-config"]
 
 WORKSPACE_MANIFEST = """\
 [workspace]
@@ -72,8 +69,6 @@ class Component:
     requires: list[str]
     crate_path: pathlib.Path
     crate_features: list[str]
-    crate_dependencies: dict[str, typing.Any]
-    proc_macro: bool
     metadata: dict[str, typing.Any]
 
 
@@ -81,27 +76,19 @@ class Component:
 class Crate:
     path: pathlib.Path
     name: str
+    manifest: dict[str, typing.Any]
     components: list[Component]
-    manifest: dict[str, typing.Any] | None
-    proc_macro: bool = False
-    dependencies: dict[str, typing.Any] = dataclasses.field(default_factory=dict)
-    features: set[str] = dataclasses.field(default_factory=set)
     enabled_features: set[str] = dataclasses.field(default_factory=set)
     deps: set[str] = dataclasses.field(default_factory=set)
 
     @property
-    def dirname(self) -> str:
-        # A committed crate's relative path dependencies name its siblings' directories
-        return self.path.name if self.manifest is not None else self.name
+    def proc_macro(self) -> bool:
+        return self.manifest.get("lib", {}).get("proc-macro", False)
 
 
 def toml_value(value: typing.Any) -> str:
     if isinstance(value, str):
         return f'"{value}"'
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    if isinstance(value, int):
-        return str(value)
     if isinstance(value, list):
         return "[" + ", ".join(toml_value(v) for v in value) + "]"
     if isinstance(value, dict):
@@ -143,8 +130,6 @@ def discover(roots: list[pathlib.Path]) -> list[Component]:
                 requires=[r["name"] for r in component.get("requires", [])],
                 crate_path=(slcc.parent / crate["path"]).resolve(),
                 crate_features=crate.get("features", []),
-                crate_dependencies=crate.get("dependencies", {}),
-                proc_macro=crate.get("proc_macro", False),
                 metadata=metadata,
             )
 
@@ -172,39 +157,21 @@ def plan(components: list[Component], enabled: set[str] | None) -> dict[str, Cra
     for component in components:
         path = component.crate_path
         if path not in crates:
-            manifest_path = path / "Cargo.toml"
-            manifest = (
-                tomllib.loads(manifest_path.read_text())
-                if manifest_path.exists()
-                else None
+            manifest = tomllib.loads((path / "Cargo.toml").read_text())
+            crates[path] = Crate(
+                path=path,
+                name=manifest["package"]["name"],
+                manifest=manifest,
+                components=[],
             )
-            crates[path] = Crate(path=path, name="", components=[], manifest=manifest)
         crates[path].components.append(component)
 
     for crate in crates.values():
-        if crate.manifest is not None:
-            crate.name = crate.manifest["package"]["name"]
-        else:
-            # The component without crate features owns the crate and names it
-            owners = [c for c in crate.components if not c.crate_features]
-            assert len(owners) == 1, f"{crate.path} needs exactly one owner: {owners}"
-            crate.name = owners[0].id
-
         for component in crate.components:
-            crate.proc_macro |= component.proc_macro
             crate.enabled_features.update(component.crate_features)
-            for name, spec in component.crate_dependencies.items():
-                assert crate.dependencies.get(name, spec) == spec, (
-                    f"{crate.name} declares {name} twice"
-                )
-                crate.dependencies[name] = spec
-
-    by_path = {path: crate for path, crate in crates.items()}
-    for crate in crates.values():
-        for component in crate.components:
             for name in component.requires:
                 found = {
-                    by_path[p.crate_path].name
+                    crates[p.crate_path].name
                     for p in providers.get(name, [])
                     if p.crate_path != crate.path
                 }
@@ -222,49 +189,27 @@ def plan(components: list[Component], enabled: set[str] | None) -> dict[str, Cra
     return by_name
 
 
-def declared_features(components: list[Component]) -> dict[pathlib.Path, set[str]]:
-    """Every crate feature any component declares, so a generated manifest defines them all."""
-    features: dict[pathlib.Path, set[str]] = {}
-    for component in components:
-        features.setdefault(component.crate_path, set()).update(
-            component.crate_features
-        )
-    return features
-
-
 def link(target: pathlib.Path, link_path: pathlib.Path) -> None:
     link_path.symlink_to(os.path.relpath(target, start=link_path.parent))
 
 
-def member_manifest(crate: Crate, crates: dict[str, Crate], features: set[str]) -> str:
-    lines = [
-        "[package]",
-        f'name = "{crate.name}"',
-        "edition.workspace = true",
-        "version.workspace = true",
-        "",
-    ]
+def member_manifest(crate: Crate) -> str:
+    """The crate's manifest with its `requires` dependencies added."""
+    text = (crate.path / "Cargo.toml").read_text()
+    if not crate.deps:
+        return text
 
-    if crate.proc_macro:
-        lines += ["[lib]", "proc-macro = true", ""]
+    declared = set(crate.manifest.get("dependencies", {}))
+    assert not declared & crate.deps, (
+        f"{crate.name} declares dependencies its slcc already requires: "
+        f"{sorted(declared & crate.deps)}"
+    )
 
-    if features:
-        lines += ["[features]", *(f"{f} = []" for f in sorted(features)), ""]
-
-    lines.append("[dependencies]")
-    for dep in sorted(crate.deps):
-        lines.append(f'{dep} = {{ path = "../{crates[dep].dirname}" }}')
-    for name, spec in sorted(crate.dependencies.items()):
-        lines.append(f"{name} = {toml_value(spec)}")
-    lines.append("")
-
-    if (crate.path / "build.rs").exists():
-        lines.append("[build-dependencies]")
-        for dep in BUILD_DEPENDENCIES:
-            lines.append(f'{dep} = {{ path = "../{dep}" }}')
-        lines.append("")
-
-    return "\n".join(lines)
+    block = "".join(f'{dep} = {{ path = "../{dep}" }}\n' for dep in sorted(crate.deps))
+    header = "[dependencies]\n"
+    if header in text:
+        return text.replace(header, header + block, 1)
+    return text.rstrip("\n") + "\n\n" + header + block
 
 
 def aggregator_manifest(crates: dict[str, Crate]) -> str:
@@ -284,7 +229,7 @@ def aggregator_manifest(crates: dict[str, Crate]) -> str:
     for name, crate in sorted(crates.items()):
         if crate.proc_macro:
             continue
-        spec: dict[str, typing.Any] = {"path": f"../{crate.dirname}"}
+        spec: dict[str, typing.Any] = {"path": f"../{name}"}
         if crate.enabled_features:
             spec["features"] = sorted(crate.enabled_features)
         lines.append(f"{name} = {toml_value(spec)}")
@@ -302,9 +247,7 @@ def aggregator_source(crates: dict[str, Crate]) -> str:
     return "\n".join(lines)
 
 
-def write_workspace(
-    out: pathlib.Path, components: list[Component], crates: dict[str, Crate]
-) -> None:
+def write_workspace(out: pathlib.Path, crates: dict[str, Crate]) -> None:
     """Write the workspace: manifests, with the sources linked from the tree."""
     if out.exists():
         shutil.rmtree(out)
@@ -312,28 +255,23 @@ def write_workspace(
 
     members = []
 
-    # Every committed crate, as the build dependencies and their siblings refer to each
-    # other by relative path
+    # Crates with no component, which the build scripts depend on by relative path
+    component_paths = {crate.path for crate in crates.values()}
     for path in sorted(CRATES_DIR.iterdir()):
-        if (path / "Cargo.toml").exists():
+        if (path / "Cargo.toml").exists() and path not in component_paths:
             link(path, out / path.name)
             members.append(path.name)
 
-    features = declared_features(components)
     for name, crate in sorted(crates.items()):
-        if crate.manifest is not None:
-            assert crate.dirname in members, f"{crate.path} is not under {CRATES_DIR}"
-            continue
-
-        member = out / crate.dirname
+        member = out / name
         member.mkdir()
         for entry in sorted(crate.path.iterdir()):
-            if entry.name not in {".DS_Store", "target"}:
+            if entry.name not in {"Cargo.toml", ".DS_Store", "target"}:
                 link(entry, member / entry.name)
-        (member / "Cargo.toml").write_text(
-            member_manifest(crate, crates, features.get(crate.path, set()))
-        )
-        members.append(crate.dirname)
+        manifest = member_manifest(crate)
+        tomllib.loads(manifest)
+        (member / "Cargo.toml").write_text(manifest)
+        members.append(name)
 
     aggregator = out / AGGREGATOR
     (aggregator / "src").mkdir(parents=True)
@@ -352,9 +290,8 @@ def write_workspace(
 def generate(
     out: pathlib.Path, roots: list[pathlib.Path], enabled: set[str] | None
 ) -> dict[str, Crate]:
-    components = discover(roots)
-    crates = plan(components, enabled)
-    write_workspace(out, components, crates)
+    crates = plan(discover(roots), enabled)
+    write_workspace(out, crates)
     return crates
 
 
@@ -378,20 +315,9 @@ def validate_lockfile(workspace: pathlib.Path) -> None:
 def cargo_fetch(workspace: pathlib.Path, locked: bool, offline: bool = False) -> None:
     """Fetch the workspace's dependencies for every platform, including `core`'s."""
     flags = ["--locked"] * locked + ["--offline"] * offline
+    subprocess.run(["cargo", "fetch", *flags], cwd=workspace, check=True)
     subprocess.run(
-        ["cargo", "fetch", *flags],
-        cwd=workspace,
-        check=True,
-    )
-    subprocess.run(
-        [
-            "cargo",
-            "fetch",
-            *flags,
-            "--target",
-            RUST_TARGET,
-            "-Zbuild-std=core",
-        ],
+        ["cargo", "fetch", *flags, "--target", RUST_TARGET, "-Zbuild-std=core"],
         env={**os.environ, "RUSTC_BOOTSTRAP": "1"},
         cwd=workspace,
         check=True,

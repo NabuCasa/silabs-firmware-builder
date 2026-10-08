@@ -21,5 +21,3 @@ metadata:
   nabucasa:
     crate:
       path: rust
-      dependencies:
-        linkme: "0.3"

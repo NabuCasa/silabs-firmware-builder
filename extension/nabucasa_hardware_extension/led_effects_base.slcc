@@ -31,5 +31,3 @@ metadata:
   nabucasa:
     crate:
       path: rust/led_effects_base
-      dependencies:
-        critical-section: "1"

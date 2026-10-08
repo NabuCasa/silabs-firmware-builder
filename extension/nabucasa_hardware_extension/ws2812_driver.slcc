@@ -29,8 +29,6 @@ metadata:
   nabucasa:
     crate:
       path: rust/ws2812_driver
-      dependencies:
-        critical-section: "1"
     rust_config:
       WS2812_NUM_LEDS: null
       WS2812_EN_PORT: null

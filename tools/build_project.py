@@ -256,7 +256,6 @@ def validate_wrap_declarations(project_path: pathlib.Path) -> dict[str, str | No
 class RustComponents:
     """The project's Rust components and the crates of the enabled ones."""
 
-    components: list[rust_workspace.Component]
     crates: dict[str, rust_workspace.Crate]
 
     @property
@@ -268,14 +267,12 @@ def resolve_rust_components(build: ResolvedBuild) -> RustComponents:
     # Only rendered when a Rust component is enabled
     enabled_file = build.build_dir / "autogen" / "ohf_rust_components.json"
     if not enabled_file.exists():
-        return RustComponents(components=[], crates={})
+        return RustComponents(crates={})
 
     enabled = set(json.loads(enabled_file.read_text()))
     components = rust_workspace.discover([build.base_project_path])
 
-    return RustComponents(
-        components=components, crates=rust_workspace.plan(components, enabled)
-    )
+    return RustComponents(crates=rust_workspace.plan(components, enabled))
 
 
 def weak_override_declarations(rust: RustComponents) -> set[str]:
@@ -1328,7 +1325,7 @@ def build_rust_libraries(
     rust_workspace.cargo_fetch(universe, locked=True, offline=True)
 
     workspace = build.build_dir / "rust"
-    rust_workspace.write_workspace(workspace, rust.components, rust.crates)
+    rust_workspace.write_workspace(workspace, rust.crates)
 
     flags = extract_slc_clang_flags(build)
 

@@ -27,9 +27,6 @@ metadata:
   nabucasa:
     crate:
       path: rust
-      dependencies:
-        critical-section: "1"
-        linkme: "0.3"
     rust_config:
       XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE: 200
       XNCP_MFG_MANUF_NAME: ""
