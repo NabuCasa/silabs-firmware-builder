@@ -15,10 +15,10 @@ sdk_extension:
     vendor: nabucasa
     version: 1.0.0
   - id: xncp
-    vendor: nabucasa
+    vendor: ohf
     version: 1.0.0
   - id: xncp_common
-    vendor: nabucasa
+    vendor: ohf
     version: 1.0.0
   - id: xncp_zbt2
     vendor: nabucasa
@@ -48,10 +48,10 @@ add_components:
   vendor: nabucasa
   package: nabucasa_hardware
 - id: xncp_core
-  vendor: nabucasa
+  vendor: ohf
   package: xncp
 - id: xncp_common_commands
-  vendor: nabucasa
+  vendor: ohf
   package: xncp_common
 - id: xncp_zbt2_commands
   vendor: nabucasa

@@ -11,6 +11,6 @@ template_contribution:
     value: xncp_macros
 
 metadata:
-  nabucasa:
+  rust:
     crate:
       path: rust/xncp_macros

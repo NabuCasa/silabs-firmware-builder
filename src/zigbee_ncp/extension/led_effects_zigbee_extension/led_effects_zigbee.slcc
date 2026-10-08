@@ -23,6 +23,6 @@ template_contribution:
     value: led_effects_zigbee
 
 metadata:
-  nabucasa:
+  rust:
     crate:
       path: rust

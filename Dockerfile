@@ -139,12 +139,12 @@ RUN mkdir -p /opt/zstd-gcc \
         && rm -rf /build; \
     fi
 
-# The toolchain pinned in crates/rust-toolchain.toml
+# The toolchain pinned in rust-toolchain.toml
 FROM trixie-stable AS rust-toolchain
 ARG TARGETARCH
 ENV RUSTUP_HOME=/opt/rust/rustup
 ENV CARGO_HOME=/opt/rust/cargo
-COPY crates/rust-toolchain.toml /tmp/rust/
+COPY rust-toolchain.toml /tmp/rust/
 RUN set -eux \
     && apt-get install -y --no-install-recommends \
         aria2 ca-certificates \

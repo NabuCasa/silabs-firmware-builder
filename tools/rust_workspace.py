@@ -1,6 +1,6 @@
 """Generate the cargo workspace of a build from the SLC components' slcc files.
 
-A Rust component is a slcc with `metadata.nabucasa.crate` pointing at a crate directory.
+A Rust component is a slcc with `metadata.rust.crate` pointing at a crate directory.
 The crate's manifest declares everything SLC has no notion of: registry dependencies,
 build dependencies, features. Its dependencies on other components are the enabled
 components providing what the slcc `requires`, so SLC resolves the dependency graph and
@@ -27,8 +27,9 @@ LOGGER = logging.getLogger(__name__)
 yaml = YAML(typ="safe")
 
 PROJECTS_ROOT = pathlib.Path(__file__).parent.parent
-CRATES_DIR = PROJECTS_ROOT / "crates"
-LOCKFILE = CRATES_DIR / "Cargo.lock"
+# The glue crates, beside the runtime component
+GLUE_DIR = PROJECTS_ROOT / "extension" / "rust_extension" / "rust"
+LOCKFILE = PROJECTS_ROOT / "Cargo.lock"
 UNIVERSE_ROOTS = [PROJECTS_ROOT / "src", PROJECTS_ROOT / "extension"]
 
 # All supported parts are Cortex-M33 with a single-precision FPU, linked hard-float
@@ -69,7 +70,8 @@ class Component:
     requires: list[str]
     crate_path: pathlib.Path
     crate_features: list[str]
-    metadata: dict[str, typing.Any]
+    rust: dict[str, typing.Any]
+    link: dict[str, typing.Any]
 
 
 @dataclasses.dataclass
@@ -109,11 +111,11 @@ def discover(roots: list[pathlib.Path]) -> list[Component]:
                 continue
 
             component = yaml.load(slcc.read_text())
-            metadata = component.get("metadata", {}).get("nabucasa", {})
-            if "crate" not in metadata:
+            metadata = component.get("metadata", {})
+            if "rust" not in metadata:
                 continue
 
-            crate = metadata["crate"]
+            crate = metadata["rust"]["crate"]
             contributions = [
                 c["value"]
                 for c in component.get("template_contribution", [])
@@ -130,7 +132,8 @@ def discover(roots: list[pathlib.Path]) -> list[Component]:
                 requires=[r["name"] for r in component.get("requires", [])],
                 crate_path=(slcc.parent / crate["path"]).resolve(),
                 crate_features=crate.get("features", []),
-                metadata=metadata,
+                rust=metadata["rust"],
+                link=metadata.get("link", {}),
             )
 
     by_id: dict[str, Component] = {}
@@ -257,7 +260,7 @@ def write_workspace(out: pathlib.Path, crates: dict[str, Crate]) -> None:
 
     # Crates with no component, which the build scripts depend on by relative path
     component_paths = {crate.path for crate in crates.values()}
-    for path in sorted(CRATES_DIR.iterdir()):
+    for path in sorted(GLUE_DIR.iterdir()):
         if (path / "Cargo.toml").exists() and path not in component_paths:
             link(path, out / path.name)
             members.append(path.name)
@@ -283,8 +286,6 @@ def write_workspace(out: pathlib.Path, crates: dict[str, Crate]) -> None:
         WORKSPACE_MANIFEST.format(members=", ".join(f'"{m}"' for m in members))
     )
     shutil.copy(LOCKFILE, out / "Cargo.lock")
-    # rustup picks the toolchain from the working directory, so cargo runs from here
-    link(CRATES_DIR / "rust-toolchain.toml", out / "rust-toolchain.toml")
 
 
 def generate(

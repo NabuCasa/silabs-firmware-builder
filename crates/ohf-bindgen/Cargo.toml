@@ -1,7 +1,0 @@
-[package]
-name = "ohf-bindgen"
-edition.workspace = true
-version.workspace = true
-
-[dependencies]
-bindgen = "0.73"

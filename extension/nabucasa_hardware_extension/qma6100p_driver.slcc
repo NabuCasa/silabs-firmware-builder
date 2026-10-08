@@ -24,6 +24,6 @@ template_contribution:
     value: qma6100p_driver
 
 metadata:
-  nabucasa:
+  rust:
     crate:
       path: rust/qma6100p_driver

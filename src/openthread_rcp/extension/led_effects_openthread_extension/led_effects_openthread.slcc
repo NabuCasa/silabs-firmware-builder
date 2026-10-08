@@ -17,6 +17,6 @@ template_contribution:
     value: led_effects_openthread
 
 metadata:
-  nabucasa:
+  rust:
     crate:
       path: rust

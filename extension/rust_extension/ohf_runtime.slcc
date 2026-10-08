@@ -14,6 +14,6 @@ template_contribution:
     value: ohf_runtime
 
 metadata:
-  nabucasa:
+  rust:
     crate:
       path: rust/ohf_runtime

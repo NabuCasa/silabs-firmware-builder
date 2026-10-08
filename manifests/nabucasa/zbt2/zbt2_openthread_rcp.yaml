@@ -19,7 +19,7 @@ sdk_extension:
     vendor: nabucasa
   - id: watchdog
     version: 1.0.0
-    vendor: nabucasa
+    vendor: ohf
 
 sdk_patches:
   - disable_gp_rx_filter.patch
@@ -47,7 +47,7 @@ add_components:
   vendor: nabucasa
   package: nabucasa_hardware
 - id: watchdog
-  vendor: nabucasa
+  vendor: ohf
   package: watchdog
 
 # SLC reads `configuration` during validation, before c_defines are patched

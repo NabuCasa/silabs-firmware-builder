@@ -18,6 +18,6 @@ template_contribution:
     value: xncp_zbt2_commands
 
 metadata:
-  nabucasa:
+  rust:
     crate:
       path: rust

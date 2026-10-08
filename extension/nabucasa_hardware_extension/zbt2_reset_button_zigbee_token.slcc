@@ -16,7 +16,7 @@ template_contribution:
     value: zbt2_reset_button_zigbee_token
 
 metadata:
-  nabucasa:
+  rust:
     crate:
       path: rust/zbt2_reset_button
       features: [zigbee_token_reset]

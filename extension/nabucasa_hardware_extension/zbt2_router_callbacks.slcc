@@ -29,9 +29,10 @@ template_contribution:
       function_name: zbt2_router_stack_status_cb
 
 metadata:
-  nabucasa:
+  rust:
     crate:
       path: rust/zbt2_router_callbacks
+  link:
     weak_overrides:
       - sl_zigbee_af_color_control_server_compute_pwm_from_temp_cb
       - sl_zigbee_af_color_control_server_compute_pwm_from_xy_cb

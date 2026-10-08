@@ -1,6 +1,0 @@
-[toolchain]
-channel = "1.94.1"
-targets = ["thumbv8m.main-none-eabihf"]
-profile = "minimal"
-# -Zbuild-std compiles `core` from source
-components = ["rust-src", "rustfmt"]

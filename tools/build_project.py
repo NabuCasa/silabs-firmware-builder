@@ -233,9 +233,7 @@ def validate_wrap_declarations(project_path: pathlib.Path) -> dict[str, str | No
         # `metadata` is the SDK's free-form slcc key; a bare top-level key is a
         # "junk key" warning and spec 8 refuses to generate with any warning
         definitions = (
-            component.get("metadata", {})
-            .get("nabucasa", {})
-            .get("wrap_definitions", {})
+            component.get("metadata", {}).get("link", {}).get("wrap_definitions", {})
         )
 
         if set(definitions) - gcc:
@@ -280,7 +278,7 @@ def weak_override_declarations(rust: RustComponents) -> set[str]:
     return {
         override
         for component in rust.enabled
-        for override in component.metadata.get("weak_overrides", [])
+        for override in component.link.get("weak_overrides", [])
     }
 
 
@@ -289,7 +287,7 @@ def resolve_rust_config(
     c_defines: dict[str, dict],
     template_env: dict[str, typing.Any],
 ) -> dict[str, dict[str, str]]:
-    """Each enabled crate's `rust_config`, with the manifest's values applied."""
+    """Each enabled crate's `config`, with the manifest's values applied."""
     resolved = {}
 
     for crate in rust.crates.values():
@@ -297,7 +295,7 @@ def resolve_rust_config(
 
         for component in crate.components:
             # A null default must be set by the manifest
-            for name, default in component.metadata.get("rust_config", {}).items():
+            for name, default in component.rust.get("config", {}).items():
                 if name in c_defines:
                     value = str(c_defines[name]["value"])
                 elif default is not None:

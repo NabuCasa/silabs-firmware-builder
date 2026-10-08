@@ -15,18 +15,18 @@ sdk_extension:
     vendor: nabucasa
     version: 1.0.0
   - id: xncp
-    vendor: nabucasa
+    vendor: ohf
     version: 1.0.0
   - id: xncp_common
-    vendor: nabucasa
+    vendor: ohf
     version: 1.0.0
 
 add_components:
 - id: xncp_core
-  vendor: nabucasa
+  vendor: ohf
   package: xncp
 - id: xncp_common_commands
-  vendor: nabucasa
+  vendor: ohf
   package: xncp_common
 
 c_defines:

@@ -3,8 +3,8 @@
 
 use led_effects_base::{set_color, Priority, Rgb};
 use qma6100p_driver::read_acceleration;
-use xncp_core::{ReplyBuf, Status, XncpFeature, XncpResult};
 use xncp_core::xncp_command;
+use xncp_core::{ReplyBuf, Status, XncpFeature, XncpResult};
 
 #[xncp_command(0x0F00, feature = XncpFeature::LedControl)]
 fn handle_set_led_state(req: &[u8], _reply: &mut ReplyBuf) -> XncpResult {

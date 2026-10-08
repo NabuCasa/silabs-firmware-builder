@@ -19,8 +19,9 @@ toolchain_settings:
     value: "-Wl,--wrap=sli_zigbee_stack_get_stored_beacon"
 
 metadata:
-  nabucasa:
+  rust:
     crate:
       path: rust
+  link:
     wrap_definitions:
       sli_zigbee_stack_get_stored_beacon: "libzigbee-pro-stack.a:beacon-handling.c.obj"

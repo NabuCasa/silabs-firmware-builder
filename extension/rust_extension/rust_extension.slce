@@ -1,4 +1,4 @@
-id: xncp_common
+id: rust
 vendor: ohf
 version: "1.0.0"
 component_path:

@@ -1,4 +1,4 @@
-//! The `rust_config` a component's slcc declares, resolved against the manifest.
+//! The `config` a component's slcc declares, resolved against the manifest.
 use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
@@ -26,7 +26,7 @@ impl Config {
         Self {
             values: all
                 .remove(&feature)
-                .unwrap_or_else(|| panic!("{feature} has no rust_config")),
+                .unwrap_or_else(|| panic!("{feature} has no config")),
             read: RefCell::new(BTreeSet::new()),
         }
     }
@@ -57,9 +57,6 @@ impl Drop for Config {
     fn drop(&mut self) {
         let read = self.read.borrow();
         let unread: Vec<_> = self.values.keys().filter(|k| !read.contains(*k)).collect();
-        assert!(
-            unread.is_empty(),
-            "rust_config declares unread keys: {unread:?}"
-        );
+        assert!(unread.is_empty(), "config declares unread keys: {unread:?}");
     }
 }

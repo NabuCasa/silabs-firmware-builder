@@ -28,6 +28,6 @@ template_contribution:
     value: led_effects_base
 
 metadata:
-  nabucasa:
+  rust:
     crate:
       path: rust/led_effects_base

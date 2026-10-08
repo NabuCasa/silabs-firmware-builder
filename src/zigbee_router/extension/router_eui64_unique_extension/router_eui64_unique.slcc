@@ -19,8 +19,9 @@ toolchain_settings:
     value: "-Wl,--wrap=sl_token_manager_get_data"
 
 metadata:
-  nabucasa:
+  rust:
     crate:
       path: rust
+  link:
     wrap_definitions:
       sl_token_manager_get_data: "sl_token_manager_api.c"

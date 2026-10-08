@@ -24,10 +24,10 @@ template_contribution:
       function_name: nc_zigbee_override_append_source_route
 
 metadata:
-  nabucasa:
+  rust:
     crate:
       path: rust
-    rust_config:
+    config:
       XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE: 200
       XNCP_MFG_MANUF_NAME: ""
       XNCP_MFG_BOARD_NAME: ""

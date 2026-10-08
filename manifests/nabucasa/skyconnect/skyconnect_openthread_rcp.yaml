@@ -18,13 +18,13 @@ sdk_patches:
 sdk_extension:
   - id: watchdog
     version: 1.0.0
-    vendor: nabucasa
+    vendor: ohf
 
 add_components:
 - id: iostream_usart
   instance: [vcom]
 - id: watchdog
-  vendor: nabucasa
+  vendor: ohf
   package: watchdog
 
 c_defines:

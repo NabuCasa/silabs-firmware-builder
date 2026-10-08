@@ -90,3 +90,8 @@ filter:
     value: ["RCP"]
   - name: "Project Difficulty"
     value: ["Advanced"]
+
+sdk_extension:
+  - id: rust
+    vendor: ohf
+    version: 1.0.0

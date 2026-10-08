@@ -14,7 +14,7 @@ template_contribution:
     value: ohf_sys_tokens
 
 metadata:
-  nabucasa:
+  rust:
     crate:
-      path: ../../crates/ohf-sys
+      path: rust/ohf-sys
       features: [tokens]

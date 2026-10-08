@@ -8,9 +8,9 @@ repos:
 
   - repo: local
     hooks:
-      - id: cargo-fmt
-        name: Cargo fmt
-        entry: sh -c 'cd crates && cargo fmt --all'
+      # The cargo workspace is generated per build, so format the files directly
+      - id: rustfmt
+        name: rustfmt
+        entry: rustfmt --edition 2021
         language: system
         types: [rust]
-        pass_filenames: false

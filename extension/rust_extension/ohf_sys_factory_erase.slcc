@@ -15,7 +15,7 @@ template_contribution:
     value: ohf_sys_factory_erase
 
 metadata:
-  nabucasa:
+  rust:
     crate:
-      path: ../../crates/ohf-sys
+      path: rust/ohf-sys
       features: [factory_erase]

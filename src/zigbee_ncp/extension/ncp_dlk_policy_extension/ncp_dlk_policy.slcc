@@ -24,8 +24,9 @@ template_contribution:
     value: ncp_dlk_policy
 
 metadata:
-  nabucasa:
+  rust:
     crate:
       path: rust
+  link:
     weak_overrides:
       - sl_zigbee_zdo_dlk_select_negotiation_parameters_callback

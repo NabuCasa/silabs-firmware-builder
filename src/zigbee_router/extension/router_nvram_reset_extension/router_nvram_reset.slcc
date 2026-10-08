@@ -23,6 +23,6 @@ template_contribution:
       function_name: router_nvram_reset_init
 
 metadata:
-  nabucasa:
+  rust:
     crate:
       path: rust

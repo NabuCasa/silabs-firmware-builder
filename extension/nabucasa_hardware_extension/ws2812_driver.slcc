@@ -26,10 +26,10 @@ template_contribution:
     value: ws2812_driver
 
 metadata:
-  nabucasa:
+  rust:
     crate:
       path: rust/ws2812_driver
-    rust_config:
+    config:
       WS2812_NUM_LEDS: null
       WS2812_EN_PORT: null
       WS2812_EN_PIN: null

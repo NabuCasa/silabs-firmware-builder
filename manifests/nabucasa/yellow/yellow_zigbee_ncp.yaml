@@ -15,10 +15,10 @@ sdk_extension:
     vendor: nabucasa
     version: 1.0.0
   - id: xncp
-    vendor: nabucasa
+    vendor: ohf
     version: 1.0.0
   - id: xncp_common
-    vendor: nabucasa
+    vendor: ohf
     version: 1.0.0
   - id: board_activity
     vendor: nabucasa
@@ -31,10 +31,10 @@ add_components:
   vendor: nabucasa
   package: board_activity
 - id: xncp_core
-  vendor: nabucasa
+  vendor: ohf
   package: xncp
 - id: xncp_common_commands
-  vendor: nabucasa
+  vendor: ohf
   package: xncp_common
 
 # SLC validates clock settings before c_defines are patched, use `configuration`

@@ -18,7 +18,7 @@ sdk_patches:
 sdk_extension:
   - id: watchdog
     version: 1.0.0
-    vendor: nabucasa
+    vendor: ohf
 
 add_components:
 - id: iostream_usart
@@ -26,7 +26,7 @@ add_components:
 - id: simple_led
   instance: [board_activity]
 - id: watchdog
-  vendor: nabucasa
+  vendor: ohf
   package: watchdog
 
 # SLC validates clock settings before c_defines are patched, use `configuration`
