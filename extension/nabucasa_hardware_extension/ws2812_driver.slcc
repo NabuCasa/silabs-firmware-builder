@@ -30,6 +30,6 @@ metadata:
     crate:
       path: rust/ws2812_driver
     config:
-      WS2812_NUM_LEDS: null
-      WS2812_EN_PORT: null
-      WS2812_EN_PIN: null
+      WS2812_NUM_LEDS: { type: usize }
+      WS2812_EN_PORT: { type: u32 }
+      WS2812_EN_PIN: { type: u32 }

@@ -86,7 +86,7 @@ def create_gbl(
             override = int(
                 rust_config["xncp_common_commands"][
                     "XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE"
-                ],
+                ]["value"],
                 0,
             )
             if override != 0xFF:

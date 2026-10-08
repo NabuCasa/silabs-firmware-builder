@@ -4,10 +4,10 @@ package: custom
 description: SDK bindings shared by the Rust components (rust/ohf-sys)
 category: Platform|Rust
 quality: production
+source:
+  - path: src/ohf_sys_shims.c
 provides:
   - name: ohf_sys
-requires:
-  - name: ohf_runtime
 template_contribution:
   - name: ohf_rust_component
     value: ohf_sys

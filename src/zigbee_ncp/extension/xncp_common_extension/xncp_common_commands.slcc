@@ -28,14 +28,14 @@ metadata:
     crate:
       path: rust
     config:
-      XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE: 200
-      XNCP_MFG_MANUF_NAME: ""
-      XNCP_MFG_BOARD_NAME: ""
-      XNCP_BUILD_STRING: ""
+      XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE: { type: usize, default: 200 }
+      XNCP_MFG_MANUF_NAME: { type: bytes, default: "" }
+      XNCP_MFG_BOARD_NAME: { type: bytes, default: "" }
+      XNCP_BUILD_STRING: { type: bytes, default: "" }
       # Override only if external flow control differs from the UART's (e.g. ZBT-2)
-      XNCP_FLOW_CONTROL_TYPE: OHF_VCOM_FLOW_CONTROL_TYPE
+      XNCP_FLOW_CONTROL_TYPE: { type: u32, default: OHF_VCOM_FLOW_CONTROL_TYPE }
       # The EZSP version's special number, 0xFF keeps the stack's
-      XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE: 0xFF
+      XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE: { type: u8, default: 0xFF }
       # For countries without an explicit entry
-      XNCP_DEFAULT_RECOMMENDED_TX_POWER_DBM: 8
-      XNCP_DEFAULT_MAX_TX_POWER_DBM: 8
+      XNCP_DEFAULT_RECOMMENDED_TX_POWER_DBM: { type: i8, default: 8 }
+      XNCP_DEFAULT_MAX_TX_POWER_DBM: { type: i8, default: 8 }

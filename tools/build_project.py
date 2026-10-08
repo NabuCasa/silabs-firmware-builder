@@ -294,12 +294,12 @@ def resolve_rust_config(
         config = {}
 
         for component in crate.components:
-            # A null default must be set by the manifest
-            for name, default in component.rust.get("config", {}).items():
+            # A key without a default must be set by the manifest
+            for name, spec in component.rust.get("config", {}).items():
                 if name in c_defines:
                     value = str(c_defines[name]["value"])
-                elif default is not None:
-                    value = str(default)
+                elif "default" in spec:
+                    value = str(spec["default"])
                 else:
                     LOGGER.error("%s requires %s to be set", component.id, name)
                     sys.exit(1)
@@ -307,7 +307,7 @@ def resolve_rust_config(
                 if value.startswith("template:"):
                     value = value.replace("template:", "", 1).format(**template_env)
 
-                config[name] = value
+                config[name] = {"type": spec["type"], "value": value}
 
         if config:
             resolved[crate.name] = config
@@ -1320,7 +1320,14 @@ def build_rust_libraries(
     # change without a lockfile update before the build's pruned lockfile hides it.
     universe = build.build_dir / "rust-universe"
     rust_workspace.generate(universe, rust_workspace.UNIVERSE_ROOTS, enabled=None)
-    rust_workspace.cargo_fetch(universe, locked=True, offline=True)
+    try:
+        rust_workspace.cargo_fetch(universe, locked=True, offline=True)
+    except subprocess.CalledProcessError:
+        LOGGER.error(
+            "%s does not match the components: run `python -m tools.rust_workspace lock`",
+            rust_workspace.LOCKFILE,
+        )
+        raise
 
     workspace = build.build_dir / "rust"
     rust_workspace.write_workspace(workspace, rust.crates)
@@ -1329,20 +1336,20 @@ def build_rust_libraries(
 
     config_path = build.build_dir / "rust_build.json"
     config_path.write_text(json.dumps(rust_config, indent=2))
-    target_dir = (build.build_dir / "cargo").resolve()
+
+    # Shared across builds: the host dependencies and `core` are the same for every build,
+    # and bindgen reports the generated project's headers to cargo, so the component
+    # crates rebuild exactly when the project they bind changes
+    target_dir = (PROJECTS_ROOT / "build" / "cargo").resolve()
 
     inc_args = " ".join(f"-I{d}" for d in flags["includes"])
     define_args = " ".join(f"-D{d}" for d in flags["defines"])
     bins = rust_toolchain_binaries(build)
     abi_args = " ".join(flags["abi"])
-    shim_arch = " ".join([f"--target={RUST_TARGET}", *flags["arch"], *flags["abi"]])
 
     env = {
         **os.environ,
         "OHF_BINDGEN_FLAGS": f"--target={RUST_TARGET} {abi_args} -isystem{bins['sysroot']} {inc_args} {define_args}",
-        "OHF_SHIM_CC": str(bins["clang"]),
-        # Joins the LTO link like the C sources
-        "OHF_SHIM_CFLAGS": f"{shim_arch} -flto -fsplit-lto-unit {inc_args} {define_args}",
         "OHF_RUST_CONFIG": str(config_path.resolve()),
         # Bitcode for the firmware's LTO link, so rustc's LLVM must not be newer than LLD.
         # SLC compiles with -fwhole-program-vtables, which needs every LTO unit split.
@@ -1360,7 +1367,6 @@ def build_rust_libraries(
             "--offline",
             "--target",
             RUST_TARGET,
-            # Bindings depend on the build's config headers, which cargo doesn't track
             "--target-dir",
             target_dir,
             # `core` as bitcode too
