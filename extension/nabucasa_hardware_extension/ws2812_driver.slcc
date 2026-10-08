@@ -22,7 +22,7 @@ template_contribution:
       event: driver_init
       include: ws2812.h
       handler: ws2812_led_driver_init
-  - name: ohf_rust_component
+  - name: component_catalog
     value: ws2812_driver
 
 metadata:

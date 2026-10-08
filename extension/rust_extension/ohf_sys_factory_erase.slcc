@@ -11,7 +11,7 @@ requires:
   - name: nvm3_default
   - name: psa_crypto
 template_contribution:
-  - name: ohf_rust_component
+  - name: component_catalog
     value: ohf_sys_factory_erase
 
 metadata:

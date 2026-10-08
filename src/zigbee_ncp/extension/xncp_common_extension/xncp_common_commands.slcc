@@ -15,7 +15,7 @@ toolchain_settings:
   - option: llvm_linker_option
     value: "-Wl,--wrap=sli_zigbee_am_multicast_member"
 template_contribution:
-  - name: ohf_rust_component
+  - name: component_catalog
     value: xncp_common_commands
   - name: zigbee_stack_callback
     priority: -9999

@@ -17,7 +17,7 @@ requires:
   - name: zigbee_identify
   - name: zigbee_on_off
 template_contribution:
-  - name: ohf_rust_component
+  - name: component_catalog
     value: zbt2_router_callbacks
   - name: zigbee_af_callback
     value:

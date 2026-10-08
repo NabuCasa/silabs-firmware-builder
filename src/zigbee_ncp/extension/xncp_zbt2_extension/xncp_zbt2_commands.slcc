@@ -14,7 +14,7 @@ requires:
   - name: qma6100p_driver
   - name: led_effects
 template_contribution:
-  - name: ohf_rust_component
+  - name: component_catalog
     value: xncp_zbt2_commands
 
 metadata:

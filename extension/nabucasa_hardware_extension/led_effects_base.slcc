@@ -24,7 +24,7 @@ template_contribution:
       event: service_process_action
       include: led_manager.h
       handler: led_manager_process_action
-  - name: ohf_rust_component
+  - name: component_catalog
     value: led_effects_base
 
 metadata:

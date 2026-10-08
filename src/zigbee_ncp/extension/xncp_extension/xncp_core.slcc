@@ -11,7 +11,7 @@ requires:
   - name: ohf_runtime
   - name: zigbee_xncp
 template_contribution:
-  - name: ohf_rust_component
+  - name: component_catalog
     value: xncp_core
 
 metadata:

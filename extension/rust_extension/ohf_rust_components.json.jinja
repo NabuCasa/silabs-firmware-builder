@@ -1,2 +1,0 @@
-{#- `tojson` can't serialize the Java ArrayList that SLC passes in -#}
-[{% for f in ohf_rust_component | default([]) %}"{{ f }}"{% if not loop.last %}, {% endif %}{% endfor %}]

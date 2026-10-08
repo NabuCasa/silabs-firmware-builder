@@ -251,46 +251,42 @@ def validate_wrap_declarations(project_path: pathlib.Path) -> dict[str, str | No
 
 
 @dataclasses.dataclass
-class RustComponents:
-    """The project's Rust components and the crates of the enabled ones."""
+class ProjectComponents:
+    """Our components the generated project enabled, and the crates of the Rust ones."""
 
+    enabled: list[rust_workspace.Component]
     crates: dict[str, rust_workspace.Crate]
 
-    @property
-    def enabled(self) -> list[rust_workspace.Component]:
-        return [c for crate in self.crates.values() for c in crate.components]
 
-
-def resolve_rust_components(build: ResolvedBuild) -> RustComponents:
-    # Only rendered when a Rust component is enabled
-    enabled_file = build.build_dir / "autogen" / "ohf_rust_components.json"
-    if not enabled_file.exists():
-        return RustComponents(crates={})
-
-    enabled = set(json.loads(enabled_file.read_text()))
+def resolve_project_components(build: ResolvedBuild) -> ProjectComponents:
     components = rust_workspace.discover([build.base_project_path])
+    enabled = rust_workspace.enabled_ids(
+        components, build.build_dir / "autogen" / "sl_component_catalog.h"
+    )
+    return ProjectComponents(
+        enabled=[c for c in components if c.id in enabled],
+        crates=rust_workspace.plan(components, enabled),
+    )
 
-    return RustComponents(crates=rust_workspace.plan(components, enabled))
 
-
-def weak_override_declarations(rust: RustComponents) -> set[str]:
-    """The SDK weak definitions that the enabled Rust components declare they override."""
+def weak_override_declarations(project: ProjectComponents) -> set[str]:
+    """The SDK weak definitions the enabled components declare their objects override."""
     return {
         override
-        for component in rust.enabled
+        for component in project.enabled
         for override in component.link.get("weak_overrides", [])
     }
 
 
 def resolve_rust_config(
-    rust: RustComponents,
+    project: ProjectComponents,
     c_defines: dict[str, dict],
     template_env: dict[str, typing.Any],
 ) -> dict[str, dict[str, str]]:
     """Each enabled crate's `config`, with the manifest's values applied."""
     resolved = {}
 
-    for crate in rust.crates.values():
+    for crate in project.crates.values():
         config = {}
 
         for component in crate.components:
@@ -315,14 +311,25 @@ def resolve_rust_config(
     return resolved
 
 
+def is_component_source(build: ResolvedBuild, source: pathlib.Path) -> bool:
+    """A source SLC copied from one of the project's extensions, not from the SDK or its
+    own templates, and not one of the project's application sources."""
+    if not source.is_relative_to(build.build_dir):
+        return False
+    parts = source.relative_to(build.build_dir).parts
+    return len(parts) > 1 and any((build.build_dir / parts[0]).glob("*.slce"))
+
+
 def validate_weak_overrides(
     build: ResolvedBuild, rust_objects: list[pathlib.Path], declared: set[str]
 ) -> None:
-    """Check that the Rust objects override exactly the declared weak definitions."""
-    if not rust_objects:
-        return
+    """Check that the components' objects override exactly the declared weak definitions.
 
-    nm = rust_toolchain_binaries(build)["nm"]
+    The application's own sources are the SDK's intended place for overrides, so they are
+    not checked."""
+    nm = build.toolchain_path / (
+        "bin/llvm-nm" if build.toolchain is Toolchain.LLVM else "bin/arm-none-eabi-nm"
+    )
     # Ninja deletes the link's response file once it succeeds, so ask it for the inputs
     query = subprocess.run(
         ["ninja", "-t", "query", f"{build.base_project_name}.out"],
@@ -340,6 +347,21 @@ def validate_weak_overrides(
         and (path := (build.cmake_dir / item).resolve()) not in rust_objects
     ]
 
+    # CMake names each object after its source's absolute path, under the target's dir
+    def source_of(obj: pathlib.Path) -> pathlib.Path:
+        parts = obj.parts
+        return pathlib.Path("/", *parts[parts.index("slc.dir") + 1 :]).with_suffix("")
+
+    component_objects = [
+        path
+        for path in inputs
+        if path.suffix == ".obj" and is_component_source(build, source_of(path))
+    ]
+    inputs = [path for path in inputs if path not in component_objects]
+    objects = rust_objects + component_objects
+    if not objects:
+        return
+
     def defined(paths: list[pathlib.Path], kinds: str) -> set[str]:
         output = subprocess.run(
             [nm, "--defined-only", "--format=posix", *paths],
@@ -353,15 +375,15 @@ def validate_weak_overrides(
             if len(fields) >= 2 and fields[1] in kinds
         }
 
-    rust_symbols = defined(rust_objects, "TDBR")
-    overrides = rust_symbols & defined(inputs, "WV")
+    overrides = defined(objects, "TDBR") & defined(inputs, "WV")
 
-    LOGGER.info("Rust overrides weak definitions: %s", sorted(overrides))
+    LOGGER.info("Components override weak definitions: %s", sorted(overrides))
 
     if overrides != declared:
         raise RuntimeError(
-            f"Rust overrides weak definitions it should not: {sorted(overrides - declared)},"
-            f" declared but not overridden: {sorted(declared - overrides)}"
+            f"Components override weak definitions they should not: "
+            f"{sorted(overrides - declared)}, declared but not overridden: "
+            f"{sorted(declared - overrides)}"
         )
 
 
@@ -1273,7 +1295,6 @@ def rust_toolchain_binaries(build: ResolvedBuild) -> dict[str, typing.Any]:
     tp = build.toolchain_path
     return {
         "ar": tp / "bin/llvm-ar",
-        "nm": tp / "bin/llvm-nm",
         "clang": tp / "bin/clang",
         "sysroot": tp / "lib/clang-runtimes/arm-none-eabi/include",
     }
@@ -1310,10 +1331,12 @@ def extract_slc_clang_flags(build: ResolvedBuild) -> dict[str, typing.Any]:
 
 
 def build_rust_libraries(
-    build: ResolvedBuild, rust: RustComponents, rust_config: dict[str, dict[str, str]]
+    build: ResolvedBuild,
+    project: ProjectComponents,
+    rust_config: dict[str, dict[str, str]],
 ) -> list[pathlib.Path]:
     """Build the Rust components and return the objects linked into the firmware."""
-    if not rust.crates:
+    if not project.crates:
         return []
 
     # The committed lockfile covers every component. `--locked` catches a dependency
@@ -1330,7 +1353,7 @@ def build_rust_libraries(
         raise
 
     workspace = build.build_dir / "rust"
-    rust_workspace.write_workspace(workspace, rust.crates)
+    rust_workspace.write_workspace(workspace, project.crates)
 
     flags = extract_slc_clang_flags(build)
 
@@ -1483,8 +1506,8 @@ def main() -> None:
     apply_sdk_patches(build)
     validate_sdk_extensions(build, base_project)
     declared_wraps = validate_wrap_declarations(build.base_project_path)
-    rust = resolve_rust_components(build)
-    declared_overrides = weak_override_declarations(rust)
+    project = resolve_project_components(build)
+    declared_overrides = weak_override_declarations(project)
 
     # Template variables for C defines and the output filename
     template_env = {
@@ -1506,7 +1529,7 @@ def main() -> None:
         template_env=template_env,
     )
 
-    rust_config = resolve_rust_config(rust, c_defines, template_env)
+    rust_config = resolve_rust_config(project, c_defines, template_env)
 
     unused_defines = (
         set(c_defines)
@@ -1530,7 +1553,7 @@ def main() -> None:
         if declared_wraps[target] is not None
     ]
     exclude_definitions_from_lto(build, definitions)
-    rust_objects = build_rust_libraries(build, rust, rust_config)
+    rust_objects = build_rust_libraries(build, project, rust_config)
     cmake_configure_and_build(build, assemble_build_flags(build, c_flag_defines))
     validate_weak_overrides(build, rust_objects, declared_overrides)
 

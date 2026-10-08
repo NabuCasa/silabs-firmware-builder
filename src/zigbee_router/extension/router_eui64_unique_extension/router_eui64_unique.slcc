@@ -10,7 +10,7 @@ requires:
   - name: ohf_runtime
   - name: token_manager
 template_contribution:
-  - name: ohf_rust_component
+  - name: component_catalog
     value: router_eui64_unique
 toolchain_settings:
   - option: gcc_linker_option

@@ -12,7 +12,7 @@ provides:
 requires:
   - name: zbt2_reset_button
 template_contribution:
-  - name: ohf_rust_component
+  - name: component_catalog
     value: zbt2_reset_button_zigbee_token
 
 metadata:

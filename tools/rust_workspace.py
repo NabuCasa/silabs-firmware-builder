@@ -5,6 +5,10 @@ The crate's manifest declares everything SLC has no notion of: registry dependen
 build dependencies, features. Its dependencies on other components are the enabled
 components providing what the slcc `requires`, so SLC resolves the dependency graph and
 this module adds the result to a copy of the manifest in the build's workspace.
+
+A component with `metadata.link` declares what its objects do at link time, whether its
+sources are Rust or C. Both kinds contribute to SLC's component catalog, which is how
+the build tool learns which of them a project enabled.
 """
 
 from __future__ import annotations
@@ -14,6 +18,7 @@ import dataclasses
 import logging
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -36,7 +41,7 @@ UNIVERSE_ROOTS = [PROJECTS_ROOT / "src", PROJECTS_ROOT / "extension"]
 RUST_TARGET = "thumbv8m.main-none-eabihf"
 
 AGGREGATOR = "ohf-firmware"
-COMPONENT_CONTRIBUTION = "ohf_rust_component"
+CATALOG_CONTRIBUTION = "component_catalog"
 
 WORKSPACE_MANIFEST = """\
 [workspace]
@@ -68,7 +73,7 @@ class Component:
     slcc: pathlib.Path
     provides: set[str]
     requires: list[str]
-    crate_path: pathlib.Path
+    crate_path: pathlib.Path | None
     crate_features: list[str]
     rust: dict[str, typing.Any]
     link: dict[str, typing.Any]
@@ -101,7 +106,7 @@ def toml_value(value: typing.Any) -> str:
 
 
 def discover(roots: list[pathlib.Path]) -> list[Component]:
-    """Every Rust component under the roots, through symlinked extensions."""
+    """Every component of ours under the roots, through symlinked extensions."""
     components: dict[pathlib.Path, Component] = {}
 
     for root in roots:
@@ -112,27 +117,29 @@ def discover(roots: list[pathlib.Path]) -> list[Component]:
 
             component = yaml.load(slcc.read_text())
             metadata = component.get("metadata", {})
-            if "rust" not in metadata:
+            if "rust" not in metadata and "link" not in metadata:
                 continue
 
-            crate = metadata["rust"]["crate"]
             contributions = [
                 c["value"]
                 for c in component.get("template_contribution", [])
-                if c["name"] == COMPONENT_CONTRIBUTION
+                if c["name"] == CATALOG_CONTRIBUTION
             ]
             assert contributions == [component["id"]], (
-                f"{slcc} must contribute `{COMPONENT_CONTRIBUTION}: {component['id']}`"
+                f"{slcc} must contribute `{CATALOG_CONTRIBUTION}: {component['id']}`"
             )
 
+            rust = metadata.get("rust", {})
             components[slcc] = Component(
                 id=component["id"],
                 slcc=slcc,
                 provides={p["name"] for p in component.get("provides", [])},
                 requires=[r["name"] for r in component.get("requires", [])],
-                crate_path=(slcc.parent / crate["path"]).resolve(),
-                crate_features=crate.get("features", []),
-                rust=metadata["rust"],
+                crate_path=(
+                    (slcc.parent / rust["crate"]["path"]).resolve() if rust else None
+                ),
+                crate_features=rust["crate"].get("features", []) if rust else [],
+                rust=rust,
                 link=metadata.get("link", {}),
             )
 
@@ -144,12 +151,19 @@ def discover(roots: list[pathlib.Path]) -> list[Component]:
     return list(by_id.values())
 
 
+def enabled_ids(components: list[Component], catalog: pathlib.Path) -> set[str]:
+    """The components the generated project enabled, by SLC's component catalog."""
+    present = set(re.findall(r"SL_CATALOG_(\w+)_PRESENT", catalog.read_text()))
+    return {c.id for c in components if c.id.upper() in present}
+
+
 def plan(components: list[Component], enabled: set[str] | None) -> dict[str, Crate]:
     """The crates of the enabled components, or of every component when `enabled` is None."""
     if enabled is not None:
         unknown = enabled - {c.id for c in components}
-        assert not unknown, f"Enabled components without a crate: {sorted(unknown)}"
+        assert not unknown, f"Enabled components that are not ours: {sorted(unknown)}"
         components = [c for c in components if c.id in enabled]
+    components = [c for c in components if c.crate_path is not None]
 
     providers: dict[str, list[Component]] = {}
     for component in components:

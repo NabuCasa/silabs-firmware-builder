@@ -15,7 +15,7 @@ requires:
   - name: token_manager
   - name: zigbee_pro_stack
 template_contribution:
-  - name: ohf_rust_component
+  - name: component_catalog
     value: router_nvram_reset
   - name: zigbee_af_callback
     value:

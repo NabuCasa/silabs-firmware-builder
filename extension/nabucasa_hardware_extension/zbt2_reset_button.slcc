@@ -13,7 +13,7 @@ requires:
   - name: simple_button
   - name: sleeptimer
 template_contribution:
-  - name: ohf_rust_component
+  - name: component_catalog
     value: zbt2_reset_button
 
 metadata:

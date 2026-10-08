@@ -20,7 +20,7 @@ template_contribution:
       event: stack_init
       include: qma6100p.h
       handler: qma6100p_system_init
-  - name: ohf_rust_component
+  - name: component_catalog
     value: qma6100p_driver
 
 metadata:

@@ -19,7 +19,7 @@ template_contribution:
     value:
       callback_type: stack_status
       function_name: led_effects_stack_status_callback
-  - name: ohf_rust_component
+  - name: component_catalog
     value: led_effects_zigbee
 
 metadata:

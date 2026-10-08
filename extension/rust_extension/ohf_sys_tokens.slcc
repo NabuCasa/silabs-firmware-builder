@@ -10,7 +10,7 @@ requires:
   - name: ohf_sys
   - name: zigbee_pro_stack
 template_contribution:
-  - name: ohf_rust_component
+  - name: component_catalog
     value: ohf_sys_tokens
 
 metadata:

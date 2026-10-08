@@ -20,7 +20,7 @@ requires:
   - name: zigbee_r23_support
   - name: zigbee_dynamic_commissioning
 template_contribution:
-  - name: ohf_rust_component
+  - name: component_catalog
     value: ncp_dlk_policy
 
 metadata:

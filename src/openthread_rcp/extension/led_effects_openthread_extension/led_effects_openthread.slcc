@@ -13,7 +13,7 @@ requires:
 template_contribution:
   - name: ot_init
     value: led_effects_system_init
-  - name: ohf_rust_component
+  - name: component_catalog
     value: led_effects_openthread
 
 metadata:

@@ -6,11 +6,8 @@ category: Platform|Rust
 quality: production
 provides:
   - name: ohf_runtime
-template_file:
-  # The enabled Rust components
-  - path: ohf_rust_components.json.jinja
 template_contribution:
-  - name: ohf_rust_component
+  - name: component_catalog
     value: ohf_runtime
 
 metadata:

@@ -7,7 +7,7 @@ quality: production
 provides:
   - name: xncp_macros
 template_contribution:
-  - name: ohf_rust_component
+  - name: component_catalog
     value: xncp_macros
 
 metadata:
