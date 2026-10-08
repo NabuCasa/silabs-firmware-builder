@@ -23,16 +23,14 @@ from datetime import UTC, datetime
 from elftools.elf.elffile import ELFFile
 from ruamel.yaml import YAML
 
+from . import rust_workspace
 from .create_gbl import create_gbl
 
 LOGGER = logging.getLogger(__name__)
 
 PROJECTS_ROOT = pathlib.Path(__file__).parent.parent
-RUST_DIR = PROJECTS_ROOT / "crates"
 RUST_LIBRARY = "libohf_firmware.a"
-
-# All supported parts are Cortex-M33 with a single-precision FPU, linked hard-float
-RUST_TARGET = "thumbv8m.main-none-eabihf"
+RUST_TARGET = rust_workspace.RUST_TARGET
 
 yaml = YAML(typ="safe")
 
@@ -254,73 +252,70 @@ def validate_wrap_declarations(project_path: pathlib.Path) -> dict[str, str | No
     return declarations
 
 
-def enabled_rust_components(build: ResolvedBuild) -> dict[str, dict[str, typing.Any]]:
-    """The `metadata.nabucasa` of each enabled Rust component, by its cargo feature."""
+@dataclasses.dataclass
+class RustComponents:
+    """The project's Rust components and the crates of the enabled ones."""
 
+    components: list[rust_workspace.Component]
+    crates: dict[str, rust_workspace.Crate]
+
+    @property
+    def enabled(self) -> list[rust_workspace.Component]:
+        return [c for crate in self.crates.values() for c in crate.components]
+
+
+def resolve_rust_components(build: ResolvedBuild) -> RustComponents:
     # Only rendered when a Rust component is enabled
-    features_file = build.build_dir / "autogen" / "ohf_rust_features.json"
-    if not features_file.exists():
-        return {}
+    enabled_file = build.build_dir / "autogen" / "ohf_rust_components.json"
+    if not enabled_file.exists():
+        return RustComponents(components=[], crates={})
 
-    features = set(json.loads(features_file.read_text()))
-    components = {}
+    enabled = set(json.loads(enabled_file.read_text()))
+    components = rust_workspace.discover([build.base_project_path])
 
-    # The project has every slcc, enabled or not, so scope them by the enabled features
-    for slcc in sorted(build.base_project_path.rglob("*.slcc", recurse_symlinks=True)):
-        component = yaml.load(slcc.read_text())
-        rust_features = [
-            contribution["value"]
-            for contribution in component.get("template_contribution", [])
-            if contribution["name"] == "ohf_rust_feature"
-        ]
-        if not rust_features:
-            continue
-
-        (feature,) = rust_features
-        if feature in features:
-            assert feature not in components, f"{feature} is enabled by two components"
-            components[feature] = component.get("metadata", {}).get("nabucasa", {})
-
-    return components
+    return RustComponents(
+        components=components, crates=rust_workspace.plan(components, enabled)
+    )
 
 
-def weak_override_declarations(build: ResolvedBuild) -> set[str]:
+def weak_override_declarations(rust: RustComponents) -> set[str]:
     """The SDK weak definitions that the enabled Rust components declare they override."""
     return {
         override
-        for metadata in enabled_rust_components(build).values()
-        for override in metadata.get("weak_overrides", [])
+        for component in rust.enabled
+        for override in component.metadata.get("weak_overrides", [])
     }
 
 
 def resolve_rust_config(
-    build: ResolvedBuild,
+    rust: RustComponents,
     c_defines: dict[str, dict],
     template_env: dict[str, typing.Any],
 ) -> dict[str, dict[str, str]]:
-    """Each enabled Rust component's `rust_config`, with the manifest's values applied."""
+    """Each enabled crate's `rust_config`, with the manifest's values applied."""
     resolved = {}
 
-    for feature, metadata in enabled_rust_components(build).items():
+    for crate in rust.crates.values():
         config = {}
 
-        # A null default must be set by the manifest
-        for name, default in metadata.get("rust_config", {}).items():
-            if name in c_defines:
-                value = str(c_defines[name]["value"])
-            elif default is not None:
-                value = str(default)
-            else:
-                LOGGER.error("%s requires %s to be set", feature, name)
-                sys.exit(1)
+        for component in crate.components:
+            # A null default must be set by the manifest
+            for name, default in component.metadata.get("rust_config", {}).items():
+                if name in c_defines:
+                    value = str(c_defines[name]["value"])
+                elif default is not None:
+                    value = str(default)
+                else:
+                    LOGGER.error("%s requires %s to be set", component.id, name)
+                    sys.exit(1)
 
-            if value.startswith("template:"):
-                value = value.replace("template:", "", 1).format(**template_env)
+                if value.startswith("template:"):
+                    value = value.replace("template:", "", 1).format(**template_env)
 
-            config[name] = value
+                config[name] = value
 
         if config:
-            resolved[feature] = config
+            resolved[crate.name] = config
 
     return resolved
 
@@ -1320,14 +1315,20 @@ def extract_slc_clang_flags(build: ResolvedBuild) -> dict[str, typing.Any]:
 
 
 def build_rust_libraries(
-    build: ResolvedBuild, rust_config: dict[str, dict[str, str]]
+    build: ResolvedBuild, rust: RustComponents, rust_config: dict[str, dict[str, str]]
 ) -> list[pathlib.Path]:
     """Build the Rust components and return the objects linked into the firmware."""
-    # Only rendered when a Rust component is enabled
-    features_file = build.build_dir / "autogen" / "ohf_rust_features.json"
-    if not features_file.exists():
+    if not rust.crates:
         return []
-    features = json.loads(features_file.read_text())
+
+    # The committed lockfile covers every component. `--locked` catches a dependency
+    # change without a lockfile update before the build's pruned lockfile hides it.
+    universe = build.build_dir / "rust-universe"
+    rust_workspace.generate(universe, rust_workspace.UNIVERSE_ROOTS, enabled=None)
+    rust_workspace.cargo_fetch(universe, locked=True, offline=True)
+
+    workspace = build.build_dir / "rust"
+    rust_workspace.write_workspace(workspace, rust.components, rust.crates)
 
     flags = extract_slc_clang_flags(build)
 
@@ -1360,7 +1361,8 @@ def build_rust_libraries(
             "cargo",
             "build",
             "--release",
-            "--locked",
+            # The workspace's lockfile is the committed one, pruned to its crates
+            "--offline",
             "--target",
             RUST_TARGET,
             # Bindings depend on the build's config headers, which cargo doesn't track
@@ -1369,15 +1371,13 @@ def build_rust_libraries(
             # `core` as bitcode too
             "-Zbuild-std=core",
             "-p",
-            "ohf-firmware",
-            "--no-default-features",
-            "--features",
-            ",".join(features),
+            rust_workspace.AGGREGATOR,
         ],
         "cargo",
         env=env,
-        cwd=RUST_DIR,
+        cwd=workspace,
     )
+    rust_workspace.validate_lockfile(workspace)
 
     # The crates are linked as objects, so they are always loaded and their strong
     # definitions override the SDK's weak ones. `compiler_builtins` is the only native
@@ -1482,7 +1482,8 @@ def main() -> None:
     apply_sdk_patches(build)
     validate_sdk_extensions(build, base_project)
     declared_wraps = validate_wrap_declarations(build.base_project_path)
-    declared_overrides = weak_override_declarations(build)
+    rust = resolve_rust_components(build)
+    declared_overrides = weak_override_declarations(rust)
 
     # Template variables for C defines and the output filename
     template_env = {
@@ -1504,7 +1505,7 @@ def main() -> None:
         template_env=template_env,
     )
 
-    rust_config = resolve_rust_config(build, c_defines, template_env)
+    rust_config = resolve_rust_config(rust, c_defines, template_env)
 
     unused_defines = (
         set(c_defines)
@@ -1528,7 +1529,7 @@ def main() -> None:
         if declared_wraps[target] is not None
     ]
     exclude_definitions_from_lto(build, definitions)
-    rust_objects = build_rust_libraries(build, rust_config)
+    rust_objects = build_rust_libraries(build, rust, rust_config)
     cmake_configure_and_build(build, assemble_build_flags(build, c_flag_defines))
     validate_weak_overrides(build, rust_objects, declared_overrides)
 

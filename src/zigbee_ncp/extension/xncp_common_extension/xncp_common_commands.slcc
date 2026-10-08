@@ -15,8 +15,8 @@ toolchain_settings:
   - option: llvm_linker_option
     value: "-Wl,--wrap=sli_zigbee_am_multicast_member"
 template_contribution:
-  - name: ohf_rust_feature
-    value: xncp_common
+  - name: ohf_rust_component
+    value: xncp_common_commands
   - name: zigbee_stack_callback
     priority: -9999
     value:
@@ -25,6 +25,11 @@ template_contribution:
 
 metadata:
   nabucasa:
+    crate:
+      path: rust
+      dependencies:
+        critical-section: "1"
+        linkme: "0.3"
     rust_config:
       XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE: 200
       XNCP_MFG_MANUF_NAME: ""

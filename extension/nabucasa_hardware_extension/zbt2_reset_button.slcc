@@ -7,16 +7,21 @@ quality: production
 provides:
   - name: zbt2_reset_button
 requires:
+  - name: ohf_sys_factory_erase
   - name: ohf_runtime
   - name: led_manager
   - name: simple_button
   - name: sleeptimer
 template_contribution:
-  - name: ohf_rust_feature
+  - name: ohf_rust_component
     value: zbt2_reset_button
 
 metadata:
   nabucasa:
+    crate:
+      path: rust/zbt2_reset_button
+      dependencies:
+        critical-section: "1"
     weak_overrides:
       - sl_button_on_change
     rust_config:

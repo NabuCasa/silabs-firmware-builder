@@ -7,15 +7,22 @@ quality: production
 provides:
   - name: router_nvram_reset
 requires:
+  - name: ohf_sys_tokens
+  - name: ohf_sys_factory_erase
   - name: ohf_runtime
   - name: nvm3_default
   - name: psa_crypto
   - name: token_manager
   - name: zigbee_pro_stack
 template_contribution:
-  - name: ohf_rust_feature
+  - name: ohf_rust_component
     value: router_nvram_reset
   - name: zigbee_af_callback
     value:
       callback_type: event_init
       function_name: router_nvram_reset_init
+
+metadata:
+  nabucasa:
+    crate:
+      path: rust

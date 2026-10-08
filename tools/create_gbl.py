@@ -82,9 +82,12 @@ def create_gbl(
         special_version = zigbee_config_h["SL_ZIGBEE_SPECIAL_VERSION"]
 
         # `ohf-xncp-common` applies the same override to `sl_zigbee_version`
-        if "xncp_common" in rust_config:
+        if "xncp_common_commands" in rust_config:
             override = int(
-                rust_config["xncp_common"]["XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE"], 0
+                rust_config["xncp_common_commands"][
+                    "XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE"
+                ],
+                0,
             )
             if override != 0xFF:
                 special_version = override

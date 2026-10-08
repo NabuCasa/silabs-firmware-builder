@@ -7,6 +7,7 @@ quality: production
 provides:
   - name: led_effects
 requires:
+  - name: ohf_sys_tokens
   - name: ohf_runtime
   - name: led_effects_base
 template_contribution:
@@ -18,5 +19,10 @@ template_contribution:
     value:
       callback_type: stack_status
       function_name: led_effects_stack_status_callback
-  - name: ohf_rust_feature
+  - name: ohf_rust_component
     value: led_effects_zigbee
+
+metadata:
+  nabucasa:
+    crate:
+      path: rust

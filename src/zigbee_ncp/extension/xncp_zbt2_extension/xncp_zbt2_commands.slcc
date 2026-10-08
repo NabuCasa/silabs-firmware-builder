@@ -7,11 +7,19 @@ quality: production
 provides:
   - name: xncp_zbt2_commands
 requires:
+  - name: led_effects_base
   - name: ohf_runtime
   - name: xncp_core
   - name: ws2812_driver
   - name: qma6100p_driver
   - name: led_effects
 template_contribution:
-  - name: ohf_rust_feature
-    value: xncp_zbt2
+  - name: ohf_rust_component
+    value: xncp_zbt2_commands
+
+metadata:
+  nabucasa:
+    crate:
+      path: rust
+      dependencies:
+        linkme: "0.3"

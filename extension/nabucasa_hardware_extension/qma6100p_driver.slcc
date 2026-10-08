@@ -11,6 +11,7 @@ include:
 provides:
   - name: qma6100p_driver
 requires:
+  - name: ohf_sys
   - name: ohf_runtime
   - name: i2cspm
 template_contribution:
@@ -19,5 +20,10 @@ template_contribution:
       event: stack_init
       include: qma6100p.h
       handler: qma6100p_system_init
-  - name: ohf_rust_feature
-    value: qma6100p
+  - name: ohf_rust_component
+    value: qma6100p_driver
+
+metadata:
+  nabucasa:
+    crate:
+      path: rust/qma6100p_driver

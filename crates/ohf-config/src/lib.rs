@@ -13,8 +13,9 @@ pub struct Config {
 }
 
 impl Config {
-    /// The config of the component with this `ohf_rust_feature`
-    pub fn load(feature: &str) -> Self {
+    /// The config of the calling crate, by its package name
+    pub fn load() -> Self {
+        let feature = env::var("CARGO_PKG_NAME").unwrap();
         println!("cargo:rerun-if-env-changed=OHF_RUST_CONFIG");
         let path = env::var("OHF_RUST_CONFIG").unwrap();
         println!("cargo:rerun-if-changed={path}");
@@ -24,7 +25,7 @@ impl Config {
 
         Self {
             values: all
-                .remove(feature)
+                .remove(&feature)
                 .unwrap_or_else(|| panic!("{feature} has no rust_config")),
             read: RefCell::new(BTreeSet::new()),
         }

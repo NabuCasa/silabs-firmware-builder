@@ -8,6 +8,7 @@ provides:
   - name: zbt2_router_callbacks
   - name: led_effects
 requires:
+  - name: ohf_sys_tokens
   - name: ohf_runtime
   - name: led_effects_base
   - name: ws2812_driver
@@ -16,7 +17,7 @@ requires:
   - name: zigbee_identify
   - name: zigbee_on_off
 template_contribution:
-  - name: ohf_rust_feature
+  - name: ohf_rust_component
     value: zbt2_router_callbacks
   - name: zigbee_af_callback
     value:
@@ -29,6 +30,8 @@ template_contribution:
 
 metadata:
   nabucasa:
+    crate:
+      path: rust/zbt2_router_callbacks
     weak_overrides:
       - sl_zigbee_af_color_control_server_compute_pwm_from_temp_cb
       - sl_zigbee_af_color_control_server_compute_pwm_from_xy_cb

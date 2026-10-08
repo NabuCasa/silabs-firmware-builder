@@ -1,12 +1,21 @@
 id: ohf_runtime
 label: OHF Rust Runtime
 package: custom
-description: Links the Rust components (crates/ohf-firmware), built by tools/build_project.py
+description: The Rust components' runtime. tools/build_project.py links the enabled components' crates.
 category: Platform|Rust
 quality: production
 provides:
   - name: ohf_runtime
 template_file:
-  # The enabled components' cargo features
-  - path: ohf_rust_features.json.jinja
+  # The enabled Rust components
+  - path: ohf_rust_components.json.jinja
+template_contribution:
+  - name: ohf_rust_component
+    value: ohf_runtime
 
+metadata:
+  nabucasa:
+    crate:
+      path: rust/ohf_runtime
+      dependencies:
+        critical-section: { version: "1", features: [restore-state-u32] }

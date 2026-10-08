@@ -7,13 +7,18 @@ quality: production
 provides:
   - name: xncp_core
 requires:
+  - name: xncp_macros
   - name: ohf_runtime
   - name: zigbee_xncp
 template_contribution:
-  - name: ohf_rust_feature
+  - name: ohf_rust_component
     value: xncp_core
 
 metadata:
   nabucasa:
+    crate:
+      path: rust/xncp_core
+      dependencies:
+        linkme: "0.3"
     weak_overrides:
       - sl_zigbee_af_xncp_incoming_custom_frame_cb

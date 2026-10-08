@@ -12,6 +12,7 @@ provides:
   - name: led_effects_base
   - name: led_manager
 requires:
+  - name: ohf_sys
   - name: ohf_runtime
   - name: ws2812_driver
   - name: qma6100p_driver
@@ -23,5 +24,12 @@ template_contribution:
       event: service_process_action
       include: led_manager.h
       handler: led_manager_process_action
-  - name: ohf_rust_feature
-    value: led_effects
+  - name: ohf_rust_component
+    value: led_effects_base
+
+metadata:
+  nabucasa:
+    crate:
+      path: rust/led_effects_base
+      dependencies:
+        critical-section: "1"

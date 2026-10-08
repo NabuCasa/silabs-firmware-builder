@@ -1,0 +1,18 @@
+id: ohf_sys
+label: OHF SDK Bindings
+package: custom
+description: SDK bindings shared by the Rust components (crates/ohf-sys)
+category: Platform|Rust
+quality: production
+provides:
+  - name: ohf_sys
+requires:
+  - name: ohf_runtime
+template_contribution:
+  - name: ohf_rust_component
+    value: ohf_sys
+
+metadata:
+  nabucasa:
+    crate:
+      path: ../../crates/ohf-sys

@@ -1,9 +1,0 @@
-[package]
-name = "ohf-led-effects"
-edition.workspace = true
-version.workspace = true
-
-[dependencies]
-ohf-sys = { path = "../ohf-sys" }
-ohf-qma6100p = { path = "../ohf-qma6100p" }
-critical-section = "1"

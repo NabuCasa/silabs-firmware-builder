@@ -12,5 +12,11 @@ provides:
 requires:
   - name: zbt2_reset_button
 template_contribution:
-  - name: ohf_rust_feature
+  - name: ohf_rust_component
     value: zbt2_reset_button_zigbee_token
+
+metadata:
+  nabucasa:
+    crate:
+      path: rust/zbt2_reset_button
+      features: [zigbee_token_reset]

@@ -97,6 +97,37 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
+name = "led_effects_base"
+version = "0.1.0"
+dependencies = [
+ "critical-section",
+ "ohf-bindgen",
+ "ohf-config",
+ "ohf-sys",
+ "ohf_runtime",
+ "qma6100p_driver",
+ "ws2812_driver",
+]
+
+[[package]]
+name = "led_effects_openthread"
+version = "0.1.0"
+dependencies = [
+ "led_effects_base",
+ "ohf-sys",
+ "ohf_runtime",
+]
+
+[[package]]
+name = "led_effects_zigbee"
+version = "0.1.0"
+dependencies = [
+ "led_effects_base",
+ "ohf-sys",
+ "ohf_runtime",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.190"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -151,6 +182,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
+name = "ncp_dlk_policy"
+version = "0.1.0"
+dependencies = [
+ "ohf-bindgen",
+ "ohf-config",
+ "ohf_runtime",
+]
+
+[[package]]
 name = "nom"
 version = "7.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -179,74 +219,22 @@ dependencies = [
 name = "ohf-firmware"
 version = "0.1.0"
 dependencies = [
- "ohf-led-effects",
- "ohf-led-effects-openthread",
- "ohf-led-effects-zigbee",
- "ohf-ncp-dlk-policy",
- "ohf-qma6100p",
- "ohf-router",
- "ohf-rt",
- "ohf-ws2812",
- "ohf-xncp",
- "ohf-xncp-common",
- "ohf-xncp-zbt2",
- "ohf-zbt2-reset-button",
- "ohf-zbt2-router",
-]
-
-[[package]]
-name = "ohf-led-effects"
-version = "0.1.0"
-dependencies = [
- "critical-section",
- "ohf-qma6100p",
+ "led_effects_base",
+ "led_effects_openthread",
+ "led_effects_zigbee",
+ "ncp_dlk_policy",
  "ohf-sys",
-]
-
-[[package]]
-name = "ohf-led-effects-openthread"
-version = "0.1.0"
-dependencies = [
- "ohf-led-effects",
- "ohf-sys",
-]
-
-[[package]]
-name = "ohf-led-effects-zigbee"
-version = "0.1.0"
-dependencies = [
- "ohf-led-effects",
- "ohf-sys",
-]
-
-[[package]]
-name = "ohf-ncp-dlk-policy"
-version = "0.1.0"
-dependencies = [
- "ohf-bindgen",
-]
-
-[[package]]
-name = "ohf-qma6100p"
-version = "0.1.0"
-dependencies = [
- "ohf-sys",
-]
-
-[[package]]
-name = "ohf-router"
-version = "0.1.0"
-dependencies = [
- "ohf-bindgen",
- "ohf-sys",
-]
-
-[[package]]
-name = "ohf-rt"
-version = "0.1.0"
-dependencies = [
- "critical-section",
- "ohf-bindgen",
+ "ohf_runtime",
+ "qma6100p_driver",
+ "router_beacon_filter",
+ "router_eui64_unique",
+ "router_nvram_reset",
+ "ws2812_driver",
+ "xncp_common_commands",
+ "xncp_core",
+ "xncp_zbt2_commands",
+ "zbt2_reset_button",
+ "zbt2_router_callbacks",
 ]
 
 [[package]]
@@ -258,72 +246,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "ohf-ws2812"
-version = "0.1.0"
-dependencies = [
- "critical-section",
- "ohf-config",
- "ohf-sys",
-]
-
-[[package]]
-name = "ohf-xncp"
-version = "0.1.0"
-dependencies = [
- "linkme",
- "ohf-bindgen",
-]
-
-[[package]]
-name = "ohf-xncp-common"
-version = "0.1.0"
-dependencies = [
- "critical-section",
- "linkme",
- "ohf-bindgen",
- "ohf-config",
- "ohf-xncp",
- "ohf-xncp-macros",
-]
-
-[[package]]
-name = "ohf-xncp-macros"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.119",
-]
-
-[[package]]
-name = "ohf-xncp-zbt2"
-version = "0.1.0"
-dependencies = [
- "linkme",
- "ohf-led-effects",
- "ohf-qma6100p",
- "ohf-xncp",
- "ohf-xncp-macros",
-]
-
-[[package]]
-name = "ohf-zbt2-reset-button"
+name = "ohf_runtime"
 version = "0.1.0"
 dependencies = [
  "critical-section",
  "ohf-bindgen",
  "ohf-config",
- "ohf-led-effects",
- "ohf-sys",
-]
-
-[[package]]
-name = "ohf-zbt2-router"
-version = "0.1.0"
-dependencies = [
- "ohf-bindgen",
- "ohf-led-effects",
- "ohf-sys",
 ]
 
 [[package]]
@@ -343,6 +271,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "qma6100p_driver"
+version = "0.1.0"
+dependencies = [
+ "ohf-sys",
+ "ohf_runtime",
 ]
 
 [[package]]
@@ -382,6 +318,34 @@ name = "regex-syntax"
 version = "0.8.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
+
+[[package]]
+name = "router_beacon_filter"
+version = "0.1.0"
+dependencies = [
+ "ohf-bindgen",
+ "ohf-config",
+ "ohf_runtime",
+]
+
+[[package]]
+name = "router_eui64_unique"
+version = "0.1.0"
+dependencies = [
+ "ohf-bindgen",
+ "ohf-config",
+ "ohf_runtime",
+]
+
+[[package]]
+name = "router_nvram_reset"
+version = "0.1.0"
+dependencies = [
+ "ohf-bindgen",
+ "ohf-config",
+ "ohf-sys",
+ "ohf_runtime",
+]
 
 [[package]]
 name = "rustc-hash"
@@ -470,6 +434,88 @@ name = "windows-link"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5"
+
+[[package]]
+name = "ws2812_driver"
+version = "0.1.0"
+dependencies = [
+ "critical-section",
+ "ohf-bindgen",
+ "ohf-config",
+ "ohf-sys",
+ "ohf_runtime",
+]
+
+[[package]]
+name = "xncp_common_commands"
+version = "0.1.0"
+dependencies = [
+ "critical-section",
+ "linkme",
+ "ohf-bindgen",
+ "ohf-config",
+ "ohf_runtime",
+ "xncp_core",
+]
+
+[[package]]
+name = "xncp_core"
+version = "0.1.0"
+dependencies = [
+ "linkme",
+ "ohf-bindgen",
+ "ohf-config",
+ "ohf_runtime",
+ "xncp_macros",
+]
+
+[[package]]
+name = "xncp_macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "xncp_zbt2_commands"
+version = "0.1.0"
+dependencies = [
+ "led_effects_base",
+ "led_effects_openthread",
+ "led_effects_zigbee",
+ "linkme",
+ "ohf_runtime",
+ "qma6100p_driver",
+ "ws2812_driver",
+ "xncp_core",
+ "zbt2_router_callbacks",
+]
+
+[[package]]
+name = "zbt2_reset_button"
+version = "0.1.0"
+dependencies = [
+ "critical-section",
+ "led_effects_base",
+ "ohf-bindgen",
+ "ohf-config",
+ "ohf-sys",
+ "ohf_runtime",
+]
+
+[[package]]
+name = "zbt2_router_callbacks"
+version = "0.1.0"
+dependencies = [
+ "led_effects_base",
+ "ohf-bindgen",
+ "ohf-config",
+ "ohf-sys",
+ "ohf_runtime",
+ "ws2812_driver",
+]
 
 [[package]]
 name = "zmij"

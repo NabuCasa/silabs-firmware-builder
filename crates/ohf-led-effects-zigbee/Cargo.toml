@@ -1,8 +1,0 @@
-[package]
-name = "ohf-led-effects-zigbee"
-edition.workspace = true
-version.workspace = true
-
-[dependencies]
-ohf-sys = { path = "../ohf-sys", features = ["tokens"] }
-ohf-led-effects = { path = "../ohf-led-effects" }

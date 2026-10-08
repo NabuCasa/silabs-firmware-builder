@@ -10,7 +10,7 @@ requires:
   - name: ohf_runtime
   - name: token_manager
 template_contribution:
-  - name: ohf_rust_feature
+  - name: ohf_rust_component
     value: router_eui64_unique
 toolchain_settings:
   - option: gcc_linker_option
@@ -20,5 +20,7 @@ toolchain_settings:
 
 metadata:
   nabucasa:
+    crate:
+      path: rust
     wrap_definitions:
       sl_token_manager_get_data: "sl_token_manager_api.c"

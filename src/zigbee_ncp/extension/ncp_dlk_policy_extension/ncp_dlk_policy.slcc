@@ -20,10 +20,12 @@ requires:
   - name: zigbee_r23_support
   - name: zigbee_dynamic_commissioning
 template_contribution:
-  - name: ohf_rust_feature
+  - name: ohf_rust_component
     value: ncp_dlk_policy
 
 metadata:
   nabucasa:
+    crate:
+      path: rust
     weak_overrides:
       - sl_zigbee_zdo_dlk_select_negotiation_parameters_callback

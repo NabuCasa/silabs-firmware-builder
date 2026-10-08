@@ -1,0 +1,21 @@
+id: xncp_macros
+label: XNCP Macros
+package: custom
+description: The `#[xncp_command]` and `xncp_feature!` proc macros, re-exported by xncp_core
+category: Zigbee|NCP
+quality: production
+provides:
+  - name: xncp_macros
+template_contribution:
+  - name: ohf_rust_component
+    value: xncp_macros
+
+metadata:
+  nabucasa:
+    crate:
+      path: rust/xncp_macros
+      proc_macro: true
+      dependencies:
+        syn: { version: "2", features: [full] }
+        quote: "1"
+        proc-macro2: "1"

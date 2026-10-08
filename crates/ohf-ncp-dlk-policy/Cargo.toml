@@ -1,9 +1,0 @@
-[package]
-name = "ohf-ncp-dlk-policy"
-edition.workspace = true
-version.workspace = true
-
-[dependencies]
-
-[build-dependencies]
-ohf-bindgen = { path = "../ohf-bindgen" }

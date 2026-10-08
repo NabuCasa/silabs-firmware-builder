@@ -7,10 +7,16 @@ quality: production
 provides:
   - name: led_effects
 requires:
+  - name: ohf_sys
   - name: ohf_runtime
   - name: led_effects_base
 template_contribution:
   - name: ot_init
     value: led_effects_system_init
-  - name: ohf_rust_feature
+  - name: ohf_rust_component
     value: led_effects_openthread
+
+metadata:
+  nabucasa:
+    crate:
+      path: rust

@@ -1,0 +1,20 @@
+id: ohf_sys_tokens
+label: OHF SDK Bindings - Tokens
+package: custom
+description: Stack token access for the Rust components. Zigbee only, the token headers don't exist elsewhere.
+category: Platform|Rust
+quality: production
+provides:
+  - name: ohf_sys_tokens
+requires:
+  - name: ohf_sys
+  - name: zigbee_pro_stack
+template_contribution:
+  - name: ohf_rust_component
+    value: ohf_sys_tokens
+
+metadata:
+  nabucasa:
+    crate:
+      path: ../../crates/ohf-sys
+      features: [tokens]
