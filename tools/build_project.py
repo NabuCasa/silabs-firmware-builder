@@ -1304,14 +1304,25 @@ def cmake_build(build: ResolvedBuild) -> None:
     )
 
 
-def rust_toolchain_binaries(build: ResolvedBuild) -> dict[str, typing.Any]:
-    """LLVM binaries for the Rust build, which joins the firmware's LTO link as bitcode."""
-    assert build.toolchain is Toolchain.LLVM, "Rust components need the LLVM toolchain"
-    tp = build.toolchain_path
-    return {"ar": tp / "bin/llvm-ar", "clang": tp / "bin/clang"}
+def validate_rust_lockfile(build: ResolvedBuild) -> None:
+    """Check the committed lockfile against every component."""
+
+    # `--locked` catches a dependency change without a lockfile update before the
+    # build's pruned lockfile hides it
+    universe = build.build_dir / "rust-universe"
+    rust_workspace.generate(universe, rust_workspace.UNIVERSE_ROOTS, enabled=None)
+
+    try:
+        rust_workspace.cargo_fetch(universe, locked=True, offline=True)
+    except subprocess.CalledProcessError:
+        LOGGER.error(
+            "%s does not match the components: run `python -m tools.rust_workspace lock`",
+            rust_workspace.LOCKFILE,
+        )
+        raise
 
 
-def slc_compile_command(build: ResolvedBuild) -> list[str]:
+def slc_compile_args(build: ResolvedBuild) -> list[str]:
     """The arguments of a C compile in the SLC object library, from CMake's export."""
     entries = json.loads((build.cmake_dir / "compile_commands.json").read_text())
     entry = min(
@@ -1325,7 +1336,7 @@ def slc_compile_command(build: ResolvedBuild) -> list[str]:
     )
 
     source = entry["file"]
-    command = []
+    args = []
     skip = False
 
     for arg in shlex.split(entry["command"])[1:]:
@@ -1336,12 +1347,12 @@ def slc_compile_command(build: ResolvedBuild) -> list[str]:
         elif arg in ("-c", "-MD", source):
             pass
         else:
-            command.append(arg)
+            args.append(arg)
 
-    return command
+    return args
 
 
-def c_library_include_dirs(build: ResolvedBuild, command: list[str]) -> list[str]:
+def c_library_include_dirs(build: ResolvedBuild, compile_args: list[str]) -> list[str]:
     """The system headers the toolchain's clang resolves for the compile."""
 
     # Its config file picks the C library and its multilib selection picks the variant.
@@ -1349,7 +1360,7 @@ def c_library_include_dirs(build: ResolvedBuild, command: list[str]) -> list[str
     # the upstream build of the same LLVM, cannot resolve them itself.
     clang = build.toolchain_path / "bin/clang"
     listing = subprocess.run(
-        [clang, *command, "-E", "-v", "-x", "c", os.devnull, "-o", os.devnull],
+        [clang, *compile_args, "-E", "-v", "-x", "c", os.devnull, "-o", os.devnull],
         capture_output=True,
         text=True,
         check=True,
@@ -1361,32 +1372,33 @@ def c_library_include_dirs(build: ResolvedBuild, command: list[str]) -> list[str
     return [line.strip() for line in listing[start:end]]
 
 
+def bindgen_clang_args(build: ResolvedBuild, compile_args: list[str]) -> list[str]:
+    """The C compile's arguments for bindgen, so it sees the C sources' headers as-is."""
+    return [
+        # The config file picks the C library, which the system headers below replace
+        *(arg for arg in compile_args if not arg.startswith("--config=")),
+        # Without a config, the driver would add its default C library's headers
+        "-nostdlibinc",
+        *(f"-isystem{d}" for d in c_library_include_dirs(build, compile_args)),
+    ]
+
+
 def build_rust_libraries(
     build: ResolvedBuild,
     project: ProjectComponents,
     rust_config: dict[str, dict[str, str]],
 ) -> list[pathlib.Path]:
-    """Build the Rust components and return the objects linked into the firmware."""
+    """Build the Rust components as bitcode objects for the firmware's LTO link."""
     if not project.crates:
         return []
+    assert build.toolchain is Toolchain.LLVM, "Rust components need the LLVM toolchain"
 
-    # The committed lockfile covers every component. `--locked` catches a dependency
-    # change without a lockfile update before the build's pruned lockfile hides it.
-    universe = build.build_dir / "rust-universe"
-    rust_workspace.generate(universe, rust_workspace.UNIVERSE_ROOTS, enabled=None)
-    try:
-        rust_workspace.cargo_fetch(universe, locked=True, offline=True)
-    except subprocess.CalledProcessError:
-        LOGGER.error(
-            "%s does not match the components: run `python -m tools.rust_workspace lock`",
-            rust_workspace.LOCKFILE,
-        )
-        raise
-
+    validate_rust_lockfile(build)
     workspace = build.build_dir / "rust"
     rust_workspace.write_workspace(workspace, project.crates)
 
-    command = slc_compile_command(build)
+    compile_args = slc_compile_args(build)
+    (cpu,) = [a.removeprefix("-mcpu=") for a in compile_args if a.startswith("-mcpu=")]
 
     config_path = build.build_dir / "rust_build.json"
     config_path.write_text(json.dumps(rust_config, indent=2))
@@ -1396,26 +1408,22 @@ def build_rust_libraries(
     # crates rebuild exactly when the project they bind changes
     target_dir = (PROJECTS_ROOT / "build" / "cargo").resolve()
 
-    bins = rust_toolchain_binaries(build)
-    (cpu,) = [arg.removeprefix("-mcpu=") for arg in command if arg.startswith("-mcpu=")]
-
-    # bindgen parses the SDK headers with the C compile's own arguments, so it sees the
-    # C sources' ABI, defines and C library. The system headers are passed explicitly,
-    # in place of the config file, and the driver's own are disabled
-    bindgen_args = [
-        *(arg for arg in command if not arg.startswith("--config=")),
-        "-nostdlibinc",
-        *(f"-isystem{d}" for d in c_library_include_dirs(build, command)),
+    rustflags = [
+        # Bitcode for the firmware's LTO link, so rustc's LLVM must not be newer than LLD
+        "-Clinker-plugin-lto",
+        # SLC compiles with -fwhole-program-vtables, which needs every LTO unit split
+        "-Zsplit-lto-unit",
+        "-Zunstable-options",
+        "-Cpanic=immediate-abort",
+        # The C objects' target features, so LTO can inline across the languages
+        f"-Ctarget-cpu={cpu}",
     ]
 
     env = {
         **os.environ,
-        "OHF_BINDGEN_FLAGS": "\n".join(bindgen_args),
+        "OHF_BINDGEN_FLAGS": "\n".join(bindgen_clang_args(build, compile_args)),
         "OHF_RUST_CONFIG": str(config_path.resolve()),
-        # Bitcode for the firmware's LTO link, so rustc's LLVM must not be newer than LLD.
-        # SLC compiles with -fwhole-program-vtables, which needs every LTO unit split.
-        # The CPU matches the C objects' target features, so LTO can inline across them.
-        "RUSTFLAGS": f"-Clinker-plugin-lto -Zsplit-lto-unit -Zunstable-options -Cpanic=immediate-abort -Ctarget-cpu={cpu}",
+        "RUSTFLAGS": " ".join(rustflags),
         # Unlocks the unstable flags on the pinned stable toolchain
         "RUSTC_BOOTSTRAP": "1",
     }
@@ -1443,16 +1451,17 @@ def build_rust_libraries(
     # The crates are linked as objects, so they are always loaded and their strong
     # definitions override the SDK's weak ones. `compiler_builtins` is the only native
     # code and is left out: newlib and compiler-rt provide the runtime, as for C.
+    ar = build.toolchain_path / "bin/llvm-ar"
     archive = target_dir / RUST_TARGET / "release" / RUST_LIBRARY
     objects_dir = build.build_dir / "rust_objects"
     if objects_dir.exists():
         shutil.rmtree(objects_dir)
     objects_dir.mkdir()
     members = subprocess.run(
-        [bins["ar"], "t", archive], capture_output=True, text=True, check=True
+        [ar, "t", archive], capture_output=True, text=True, check=True
     ).stdout.split()
     assert len(members) == len(set(members)), "Duplicate Rust archive members"
-    subprocess.run([bins["ar"], "x", archive], cwd=objects_dir, check=True)
+    subprocess.run([ar, "x", archive], cwd=objects_dir, check=True)
 
     objects = []
     for member in members:
@@ -1461,6 +1470,14 @@ def build_rust_libraries(
             objects.append(path)
         else:
             path.unlink()
+
+    return objects
+
+
+def link_rust_objects(build: ResolvedBuild, objects: list[pathlib.Path]) -> None:
+    """Add the Rust objects to the firmware executable's sources."""
+    if not objects:
+        return
 
     quoted = "\n    ".join(f'"{path}"' for path in objects)
     with build.project_cmake.open("a") as f:
@@ -1472,8 +1489,6 @@ def build_rust_libraries(
             f"\ncmake_language(DEFER CALL target_sources {build.base_project_name}"
             f" PRIVATE\n    {quoted}\n)\n"
         )
-
-    return objects
 
 
 def verify_build_reproducibility(
@@ -1590,10 +1605,12 @@ def main() -> None:
         if declared_wraps[target] is not None
     ]
     exclude_definitions_from_lto(build, definitions)
+    # The Rust build needs the configured project's compile commands, and the project
+    # then needs regenerating with the Rust objects
     build_flags = assemble_build_flags(build, c_flag_defines)
     cmake_configure(build, build_flags)
     rust_objects = build_rust_libraries(build, project, rust_config)
-    # The Rust objects were appended to the project, so regenerate to link them
+    link_rust_objects(build, rust_objects)
     cmake_configure(build, build_flags)
     cmake_build(build)
     validate_weak_overrides(build, rust_objects, declared_overrides)
