@@ -1,1 +1,11 @@
-target
+# Only what the Dockerfile reads from the tree
+*
+!Cargo.lock
+!Dockerfile
+!extension
+!manifests
+!pyproject.toml
+!rust-toolchain.toml
+!src
+!tools
+!uv.lock
