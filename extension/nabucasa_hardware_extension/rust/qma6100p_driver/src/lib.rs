@@ -93,7 +93,8 @@ fn init() {
     );
 }
 
-fn read_raw() -> [i16; 3] {
+/// The raw 14-bit samples of the three axes
+pub fn read_raw() -> [i16; 3] {
     let mut buf = [0u8; 6];
     read_reg(QMA6100P_XOUTL, &mut buf);
     // 14-bit left-justified samples; shift the sign-extended value down by 2.
@@ -106,12 +107,6 @@ fn read_raw() -> [i16; 3] {
 
 pub fn read_acceleration() -> [f32; 3] {
     read_raw().map(|v| (v as f32 * QMA6100P_M_G * -1.0) / 1024.0)
-}
-
-// For the Z-Wave LED code
-#[no_mangle]
-pub unsafe extern "C" fn qma6100p_read_raw_xyz(_i2cspm: *mut I2C_TypeDef, data: *mut i16) {
-    data.copy_from_nonoverlapping(read_raw().as_ptr(), 3);
 }
 
 #[no_mangle]

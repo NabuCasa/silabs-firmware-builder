@@ -9,7 +9,6 @@
 #define QMA6100P_H_
 
 #include <stdint.h>
-#include "sl_i2cspm.h"
 
 #define QMA6100P_M_G                   9.80665f
 #define QMA6100P_I2C_ADDR              0x24
@@ -65,12 +64,5 @@ typedef enum {
  * @param i2cspm Pointer to I2CSPM instance to use
  */
 void qma6100p_system_init(void);
-
-/**
- * @brief Read raw 3-axis acceleration data
- * @param i2cspm Pointer to I2CSPM instance to use
- * @param data Array to store 3-axis raw data
- */
-void qma6100p_read_raw_xyz(sl_i2cspm_t *i2cspm, int16_t data[3]);
 
 #endif /* QMA6100P_H_ */

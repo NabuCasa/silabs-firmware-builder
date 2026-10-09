@@ -63,6 +63,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "cmds_proprietary_zwa2"
+version = "0.1.0"
+dependencies = [
+ "led_effects_zwa2",
+ "ohf-bindgen",
+]
+
+[[package]]
 name = "critical-section"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -107,6 +115,18 @@ dependencies = [
  "led_effects_base",
  "ohf-sys",
  "ohf_runtime",
+]
+
+[[package]]
+name = "led_effects_zwa2"
+version = "0.1.0"
+dependencies = [
+ "critical-section",
+ "ohf-bindgen",
+ "ohf-sys",
+ "ohf_runtime",
+ "qma6100p_driver",
+ "ws2812_driver",
 ]
 
 [[package]]
@@ -200,9 +220,11 @@ dependencies = [
 name = "ohf-firmware"
 version = "0.1.0"
 dependencies = [
+ "cmds_proprietary_zwa2",
  "led_effects_base",
  "led_effects_openthread",
  "led_effects_zigbee",
+ "led_effects_zwa2",
  "ncp_dlk_policy",
  "ohf-sys",
  "ohf_runtime",
@@ -216,6 +238,7 @@ dependencies = [
  "xncp_zbt2_commands",
  "zbt2_reset_button",
  "zbt2_router_callbacks",
+ "zwave_dmadrv_compat",
 ]
 
 [[package]]
@@ -495,3 +518,13 @@ name = "zmij"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
+
+[[package]]
+name = "zwave_dmadrv_compat"
+version = "0.1.0"
+dependencies = [
+ "critical-section",
+ "ohf-bindgen",
+ "ohf-config",
+ "ohf_runtime",
+]
