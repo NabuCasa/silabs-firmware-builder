@@ -311,13 +311,23 @@ def resolve_rust_config(
     return resolved
 
 
+def extension_copies(build: ResolvedBuild) -> set[str]:
+    """The directories SLC copies the project's extensions into, named `<id>_<version>`."""
+    return {
+        f"{extension['id']}_{extension['version']}"
+        for slce in (build.build_template_path / "extension").glob("*/*.slce")
+        if (extension := yaml.load(slce.read_text()))
+    }
+
+
 def is_component_source(build: ResolvedBuild, source: pathlib.Path) -> bool:
-    """A source SLC copied from one of the project's extensions, not from the SDK or its
-    own templates, and not one of the project's application sources."""
-    if not source.is_relative_to(build.build_dir):
+    """A source SLC copied from one of the project's extensions, as opposed to the SDK,
+    SLC's own templates, or the project's application sources."""
+    build_dir = build.build_dir.resolve()
+    if not source.is_relative_to(build_dir):
         return False
-    parts = source.relative_to(build.build_dir).parts
-    return len(parts) > 1 and any((build.build_dir / parts[0]).glob("*.slce"))
+    parts = source.relative_to(build_dir).parts
+    return len(parts) > 1 and parts[0] in extension_copies(build)
 
 
 def validate_weak_overrides(
