@@ -1,0 +1,22 @@
+id: zbt2_reset_button_zigbee_token
+label: ZBT-2 Reset Button (Zigbee Token Reset)
+package: custom
+description: >-
+  Switches the ZBT-2 reset button's factory-reset backend to sl_zigbee_token_factory_reset,
+  which preserves frame counters and the boot counter (routers), instead of the default full
+  NVM3 erase. Zigbee only.
+category: Platform|Driver|Button
+quality: production
+provides:
+  - name: zbt2_reset_button_zigbee_token
+requires:
+  - name: zbt2_reset_button
+template_contribution:
+  - name: component_catalog
+    value: zbt2_reset_button_zigbee_token
+
+metadata:
+  rust:
+    crate:
+      path: rust/zbt2_reset_button
+      features: [zigbee_token_reset]

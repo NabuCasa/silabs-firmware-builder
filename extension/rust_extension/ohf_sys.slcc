@@ -1,0 +1,18 @@
+id: ohf_sys
+label: OHF SDK Bindings
+package: custom
+description: SDK bindings shared by the Rust components (rust/ohf-sys)
+category: Platform|Rust
+quality: production
+source:
+  - path: src/ohf_sys_shims.c
+provides:
+  - name: ohf_sys
+template_contribution:
+  - name: component_catalog
+    value: ohf_sys
+
+metadata:
+  rust:
+    crate:
+      path: rust/ohf-sys

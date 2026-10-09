@@ -1,0 +1,13 @@
+[package]
+name = "xncp_macros"
+edition.workspace = true
+version.workspace = true
+
+[lib]
+proc-macro = true
+
+# Components this crate uses come from the slcc's `requires`
+[dependencies]
+syn = { version = "2", features = ["full"] }
+quote = "1"
+proc-macro2 = "1"

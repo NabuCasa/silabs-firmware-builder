@@ -35,6 +35,8 @@ jobs:
         run: |
           pip install pre-commit
           pre-commit install
+      - name: Install Rust toolchain
+        run: rustup toolchain install
       - name: Run pre-commit
         run: |
           pre-commit run --show-diff-on-failure --color=always --all-files
@@ -72,7 +74,7 @@ jobs:
             head_image=$(echo ${{ github.repository }} | awk '{print tolower($0)}')
           fi
 
-          tag_name=$(echo "${{ hashFiles('Dockerfile', 'uv.lock') }}" | cut -c-16)
+          tag_name=$(echo "${{ hashFiles('Dockerfile', 'uv.lock', 'rust-toolchain.toml', 'Cargo.lock') }}" | cut -c-16)
 
           # Default to building a new container under the original repo
           image_name=$head_image
@@ -227,7 +229,7 @@ jobs:
       contents: read
       packages: read
     container:
-      # Tag is the hash of the Dockerfile and uv.lock, built by this workflow
+      # Tag is the hash of the Dockerfile, uv.lock, rust-toolchain.toml and Cargo.lock, built by this workflow
       image: ${{ needs.merge-container.outputs.container_name }} # zizmor: ignore[unpinned-images]
       options: --user root
     strategy:
@@ -271,7 +273,7 @@ jobs:
       contents: read
       packages: read
     container:
-      # Tag is the hash of the Dockerfile and uv.lock, built by this workflow
+      # Tag is the hash of the Dockerfile, uv.lock, rust-toolchain.toml and Cargo.lock, built by this workflow
       image: ${{ needs.merge-container.outputs.container_name }} # zizmor: ignore[unpinned-images]
       options: --user root
     steps:

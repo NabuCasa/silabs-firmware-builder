@@ -13,10 +13,20 @@ description: >-
   an error, which the stack turns into the legacy well-known-key network key transport.
 category: Zigbee|NCP
 quality: production
-source:
-  - path: src/ncp_dlk_policy.c
 provides:
   - name: ncp_dlk_policy
 requires:
+  - name: ohf_runtime
   - name: zigbee_r23_support
   - name: zigbee_dynamic_commissioning
+template_contribution:
+  - name: component_catalog
+    value: ncp_dlk_policy
+
+metadata:
+  rust:
+    crate:
+      path: rust
+  link:
+    weak_overrides:
+      - sl_zigbee_zdo_dlk_select_negotiation_parameters_callback

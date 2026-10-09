@@ -4,16 +4,12 @@ package: custom
 description: Zigbee router callbacks with LED feedback for ZBT-2 hardware
 category: Zigbee|Router
 quality: production
-source:
-  - path: src/zbt2_router_callbacks.c
-include:
-  - path: inc
-    file_list:
-    - path: zbt2_router_callbacks.h
 provides:
   - name: zbt2_router_callbacks
   - name: led_effects
 requires:
+  - name: ohf_sys_tokens
+  - name: ohf_runtime
   - name: led_effects_base
   - name: ws2812_driver
   - name: zigbee_network_steering
@@ -21,6 +17,8 @@ requires:
   - name: zigbee_identify
   - name: zigbee_on_off
 template_contribution:
+  - name: component_catalog
+    value: zbt2_router_callbacks
   - name: zigbee_af_callback
     value:
       callback_type: event_init
@@ -29,3 +27,18 @@ template_contribution:
     value:
       callback_type: stack_status
       function_name: zbt2_router_stack_status_cb
+
+metadata:
+  rust:
+    crate:
+      path: rust/zbt2_router_callbacks
+  link:
+    weak_overrides:
+      - sl_zigbee_af_color_control_server_compute_pwm_from_temp_cb
+      - sl_zigbee_af_color_control_server_compute_pwm_from_xy_cb
+      - sl_zigbee_af_identify_start_feedback_cb
+      - sl_zigbee_af_identify_stop_feedback_cb
+      - sl_zigbee_af_level_control_cluster_server_post_init_cb
+      - sl_zigbee_af_network_steering_complete_cb
+      - sl_zigbee_af_on_off_cluster_server_post_init_cb
+      - sl_zigbee_af_post_attribute_change_cb

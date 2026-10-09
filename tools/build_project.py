@@ -13,6 +13,7 @@ import logging
 import os
 import pathlib
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -23,11 +24,14 @@ from datetime import UTC, datetime
 from elftools.elf.elffile import ELFFile
 from ruamel.yaml import YAML
 
+from . import rust_workspace
 from .create_gbl import create_gbl
 
 LOGGER = logging.getLogger(__name__)
 
 PROJECTS_ROOT = pathlib.Path(__file__).parent.parent
+RUST_LIBRARY = "libohf_firmware.a"
+RUST_TARGET = rust_workspace.RUST_TARGET
 
 yaml = YAML(typ="safe")
 
@@ -230,9 +234,7 @@ def validate_wrap_declarations(project_path: pathlib.Path) -> dict[str, str | No
         # `metadata` is the SDK's free-form slcc key; a bare top-level key is a
         # "junk key" warning and spec 8 refuses to generate with any warning
         definitions = (
-            component.get("metadata", {})
-            .get("nabucasa", {})
-            .get("wrap_definitions", {})
+            component.get("metadata", {}).get("link", {}).get("wrap_definitions", {})
         )
 
         if set(definitions) - gcc:
@@ -247,6 +249,153 @@ def validate_wrap_declarations(project_path: pathlib.Path) -> dict[str, str | No
             declarations[target] = definitions.get(target)
 
     return declarations
+
+
+@dataclasses.dataclass
+class ProjectComponents:
+    """Our components the generated project enabled, and the crates of the Rust ones."""
+
+    enabled: list[rust_workspace.Component]
+    crates: dict[str, rust_workspace.Crate]
+
+
+def resolve_project_components(build: ResolvedBuild) -> ProjectComponents:
+    components = rust_workspace.discover([build.base_project_path])
+    enabled = rust_workspace.enabled_ids(
+        components, build.build_dir / "autogen" / "sl_component_catalog.h"
+    )
+    return ProjectComponents(
+        enabled=[c for c in components if c.id in enabled],
+        crates=rust_workspace.plan(components, enabled),
+    )
+
+
+def weak_override_declarations(project: ProjectComponents) -> set[str]:
+    """The SDK weak definitions the enabled components declare their objects override."""
+    return {
+        override
+        for component in project.enabled
+        for override in component.link.get("weak_overrides", [])
+    }
+
+
+def resolve_rust_config(
+    project: ProjectComponents,
+    c_defines: dict[str, dict],
+    template_env: dict[str, typing.Any],
+) -> dict[str, dict[str, str]]:
+    """Each enabled crate's `config`, with the manifest's values applied."""
+    resolved = {}
+
+    for crate in project.crates.values():
+        config = {}
+
+        for component in crate.components:
+            # A key without a default must be set by the manifest
+            for name, spec in component.rust.get("config", {}).items():
+                if name in c_defines:
+                    value = str(c_defines[name]["value"])
+                elif "default" in spec:
+                    value = str(spec["default"])
+                else:
+                    LOGGER.error("%s requires %s to be set", component.id, name)
+                    sys.exit(1)
+
+                if value.startswith("template:"):
+                    value = value.replace("template:", "", 1).format(**template_env)
+
+                config[name] = {"type": spec["type"], "value": value}
+
+        if config:
+            resolved[crate.name] = config
+
+    return resolved
+
+
+def extension_copies(build: ResolvedBuild) -> set[str]:
+    """The directories SLC copies the project's extensions into, named `<id>_<version>`."""
+    return {
+        f"{extension['id']}_{extension['version']}"
+        for slce in (build.build_template_path / "extension").glob("*/*.slce")
+        if (extension := yaml.load(slce.read_text()))
+    }
+
+
+def is_component_source(build: ResolvedBuild, source: pathlib.Path) -> bool:
+    """A source SLC copied from one of the project's extensions, as opposed to the SDK,
+    SLC's own templates, or the project's application sources."""
+    build_dir = build.build_dir.resolve()
+    if not source.is_relative_to(build_dir):
+        return False
+    parts = source.relative_to(build_dir).parts
+    return len(parts) > 1 and parts[0] in extension_copies(build)
+
+
+def validate_weak_overrides(
+    build: ResolvedBuild, rust_objects: list[pathlib.Path], declared: set[str]
+) -> None:
+    """Check that the components' objects override exactly the declared weak definitions.
+
+    The application's own sources are the SDK's intended place for overrides, so they are
+    not checked."""
+    nm = build.toolchain_path / (
+        "bin/llvm-nm" if build.toolchain is Toolchain.LLVM else "bin/arm-none-eabi-nm"
+    )
+    # Ninja deletes the link's response file once it succeeds, so ask it for the inputs
+    query = subprocess.run(
+        ["ninja", "-t", "query", f"{build.base_project_name}.out"],
+        cwd=build.cmake_dir,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    inputs = [
+        path
+        for line in query.splitlines()
+        if (item := line.strip().removeprefix("|| ").removeprefix("| ")).endswith(
+            (".obj", ".o", ".a")
+        )
+        and (path := (build.cmake_dir / item).resolve()) not in rust_objects
+    ]
+
+    # CMake names each object after its source's absolute path, under the target's dir
+    def source_of(obj: pathlib.Path) -> pathlib.Path:
+        parts = obj.parts
+        return pathlib.Path("/", *parts[parts.index("slc.dir") + 1 :]).with_suffix("")
+
+    component_objects = [
+        path
+        for path in inputs
+        if path.suffix == ".obj" and is_component_source(build, source_of(path))
+    ]
+    inputs = [path for path in inputs if path not in component_objects]
+    objects = rust_objects + component_objects
+    if not objects:
+        return
+
+    def defined(paths: list[pathlib.Path], kinds: str) -> set[str]:
+        output = subprocess.run(
+            [nm, "--defined-only", "--format=posix", *paths],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+        return {
+            fields[0]
+            for fields in map(str.split, output.splitlines())
+            if len(fields) >= 2 and fields[1] in kinds
+        }
+
+    overrides = defined(objects, "TDBR") & defined(inputs, "WV")
+
+    LOGGER.info("Components override weak definitions: %s", sorted(overrides))
+
+    if overrides != declared:
+        raise RuntimeError(
+            f"Components override weak definitions they should not: "
+            f"{sorted(overrides - declared)}, declared but not overridden: "
+            f"{sorted(declared - overrides)}"
+        )
 
 
 def linker_wrap_targets(build: ResolvedBuild) -> set[str]:
@@ -347,19 +496,29 @@ def get_elf_source_paths(elf_path: pathlib.Path) -> set[pathlib.PurePosixPath]:
 
         for cu in dwarf.iter_CUs():
             line_program = dwarf.line_program_for_CU(cu)
+            comp_dir = (
+                cu.get_top_DIE().attributes["DW_AT_comp_dir"].value.decode("utf-8")
+            )
+
+            # DWARF 5 indexes from 0 and lists the compilation directory. Earlier versions
+            # index files from 1 and leave the compilation directory implicit.
+            directories = list(line_program["include_directory"])
+            files = list(line_program["file_entry"])
+            if line_program["version"] < 5:
+                directories.insert(0, comp_dir.encode("utf-8"))
+                files.insert(0, None)
 
             for entry in line_program.get_entries():
                 state = entry.state
                 if state is None:
                     continue
 
-                file_entry = line_program["file_entry"][state.file - 1]
-                directory = line_program["include_directory"][
-                    file_entry.dir_index - 1
-                ].decode("utf-8")
+                file_entry = files[state.file]
+                directory = directories[file_entry.dir_index].decode("utf-8")
                 filename = file_entry.name.decode("utf-8")
 
-                paths.add(pathlib.PurePosixPath(f"{directory}/{filename}"))
+                # Relative directories are relative to the compilation directory
+                paths.add(pathlib.PurePosixPath(comp_dir, directory, filename))
 
     return paths
 
@@ -1093,9 +1252,7 @@ def assemble_build_flags(
     }
 
 
-def cmake_configure_and_build(
-    build: ResolvedBuild, build_flags: dict[str, list[str]]
-) -> None:
+def cmake_configure(build: ResolvedBuild, build_flags: dict[str, list[str]]) -> None:
     # The GBL is built in-process after the link, so neutralize the SDK's post-build
     # hook. CMake expects a semicolon-separated list for the command.
     cmake_post_build_command = ";".join([shutil.which("cmake"), "-E", "true"])
@@ -1108,6 +1265,8 @@ def cmake_configure_and_build(
             "cmake",
             "-G", "Ninja",
             "-D", "CMAKE_TOOLCHAIN_FILE=toolchain.cmake",
+            # The Rust build takes its clang arguments from the exported C compiles
+            "-D", "CMAKE_EXPORT_COMPILE_COMMANDS=ON",
             "-D", f"CMAKE_C_FLAGS={' '.join(build_flags['C_FLAGS'])}",
             "-D", f"CMAKE_CXX_FLAGS={' '.join(build_flags['CXX_FLAGS'])}",
             "-D", f"CMAKE_EXE_LINKER_FLAGS={' '.join(build_flags['LD_FLAGS'])}",
@@ -1129,6 +1288,10 @@ def cmake_configure_and_build(
     )
     # fmt: on
 
+
+def cmake_build(build: ResolvedBuild) -> None:
+    source_date_epoch = str(int(build.build_timestamp.timestamp()))
+
     subprocess_run_verbose(
         ["cmake", "--build", "."],
         "cmake --build",
@@ -1139,6 +1302,193 @@ def cmake_configure_and_build(
             "SOURCE_DATE_EPOCH": source_date_epoch,
         },
     )
+
+
+def validate_rust_lockfile(build: ResolvedBuild) -> None:
+    """Check the committed lockfile against every component."""
+
+    # `--locked` catches a dependency change without a lockfile update before the
+    # build's pruned lockfile hides it
+    universe = build.build_dir / "rust-universe"
+    rust_workspace.generate(universe, rust_workspace.UNIVERSE_ROOTS, enabled=None)
+
+    try:
+        rust_workspace.cargo_fetch(universe, locked=True, offline=True)
+    except subprocess.CalledProcessError:
+        LOGGER.error(
+            "%s does not match the components: run `python -m tools.rust_workspace lock`",
+            rust_workspace.LOCKFILE,
+        )
+        raise
+
+
+def slc_compile_args(build: ResolvedBuild) -> list[str]:
+    """The arguments of a C compile in the SLC object library, from CMake's export."""
+    entries = json.loads((build.cmake_dir / "compile_commands.json").read_text())
+    entry = min(
+        (
+            e
+            for e in entries
+            if e["output"].startswith("CMakeFiles/slc.dir/")
+            and e["file"].endswith(".c")
+        ),
+        key=lambda e: e["file"],
+    )
+
+    source = entry["file"]
+    args = []
+    skip = False
+
+    for arg in shlex.split(entry["command"])[1:]:
+        if skip:
+            skip = False
+        elif arg in ("-o", "-MT", "-MF"):
+            skip = True
+        elif arg in ("-c", "-MD", source):
+            pass
+        else:
+            args.append(arg)
+
+    return args
+
+
+def c_library_include_dirs(build: ResolvedBuild, compile_args: list[str]) -> list[str]:
+    """The system headers the toolchain's clang resolves for the compile."""
+
+    # Its config file picks the C library and its multilib selection picks the variant.
+    # Arm's `multilib.yaml` uses keys only Arm's driver reads, so bindgen's libclang,
+    # the upstream build of the same LLVM, cannot resolve them itself.
+    clang = build.toolchain_path / "bin/clang"
+    listing = subprocess.run(
+        [clang, *compile_args, "-E", "-v", "-x", "c", os.devnull, "-o", os.devnull],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stderr.split("\n")
+
+    start = listing.index("#include <...> search starts here:") + 1
+    end = listing.index("End of search list.")
+
+    return [line.strip() for line in listing[start:end]]
+
+
+def bindgen_clang_args(build: ResolvedBuild, compile_args: list[str]) -> list[str]:
+    """The C compile's arguments for bindgen, so it sees the C sources' headers as-is."""
+    return [
+        # The config file picks the C library, which the system headers below replace
+        *(arg for arg in compile_args if not arg.startswith("--config=")),
+        # Without a config, the driver would add its default C library's headers
+        "-nostdlibinc",
+        *(f"-isystem{d}" for d in c_library_include_dirs(build, compile_args)),
+    ]
+
+
+def build_rust_libraries(
+    build: ResolvedBuild,
+    project: ProjectComponents,
+    rust_config: dict[str, dict[str, str]],
+) -> list[pathlib.Path]:
+    """Build the Rust components as bitcode objects for the firmware's LTO link."""
+    if not project.crates:
+        return []
+    assert build.toolchain is Toolchain.LLVM, "Rust components need the LLVM toolchain"
+
+    validate_rust_lockfile(build)
+    workspace = build.build_dir / "rust"
+    rust_workspace.write_workspace(workspace, project.crates)
+
+    compile_args = slc_compile_args(build)
+    (cpu,) = [a.removeprefix("-mcpu=") for a in compile_args if a.startswith("-mcpu=")]
+
+    config_path = build.build_dir / "rust_build.json"
+    config_path.write_text(json.dumps(rust_config, indent=2))
+
+    # Shared across builds: the host dependencies and `core` are the same for every build,
+    # and bindgen reports the generated project's headers to cargo, so the component
+    # crates rebuild exactly when the project they bind changes
+    target_dir = (PROJECTS_ROOT / "build" / "cargo").resolve()
+
+    rustflags = [
+        # Bitcode for the firmware's LTO link, so rustc's LLVM must not be newer than LLD
+        "-Clinker-plugin-lto",
+        # SLC compiles with -fwhole-program-vtables, which needs every LTO unit split
+        "-Zsplit-lto-unit",
+        "-Zunstable-options",
+        "-Cpanic=immediate-abort",
+        # The C objects' target features, so LTO can inline across the languages
+        f"-Ctarget-cpu={cpu}",
+    ]
+
+    env = {
+        **os.environ,
+        "OHF_BINDGEN_FLAGS": "\n".join(bindgen_clang_args(build, compile_args)),
+        "OHF_RUST_CONFIG": str(config_path.resolve()),
+        "RUSTFLAGS": " ".join(rustflags),
+        # Unlocks the unstable flags on the pinned stable toolchain
+        "RUSTC_BOOTSTRAP": "1",
+    }
+
+    # fmt: off
+    subprocess_run_verbose(
+        [
+            "cargo", "build", "--release",
+            # The workspace's lockfile is the committed one, pruned to its crates
+            "--offline",
+            "--target", RUST_TARGET,
+            "--target-dir", target_dir,
+            # `core` as bitcode too
+            "-Zbuild-std=core",
+            "-p", rust_workspace.AGGREGATOR,
+        ],
+        "cargo",
+        env=env,
+        cwd=workspace,
+    )
+    # fmt: on
+
+    rust_workspace.validate_lockfile(workspace)
+
+    # The crates are linked as objects, so they are always loaded and their strong
+    # definitions override the SDK's weak ones. `compiler_builtins` is the only native
+    # code and is left out: newlib and compiler-rt provide the runtime, as for C.
+    ar = build.toolchain_path / "bin/llvm-ar"
+    archive = target_dir / RUST_TARGET / "release" / RUST_LIBRARY
+    objects_dir = build.build_dir / "rust_objects"
+    if objects_dir.exists():
+        shutil.rmtree(objects_dir)
+    objects_dir.mkdir()
+    members = subprocess.run(
+        [ar, "t", archive], capture_output=True, text=True, check=True
+    ).stdout.split()
+    assert len(members) == len(set(members)), "Duplicate Rust archive members"
+    subprocess.run([ar, "x", archive], cwd=objects_dir, check=True)
+
+    objects = []
+    for member in members:
+        path = (objects_dir / member).resolve()
+        if path.read_bytes()[:4] == b"BC\xc0\xde":
+            objects.append(path)
+        else:
+            path.unlink()
+
+    return objects
+
+
+def link_rust_objects(build: ResolvedBuild, objects: list[pathlib.Path]) -> None:
+    """Add the Rust objects to the firmware executable's sources."""
+    if not objects:
+        return
+
+    quoted = "\n    ".join(f'"{path}"' for path in objects)
+    with build.project_cmake.open("a") as f:
+        # Executable sources, so they precede the SDK archives like C objects: a strong
+        # Rust definition then keeps the archive member defining it from being pulled.
+        # `slc` is an object library, which drops external objects, and the executable
+        # is only defined after this file is included.
+        f.write(
+            f"\ncmake_language(DEFER CALL target_sources {build.base_project_name}"
+            f" PRIVATE\n    {quoted}\n)\n"
+        )
 
 
 def verify_build_reproducibility(
@@ -1208,6 +1558,8 @@ def main() -> None:
     apply_sdk_patches(build)
     validate_sdk_extensions(build, base_project)
     declared_wraps = validate_wrap_declarations(build.base_project_path)
+    project = resolve_project_components(build)
+    declared_overrides = weak_override_declarations(project)
 
     # Template variables for C defines and the output filename
     template_env = {
@@ -1229,9 +1581,12 @@ def main() -> None:
         template_env=template_env,
     )
 
+    rust_config = resolve_rust_config(project, c_defines, template_env)
+
     unused_defines = (
         set(c_defines)
         - written_defines
+        - {define for config in rust_config.values() for define in config}
         - {define for define, config in c_defines.items() if config["type"] == "c_flag"}
     )
     if unused_defines:
@@ -1250,7 +1605,15 @@ def main() -> None:
         if declared_wraps[target] is not None
     ]
     exclude_definitions_from_lto(build, definitions)
-    cmake_configure_and_build(build, assemble_build_flags(build, c_flag_defines))
+    # The Rust build needs the configured project's compile commands, and the project
+    # then needs regenerating with the Rust objects
+    build_flags = assemble_build_flags(build, c_flag_defines)
+    cmake_configure(build, build_flags)
+    rust_objects = build_rust_libraries(build, project, rust_config)
+    link_rust_objects(build, rust_objects)
+    cmake_configure(build, build_flags)
+    cmake_build(build)
+    validate_weak_overrides(build, rust_objects, declared_overrides)
 
     validate_linker_wraps(
         elf_path=(build.cmake_dir / build.base_project_name).with_suffix(".out"),
@@ -1267,6 +1630,7 @@ def main() -> None:
         project_name=build.base_project_name,
         sdk_version=build.sdk_version,
         gbl_metadata=build.manifest.gbl,
+        rust_config=rust_config,
     )
 
     output_artifact = (build.cmake_dir / build.base_project_name).with_suffix(".gbl")

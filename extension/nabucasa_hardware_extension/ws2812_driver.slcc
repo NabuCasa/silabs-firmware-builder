@@ -4,18 +4,15 @@ package: custom
 description: WS2812 addressable RGB LED driver using SPIDRV
 category: Platform|Driver|LED
 quality: production
-source:
-  - path: src/ws2812.c
 include:
   - path: inc
     file_list:
     - path: ws2812.h
-config_file:
-  - path: config/ws2812_config.h
-    file_id: ws2812_config
 provides:
   - name: ws2812_driver
 requires:
+  - name: ohf_sys
+  - name: ohf_runtime
   - name: spidrv_instance
   - name: emlib_gpio
   - name: simple_rgb_pwm_led_core
@@ -25,3 +22,14 @@ template_contribution:
       event: driver_init
       include: ws2812.h
       handler: ws2812_led_driver_init
+  - name: component_catalog
+    value: ws2812_driver
+
+metadata:
+  rust:
+    crate:
+      path: rust/ws2812_driver
+    config:
+      WS2812_NUM_LEDS: { type: usize }
+      WS2812_EN_PORT: { type: u32 }
+      WS2812_EN_PIN: { type: u32 }

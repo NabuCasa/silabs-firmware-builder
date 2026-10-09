@@ -1,19 +1,23 @@
 id: xncp_core
 label: XNCP Core
 package: custom
-description: Extensible NCP command framework with Jinja-generated dispatcher
+description: Extensible NCP command framework
 category: Zigbee|NCP
 quality: production
-source:
-  - path: src/xncp_core.c
-include:
-  - path: inc
-    file_list:
-    - path: xncp_types.h
-template_file:
-  - path: template/xncp_dispatcher.c.jinja
-  - path: template/xncp_dispatcher.h.jinja
 provides:
   - name: xncp_core
 requires:
+  - name: xncp_macros
+  - name: ohf_runtime
   - name: zigbee_xncp
+template_contribution:
+  - name: component_catalog
+    value: xncp_core
+
+metadata:
+  rust:
+    crate:
+      path: rust/xncp_core
+  link:
+    weak_overrides:
+      - sl_zigbee_af_xncp_incoming_custom_frame_cb
