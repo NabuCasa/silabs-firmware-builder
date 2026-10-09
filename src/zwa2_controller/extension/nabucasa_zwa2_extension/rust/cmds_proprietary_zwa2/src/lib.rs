@@ -6,7 +6,7 @@ use core::sync::atomic::{AtomicBool, Ordering};
 
 use led_effects_zwa2::{
     clear_pattern, color, config_flag, config_set, set_color, set_pattern, set_tilt_enabled,
-    store_led, ConfigKey, Pattern, Priority,
+    store_led, ConfigKey, Pattern, Priority, Rgb,
 };
 
 #[allow(
@@ -38,30 +38,80 @@ enum Cmd {
     BootloaderInfo = 9,
 }
 
-const SUPPORTED: [Cmd; 9] = [
-    Cmd::Supported,
-    Cmd::LedGet,
-    Cmd::LedSet,
-    Cmd::SystemIndicationSet,
-    Cmd::ConfigGet,
-    Cmd::ConfigSet,
-    Cmd::LedGetBinary,
-    Cmd::LedSetBinary,
-    Cmd::BootloaderInfo,
-];
-
 impl Cmd {
-    fn from_u8(value: u8) -> Option<Self> {
-        SUPPORTED.into_iter().find(|cmd| *cmd as u8 == value)
+    const ALL: [Cmd; 9] = [
+        Cmd::Supported,
+        Cmd::LedGet,
+        Cmd::LedSet,
+        Cmd::SystemIndicationSet,
+        Cmd::ConfigGet,
+        Cmd::ConfigSet,
+        Cmd::LedGetBinary,
+        Cmd::LedSetBinary,
+        Cmd::BootloaderInfo,
+    ];
+}
+
+impl TryFrom<u8> for Cmd {
+    type Error = ();
+
+    fn try_from(value: u8) -> Result<Self, ()> {
+        Self::ALL
+            .into_iter()
+            .find(|cmd| *cmd as u8 == value)
+            .ok_or(())
     }
 }
 
-const SYS_INDICATION_OFF: u8 = 0;
-const SYS_INDICATION_WARN: u8 = 1;
-const SYS_INDICATION_ERROR: u8 = 2;
+/// A system indication, shown on the LED's system layer
+#[derive(Clone, Copy)]
+enum Severity {
+    Off,
+    Warn,
+    Error,
+}
+
+impl TryFrom<u8> for Severity {
+    type Error = ();
+
+    fn try_from(value: u8) -> Result<Self, ()> {
+        match value {
+            0 => Ok(Self::Off),
+            1 => Ok(Self::Warn),
+            2 => Ok(Self::Error),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Severity {
+    fn pattern(self) -> Option<Pattern> {
+        match self {
+            Self::Off => None,
+            Self::Warn => Some(Pattern::solid(color::YELLOW)),
+            Self::Error => Some(Pattern::solid(color::RED)),
+        }
+    }
+}
 
 // Whether the host last set the LED on, for the GET commands
 static MANUAL_LED_ON: AtomicBool = AtomicBool::new(false);
+
+/// The LED is cold white or off, whatever color the host asks for
+fn manual_color(on: bool) -> Rgb {
+    if on {
+        color::COLD_WHITE
+    } else {
+        color::BLACK
+    }
+}
+
+fn set_manual_led(on: bool) {
+    let color = manual_color(on);
+    set_color(Priority::Manual, color);
+    MANUAL_LED_ON.store(on, Ordering::SeqCst);
+    store_led(color);
+}
 
 struct Response {
     buf: [u8; BUF_SIZE_TX],
@@ -81,45 +131,39 @@ impl Response {
         self.len += 1;
     }
 
-    fn push_bytes(&mut self, bytes: &[u8]) {
-        for byte in bytes {
-            self.push(*byte);
-        }
+    fn extend(&mut self, bytes: &[u8]) {
+        self.buf[self.len..self.len + bytes.len()].copy_from_slice(bytes);
+        self.len += bytes.len();
+    }
+
+    fn bytes(&self) -> &[u8] {
+        &self.buf[..self.len]
     }
 }
 
-/// The LED is cold white or off, whatever color the host asks for
-fn set_manual_led(on: bool) {
-    let color = if on { color::COLD_WHITE } else { color::BLACK };
-    set_color(Priority::Manual, color);
-    MANUAL_LED_ON.store(on, Ordering::SeqCst);
-    store_led(color);
+/// Up to four little-endian bytes as a number
+fn le_value(bytes: &[u8]) -> u32 {
+    let mut padded = [0u8; 4];
+    padded[..bytes.len()].copy_from_slice(bytes);
+    u32::from_le_bytes(padded)
 }
 
-fn manual_led_color() -> led_effects_zwa2::Rgb {
-    if MANUAL_LED_ON.load(Ordering::SeqCst) {
-        color::COLD_WHITE
-    } else {
-        color::BLACK
-    }
-}
-
-// `req` starts with the subcommand byte
-fn handle(cmd: Cmd, req: &[u8], response: &mut Response) {
+// `args` is the payload after the subcommand byte
+fn handle(cmd: Cmd, args: &[u8], response: &mut Response) {
     match cmd {
         Cmd::Supported => {
             // ZW->HOST: a bitmask of the supported subcommands, as few bytes as needed
             let mut bitmask = [0u8; Cmd::BootloaderInfo as usize / 8 + 1];
-            for cmd in SUPPORTED {
+            for cmd in Cmd::ALL {
                 bitmask[cmd as usize / 8] |= 1 << (cmd as usize % 8);
             }
-            response.push_bytes(&bitmask);
+            response.extend(&bitmask);
         }
 
         Cmd::LedGet => {
             // ZW->HOST: r | g | b
-            let color = manual_led_color();
-            response.push_bytes(&[
+            let color = manual_color(MANUAL_LED_ON.load(Ordering::SeqCst));
+            response.extend(&[
                 (color.r >> 8) as u8,
                 (color.g >> 8) as u8,
                 (color.b >> 8) as u8,
@@ -129,8 +173,8 @@ fn handle(cmd: Cmd, req: &[u8], response: &mut Response) {
         Cmd::LedSet => {
             // HOST->ZW: r | g | b
             // ZW->HOST: success
-            let ok = match req {
-                [_, r, g, b, ..] => {
+            let ok = match args {
+                [r, g, b, ..] => {
                     set_manual_led(*r > 0 || *g > 0 || *b > 0);
                     true
                 }
@@ -147,8 +191,8 @@ fn handle(cmd: Cmd, req: &[u8], response: &mut Response) {
         Cmd::LedSetBinary => {
             // HOST->ZW: state
             // ZW->HOST: success
-            let ok = match req {
-                [_, state, ..] => {
+            let ok = match args {
+                [state, ..] => {
                     set_manual_led(*state != 0);
                     true
                 }
@@ -160,49 +204,38 @@ fn handle(cmd: Cmd, req: &[u8], response: &mut Response) {
         Cmd::SystemIndicationSet => {
             // HOST->ZW: severity
             // ZW->HOST: success
-            let ok = match req {
-                [_, SYS_INDICATION_OFF, ..] => {
-                    clear_pattern(Priority::System);
-                    true
+            let severity = args.first().and_then(|s| Severity::try_from(*s).ok());
+            if let Some(severity) = severity {
+                match severity.pattern() {
+                    Some(pattern) => set_pattern(Priority::System, pattern),
+                    None => clear_pattern(Priority::System),
                 }
-                [_, SYS_INDICATION_WARN, ..] => {
-                    set_pattern(Priority::System, Pattern::solid(color::YELLOW));
-                    true
-                }
-                [_, SYS_INDICATION_ERROR, ..] => {
-                    set_pattern(Priority::System, Pattern::solid(color::RED));
-                    true
-                }
-                _ => false,
-            };
-            response.push(ok as u8);
+            }
+            response.push(severity.is_some() as u8);
         }
 
         Cmd::ConfigGet => {
             // HOST->ZW: key
             // ZW->HOST: key | size | value, or 0xFF without a key
-            match req {
-                [_, key, ..] => response.push_bytes(&[*key, 1, config_flag(*key) as u8]),
-                _ => response.push(0xFF),
+            match args {
+                [key, ..] => response.extend(&[*key, 1, config_flag(*key) as u8]),
+                [] => response.push(0xFF),
             }
         }
 
         Cmd::ConfigSet => {
             // HOST->ZW: key | size | value (little-endian, 1-4 bytes)
             // ZW->HOST: success
-            let ok = match req {
-                [_, key, size @ 1..=4, value @ ..] if value.len() >= *size as usize => {
-                    let value = value[..*size as usize]
-                        .iter()
-                        .rev()
-                        .fold(0u32, |acc, byte| acc << 8 | *byte as u32);
-                    match ConfigKey::from_u8(*key) {
-                        Some(key @ ConfigKey::EnableTiltIndicator) => {
-                            config_set(key, value != 0);
-                            set_tilt_enabled(value != 0);
+            let ok = match args {
+                [key, size @ 1..=4, value @ ..] if value.len() >= *size as usize => {
+                    let value = le_value(&value[..*size as usize]) != 0;
+                    match ConfigKey::try_from(*key) {
+                        Ok(key @ ConfigKey::EnableTiltIndicator) => {
+                            config_set(key, value);
+                            set_tilt_enabled(value);
                             true
                         }
-                        None => false,
+                        Err(()) => false,
                     }
                 }
                 _ => false,
@@ -222,10 +255,12 @@ fn handle(cmd: Cmd, req: &[u8], response: &mut Response) {
             unsafe { bootloader_getInfo(&mut info) };
             // The SDK's customer field is 16 bits wide, but only its low byte is sent
             // because the version is consumed as major.minor.customer.
-            response.push((info.version >> BOOTLOADER_VERSION_MAJOR_SHIFT) as u8);
-            response.push((info.version >> BOOTLOADER_VERSION_MINOR_SHIFT) as u8);
-            response.push(info.version as u8);
-            response.push_bytes(&info.capabilities.to_be_bytes());
+            response.extend(&[
+                (info.version >> BOOTLOADER_VERSION_MAJOR_SHIFT) as u8,
+                (info.version >> BOOTLOADER_VERSION_MINOR_SHIFT) as u8,
+                info.version as u8,
+            ]);
+            response.extend(&info.capabilities.to_be_bytes());
         }
     }
 }
@@ -233,20 +268,23 @@ fn handle(cmd: Cmd, req: &[u8], response: &mut Response) {
 extern "C" fn handle_nabu_casa(frame: comm_interface_frame_ptr) {
     let frame = unsafe { &*frame };
     // `len` counts the type, command and checksum bytes too
-    let req = &frame.payload[..usize::from(frame.len.saturating_sub(3))];
+    let payload = &frame.payload[..usize::from(frame.len.saturating_sub(3))];
 
     let mut response = Response::new();
-    match req.first().copied().map(Cmd::from_u8) {
-        Some(Some(cmd)) => {
-            response.push(cmd as u8);
-            handle(cmd, req, &mut response);
-        }
-        // Unknown subcommand: echo it with `false`
-        Some(None) => response.push_bytes(&[req[0], 0]),
+    match payload.split_first() {
         // No subcommand: `false`
         None => response.push(0),
+        Some((&cmd, args)) => {
+            response.push(cmd);
+            match Cmd::try_from(cmd) {
+                Ok(cmd) => handle(cmd, args, &mut response),
+                // Unknown subcommand: `false`
+                Err(()) => response.push(0),
+            }
+        }
     }
-    unsafe { Respond(frame.cmd, response.buf.as_ptr(), response.len as u8) };
+    let reply = response.bytes();
+    unsafe { Respond(frame.cmd, reply.as_ptr(), reply.len() as u8) };
 }
 
 // ZW_ADD_CMD: the Serial API collects its handlers from this section

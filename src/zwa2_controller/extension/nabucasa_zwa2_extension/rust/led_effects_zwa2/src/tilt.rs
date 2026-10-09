@@ -24,26 +24,6 @@ const SAMPLE_TICKS: u32 = SAMPLE_MS / UPDATE_INTERVAL_MS;
 
 const BLINK_PERIOD_MS: u16 = 500;
 
-struct Tilt {
-    monitoring: bool,
-    enabled: bool,
-    tilted: bool,
-    ticks: u32,
-    last_reading: [i16; 3],
-    stable_count: u32,
-}
-
-// Also used from the sleeptimer ISR
-static TILT: Mutex<RefCell<Tilt>> = Mutex::new(RefCell::new(Tilt {
-    monitoring: false,
-    enabled: true,
-    tilted: false,
-    ticks: 0,
-    last_reading: [0; 3],
-    stable_count: 0,
-}));
-static TIMER: SyncCell<sl_sleeptimer_timer_handle_t> = SyncCell::new(ZERO_TIMER);
-
 // `asin(|horizontal| / |total|) > threshold`, compared as squared sines to avoid the
 // trigonometry. Both sides are monotonic over 0-90 degrees. Upright and upside-down both
 // count as vertical. `None` when the reading is too small to judge.
@@ -54,59 +34,73 @@ fn is_tilted(reading: [i16; 3], threshold_sin2: f32) -> Option<bool> {
     (total >= 1.0).then(|| horizontal > threshold_sin2 * total)
 }
 
-fn is_stable(reading: [i16; 3], last: [i16; 3]) -> bool {
-    reading
-        .iter()
-        .zip(&last)
-        .all(|(a, b)| a.wrapping_sub(*b).unsigned_abs() < STABLE_DELTA)
+/// Counts consecutive readings that stay within `STABLE_DELTA` of the previous one
+struct Debounce {
+    last: [i16; 3],
+    stable: u32,
 }
 
-extern "C" fn monitor_callback(_handle: *mut sl_sleeptimer_timer_handle_t, _data: *mut c_void) {
-    let sample_due = critical_section::with(|cs| {
-        let mut tilt = TILT.borrow(cs).borrow_mut();
-        tilt.ticks = tilt.ticks.wrapping_add(1);
-        if !tilt.enabled {
-            if core::mem::take(&mut tilt.tilted) {
-                manager::clear_pattern(Priority::Tilt);
-            }
+impl Debounce {
+    const NEW: Self = Self {
+        last: [0; 3],
+        stable: 0,
+    };
+
+    /// Whether `reading` is at least the `STABLE_COUNT`th stable one in a row
+    fn settled(&mut self, reading: [i16; 3]) -> bool {
+        let stable = reading
+            .iter()
+            .zip(&self.last)
+            .all(|(a, b)| a.wrapping_sub(*b).unsigned_abs() < STABLE_DELTA);
+        self.last = reading;
+        self.stable = if stable {
+            self.stable.saturating_add(1)
+        } else {
+            0
+        };
+        self.stable >= STABLE_COUNT
+    }
+}
+
+struct Tilt {
+    monitoring: bool,
+    enabled: bool,
+    tilted: bool,
+    ticks: u32,
+    debounce: Debounce,
+}
+
+impl Tilt {
+    /// Counts a timer tick; whether an accelerometer sample is due
+    fn tick(&mut self) -> bool {
+        self.ticks = self.ticks.wrapping_add(1);
+        if !self.enabled {
+            self.set_tilted(false);
             return false;
         }
-        tilt.ticks % SAMPLE_TICKS == 0
-    });
-    if !sample_due {
-        return;
+        self.ticks % SAMPLE_TICKS == 0
     }
 
-    // Outside the critical section, since I2C takes a while
-    let reading = qma6100p_driver::read_raw();
-
-    critical_section::with(|cs| {
-        let mut tilt = TILT.borrow(cs).borrow_mut();
-
-        let stable = is_stable(reading, tilt.last_reading);
-        tilt.last_reading = reading;
-        if stable {
-            tilt.stable_count = tilt.stable_count.saturating_add(1);
-        } else {
-            tilt.stable_count = 0;
+    fn sample(&mut self, reading: [i16; 3]) {
+        if !self.debounce.settled(reading) {
             return;
         }
-        if tilt.stable_count < STABLE_COUNT {
-            return;
-        }
-
-        let threshold = if tilt.tilted {
+        // Hysteresis: tilting needs the larger angle, levelling out the smaller one
+        let threshold = if self.tilted {
             TILT_RELEASE_SIN2
         } else {
             TILT_THRESHOLD_SIN2
         };
-        let Some(tilted) = is_tilted(reading, threshold) else {
-            return;
-        };
-        if tilted == tilt.tilted {
+        if let Some(tilted) = is_tilted(reading, threshold) {
+            self.set_tilted(tilted);
+        }
+    }
+
+    fn set_tilted(&mut self, tilted: bool) {
+        if tilted == self.tilted {
             return;
         }
-        tilt.tilted = tilted;
+        self.tilted = tilted;
         if tilted {
             manager::set_pattern(
                 Priority::Tilt,
@@ -115,21 +109,34 @@ extern "C" fn monitor_callback(_handle: *mut sl_sleeptimer_timer_handle_t, _data
         } else {
             manager::clear_pattern(Priority::Tilt);
         }
-    });
+    }
+}
+
+// Also used from the sleeptimer ISR
+static TILT: Mutex<RefCell<Tilt>> = Mutex::new(RefCell::new(Tilt {
+    monitoring: false,
+    enabled: true,
+    tilted: false,
+    ticks: 0,
+    debounce: Debounce::NEW,
+}));
+static TIMER: SyncCell<sl_sleeptimer_timer_handle_t> = SyncCell::new(ZERO_TIMER);
+
+extern "C" fn monitor_callback(_handle: *mut sl_sleeptimer_timer_handle_t, _data: *mut c_void) {
+    let sample_due = critical_section::with(|cs| TILT.borrow(cs).borrow_mut().tick());
+    if !sample_due {
+        return;
+    }
+    // Outside the critical section, since I2C takes a while
+    let reading = qma6100p_driver::read_raw();
+    critical_section::with(|cs| TILT.borrow(cs).borrow_mut().sample(reading));
 }
 
 pub fn start() {
-    let already = critical_section::with(|cs| {
-        let mut tilt = TILT.borrow(cs).borrow_mut();
-        if tilt.monitoring {
-            return true;
-        }
-        tilt.monitoring = true;
-        tilt.ticks = 0;
-        tilt.tilted = false;
-        false
+    let started = critical_section::with(|cs| {
+        !core::mem::replace(&mut TILT.borrow(cs).borrow_mut().monitoring, true)
     });
-    if already {
+    if !started {
         return;
     }
     unsafe {
@@ -149,8 +156,8 @@ pub fn set_enabled(enabled: bool) {
         let mut tilt = TILT.borrow(cs).borrow_mut();
         tilt.enabled = enabled;
         // Disabling while tilted clears the blink immediately
-        if !enabled && core::mem::take(&mut tilt.tilted) {
-            manager::clear_pattern(Priority::Tilt);
+        if !enabled {
+            tilt.set_tilted(false);
         }
     });
 }

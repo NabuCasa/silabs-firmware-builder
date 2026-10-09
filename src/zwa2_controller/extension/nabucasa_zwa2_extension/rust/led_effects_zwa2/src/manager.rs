@@ -1,6 +1,7 @@
 //! The priority-layered LED manager, driven from a sleeptimer.
 use core::cell::RefCell;
 use core::ffi::c_void;
+use core::ops::{Index, IndexMut};
 use core::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 use critical_section::Mutex;
@@ -160,8 +161,23 @@ struct Layer {
 struct Layers([Option<Layer>; Priority::COUNT]);
 
 impl Layers {
+    /// The highest active layer
     fn top(&self) -> Option<Layer> {
         self.0.iter().rev().flatten().next().copied()
+    }
+}
+
+impl Index<Priority> for Layers {
+    type Output = Option<Layer>;
+
+    fn index(&self, priority: Priority) -> &Option<Layer> {
+        &self.0[priority as usize]
+    }
+}
+
+impl IndexMut<Priority> for Layers {
+    fn index_mut(&mut self, priority: Priority) -> &mut Option<Layer> {
+        &mut self.0[priority as usize]
     }
 }
 
@@ -223,7 +239,7 @@ pub fn init() {
 pub fn set_pattern(priority: Priority, pattern: Pattern) {
     critical_section::with(|cs| {
         let tick = TICK.load(Ordering::SeqCst);
-        LAYERS.borrow(cs).borrow_mut().0[priority as usize] = Some(Layer {
+        LAYERS.borrow(cs).borrow_mut()[priority] = Some(Layer {
             pattern,
             start_tick: tick,
         });
@@ -231,7 +247,7 @@ pub fn set_pattern(priority: Priority, pattern: Pattern) {
 }
 
 pub fn clear_pattern(priority: Priority) {
-    critical_section::with(|cs| LAYERS.borrow(cs).borrow_mut().0[priority as usize] = None);
+    critical_section::with(|cs| LAYERS.borrow(cs).borrow_mut()[priority] = None);
 }
 
 pub fn set_color(priority: Priority, color: Rgb) {

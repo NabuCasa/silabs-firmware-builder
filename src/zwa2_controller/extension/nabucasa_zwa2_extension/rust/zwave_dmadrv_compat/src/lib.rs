@@ -8,7 +8,8 @@
 
 use core::cell::Cell;
 use core::ffi::{c_uint, c_void};
-use core::ptr::{addr_of_mut, null_mut};
+use core::ptr::null_mut;
+use core::sync::atomic::AtomicU8;
 
 use critical_section::Mutex;
 
@@ -63,27 +64,27 @@ extern "C" fn tx_done(_channel: c_uint, _sequence_no: c_uint, _user_param: *mut 
     false
 }
 
+fn check(result: Ecode_t) -> Result<(), ()> {
+    (result == ECODE_EMDRV_DMADRV_OK).then_some(()).ok_or(())
+}
+
+// A fake transfer on the Z-Wave channel installs `tx_done`, which then persists
+static DUMMY_DATA: AtomicU8 = AtomicU8::new(0);
+
 // As of Simplicity SDK 2026.6.0, DMADRV is deprecated in favour of sl_dma_manager (it still
 // works, delegating internally). This shim is deliberately built on DMADRV constructs to
 // match the Z-Wave ZPAL and SPI/I2C drivers.
-#[no_mangle]
-pub extern "C" fn zwave_dmadrv_compat_init() -> sl_status_t {
-    static mut DUMMY_DATA: u8 = 0;
-
+fn init() -> Result<(), ()> {
     let result = unsafe { DMADRV_Init() };
-    if result != ECODE_EMDRV_DMADRV_OK && result != ECODE_EMDRV_DMADRV_ALREADY_INITIALIZED {
-        return SL_STATUS_FAIL;
+    if result != ECODE_EMDRV_DMADRV_ALREADY_INITIALIZED {
+        check(result)?;
     }
 
     // Allocate the Z-Wave LDMA channel before any other drivers
-    let result = unsafe { DMADRV_AllocateChannelById(ZWAVE_LDMA_CHANNEL, null_mut()) };
-    if result != ECODE_EMDRV_DMADRV_OK {
-        return SL_STATUS_FAIL;
-    }
+    check(unsafe { DMADRV_AllocateChannelById(ZWAVE_LDMA_CHANNEL, null_mut()) })?;
 
-    // A fake transfer installs the callback, which then persists indefinitely
-    let dummy = addr_of_mut!(DUMMY_DATA) as *mut c_void;
-    let result = unsafe {
+    let dummy = DUMMY_DATA.as_ptr() as *mut c_void;
+    check(unsafe {
         DMADRV_MemoryPeripheral(
             ZWAVE_LDMA_CHANNEL,
             0,
@@ -95,9 +96,13 @@ pub extern "C" fn zwave_dmadrv_compat_init() -> sl_status_t {
             Some(tx_done),
             null_mut(),
         )
-    };
-    if result != ECODE_EMDRV_DMADRV_OK {
-        return SL_STATUS_FAIL;
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn zwave_dmadrv_compat_init() -> sl_status_t {
+    match init() {
+        Ok(()) => SL_STATUS_OK,
+        Err(()) => SL_STATUS_FAIL,
     }
-    SL_STATUS_OK
 }
