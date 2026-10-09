@@ -35,6 +35,7 @@ PROJECTS_ROOT = pathlib.Path(__file__).parent.parent
 # The glue crates, beside the runtime component
 GLUE_DIR = PROJECTS_ROOT / "extension" / "rust_extension" / "rust"
 LOCKFILE = PROJECTS_ROOT / "Cargo.lock"
+TOOLCHAIN_FILE = PROJECTS_ROOT / "rust-toolchain.toml"
 UNIVERSE_ROOTS = [PROJECTS_ROOT / "src", PROJECTS_ROOT / "extension"]
 
 # All supported parts are Cortex-M33 with a single-precision FPU, linked hard-float
@@ -300,6 +301,7 @@ def write_workspace(out: pathlib.Path, crates: dict[str, Crate]) -> None:
         WORKSPACE_MANIFEST.format(members=", ".join(f'"{m}"' for m in members))
     )
     shutil.copy(LOCKFILE, out / "Cargo.lock")
+    shutil.copy(TOOLCHAIN_FILE, out / "rust-toolchain.toml")
 
 
 def generate(
