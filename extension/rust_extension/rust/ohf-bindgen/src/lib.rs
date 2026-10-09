@@ -8,8 +8,8 @@ pub fn builder() -> bindgen::Builder {
     println!("cargo:rerun-if-env-changed=OHF_BINDGEN_FLAGS");
 
     let clang_args: Vec<String> = env::var("OHF_BINDGEN_FLAGS")
-        .expect("OHF_BINDGEN_FLAGS (SLC-derived clang args)")
-        .split_whitespace()
+        .expect("OHF_BINDGEN_FLAGS (the SLC C compile's clang args, one per line)")
+        .lines()
         .map(str::to_owned)
         .collect();
 

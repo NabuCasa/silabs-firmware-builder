@@ -13,6 +13,7 @@ import logging
 import os
 import pathlib
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -1251,9 +1252,7 @@ def assemble_build_flags(
     }
 
 
-def cmake_configure_and_build(
-    build: ResolvedBuild, build_flags: dict[str, list[str]]
-) -> None:
+def cmake_configure(build: ResolvedBuild, build_flags: dict[str, list[str]]) -> None:
     # The GBL is built in-process after the link, so neutralize the SDK's post-build
     # hook. CMake expects a semicolon-separated list for the command.
     cmake_post_build_command = ";".join([shutil.which("cmake"), "-E", "true"])
@@ -1266,6 +1265,8 @@ def cmake_configure_and_build(
             "cmake",
             "-G", "Ninja",
             "-D", "CMAKE_TOOLCHAIN_FILE=toolchain.cmake",
+            # The Rust build takes its clang arguments from the exported C compiles
+            "-D", "CMAKE_EXPORT_COMPILE_COMMANDS=ON",
             "-D", f"CMAKE_C_FLAGS={' '.join(build_flags['C_FLAGS'])}",
             "-D", f"CMAKE_CXX_FLAGS={' '.join(build_flags['CXX_FLAGS'])}",
             "-D", f"CMAKE_EXE_LINKER_FLAGS={' '.join(build_flags['LD_FLAGS'])}",
@@ -1287,6 +1288,10 @@ def cmake_configure_and_build(
     )
     # fmt: on
 
+
+def cmake_build(build: ResolvedBuild) -> None:
+    source_date_epoch = str(int(build.build_timestamp.timestamp()))
+
     subprocess_run_verbose(
         ["cmake", "--build", "."],
         "cmake --build",
@@ -1303,41 +1308,57 @@ def rust_toolchain_binaries(build: ResolvedBuild) -> dict[str, typing.Any]:
     """LLVM binaries for the Rust build, which joins the firmware's LTO link as bitcode."""
     assert build.toolchain is Toolchain.LLVM, "Rust components need the LLVM toolchain"
     tp = build.toolchain_path
-    return {
-        "ar": tp / "bin/llvm-ar",
-        "clang": tp / "bin/clang",
-        "sysroot": tp / "lib/clang-runtimes/arm-none-eabi/include",
-    }
+    return {"ar": tp / "bin/llvm-ar", "clang": tp / "bin/clang"}
 
 
-def extract_slc_clang_flags(build: ResolvedBuild) -> dict[str, typing.Any]:
-    """Include dirs, defines and arch flags from the SLC-generated CMake project."""
-    text = build.project_cmake.read_text()
-    copied = re.search(r'set\(COPIED_SDK_PATH "([^"]+)"\)', text).group(1)
+def slc_compile_command(build: ResolvedBuild) -> list[str]:
+    """The arguments of a C compile in the SLC object library, from CMake's export."""
+    entries = json.loads((build.cmake_dir / "compile_commands.json").read_text())
+    entry = min(
+        (
+            e
+            for e in entries
+            if e["output"].startswith("CMakeFiles/slc.dir/")
+            and e["file"].endswith(".c")
+        ),
+        key=lambda e: e["file"],
+    )
 
-    inc_block = re.search(
-        r"target_include_directories\(slc PUBLIC(.*?)\n\)", text, re.DOTALL
-    ).group(1)
-    includes = []
-    for raw in re.findall(r'"([^"]+)"', inc_block):
-        raw = raw.replace("${COPIED_SDK_PATH}", copied).replace(
-            "${CMAKE_CURRENT_LIST_DIR}", str(build.cmake_dir)
-        )
-        includes.append(str((build.cmake_dir / raw).resolve()))
+    source = entry["file"]
+    command = []
+    skip = False
 
-    # The zigbee stack headers need the full define set. CMake escapes inner quotes.
-    defs_block = re.search(
-        r"target_compile_definitions\(slc PUBLIC(.*?)\n\)", text, re.DOTALL
-    ).group(1)
-    defines = [
-        d.replace('\\"', '"') for d in re.findall(r'"((?:[^"\\]|\\.)*)"', defs_block)
-    ]
-    arch = sorted(set(re.findall(r"-m(?:cpu|fpu|float-abi)=[\w.+-]+|-mthumb", text)))
+    for arg in shlex.split(entry["command"])[1:]:
+        if skip:
+            skip = False
+        elif arg in ("-o", "-MT", "-MF"):
+            skip = True
+        elif arg in ("-c", "-MD", source):
+            pass
+        else:
+            command.append(arg)
 
-    # Changes enum layout, so the shim and bindgen must match the C sources (Z-Wave)
-    abi = sorted(set(re.findall(r"-fshort-enums", text)))
+    return command
 
-    return {"includes": includes, "defines": defines, "arch": arch, "abi": abi}
+
+def c_library_include_dirs(build: ResolvedBuild, command: list[str]) -> list[str]:
+    """The system headers the toolchain's clang resolves for the compile."""
+
+    # Its config file picks the C library and its multilib selection picks the variant.
+    # Arm's `multilib.yaml` uses keys only Arm's driver reads, so bindgen's libclang,
+    # the upstream build of the same LLVM, cannot resolve them itself.
+    clang = build.toolchain_path / "bin/clang"
+    listing = subprocess.run(
+        [clang, *command, "-E", "-v", "-x", "c", os.devnull, "-o", os.devnull],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stderr.split("\n")
+
+    start = listing.index("#include <...> search starts here:") + 1
+    end = listing.index("End of search list.")
+
+    return [line.strip() for line in listing[start:end]]
 
 
 def build_rust_libraries(
@@ -1365,7 +1386,7 @@ def build_rust_libraries(
     workspace = build.build_dir / "rust"
     rust_workspace.write_workspace(workspace, project.crates)
 
-    flags = extract_slc_clang_flags(build)
+    command = slc_compile_command(build)
 
     config_path = build.build_dir / "rust_build.json"
     config_path.write_text(json.dumps(rust_config, indent=2))
@@ -1375,42 +1396,48 @@ def build_rust_libraries(
     # crates rebuild exactly when the project they bind changes
     target_dir = (PROJECTS_ROOT / "build" / "cargo").resolve()
 
-    inc_args = " ".join(f"-I{d}" for d in flags["includes"])
-    define_args = " ".join(f"-D{d}" for d in flags["defines"])
     bins = rust_toolchain_binaries(build)
-    abi_args = " ".join(flags["abi"])
+    (cpu,) = [arg.removeprefix("-mcpu=") for arg in command if arg.startswith("-mcpu=")]
+
+    # bindgen parses the SDK headers with the C compile's own arguments, so it sees the
+    # C sources' ABI, defines and C library. The system headers are passed explicitly,
+    # in place of the config file, and the driver's own are disabled
+    bindgen_args = [
+        *(arg for arg in command if not arg.startswith("--config=")),
+        "-nostdlibinc",
+        *(f"-isystem{d}" for d in c_library_include_dirs(build, command)),
+    ]
 
     env = {
         **os.environ,
-        "OHF_BINDGEN_FLAGS": f"--target={RUST_TARGET} {abi_args} -isystem{bins['sysroot']} {inc_args} {define_args}",
+        "OHF_BINDGEN_FLAGS": "\n".join(bindgen_args),
         "OHF_RUST_CONFIG": str(config_path.resolve()),
         # Bitcode for the firmware's LTO link, so rustc's LLVM must not be newer than LLD.
         # SLC compiles with -fwhole-program-vtables, which needs every LTO unit split.
-        "RUSTFLAGS": "-Clinker-plugin-lto -Zsplit-lto-unit -Zunstable-options -Cpanic=immediate-abort",
+        # The CPU matches the C objects' target features, so LTO can inline across them.
+        "RUSTFLAGS": f"-Clinker-plugin-lto -Zsplit-lto-unit -Zunstable-options -Cpanic=immediate-abort -Ctarget-cpu={cpu}",
         # Unlocks the unstable flags on the pinned stable toolchain
         "RUSTC_BOOTSTRAP": "1",
     }
 
+    # fmt: off
     subprocess_run_verbose(
         [
-            "cargo",
-            "build",
-            "--release",
+            "cargo", "build", "--release",
             # The workspace's lockfile is the committed one, pruned to its crates
             "--offline",
-            "--target",
-            RUST_TARGET,
-            "--target-dir",
-            target_dir,
+            "--target", RUST_TARGET,
+            "--target-dir", target_dir,
             # `core` as bitcode too
             "-Zbuild-std=core",
-            "-p",
-            rust_workspace.AGGREGATOR,
+            "-p", rust_workspace.AGGREGATOR,
         ],
         "cargo",
         env=env,
         cwd=workspace,
     )
+    # fmt: on
+
     rust_workspace.validate_lockfile(workspace)
 
     # The crates are linked as objects, so they are always loaded and their strong
@@ -1563,8 +1590,12 @@ def main() -> None:
         if declared_wraps[target] is not None
     ]
     exclude_definitions_from_lto(build, definitions)
+    build_flags = assemble_build_flags(build, c_flag_defines)
+    cmake_configure(build, build_flags)
     rust_objects = build_rust_libraries(build, project, rust_config)
-    cmake_configure_and_build(build, assemble_build_flags(build, c_flag_defines))
+    # The Rust objects were appended to the project, so regenerate to link them
+    cmake_configure(build, build_flags)
+    cmake_build(build)
     validate_weak_overrides(build, rust_objects, declared_overrides)
 
     validate_linker_wraps(

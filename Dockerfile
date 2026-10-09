@@ -100,6 +100,20 @@ RUN set -eux \
     && bsdtar -xf newlib.tar.xz -C /opt/toolchains/llvm-arm-none-eabi \
     && rm atfe.tar.xz nano.tar.xz newlib.tar.xz
 
+# Arm ships no libclang. bindgen parses the SDK headers with the upstream build of the
+# same LLVM release, placed in the toolchain so that it resolves Arm's builtin headers.
+RUN set -eux \
+    && cd /tmp \
+    && if [ "$TARGETARCH" = "arm64" ]; then \
+        aria2c -q -o llvm.tar.xz --checksum=sha-256=2764bb49ad4dab93226328d6374ca4466799bdc18372c544d8f6ebc1aa0c28a9 \
+            https://github.com/llvm/llvm-project/releases/download/llvmorg-21.1.1/LLVM-21.1.1-Linux-ARM64.tar.xz; \
+       else \
+        aria2c -q -o llvm.tar.xz --checksum=sha-256=fe9886992273e469fbd664851cbee2f125b383664694684923a41af1c71b9632 \
+            https://github.com/llvm/llvm-project/releases/download/llvmorg-21.1.1/LLVM-21.1.1-Linux-X64.tar.xz; \
+       fi \
+    && bsdtar -xf llvm.tar.xz --strip-components=2 -C /opt/toolchains/llvm-arm-none-eabi/lib 'LLVM-*/lib/libclang.so*' \
+    && rm llvm.tar.xz
+
 # The toolchain pinned in rust-toolchain.toml
 FROM trixie-stable AS rust-toolchain
 ARG TARGETARCH
@@ -155,10 +169,7 @@ RUN --mount=type=bind,from=trixie-stable,source=/var/lib/apt/lists,target=/var/l
        libzstd1 \
        # Host compiler and linker for cargo build scripts and proc macros
        gcc \
-       libc6-dev \
-       # bindgen loads libclang at runtime and needs its builtin headers (stddef.h, ...)
-       libclang1-19 \
-       libclang-common-19-dev
+       libc6-dev
 
 # Copy from parallel stages
 COPY --from=python-venv /opt/pythons /opt/pythons
@@ -180,6 +191,8 @@ ENV HOME=/root
 ENV RUSTUP_HOME=/opt/rust/rustup
 ENV CARGO_HOME=/opt/rust/cargo
 ENV PATH="$PATH:/opt/silabs/bin:/opt/rust/cargo/bin"
+# bindgen's libclang, from the toolchain
+ENV LIBCLANG_PATH=/opt/toolchains/llvm-arm-none-eabi/lib
 
 # Firmware builds run offline: cache every Rust component's dependencies. The workspace
 # is generated from the components' slcc files, so this needs the whole tree.
