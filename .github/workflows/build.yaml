@@ -35,6 +35,8 @@ jobs:
         run: |
           pip install pre-commit
           pre-commit install
+      - name: Install Rust toolchain
+        run: rustup toolchain install
       - name: Run pre-commit
         run: |
           pre-commit run --show-diff-on-failure --color=always --all-files
