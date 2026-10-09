@@ -77,67 +77,28 @@ RUN set -eux \
     && bsdtar -xf sdk.tgz -C "/opt/silabs/sdks/simplicity_sdk_$SDK_VERSION" \
     && rm -f rrev.json pkgs.json prev.json sdk.tgz
 
-# Arm publishes both toolchains that Silicon Labs repackages: arm-none-eabi (GCC) and
-# Arm Toolchain for Embedded (LLVM).
+# Arm publishes both toolchains that Silicon Labs repackages, including Arm Toolchain for Embedded (LLVM)
 FROM trixie-stable AS arm-toolchains
 ARG TARGETARCH
 RUN set -eux \
     && apt-get install -y --no-install-recommends \
         aria2 ca-certificates libarchive-tools \
-    && mkdir -p /opt/toolchains/gcc-arm-none-eabi /opt/toolchains/llvm-arm-none-eabi \
+    && mkdir -p /opt/toolchains/llvm-arm-none-eabi \
     && if [ "$TARGETARCH" = "arm64" ]; then \
-        aria2c -q -o gcc.tar.xz --checksum=sha-256=87330bab085dd8749d4ed0ad633674b9dc48b237b61069e3b481abd364d0a684 \
-            https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-aarch64-arm-none-eabi.tar.xz \
-        && aria2c -q -o atfe.tar.xz --checksum=sha-256=dfd93d7c79f26667f4baf7f388966aa4cbfd938bc5cbcf0ae064553faf3e9604 \
+        aria2c -q -o atfe.tar.xz --checksum=sha-256=dfd93d7c79f26667f4baf7f388966aa4cbfd938bc5cbcf0ae064553faf3e9604 \
             https://github.com/arm/arm-toolchain/releases/download/release-21.1.1-ATfE/ATfE-21.1.1-Linux-AArch64.tar.xz; \
        else \
-        aria2c -q -o gcc.tar.xz --checksum=sha-256=62a63b981fe391a9cbad7ef51b17e49aeaa3e7b0d029b36ca1e9c3b2a9b78823 \
-            https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-eabi.tar.xz \
-        && aria2c -q -o atfe.tar.xz --checksum=sha-256=fd7fcc2eb4c88c53b71c45f9c6aa83317d45da5c1b51b0720c66f1ac70151e6e \
+        aria2c -q -o atfe.tar.xz --checksum=sha-256=fd7fcc2eb4c88c53b71c45f9c6aa83317d45da5c1b51b0720c66f1ac70151e6e \
             https://github.com/arm/arm-toolchain/releases/download/release-21.1.1-ATfE/ATfE-21.1.1-Linux-x86_64.tar.xz; \
        fi \
     && aria2c -q -o nano.tar.xz --checksum=sha-256=7b70739b5f5ec0172b379de458daa97f063aa90f7eb1c5f543e2923a72dfce42 \
         https://github.com/arm/arm-toolchain/releases/download/release-21.1.1-ATfE/ATfE-newlib-nano-overlay-21.1.1.tar.xz \
     && aria2c -q -o newlib.tar.xz --checksum=sha-256=d9750863c5561c05a57f6df6019efea87e9206c0eef34c4e6441f339824cc908 \
         https://github.com/arm/arm-toolchain/releases/download/release-21.1.1-ATfE/ATfE-newlib-overlay-21.1.1.tar.xz \
-    && bsdtar -xf gcc.tar.xz --strip-components=1 -C /opt/toolchains/gcc-arm-none-eabi \
     && bsdtar -xf atfe.tar.xz --strip-components=1 -C /opt/toolchains/llvm-arm-none-eabi \
     && bsdtar -xf nano.tar.xz -C /opt/toolchains/llvm-arm-none-eabi \
     && bsdtar -xf newlib.tar.xz -C /opt/toolchains/llvm-arm-none-eabi \
-    && rm gcc.tar.xz atfe.tar.xz nano.tar.xz newlib.tar.xz
-
-# Arm's official aarch64 toolchain was built WITHOUT libzstd and SiLabs uses
-# zstd-compressed LTO bytecode in their precompiled SDK stack libraries. This prevents
-# any compilation from succeeding on ARM64 hosts. We need to build our own minimal
-# toolchain with zstd support to work around this. x86 is not affected.
-FROM trixie-stable AS zstd-gcc-builder
-ARG TARGETARCH
-RUN mkdir -p /opt/zstd-gcc \
-    && if [ "$TARGETARCH" = "arm64" ]; then set -eux \
-        && apt-get install -y --no-install-recommends \
-            build-essential flex bison texinfo gawk libtool autoconf m4 \
-            zlib1g-dev libzstd-dev wget file gettext bzip2 xz-utils ca-certificates git aria2 \
-        && mkdir -p /build/src && cd /build \
-        && aria2c --checksum=sha-256=e6405f20f8a817a50d92dbf7974d0ee77708dfdf9e79900a59c5d343b464ef9c -o src.tar.xz \
-            https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/14.2.rel1/srcrel/arm-gnu-toolchain-src-snapshot-14.2.rel1.tar.xz \
-        && tar -xJf src.tar.xz -C /build/src && rm src.tar.xz \
-        && git clone --depth 1 --branch v1.1.0 \
-            https://git.gitlab.arm.com/tooling/gnu-devtools-for-arm.git /build/src/gnu-devtools-for-arm \
-        && ln -sf src/gnu-devtools-for-arm/build-gnu-toolchain.sh . \
-        # The `start` stage normally creates `install/`. Running stages individually skips
-        # it, so pre-create it or the first `do_config` can't write `install/.build_flags`.
-        && mkdir -p /build/build-arm-none-eabi-armv7e-m/install \
-        # Single multilib, no gdb. Through gcc2 so cc1plus (C++) is built too.
-        && ./build-gnu-toolchain.sh --target=arm-none-eabi --with-arch=armv7e-m \
-            --disable-multilib --disable-gdb \
-            gmp mpfr mpc isl iconv binutils gcc1 newlib gcc2 \
-        && for t in cc1 cc1plus lto1; do \
-             cp "$(find /build -path '*/libexec/gcc/arm-none-eabi/*' -name "$t" | head -1)" /opt/zstd-gcc/; \
-           done \
-        # Strip debug info (Arm ships these stripped; unstripped they are ~340 MB each)
-        && strip /opt/zstd-gcc/* \
-        && rm -rf /build; \
-    fi
+    && rm atfe.tar.xz nano.tar.xz newlib.tar.xz
 
 # The toolchain pinned in rust-toolchain.toml
 FROM trixie-stable AS rust-toolchain
@@ -206,7 +167,6 @@ COPY --from=silabs-tools /opt/silabs /opt/silabs
 COPY --from=arm-toolchains /opt/toolchains /opt/toolchains
 COPY --from=rust-toolchain /opt/rust /opt/rust
 COPY --from=silabs-sdk /opt/silabs/sdks /opt/silabs/sdks
-COPY --from=zstd-gcc-builder /opt/zstd-gcc /tmp/zstd-gcc
 RUN set -eux \
     && mkdir -p /opt/silabs/bin \
     && ln -s /opt/silabs/java21/jre/bin/java /opt/silabs/bin/java \
@@ -214,11 +174,6 @@ RUN set -eux \
     # slc uses $(dirname "$0") to find slc.jar, so it needs a wrapper rather than a symlink
     && printf '#!/bin/sh\nexec /opt/silabs/slc-cli/slc "$@"\n' > /opt/silabs/bin/slc \
     && chmod +x /opt/silabs/bin/slc \
-    && if [ "$TARGETARCH" = "arm64" ]; then \
-        cp /tmp/zstd-gcc/cc1 /tmp/zstd-gcc/cc1plus /tmp/zstd-gcc/lto1 \
-            /opt/toolchains/gcc-arm-none-eabi/libexec/gcc/arm-none-eabi/*/; \
-       fi \
-    && rm -rf /tmp/zstd-gcc \
     && git config --system --add safe.directory '*'
 
 ENV HOME=/root
