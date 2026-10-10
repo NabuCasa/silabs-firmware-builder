@@ -18,7 +18,11 @@ use led_effects_zwa2::{
 mod bindings {
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
-use bindings::*;
+use bindings::{
+    bootloader_getInfo, cmd_handler_map_t, comm_interface_frame_ptr, BootloaderInformation_t,
+    Respond, BOOTLOADER_VERSION_MAJOR_SHIFT, BOOTLOADER_VERSION_MINOR_SHIFT, BUF_SIZE_TX,
+    FUNC_ID_PROPRIETARY_0,
+};
 
 const FUNC_ID_NABU_CASA: u8 = FUNC_ID_PROPRIETARY_0 as u8;
 

@@ -10,7 +10,10 @@ pub use xncp_macros::{xncp_command, xncp_feature};
 mod bindings {
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
-use bindings::*;
+use bindings::{
+    sl_status_t, SL_STATUS_INVALID_PARAMETER, SL_STATUS_NOT_FOUND, SL_STATUS_OK,
+    SL_ZIGBEE_MAX_CUSTOM_EZSP_MESSAGE_PAYLOAD,
+};
 
 /// The wire status byte: the low byte of the `sl_status_t` the protocol carries.
 #[derive(Clone, Copy, PartialEq, Eq)]

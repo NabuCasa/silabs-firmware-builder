@@ -12,7 +12,19 @@
 mod bindings {
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
-use bindings::*;
+use bindings::{
+    sl_status_t, sl_zigbee_address_info, sl_zigbee_dlk_negotiation_method,
+    sl_zigbee_dlk_negotiation_shared_secret_source,
+    sl_zigbee_dlk_negotiation_supported_shared_secret_source,
+    sl_zigbee_dlk_supported_negotiation_method, sl_zigbee_sec_man_aps_key_metadata_t,
+    sl_zigbee_sec_man_context_t, sl_zigbee_sec_man_get_aps_key_info,
+    sl_zigbee_sec_man_init_context, DLK_PROTOCOL_ENUM_SPEKE_C25519_AES128,
+    DLK_PROTOCOL_ENUM_SPEKE_C25519_SHA256, DLK_PROTOCOL_ENUM_STATIC_KEY,
+    DLK_PROTOCOL_MASK_SPEKE_C25519_AES128, DLK_PROTOCOL_MASK_SPEKE_C25519_SHA256,
+    DLK_PROTOCOL_MASK_STATIC_KEY_REQUEST, DLK_SECRET_ENUM_PRECONFIG_INSTALL_CODE,
+    DLK_SECRET_MASK_PRECONFIG_INSTALL_CODE, SL_STATUS_NOT_FOUND, SL_STATUS_NOT_SUPPORTED,
+    SL_STATUS_OK, SL_ZB_SEC_MAN_KEY_TYPE_TC_LINK_WITH_TIMEOUT, ZB_SEC_MAN_FLAG_EUI_IS_VALID,
+};
 
 type Selection = (
     sl_zigbee_dlk_negotiation_method,

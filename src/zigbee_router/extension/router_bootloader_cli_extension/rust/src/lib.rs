@@ -12,7 +12,10 @@ use core::ffi::c_uint;
 mod bindings {
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
-use bindings::*;
+use bindings::{
+    bootloader_getInfo, bootloader_rebootAndInstall, sl_cli_command_arg_t, sl_zigbee_af_print,
+    BootloaderInformation_t, SL_BOOTLOADER, SL_ZIGBEE_DEBUG_ZCL_GROUP_ENABLED,
+};
 
 // sl_zigbee_af_app_print, which is a macro
 macro_rules! app_print {

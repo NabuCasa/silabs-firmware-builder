@@ -21,7 +21,18 @@ use ohf_sys::SyncCell;
 mod bindings {
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
-use bindings::*;
+use bindings::{
+    sl_status_t, sl_zigbee_af_event_t, sl_zigbee_af_network_state,
+    sl_zigbee_af_network_steering_start, sl_zigbee_af_read_server_attribute,
+    sli_zigbee_af_event_internal_init, sli_zigbee_af_event_set_active,
+    sli_zigbee_af_event_set_delay_ms, sli_zigbee_debug_print, CLUSTER_MASK_SERVER,
+    SL_STATUS_NETWORK_DOWN, SL_STATUS_NETWORK_UP, SL_STATUS_OK, SL_ZIGBEE_DEBUG_APP_GROUP_ENABLED,
+    SL_ZIGBEE_DEBUG_PRINT_TYPE_APP, SL_ZIGBEE_JOINED_NETWORK, ZCL_COLOR_CONTROL_CLUSTER_ID,
+    ZCL_COLOR_CONTROL_COLOR_MODE_ATTRIBUTE_ID, ZCL_COLOR_CONTROL_COLOR_TEMPERATURE_ATTRIBUTE_ID,
+    ZCL_COLOR_CONTROL_CURRENT_X_ATTRIBUTE_ID, ZCL_COLOR_CONTROL_CURRENT_Y_ATTRIBUTE_ID,
+    ZCL_CURRENT_LEVEL_ATTRIBUTE_ID, ZCL_LEVEL_CONTROL_CLUSTER_ID, ZCL_ON_OFF_ATTRIBUTE_ID,
+    ZCL_ON_OFF_CLUSTER_ID,
+};
 
 const LIGHT_ENDPOINT: u8 = 1;
 const COMMISSIONING_RETRY_DELAY_MS: u32 = 5000;
