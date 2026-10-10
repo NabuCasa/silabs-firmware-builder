@@ -2,3 +2,6 @@
 name = "qma6100p_driver"
 edition.workspace = true
 version.workspace = true
+
+[build-dependencies]
+ohf-bindgen = { path = "../ohf-bindgen" }

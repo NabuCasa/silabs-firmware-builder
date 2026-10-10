@@ -17,7 +17,8 @@ use bindings::{SL_ZIGBEE_ROUTER, SL_ZIGBEE_UNKNOWN_DEVICE};
 
 #[no_mangle]
 pub extern "C" fn router_nvram_reset_init(_init_level: u8) {
-    let node: ohf_sys::tokTypeStackNodeData = ohf_sys::token::get(ohf_sys::TOKEN_STACK_NODE_DATA);
+    let node: ohf_sys::tokTypeStackNodeData =
+        unsafe { ohf_sys::token::get(ohf_sys::TOKEN_STACK_NODE_DATA) };
 
     if node.panId != 0xFFFF
         && node.nodeType != SL_ZIGBEE_ROUTER as u8

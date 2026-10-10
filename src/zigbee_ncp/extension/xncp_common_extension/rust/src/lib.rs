@@ -106,8 +106,9 @@ fn route_entry_ptr(index: u8) -> *mut sli_zigbee_route_table_entry_t {
     }
 }
 
+// The stack owns and updates the table, so it is read and written through raw pointers
 fn route_table_get(index: u8) -> RouteEntry {
-    let e = unsafe { &*route_entry_ptr(index) };
+    let e = unsafe { route_entry_ptr(index).read() };
     RouteEntry {
         destination: e.destination,
         next_hop: e.nextHop,
@@ -117,12 +118,14 @@ fn route_table_get(index: u8) -> RouteEntry {
 }
 
 fn route_table_set(index: u8, v: RouteEntry) {
-    let e = unsafe { &mut *route_entry_ptr(index) };
-    e.destination = v.destination;
-    e.nextHop = v.next_hop;
-    e.status = v.status;
-    e.cost = v.cost;
-    e.networkIndex = 0;
+    let entry = sli_zigbee_route_table_entry_t {
+        destination: v.destination,
+        nextHop: v.next_hop,
+        status: v.status,
+        cost: v.cost,
+        networkIndex: 0,
+    };
+    unsafe { route_entry_ptr(index).write(entry) };
 }
 
 // The slot for a fake route: an existing entry for `destination`, else the last unused

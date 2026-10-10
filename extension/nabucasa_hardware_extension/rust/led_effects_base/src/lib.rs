@@ -8,9 +8,10 @@ use core::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 use critical_section::Mutex;
 use ohf_sys::{
-    sl_led_rgb_pwm_t, sl_led_set_rgb_color, sl_led_t, sl_led_turn_off, sl_led_turn_on,
+    sl_led_set_rgb_color, sl_led_t, sl_led_turn_off, sl_led_turn_on,
     sl_sleeptimer_start_periodic_timer_ms, sl_sleeptimer_timer_handle_t, SyncCell, ZERO_TIMER,
 };
+use ws2812_driver::{sl_led_ws2812, ws2812_led_driver_refresh};
 
 // sin² of the tilt angle that counts as tilted (16°) and, with 4° of hysteresis, of the
 // angle below which it counts as level again (12°)
@@ -184,11 +185,6 @@ const TILT_CHECK_TICKS: u32 = 25;
 const SEARCH_PULSE_PERIOD_MS: u16 = 2760;
 const SEARCH_PULSE_MIN_BRIGHTNESS: u16 = 6554; // ~10%
 
-extern "C" {
-    static sl_led_ws2812: sl_led_rgb_pwm_t;
-    fn ws2812_led_driver_refresh();
-}
-
 #[derive(Clone, Copy)]
 struct Layer {
     pattern: Pattern,
@@ -267,12 +263,12 @@ static TILT: Mutex<RefCell<Tilt>> = Mutex::new(RefCell::new(Tilt {
 }));
 
 fn led_common() -> *const sl_led_t {
-    unsafe { &sl_led_ws2812.led_common as *const sl_led_t }
+    &sl_led_ws2812.0.led_common
 }
 
 fn set_rgb(color: Rgb) {
     unsafe {
-        sl_led_set_rgb_color(&sl_led_ws2812, color.r, color.g, color.b);
+        sl_led_set_rgb_color(&sl_led_ws2812.0, color.r, color.g, color.b);
         sl_led_turn_on(led_common());
     }
 }
@@ -287,7 +283,7 @@ extern "C" fn led_timer_callback(_handle: *mut sl_sleeptimer_timer_handle_t, _da
     if tick % TILT_CHECK_TICKS == 0 {
         TILT_CHECK_DUE.store(true, Ordering::SeqCst);
     }
-    unsafe { ws2812_led_driver_refresh() }
+    ws2812_led_driver_refresh();
 }
 
 fn update_led_hardware() {

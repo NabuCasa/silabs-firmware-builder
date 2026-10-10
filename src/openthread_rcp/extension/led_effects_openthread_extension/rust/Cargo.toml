@@ -2,3 +2,6 @@
 name = "led_effects_openthread"
 edition.workspace = true
 version.workspace = true
+
+[build-dependencies]
+ohf-bindgen = { path = "../ohf-bindgen" }

@@ -3,6 +3,8 @@ fn main() {
         .allowlist_type("sl_button_t")
         .allowlist_type("sl_button")
         .allowlist_function("sl_button_get_state")
+        // The project's button instance
+        .allowlist_var("sl_button_pin_hole_button")
         .allowlist_var("SL_SIMPLE_BUTTON_PRESSED");
 
     // The RCP build has no zigbee stack headers

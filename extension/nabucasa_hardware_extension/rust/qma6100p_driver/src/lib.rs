@@ -1,9 +1,18 @@
 //! QMA6100P accelerometer driver.
 #![no_std]
 
-use ohf_sys::{
-    sl_udelay_wait, I2CSPM_Transfer, I2C_TransferReturn_TypeDef, I2C_TransferSeq_TypeDef,
-    I2C_TransferSeq_TypeDef__bindgen_ty_1 as I2cBuf, I2C_TypeDef, I2C_FLAG_WRITE,
+#[allow(
+    non_camel_case_types,
+    non_upper_case_globals,
+    non_snake_case,
+    dead_code
+)]
+mod bindings {
+    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+}
+use bindings::{
+    sl_i2cspm_inst, sl_udelay_wait, I2CSPM_Transfer, I2C_TransferReturn_TypeDef,
+    I2C_TransferSeq_TypeDef, I2C_TransferSeq_TypeDef__bindgen_ty_1 as I2cBuf, I2C_FLAG_WRITE,
     I2C_FLAG_WRITE_READ,
 };
 
@@ -25,11 +34,6 @@ const QMA6100P_PM_MODE_ACTIVE: u8 = 0x80;
 const QMA6100P_PM_MCLK_51_2K: u8 = 0x04;
 const QMA6100P_RANGE_8G: u8 = 0x04;
 const QMA6100P_BW_100: u8 = 0;
-
-extern "C" {
-    // From the project's autogen
-    static sl_i2cspm_inst: *mut I2C_TypeDef;
-}
 
 // Two buffers: written then read for WRITE_READ, or only the first for WRITE
 fn transfer(flags: u32, first: &mut [u8], second: &mut [u8]) -> I2C_TransferReturn_TypeDef {

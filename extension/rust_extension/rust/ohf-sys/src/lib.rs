@@ -45,22 +45,21 @@ pub mod token {
         u16::try_from(token).unwrap()
     }
 
-    pub fn get<T: Copy>(token: u32) -> T {
-        let mut v: T = unsafe { core::mem::zeroed() };
-        unsafe {
-            super::halInternalGetTokenData(
-                &mut v as *mut T as *mut c_void,
-                key(token),
-                NO_INDEX,
-                size_of::<T>() as u8,
-            )
-        };
+    /// The token's bytes are copied into a `T`, so every bit pattern must be a valid `T`.
+    pub unsafe fn get<T: Copy>(token: u32) -> T {
+        let mut v: T = core::mem::zeroed();
+        super::halInternalGetTokenData(
+            &mut v as *mut T as *mut c_void,
+            key(token),
+            NO_INDEX,
+            size_of::<T>() as u8,
+        );
         v
     }
 
     /// Whether the stack has network settings stored
     pub fn has_stored_network() -> bool {
-        let node: super::tokTypeStackNodeData = get(super::TOKEN_STACK_NODE_DATA);
+        let node: super::tokTypeStackNodeData = unsafe { get(super::TOKEN_STACK_NODE_DATA) };
         node.panId != 0xFFFF && (11..=26).contains(&node.radioFreqChannel)
     }
 }

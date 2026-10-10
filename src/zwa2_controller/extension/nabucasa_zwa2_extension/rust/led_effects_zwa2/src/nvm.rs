@@ -5,9 +5,11 @@ use core::mem::size_of;
 use crate::bindings::{ZAF_nvm_app_read, ZAF_nvm_app_write, ZPAL_STATUS_OK};
 use crate::manager::Rgb;
 
-/// An object stored under its own file id. Every bit pattern must be a valid value, as it
-/// is read straight from the NVM.
-trait NvmObject: Copy {
+/// An object stored under its own file id.
+///
+/// # Safety
+/// Every bit pattern must be a valid value, as it is read straight from the NVM.
+unsafe trait NvmObject: Copy {
     const FILE_ID: u32;
 }
 
@@ -42,7 +44,7 @@ struct LedStorage {
     b: u8,
 }
 
-impl NvmObject for LedStorage {
+unsafe impl NvmObject for LedStorage {
     const FILE_ID: u32 = 0x4660;
 }
 
@@ -87,7 +89,7 @@ struct ConfigStorage {
     flags: u32,
 }
 
-impl NvmObject for ConfigStorage {
+unsafe impl NvmObject for ConfigStorage {
     const FILE_ID: u32 = 0x4661;
 }
 

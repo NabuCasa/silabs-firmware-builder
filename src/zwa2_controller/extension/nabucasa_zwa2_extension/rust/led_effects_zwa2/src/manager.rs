@@ -6,9 +6,10 @@ use core::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 use critical_section::Mutex;
 use ohf_sys::{
-    sl_led_rgb_pwm_t, sl_led_set_rgb_color, sl_led_t, sl_led_turn_off, sl_led_turn_on,
+    sl_led_set_rgb_color, sl_led_t, sl_led_turn_off, sl_led_turn_on,
     sl_sleeptimer_start_periodic_timer_ms, sl_sleeptimer_timer_handle_t, SyncCell, ZERO_TIMER,
 };
+use ws2812_driver::{sl_led_ws2812, ws2812_led_driver_refresh};
 
 pub const UPDATE_INTERVAL_MS: u32 = 4;
 
@@ -147,11 +148,6 @@ impl Pattern {
     }
 }
 
-extern "C" {
-    static sl_led_ws2812: sl_led_rgb_pwm_t;
-    fn ws2812_led_driver_refresh();
-}
-
 #[derive(Clone, Copy)]
 struct Layer {
     pattern: Pattern,
@@ -188,13 +184,13 @@ static INITIALIZED: AtomicBool = AtomicBool::new(false);
 static TIMER: SyncCell<sl_sleeptimer_timer_handle_t> = SyncCell::new(ZERO_TIMER);
 
 fn led_common() -> *const sl_led_t {
-    unsafe { &sl_led_ws2812.led_common as *const sl_led_t }
+    &sl_led_ws2812.0.led_common
 }
 
 fn show(color: Option<Rgb>) {
     match color {
         Some(color) => unsafe {
-            sl_led_set_rgb_color(&sl_led_ws2812, color.r, color.g, color.b);
+            sl_led_set_rgb_color(&sl_led_ws2812.0, color.r, color.g, color.b);
             sl_led_turn_on(led_common());
         },
         None => unsafe { sl_led_turn_off(led_common()) },
@@ -217,7 +213,7 @@ fn update_led_hardware() {
 extern "C" fn timer_callback(_handle: *mut sl_sleeptimer_timer_handle_t, _data: *mut c_void) {
     TICK.fetch_add(1, Ordering::SeqCst);
     update_led_hardware();
-    unsafe { ws2812_led_driver_refresh() }
+    ws2812_led_driver_refresh();
 }
 
 pub fn init() {

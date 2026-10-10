@@ -8,12 +8,22 @@ use ohf_sys::{
     sl_sleeptimer_start_periodic_timer_ms, sl_sleeptimer_timer_handle_t, SyncCell, ZERO_TIMER,
 };
 
+#[allow(
+    non_camel_case_types,
+    non_upper_case_globals,
+    non_snake_case,
+    dead_code
+)]
+mod bindings {
+    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+}
+use bindings::{otInstance, otLinkGetPanId, otPlatRadioIsEnabled};
+
 const SETTINGS_POLL_INTERVAL_MS: u32 = 250;
 
 extern "C" {
-    fn otGetInstance() -> *mut c_void;
-    fn otLinkGetPanId(instance: *mut c_void) -> u16;
-    fn otPlatRadioIsEnabled(instance: *mut c_void) -> bool;
+    // The project's app.c, which has no header
+    fn otGetInstance() -> *mut otInstance;
 }
 
 static NETWORK_HAS_SETTINGS: AtomicBool = AtomicBool::new(false);

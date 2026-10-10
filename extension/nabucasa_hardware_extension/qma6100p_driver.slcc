@@ -11,7 +11,6 @@ include:
 provides:
   - name: qma6100p_driver
 requires:
-  - name: ohf_sys
   - name: ohf_runtime
   - name: i2cspm
 template_contribution:

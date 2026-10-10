@@ -104,6 +104,7 @@ name = "led_effects_openthread"
 version = "0.1.0"
 dependencies = [
  "led_effects_base",
+ "ohf-bindgen",
  "ohf-sys",
  "ohf_runtime",
 ]
@@ -280,7 +281,7 @@ dependencies = [
 name = "qma6100p_driver"
 version = "0.1.0"
 dependencies = [
- "ohf-sys",
+ "ohf-bindgen",
  "ohf_runtime",
 ]
 
@@ -447,6 +448,7 @@ name = "ws2812_driver"
 version = "0.1.0"
 dependencies = [
  "critical-section",
+ "ohf-bindgen",
  "ohf-config",
  "ohf-sys",
  "ohf_runtime",
