@@ -1,6 +1,6 @@
 //! The host-set LED state and configuration, persisted in the application NVM.
 use core::ffi::c_void;
-use core::mem::{size_of, MaybeUninit};
+use core::mem::size_of;
 
 use crate::bindings::{ZAF_nvm_app_read, ZAF_nvm_app_write, ZPAL_STATUS_OK};
 use crate::manager::Rgb;
@@ -12,15 +12,15 @@ trait NvmObject: Copy {
 }
 
 fn read<T: NvmObject>() -> Option<T> {
-    let mut value = MaybeUninit::<T>::uninit();
+    let mut value: T = unsafe { core::mem::zeroed() };
     let status = unsafe {
         ZAF_nvm_app_read(
             T::FILE_ID,
-            value.as_mut_ptr() as *mut c_void,
+            &mut value as *mut T as *mut c_void,
             size_of::<T>(),
         )
     };
-    (status == ZPAL_STATUS_OK).then(|| unsafe { value.assume_init() })
+    (status == ZPAL_STATUS_OK).then_some(value)
 }
 
 fn write<T: NvmObject>(value: &T) {

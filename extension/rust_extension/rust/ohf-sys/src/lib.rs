@@ -10,7 +10,6 @@
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 use core::cell::UnsafeCell;
-use core::mem::MaybeUninit;
 
 /// A static that the SDK or a single context writes to
 pub struct SyncCell<T>(UnsafeCell<T>);
@@ -26,7 +25,7 @@ impl<T> SyncCell<T> {
     }
 }
 
-pub const ZERO_TIMER: sl_sleeptimer_timer_handle_t = unsafe { MaybeUninit::zeroed().assume_init() };
+pub const ZERO_TIMER: sl_sleeptimer_timer_handle_t = unsafe { core::mem::zeroed() };
 
 extern "C" {
     /// `NVIC_SystemReset`, which is inline. The shim is a source of the `ohf_sys` component.
@@ -37,7 +36,7 @@ extern "C" {
 #[cfg(feature = "tokens")]
 pub mod token {
     use core::ffi::c_void;
-    use core::mem::{size_of, MaybeUninit};
+    use core::mem::size_of;
 
     const NO_INDEX: u8 = 0x7F;
 
@@ -47,16 +46,16 @@ pub mod token {
     }
 
     pub fn get<T: Copy>(token: u32) -> T {
-        let mut v = MaybeUninit::<T>::uninit();
+        let mut v: T = unsafe { core::mem::zeroed() };
         unsafe {
             super::halInternalGetTokenData(
-                v.as_mut_ptr() as *mut c_void,
+                &mut v as *mut T as *mut c_void,
                 key(token),
                 NO_INDEX,
                 size_of::<T>() as u8,
-            );
-            v.assume_init()
-        }
+            )
+        };
+        v
     }
 
     /// Whether the stack has network settings stored

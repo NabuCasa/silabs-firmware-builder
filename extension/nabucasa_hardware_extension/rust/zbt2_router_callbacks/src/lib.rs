@@ -3,7 +3,7 @@
 #![no_std]
 
 use core::ffi::c_int;
-use core::mem::{size_of, MaybeUninit};
+use core::mem::size_of;
 
 use led_effects_base::{
     clear_pattern, color, search_pulse, set_color, set_network_state, set_pattern,
@@ -34,7 +34,7 @@ const CURRENT_NETWORK: u8 = 0xFF;
 const NO_ENDPOINT: u8 = 0xFF;
 
 static COMMISSIONING_RETRY_EVENT: SyncCell<sl_zigbee_af_event_t> =
-    SyncCell::new(unsafe { MaybeUninit::zeroed().assume_init() });
+    SyncCell::new(unsafe { core::mem::zeroed() });
 
 extern "C" {
     fn powf(x: f32, y: f32) -> f32;
