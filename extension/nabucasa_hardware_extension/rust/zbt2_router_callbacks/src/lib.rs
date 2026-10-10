@@ -189,14 +189,14 @@ fn retry_commissioning_after(delay_ms: u32) {
     };
 }
 
-unsafe extern "C" fn commissioning_retry_event_handler(_event: *mut sl_zigbee_af_event_t) {
-    if sl_zigbee_af_network_state() == SL_ZIGBEE_JOINED_NETWORK as u8 {
+extern "C" fn commissioning_retry_event_handler(_event: *mut sl_zigbee_af_event_t) {
+    if unsafe { sl_zigbee_af_network_state() } == SL_ZIGBEE_JOINED_NETWORK as u8 {
         return;
     }
 
     // Blue pulse while searching
     set_pattern(Priority::Background, search_pulse(color::SEARCH_BLUE));
-    let status = sl_zigbee_af_network_steering_start();
+    let status = unsafe { sl_zigbee_af_network_steering_start() };
     app_debug_println!(c"Join network start: 0x%X", status);
 }
 
@@ -213,10 +213,10 @@ pub extern "C" fn zbt2_router_init(_init_level: u8) {
             commissioning_retry_event_handler as *mut _,
             CURRENT_NETWORK,
             NO_ENDPOINT,
-        );
-        if !has_stored_network() {
-            sli_zigbee_af_event_set_active(event, NO_ENDPOINT);
-        }
+        )
+    };
+    if !has_stored_network() {
+        unsafe { sli_zigbee_af_event_set_active(event, NO_ENDPOINT) };
     }
 }
 

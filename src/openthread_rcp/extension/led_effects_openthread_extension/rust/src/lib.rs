@@ -23,14 +23,12 @@ extern "C" fn network_state_poll_callback(
     _handle: *mut sl_sleeptimer_timer_handle_t,
     _data: *mut c_void,
 ) {
-    unsafe {
-        let instance = otGetInstance();
-        let pan_id = otLinkGetPanId(instance);
-        let has_network = pan_id != 0xFFFF && otPlatRadioIsEnabled(instance);
+    let instance = unsafe { otGetInstance() };
+    let pan_id = unsafe { otLinkGetPanId(instance) };
+    let has_network = pan_id != 0xFFFF && unsafe { otPlatRadioIsEnabled(instance) };
 
-        if has_network != NETWORK_HAS_SETTINGS.swap(has_network, Ordering::SeqCst) {
-            led_effects_base::set_network_state(has_network);
-        }
+    if has_network != NETWORK_HAS_SETTINGS.swap(has_network, Ordering::SeqCst) {
+        led_effects_base::set_network_state(has_network);
     }
 }
 

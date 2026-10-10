@@ -75,10 +75,8 @@ pub fn factory_erase() -> ! {
     unsafe {
         nvm3_initDefault();
         nvm3_eraseAll(nvm3_defaultHandle);
-        let mut key_id = ZB_PSA_KEY_ID_MIN;
-        while key_id <= ZB_PSA_KEY_ID_MAX {
+        for key_id in ZB_PSA_KEY_ID_MIN..=ZB_PSA_KEY_ID_MAX {
             psa_destroy_key(key_id);
-            key_id += 1;
         }
         ohf_system_reset()
     }

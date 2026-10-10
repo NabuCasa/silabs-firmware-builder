@@ -118,8 +118,8 @@ fn dither_channel(value: u16, accum: &mut u8) -> u8 {
 }
 
 // Pack G,R,B (WS2812 wire order) for every LED into the DMA buffer and start the transfer.
-unsafe fn transmit(red: u8, green: u8, blue: u8) {
-    let buf = &mut (*SPI_TX.get()).0;
+fn transmit(red: u8, green: u8, blue: u8) {
+    let buf = unsafe { &mut (*SPI_TX.get()).0 };
 
     // First `RESET_SIGNAL_BYTES` bytes are reserved for reset signal
     let mut off = RESET_SIGNAL_BYTES;
@@ -128,45 +128,49 @@ unsafe fn transmit(red: u8, green: u8, blue: u8) {
         off += 4;
     }
 
-    SPIDRV_MTransmit(
-        sl_spidrv_eusart_ws2812_handle,
-        buf.as_ptr() as *const c_void,
-        SPI_BUFFER_SIZE as core::ffi::c_int,
-        None,
-    );
+    unsafe {
+        SPIDRV_MTransmit(
+            sl_spidrv_eusart_ws2812_handle,
+            buf.as_ptr() as *const c_void,
+            SPI_BUFFER_SIZE as core::ffi::c_int,
+            None,
+        )
+    };
 }
 
 // LED driver callbacks. There is one instance, so `context` is null.
-unsafe extern "C" fn ws2812_led_init(_context: *mut c_void) -> sl_status_t {
-    GPIO_PinModeSet(
-        WS2812_EN_PORT as GPIO_Port_TypeDef,
-        WS2812_EN_PIN,
-        gpioModePushPull as GPIO_Mode_TypeDef,
-        1,
-    );
+extern "C" fn ws2812_led_init(_context: *mut c_void) -> sl_status_t {
+    unsafe {
+        GPIO_PinModeSet(
+            WS2812_EN_PORT as GPIO_Port_TypeDef,
+            WS2812_EN_PIN,
+            gpioModePushPull as GPIO_Mode_TypeDef,
+            1,
+        )
+    };
     SL_STATUS_OK
 }
 
-unsafe extern "C" fn ws2812_led_turn_on(_context: *mut c_void) {
+extern "C" fn ws2812_led_turn_on(_context: *mut c_void) {
     critical_section::with(|cs| CTX.borrow(cs).borrow_mut().state = LED_ON);
 }
 
-unsafe extern "C" fn ws2812_led_turn_off(_context: *mut c_void) {
+extern "C" fn ws2812_led_turn_off(_context: *mut c_void) {
     critical_section::with(|cs| CTX.borrow(cs).borrow_mut().state = LED_OFF);
 }
 
-unsafe extern "C" fn ws2812_led_toggle(_context: *mut c_void) {
+extern "C" fn ws2812_led_toggle(_context: *mut c_void) {
     critical_section::with(|cs| {
         let mut ctx = CTX.borrow(cs).borrow_mut();
         ctx.state = if ctx.state == LED_ON { LED_OFF } else { LED_ON };
     });
 }
 
-unsafe extern "C" fn ws2812_led_get_state(_context: *mut c_void) -> sl_led_state_t {
+extern "C" fn ws2812_led_get_state(_context: *mut c_void) -> sl_led_state_t {
     critical_section::with(|cs| CTX.borrow(cs).borrow().state)
 }
 
-unsafe extern "C" fn ws2812_led_set_color(_context: *mut c_void, red: u16, green: u16, blue: u16) {
+extern "C" fn ws2812_led_set_color(_context: *mut c_void, red: u16, green: u16, blue: u16) {
     critical_section::with(|cs| {
         let mut ctx = CTX.borrow(cs).borrow_mut();
         ctx.red = red;
@@ -175,7 +179,7 @@ unsafe extern "C" fn ws2812_led_set_color(_context: *mut c_void, red: u16, green
     });
 }
 
-unsafe extern "C" fn ws2812_led_get_color(
+extern "C" fn ws2812_led_get_color(
     _context: *mut c_void,
     red: *mut u16,
     green: *mut u16,
@@ -183,9 +187,11 @@ unsafe extern "C" fn ws2812_led_get_color(
 ) {
     critical_section::with(|cs| {
         let ctx = CTX.borrow(cs).borrow();
-        *red = ctx.red;
-        *green = ctx.green;
-        *blue = ctx.blue;
+        unsafe {
+            *red = ctx.red;
+            *green = ctx.green;
+            *blue = ctx.blue;
+        }
     });
 }
 
@@ -221,7 +227,7 @@ pub extern "C" fn ws2812_led_driver_refresh() {
             dither_channel(ctx.blue, &mut ctx.dither_accum_blue),
         )
     });
-    unsafe { transmit(red, green, blue) };
+    transmit(red, green, blue);
 }
 
 #[no_mangle]

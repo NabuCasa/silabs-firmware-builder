@@ -191,15 +191,16 @@ fn handle_frame(message: &[u8], reply: &mut [u8]) -> u8 {
 // Overrides the SDK's weak default. The stack passes the request and a reply buffer of
 // the full custom-frame size.
 #[no_mangle]
-pub unsafe extern "C" fn sl_zigbee_af_xncp_incoming_custom_frame_cb(
+pub extern "C" fn sl_zigbee_af_xncp_incoming_custom_frame_cb(
     message_length: u8,
     message_payload: *const u8,
     reply_payload_length: *mut u8,
     reply_payload: *mut u8,
 ) -> u32 {
-    let message = core::slice::from_raw_parts(message_payload, message_length as usize);
-    let reply =
-        core::slice::from_raw_parts_mut(reply_payload, SL_ZIGBEE_MAX_CUSTOM_EZSP_MESSAGE_PAYLOAD);
-    *reply_payload_length = handle_frame(message, reply);
+    let message = unsafe { core::slice::from_raw_parts(message_payload, message_length as usize) };
+    let reply = unsafe {
+        core::slice::from_raw_parts_mut(reply_payload, SL_ZIGBEE_MAX_CUSTOM_EZSP_MESSAGE_PAYLOAD)
+    };
+    unsafe { *reply_payload_length = handle_frame(message, reply) };
     Status::OK.0 as u32
 }

@@ -28,18 +28,18 @@ extern "C" {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn __wrap_sl_token_manager_get_data(
+pub extern "C" fn __wrap_sl_token_manager_get_data(
     token: u32,
     data: *mut c_void,
     length: u32,
 ) -> sl_status_t {
-    let status = __real_sl_token_manager_get_data(token, data, length);
+    let status = unsafe { __real_sl_token_manager_get_data(token, data, length) };
 
     if token == MFG_EUI64_TOKEN && status == SL_STATUS_OK {
         assert_eq!(length, 6);
 
         // EUI64 is stored little-endian; invert the upper 6 octets.
-        for b in core::slice::from_raw_parts_mut(data as *mut u8, 6) {
+        for b in unsafe { core::slice::from_raw_parts_mut(data as *mut u8, 6) } {
             *b ^= 0xFF;
         }
     }

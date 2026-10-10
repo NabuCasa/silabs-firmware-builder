@@ -3,6 +3,7 @@
 
 use core::cell::RefCell;
 use core::ffi::c_void;
+use core::ops::{Index, IndexMut};
 use core::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 use critical_section::Mutex;
@@ -209,16 +210,30 @@ impl Layer {
 
 struct Layers([Option<Layer>; Priority::COUNT]);
 
+impl Index<Priority> for Layers {
+    type Output = Option<Layer>;
+
+    fn index(&self, priority: Priority) -> &Option<Layer> {
+        &self.0[priority as usize]
+    }
+}
+
+impl IndexMut<Priority> for Layers {
+    fn index_mut(&mut self, priority: Priority) -> &mut Option<Layer> {
+        &mut self.0[priority as usize]
+    }
+}
+
 impl Layers {
     fn set(&mut self, priority: Priority, pattern: Pattern, tick: u32) {
-        self.0[priority as usize] = Some(Layer {
+        self[priority] = Some(Layer {
             pattern,
             start_tick: tick,
         });
     }
 
     fn clear(&mut self, priority: Priority) {
-        self.0[priority as usize] = None;
+        self[priority] = None;
     }
 
     /// Retires expired layers and returns the highest remaining one

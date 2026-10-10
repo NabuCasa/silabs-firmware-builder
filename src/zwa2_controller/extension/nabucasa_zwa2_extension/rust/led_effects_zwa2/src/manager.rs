@@ -193,10 +193,10 @@ fn led_common() -> *const sl_led_t {
 
 fn show(color: Option<Rgb>) {
     match color {
-        Some(color) => {
-            unsafe { sl_led_set_rgb_color(&sl_led_ws2812, color.r, color.g, color.b) };
-            unsafe { sl_led_turn_on(led_common()) };
-        }
+        Some(color) => unsafe {
+            sl_led_set_rgb_color(&sl_led_ws2812, color.r, color.g, color.b);
+            sl_led_turn_on(led_common());
+        },
         None => unsafe { sl_led_turn_off(led_common()) },
     }
 }

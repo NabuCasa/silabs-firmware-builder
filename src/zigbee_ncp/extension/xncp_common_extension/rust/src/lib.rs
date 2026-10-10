@@ -442,12 +442,13 @@ unsafe fn append_to_header(header: *mut sli_buffer_manager_buffer_t, data: &[u8]
 
 // `header` is a sli_buffer_manager_buffer_t* that the buffer manager updates in place
 #[no_mangle]
-pub unsafe extern "C" fn nc_zigbee_override_append_source_route(
+pub extern "C" fn nc_zigbee_override_append_source_route(
     destination: u16,
     header: *mut c_void,
     consumed: *mut bool,
 ) {
     let header = header as *mut sli_buffer_manager_buffer_t;
+    let consumed = unsafe { &mut *consumed };
 
     if header.is_null() {
         *consumed = false;
@@ -489,8 +490,8 @@ pub unsafe extern "C" fn nc_zigbee_override_append_source_route(
     }
 
     // {relay count, relay index, relays in reverse order}
-    append_to_header(header, &[route.num_relays, route.num_relays - 1]);
+    unsafe { append_to_header(header, &[route.num_relays, route.num_relays - 1]) };
     for relay in route.relays[..route.num_relays as usize].iter().rev() {
-        append_to_header(header, &relay.to_le_bytes());
+        unsafe { append_to_header(header, &relay.to_le_bytes()) };
     }
 }
