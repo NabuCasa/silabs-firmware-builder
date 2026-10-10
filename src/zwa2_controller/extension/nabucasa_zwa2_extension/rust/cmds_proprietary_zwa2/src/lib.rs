@@ -246,12 +246,8 @@ fn handle(cmd: Cmd, args: &[u8], response: &mut Response) {
         Cmd::BootloaderInfo => {
             // ZW->HOST: major | minor | customer | capabilities (big-endian)
             // bootloader_getInfo() leaves the version untouched when it finds no bootloader
-            // table, so the initializer defines what gets reported.
-            let mut info = BootloaderInformation_t {
-                type_: NO_BOOTLOADER,
-                version: 0,
-                capabilities: 0,
-            };
+            // table, so zero is what gets reported.
+            let mut info: BootloaderInformation_t = unsafe { core::mem::zeroed() };
             unsafe { bootloader_getInfo(&mut info) };
             // The SDK's customer field is 16 bits wide, but only its low byte is sent
             // because the version is consumed as major.minor.customer.

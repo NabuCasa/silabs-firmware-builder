@@ -230,6 +230,7 @@ dependencies = [
  "ohf_runtime",
  "qma6100p_driver",
  "router_beacon_filter",
+ "router_bootloader_cli",
  "router_eui64_unique",
  "router_nvram_reset",
  "ws2812_driver",
@@ -327,6 +328,13 @@ version = "0.1.0"
 dependencies = [
  "ohf-bindgen",
  "ohf_runtime",
+]
+
+[[package]]
+name = "router_bootloader_cli"
+version = "0.1.0"
+dependencies = [
+ "ohf-bindgen",
 ]
 
 [[package]]
