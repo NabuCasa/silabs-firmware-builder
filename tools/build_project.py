@@ -1281,6 +1281,7 @@ def assemble_build_flags(
             # A loadable section the linker script does not name lands wherever the
             # linker likes, e.g. in RAM past the startup copy table
             "-Wl,--orphan-handling=error",
+            "-Wl,--fatal-warnings",
         ],
     }
 
