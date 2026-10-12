@@ -83,7 +83,7 @@ rac: Wireless.EFR32xG21_RadioController @ {
     }
     radio: radio
 
-msc: Miscellaneous.SiLabs.EFR32xG2_MSC_3 @ {
+msc: Miscellaneous.SiLabs.EFR32xG2_MSC_3_Mg21 @ {
         sysbus <0x40030000, +0x4000>; // MSC_S
         sysbus <0x50030000, +0x4000>  // MSC_NS
     }
@@ -215,7 +215,11 @@ DCDC_IF: Python.PythonPeripheral @ sysbus 0x50094028
     initable: true
     script: "request.Value = 0xffffffff"
 
-flash: Memory.MappedMemory @ sysbus 0x00000000
+// Also at the xG24 flash base, where the MSC model erases and writes
+flash: Memory.MappedMemory @ {
+        sysbus 0x00000000;
+        sysbus 0x08000000
+    }
     size: 0x80000
 
 cmu: Miscellaneous.SiLabs.EFR32xG2_CMU_3 @ {

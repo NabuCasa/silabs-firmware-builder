@@ -9,6 +9,7 @@ emulation SetGlobalQuantum "0.0005"
 
 include $ORIGIN/models/EFR32xG2_EMU_3_ResetCause.cs
 include $ORIGIN/models/EFR32xG2_HFXO_2_Mg21.cs
+include $ORIGIN/models/EFR32xG2_MSC_3_Mg21.cs
 include $ORIGIN/models/EFR32xG21_RadioController.cs
 include $ORIGIN/models/EFR32xG2_UserDataErased.cs
 
