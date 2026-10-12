@@ -5,7 +5,8 @@
 // peripheral takes the RAC address range from EFR32xG24_Radio:
 //  - Offsets below 0x28 (the radio state machine, CMD, IF/IEN, FORCESTATE, RXENSRCEN) have the same layout on both
 //    chips and are forwarded to the xG24 model.
-//  - From 0x28 on the layouts diverge, so the xG21 registers are kept here.
+//  - From 0x28 on the layouts diverge. `map` ("src=dst,src=-,...", claude/mg21seq/remap_tables.py) moves xG21 offsets
+//    to the model's, or keeps them here ("-"), like the sequencer registers. Unlisted offsets are forwarded unchanged.
 //  - The model raises one Seq*IRQ per radio state for the sequencer and only advances once the matching state flag is
 //    cleared. Each rising edge runs that state's microcode vector, then clears the flag, which is what the M0+
 //    firmware does on xG24.
@@ -14,6 +15,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 using Antmicro.Renode.Core;
 using Antmicro.Renode.Logging;
@@ -24,10 +26,16 @@ namespace Antmicro.Renode.Peripherals.Wireless
 {
     public class EFR32xG21_RadioController : IDoubleWordPeripheral, IGPIOReceiver, IKnownSize
     {
-        public EFR32xG21_RadioController(IMachine machine, EFR32xG24_Radio radio)
+        public EFR32xG21_RadioController(IMachine machine, EFR32xG24_Radio radio, string map)
         {
             this.machine = machine;
             this.radio = radio;
+            foreach(var entry in map.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                var parts = entry.Split('=');
+                var source = long.Parse(parts[0].Trim().Substring(2), NumberStyles.HexNumber);
+                remap[source] = parts[1] == "-" ? Local : long.Parse(parts[1].Trim().Substring(2), NumberStyles.HexNumber);
+            }
             Reset();
         }
 
@@ -41,9 +49,9 @@ namespace Antmicro.Renode.Peripherals.Wireless
         {
             EnsureModelSequencerInterrupts();
             var register = offset & BaseMask;
-            if(register < FirstLocalRegister)
+            if(Translate(register, out var mapped))
             {
-                return radio.ReadDoubleWordFromRadioController(offset);
+                return radio.ReadDoubleWordFromRadioController((offset & AliasMask) | mapped);
             }
             return ReadLocal(register);
         }
@@ -52,9 +60,14 @@ namespace Antmicro.Renode.Peripherals.Wireless
         {
             EnsureModelSequencerInterrupts();
             var register = offset & BaseMask;
-            if(register < FirstLocalRegister)
+            if(Translate(register, out var mapped))
             {
-                radio.WriteDoubleWordToRadioController(offset, value);
+                if(register == Command)
+                {
+                    this.Log(LogLevel.Debug, "CMD write 0x{0:X} (alias 0x{1:X}) by {2}, STATUS=0x{3:X}", value, offset & AliasMask,
+                        runningState.HasValue ? $"sequencer state {runningState} pc=0x{pc:X}" : "host", radio.ReadDoubleWordFromRadioController(Status));
+                }
+                radio.WriteDoubleWordToRadioController((offset & AliasMask) | mapped, value);
                 return;
             }
 
@@ -104,6 +117,15 @@ namespace Antmicro.Renode.Peripherals.Wireless
             modelInterruptsEnabled = false;
         }
 
+        private bool Translate(long register, out long mapped)
+        {
+            if(!remap.TryGetValue(register, out mapped))
+            {
+                mapped = register;
+            }
+            return mapped != Local;
+        }
+
         private uint ReadLocal(long register)
         {
             switch(register)
@@ -132,6 +154,7 @@ namespace Antmicro.Renode.Peripherals.Wireless
             var vectorBase = (ReadLocal(VectorAddress) & 0xFFFF);
             pc = (uint)(vectorBase + 4 * state);
             stack.Clear();
+            runningState = state;
             var steps = 0;
             try
             {
@@ -148,6 +171,7 @@ namespace Antmicro.Renode.Peripherals.Wireless
             {
                 this.Log(LogLevel.Error, "State {0} vector: {1}", state, e.Message);
             }
+            runningState = null;
             this.Log(LogLevel.Debug, "State {0} vector ran {1} instructions, ended at 0x{2:X}", state, steps, pc);
             radio.WriteDoubleWordToRadioController(ClearAlias | ModelSequencerInterruptFlags, 1u << (16 + state));
         }
@@ -328,8 +352,8 @@ namespace Antmicro.Renode.Peripherals.Wireless
             }
             else if(op == 4 && m == 1)
             {
-                // Point at another register in the same peripheral page
-                r[rr] = (r[rr] & ~0xFFu) | (uint)x;
+                // Also walks pointers between registers of one peripheral, e.g. BUFC IF 0xE0 ^ 0x80 -> BUF1 CMD 0x60
+                r[rr] = Flags(r[rr] ^ (uint)x);
             }
             else if(op == 4 && lo == 1)
             {
@@ -414,6 +438,7 @@ namespace Antmicro.Renode.Peripherals.Wireless
 
         private readonly IMachine machine;
         private readonly EFR32xG24_Radio radio;
+        private readonly Dictionary<long, long> remap = new Dictionary<long, long>();
         private readonly Dictionary<long, uint> local = new Dictionary<long, uint>();
         private readonly HashSet<int> pending = new HashSet<int>();
         private readonly uint[] r = new uint[8];
@@ -423,6 +448,7 @@ namespace Antmicro.Renode.Peripherals.Wireless
         private bool negative;
         private bool carry;
         private bool modelInterruptsEnabled;
+        private int? runningState;
 
         private const uint RadioControllerBase = 0xB8020000;
         private const uint SequencerRam = 0xB0000000;
@@ -435,8 +461,9 @@ namespace Antmicro.Renode.Peripherals.Wireless
         private const long ToggleAlias = 0x3000;
 
         // xG21 RAC
+        private const long Status = 0x0C;
+        private const long Command = 0x10;
         private const long InterruptFlags = 0x1C;
-        private const long FirstLocalRegister = 0x28;
         private const long SequencerStatus = 0x28;
         private const long SequencerCommand = 0x2C;
         private const long WaitSnapshot = 0x58;
@@ -449,5 +476,6 @@ namespace Antmicro.Renode.Peripherals.Wireless
         private const long ModelSequencerInterruptFlags = 0x28;
         private const long ModelSequencerInterruptEnable = 0x2C;
         private const uint StateInterruptsMask = 0x3FFF0000;
+        private const long Local = -1;
     }
 }
