@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-from collections.abc import AsyncIterator
 import os
-from pathlib import Path
 import re
 import shutil
 import signal
 import socket
+from collections.abc import AsyncIterator
+from pathlib import Path
 
 ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 TELNET_NEGOTIATION = re.compile(rb"\xff[\xfb-\xfe].|\xff\xfa.*?\xff\xf0", re.DOTALL)
@@ -32,7 +32,9 @@ def free_tcp_port() -> int:
 
 
 class Monitor:
-    def __init__(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    def __init__(
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+    ) -> None:
         self._reader = reader
         self._writer = writer
         self._lock = asyncio.Lock()
@@ -42,7 +44,9 @@ class Monitor:
         async with asyncio.timeout(COMMAND_TIMEOUT):
             while True:
                 raw += await self._reader.read(65536)
-                text = ANSI_ESCAPE.sub("", TELNET_NEGOTIATION.sub(b"", raw).decode("latin-1"))
+                text = ANSI_ESCAPE.sub(
+                    "", TELNET_NEGOTIATION.sub(b"", raw).decode("latin-1")
+                )
                 text = text.replace("\r", "")
                 if PROMPT.search(text):
                     return PROMPT.sub("", text)
@@ -82,7 +86,9 @@ async def run_renode(log_path: Path) -> AsyncIterator[Monitor]:
             async with asyncio.timeout(STARTUP_TIMEOUT):
                 while True:
                     try:
-                        reader, writer = await asyncio.open_connection("127.0.0.1", port)
+                        reader, writer = await asyncio.open_connection(
+                            "127.0.0.1", port
+                        )
                         break
                     except ConnectionRefusedError:
                         await asyncio.sleep(0.2)
