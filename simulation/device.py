@@ -1,24 +1,23 @@
-"""A simulated ZBT-2 running any of its firmwares in Renode."""
+"""A simulated board running a firmware in Renode."""
 
 from __future__ import annotations
 
 import asyncio
 import contextlib
+import struct
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from pathlib import Path
-import struct
 
 import aiospinel.protocol
-from aiospinel import CommandID, PackedUInt21, PropertyID, SpinelProtocol
-import zigpy.config
-
 import bellows.ezsp
 import bellows.uart
+import zigpy.config
+from aiospinel import CommandID, PackedUInt21, PropertyID, SpinelProtocol
 
 from simulation.renode import Monitor, free_tcp_port, run_renode
 
-RESC = Path(__file__).parent / "renode" / "zbt2.resc"
+RENODE_DIR = Path(__file__).parent / "renode"
 
 # The emulator runs at roughly 0.2x real time and a reboot takes ~1 s of virtual time, so the host libraries' reset
 # timeouts (2.5 s for bellows, 2 s for aiospinel) are far too short
@@ -68,15 +67,22 @@ async def xncp(ezsp: bellows.ezsp.EZSP, command_id: int, payload: bytes = b"") -
 
 
 async def _property_command(
-    spinel: SpinelProtocol, command_id: CommandID, property_id: PropertyID | int, value: bytes
+    spinel: SpinelProtocol,
+    command_id: CommandID,
+    property_id: PropertyID | int,
+    value: bytes,
 ) -> bytes:
     rsp = await spinel.send_command(
-        command_id, PackedUInt21(property_id).serialize() + value, timeout=SPINEL_COMMAND_TIMEOUT
+        command_id,
+        PackedUInt21(property_id).serialize() + value,
+        timeout=SPINEL_COMMAND_TIMEOUT,
     )
     rsp_property_id, rsp_value = PackedUInt21.deserialize(rsp.data)
 
     if rsp_property_id != property_id:
-        raise SpinelError(f"{command_id.name} {property_id!r}: got property {rsp_property_id} {rsp_value.hex()}")
+        raise SpinelError(
+            f"{command_id.name} {property_id!r}: got property {rsp_property_id} {rsp_value.hex()}"
+        )
     return rsp_value
 
 
@@ -84,11 +90,13 @@ async def get_property(spinel: SpinelProtocol, property_id: PropertyID | int) ->
     return await _property_command(spinel, CommandID.PROP_VALUE_GET, property_id, b"")
 
 
-async def set_property(spinel: SpinelProtocol, property_id: PropertyID | int, value: bytes) -> bytes:
+async def set_property(
+    spinel: SpinelProtocol, property_id: PropertyID | int, value: bytes
+) -> bytes:
     return await _property_command(spinel, CommandID.PROP_VALUE_SET, property_id, value)
 
 
-class Zbt2:
+class Device:
     def __init__(self, monitor: Monitor, uart_port: int) -> None:
         self.monitor = monitor
         self.uart_port = uart_port
@@ -131,24 +139,26 @@ class Zbt2:
             aiospinel.protocol.RESET_TIMEOUT = reset_timeout
 
     async def led_colors(self) -> list[Rgb]:
-        """Colors last latched by the WS2812 chain, in chain order."""
+        """Colors last latched by the ZBT-2 WS2812 chain, in chain order."""
         output = await self.monitor.execute("sysbus.eusart1.ws2812 Colors")
         return [Rgb.from_hex(color) for color in output.split()]
 
-    async def wait_for_led_colors(self, expected: list[Rgb], timeout: float = 30) -> None:
+    async def wait_for_led_colors(
+        self, expected: list[Rgb], timeout: float = 30
+    ) -> None:
         async with asyncio.timeout(timeout):
             while await self.led_colors() != expected:
                 await asyncio.sleep(0.5)
 
     async def set_acceleration(self, x: float, y: float, z: float) -> None:
-        """Set the accelerometer reading, in g."""
+        """Set the ZBT-2 accelerometer reading, in g."""
         for axis, value in zip("XYZ", (x, y, z)):
             await self.monitor.execute(f"sysbus.i2c0.qma Acceleration{axis} {value}")
 
 
 @contextlib.asynccontextmanager
-async def simulate_zbt2(firmware: Path, workdir: Path) -> AsyncIterator[Zbt2]:
-    """Boot a ZBT-2 firmware `.out` on a simulated ZBT-2. Renode's log goes to `workdir`."""
+async def simulate(firmware: Path, board: str, workdir: Path) -> AsyncIterator[Device]:
+    """Boot a firmware `.out` on a simulated board. Renode's log goes to `workdir`."""
     # Renode's `@path` syntax does not cope with every path, e.g. ones with parentheses
     elf = workdir / "firmware.out"
     elf.symlink_to(firmware.resolve())
@@ -158,6 +168,6 @@ async def simulate_zbt2(firmware: Path, workdir: Path) -> AsyncIterator[Zbt2]:
     async with run_renode(workdir / "renode.log") as monitor:
         await monitor.execute(f"$bin=@{elf}")
         await monitor.execute(f"$uart_port={uart_port}")
-        await monitor.execute(f"include @{RESC}")
+        await monitor.execute(f"include @{RENODE_DIR / board}.resc")
         await monitor.execute("start")
-        yield Zbt2(monitor, uart_port)
+        yield Device(monitor, uart_port)
