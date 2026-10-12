@@ -1171,9 +1171,12 @@ def fix_pti_config_warning(build: ResolvedBuild) -> None:
         )
 
 
-# The SDK linker scripts leave these non-alloc sections to orphan placement. lld counts
-# even its own `.symtab` as an orphan.
-NON_ALLOC_SECTIONS = """
+LINKER_SCRIPT_CHECKS = """
+/* The RAM functions run while flash is being written, so they must not call into flash */
+NOCROSSREFS_TO(.text text_application_ram)
+
+/* The SDK script leaves these non-alloc sections as orphans, and lld counts even its own
+   `.symtab` as one. Naming them leaves `--orphan-handling=error` with only loadable ones. */
 SECTIONS
 {
   .comment 0 : { *(.comment) }
@@ -1195,10 +1198,10 @@ SECTIONS
 """
 
 
-def place_non_alloc_sections(build: ResolvedBuild) -> None:
-    """Name non-alloc sections so `--orphan-handling=error` flags only loadable ones."""
+def extend_linker_script(build: ResolvedBuild) -> None:
+    """Append our layout checks to the SDK linker script."""
     linkerfile_ld = build.build_dir / "autogen/linkerfile.ld"
-    linkerfile_ld.write_text(linkerfile_ld.read_text() + NON_ALLOC_SECTIONS)
+    linkerfile_ld.write_text(linkerfile_ld.read_text() + LINKER_SCRIPT_CHECKS)
 
 
 def sdk_path_remaps(build: ResolvedBuild) -> dict[str, str]:
@@ -1628,7 +1631,7 @@ def main() -> None:
         sys.exit(1)
 
     fix_pti_config_warning(build)
-    place_non_alloc_sections(build)
+    extend_linker_script(build)
 
     # Only our own wraps: SDK wrappers such as `main` hand the `__real_` call off to
     # another function entirely, which the reference check below would flag
