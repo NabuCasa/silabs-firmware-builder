@@ -225,7 +225,7 @@ wtimer1: Timers.EFR32_Timer @ {
     width: TimerWidth.Bit32
     -> nvic@44
 
-rtcc: Timers.EFR32xG2_RTCC @ {
+rtcc: Timers.EFR32xG2_RTCC_Aliased @ {
         sysbus <0x48000000, +0x4000>; // RTCC_S
         sysbus <0x58000000, +0x4000>  // RTCC_NS
     }

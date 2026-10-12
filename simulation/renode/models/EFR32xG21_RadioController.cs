@@ -66,6 +66,13 @@ namespace Antmicro.Renode.Peripherals.Wireless
                 {
                     this.Log(LogLevel.Debug, "CMD write 0x{0:X} (alias 0x{1:X}) by {2}, STATUS=0x{3:X}", value, offset & AliasMask,
                         runningState.HasValue ? $"sequencer state {runningState} pc=0x{pc:X}" : "host", radio.ReadDoubleWordFromRadioController(Status));
+                    // After a PROTIMER-started TX, the TX vector latches TXEN to hold the transmission until TX done.
+                    // The model already cleared TXEN when the frame started, and at TX done it would take the latched
+                    // TXEN as a request for a second frame (TX2TX with an empty FIFO). So drop it.
+                    if(runningState == TxState)
+                    {
+                        value &= ~CommandTxEnable;
+                    }
                 }
                 radio.WriteDoubleWordToRadioController((offset & AliasMask) | mapped, value);
                 return;
@@ -102,6 +109,13 @@ namespace Antmicro.Renode.Peripherals.Wireless
             machine.ScheduleAction(TimeInterval.Empty, _ =>
             {
                 pending.Remove(number);
+                if(number == TxPoweringDownState || number == Tx2RxState || number == Tx2TxState)
+                {
+                    // xG21 RAIL learns about TX completion from FRC IF.TXRAWEVENT, with the result in SR0 bits 10-12
+                    // (all clear = sent). The microcode only raises it for blocked TXs, so the hardware raises it when a
+                    // frame ends. These states are only entered from TX. The xG24 model raises TXDONE instead.
+                    machine.SystemBus.WriteDoubleWord(FrameControllerInterruptFlagsSet, FrameControllerTxRawEvent);
+                }
                 RunVector(number);
             });
         }
@@ -463,6 +477,13 @@ namespace Antmicro.Renode.Peripherals.Wireless
         // xG21 RAC
         private const long Status = 0x0C;
         private const long Command = 0x10;
+        private const uint CommandTxEnable = 0x1;
+        private const int TxState = 9;
+        private const int TxPoweringDownState = 10;
+        private const int Tx2RxState = 11;
+        private const int Tx2TxState = 12;
+        private const uint FrameControllerInterruptFlagsSet = 0xB8005068;
+        private const uint FrameControllerTxRawEvent = 1u << 15;
         private const long InterruptFlags = 0x1C;
         private const long SequencerStatus = 0x28;
         private const long SequencerCommand = 0x2C;
