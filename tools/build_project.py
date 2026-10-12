@@ -1248,6 +1248,9 @@ def assemble_build_flags(
             # Kept for `validate_linker_wraps`. Non-alloc, so the GBL and HEX are
             # byte-identical with or without it.
             "-Wl,--emit-relocs",
+            # A loadable section the linker script does not name lands wherever the
+            # linker likes, e.g. in RAM past the startup copy table
+            "-Wl,--orphan-handling=error",
         ],
     }
 

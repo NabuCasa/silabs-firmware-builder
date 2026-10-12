@@ -7,6 +7,9 @@ category: OpenThread Examples
 quality: production
 
 component:
+  - id: non_alloc_sections
+    vendor: ohf
+    package: linker
   - id: sl_main
   - id: ot_stack_rcp
   - id: ot_crash_handler
@@ -92,6 +95,9 @@ filter:
     value: ["Advanced"]
 
 sdk_extension:
+  - id: linker
+    vendor: ohf
+    version: 1.0.0
   - id: rust
     vendor: ohf
     version: 1.0.0
