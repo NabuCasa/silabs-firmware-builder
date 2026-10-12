@@ -1,5 +1,0 @@
-id: linker
-vendor: ohf
-version: "1.0.0"
-component_path:
-  - path: "./"

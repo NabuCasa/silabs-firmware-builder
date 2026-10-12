@@ -59,9 +59,6 @@ include:
 toolchain_settings: [
   ]
 component:
-- id: non_alloc_sections
-  vendor: ohf
-  package: linker
 - package: simplicity_sdk
   vendor: silabs
   id: ZW_MIGRATION_FROM_7_20
@@ -200,9 +197,6 @@ ui_hints:
     focus: true
 
 sdk_extension:
-  - id: linker
-    vendor: ohf
-    version: 1.0.0
   - id: rust
     vendor: ohf
     version: 1.0.0

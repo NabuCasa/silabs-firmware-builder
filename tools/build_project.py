@@ -1171,6 +1171,36 @@ def fix_pti_config_warning(build: ResolvedBuild) -> None:
         )
 
 
+# The SDK linker scripts leave these non-alloc sections to orphan placement. lld counts
+# even its own `.symtab` as an orphan.
+NON_ALLOC_SECTIONS = """
+SECTIONS
+{
+  .comment 0 : { *(.comment) }
+  .ARM.attributes 0 : { *(.ARM.attributes) }
+  .debug_abbrev 0 : { *(.debug_abbrev) }
+  .debug_addr 0 : { *(.debug_addr) }
+  .debug_frame 0 : { *(.debug_frame) }
+  .debug_info 0 : { *(.debug_info) }
+  .debug_line 0 : { *(.debug_line) }
+  .debug_line_str 0 : { *(.debug_line_str) }
+  .debug_loclists 0 : { *(.debug_loclists) }
+  .debug_rnglists 0 : { *(.debug_rnglists) }
+  .debug_str 0 : { *(.debug_str) }
+  .debug_str_offsets 0 : { *(.debug_str_offsets) }
+  .symtab 0 : { *(.symtab) }
+  .strtab 0 : { *(.strtab) }
+  .shstrtab 0 : { *(.shstrtab) }
+}
+"""
+
+
+def place_non_alloc_sections(build: ResolvedBuild) -> None:
+    """Name non-alloc sections so `--orphan-handling=error` flags only loadable ones."""
+    linkerfile_ld = build.build_dir / "autogen/linkerfile.ld"
+    linkerfile_ld.write_text(linkerfile_ld.read_text() + NON_ALLOC_SECTIONS)
+
+
 def sdk_path_remaps(build: ResolvedBuild) -> dict[str, str]:
     """Absolute paths baked into the SDK and its prebuilt libraries, and their remaps."""
     sdk_src = f"/src/{build.sdk_name}_{build.sdk_version}"
@@ -1597,6 +1627,7 @@ def main() -> None:
         sys.exit(1)
 
     fix_pti_config_warning(build)
+    place_non_alloc_sections(build)
 
     # Only our own wraps: SDK wrappers such as `main` hand the `__real_` call off to
     # another function entirely, which the reference check below would flag

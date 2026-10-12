@@ -7,9 +7,6 @@ description: Zigbee NCP firmware. Derived from the `ncp-uart-hw` example Gecko S
 author: Nabu Casa
 
 sdk_extension:
-  - id: linker
-    vendor: ohf
-    version: 1.0.0
   - id: rust
     vendor: ohf
     version: 1.0.0
@@ -18,9 +15,6 @@ sdk_extension:
     version: 1.0.0
 
 component:
-  - id: non_alloc_sections
-    vendor: ohf
-    package: linker
   - id: sl_main
   - id: iostream_usart
     instance:
