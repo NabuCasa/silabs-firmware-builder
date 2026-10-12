@@ -13,6 +13,16 @@ requires:
 template_contribution:
   - name: component_catalog
     value: xncp_core
+  # linkme collects the XNCP commands and features into these sections. Put them in
+  # flash. Otherwise the linker puts them in RAM, and startup code never fills them.
+  - name: rodata_sections
+    value: linkme_XNCP_COMMANDS
+  - name: rodata_sections
+    value: linkme_XNCP_FEATURES
+  - name: rodata_sections
+    value: linkm2_XNCP_COMMANDS
+  - name: rodata_sections
+    value: linkm2_XNCP_FEATURES
 
 metadata:
   rust:
