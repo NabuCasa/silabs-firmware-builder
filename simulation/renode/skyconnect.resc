@@ -32,7 +32,6 @@ machine LoadPlatformDescriptionFromString "userdata: Miscellaneous.SiLabs.EFR32x
 macro reset
 """
     sysbus LoadELF $bin
-    seqcpu IsHalted true
     cpu VectorTableOffset `sysbus GetSymbolAddress "__Vectors"`
 """
 runMacro $reset

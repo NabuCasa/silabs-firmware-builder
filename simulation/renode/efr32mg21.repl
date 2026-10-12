@@ -37,7 +37,9 @@ radio: Wireless.EFR32xG24_Radio @ {
         sysbus new Bus.BusMultiRegistration { address: 0xB802C000; size: 0x4000; region: "rfmailbox_ns" }
     }
     ram: sram
-    sequencer: seqcpu
+    // The model only touches the sequencer CPU on the xG24 CPUWAITDIS bit, which xG21 does not have. A second CPU on
+    // the bus makes Renode track written addresses for code coherency, which cost about a third of host throughput.
+    sequencer: cpu
     pa0DbmSupport: true
     pa10DbmSupport: true
     pa20DbmSupport: true
@@ -51,7 +53,7 @@ radio: Wireless.EFR32xG24_Radio @ {
     RadioControllerRadioStateMachineIRQ -> nvic@37
     RadioControllerSequencerIRQ -> nvic@38
     SynthesizerIRQ -> nvic@40
-    // Per-state sequencer interrupts run the xG21 microcode vectors in rac; the M0+ sequencer stays halted
+    // Per-state sequencer interrupts run the xG21 microcode vectors in rac
     SeqOffIRQ -> rac@0
     SeqRxWarmIRQ -> rac@1
     SeqRxSearchIRQ -> rac@2
@@ -66,15 +68,6 @@ radio: Wireless.EFR32xG24_Radio @ {
     SeqTx2RxIRQ -> rac@11
     SeqTx2TxIRQ -> rac@12
     SeqShutdownIRQ -> rac@13
-    SeqRadioControllerIRQ ->seqnvic@14
-    SeqFrameControllerIRQ ->seqnvic@15
-    SeqFrameControllerPriorityIRQ ->seqnvic@16
-    SeqModulatorAndDemodulatorIRQ ->seqnvic@17
-    SeqBufferControllerIRQ ->seqnvic@18
-    SeqAutomaticGainControlIRQ ->seqnvic@19
-    SeqProtocolTimerIRQ -> seqnvic@20
-    SeqSynthesizerIRQ -> seqnvic@22
-    SeqRfMailboxIRQ -> seqnvic@23
 
 rac: Wireless.EFR32xG21_RadioController @ {
         sysbus <0xA8020000, +0x4000>; // RAC_S
@@ -141,23 +134,13 @@ sram: Memory.MappedMemory @ sysbus 0x20000000
 
 seqram: Memory.MappedMemory @ {
         sysbus 0xA0000000;
-        sysbus 0xB0000000;
-
-        sysbus new Bus.BusPointRegistration {
-            address: 0x0;
-            cpu: seqcpu
-        }
+        sysbus 0xB0000000
     }
     size: 0x4000
 
 frcram: Memory.MappedMemory @ {
         sysbus 0xA0004000;
-        sysbus 0xB0004000;
-
-        sysbus new Bus.BusPointRegistration {
-            address: 0x00004000;
-            cpu: seqcpu
-        }
+        sysbus 0xB0004000
     }
     size: 0x1000
 
@@ -168,22 +151,12 @@ nvic: IRQControllers.NVIC @ sysbus new Bus.BusPointRegistration {
     -> cpu@0
     systickFrequency: 38400000
 
-seqnvic: IRQControllers.NVIC @ sysbus new Bus.BusPointRegistration {
-        address: 0xE000E000;
-        cpu: seqcpu
-    }
-    -> seqcpu@0
 
 cpu: CPU.CortexM @ sysbus
     nvic: nvic
     cpuType: "cortex-m33"
     cpuId: 0
 
-seqcpu: CPU.CortexM @ sysbus
-    nvic: seqnvic
-    cpuType: "cortex-m0+"
-    cpuId: 1
-    IsHalted: true
 
 timer0: Timers.EFR32xG2_TIMER_1 @ {
         sysbus <0x40048000, +0x4000>; // TIMER0_S
