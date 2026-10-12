@@ -8,5 +8,16 @@ dependencies = [
     "pygbl[all]>=1.2.0",
 ]
 
+[dependency-groups]
+simulation = [
+    "bellows",
+    "pytest",
+    "pytest-asyncio",
+]
+
 [tool.uv]
 package = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]
