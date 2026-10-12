@@ -1,7 +1,11 @@
 :name: SkyConnect
 :description: Boots a SkyConnect (ZBT-1, EFR32MG21) firmware ELF ($bin), with the host UART on TCP $uart_port.
 
+# Other MG21 boards include this script with their own $platform and $machine_name
+
 $uart_port?=3456
+$platform?=$ORIGIN/efr32mg21.repl
+$machine_name?="skyconnect"
 
 using sysbus
 emulation SetGlobalSerialExecution true
@@ -15,8 +19,8 @@ include $ORIGIN/models/EFR32xG21_RadioController.cs
 include $ORIGIN/models/EFR32xG21_RadioRegisterRemap.cs
 include $ORIGIN/models/EFR32xG2_UserDataErased.cs
 
-mach create "skyconnect"
-machine LoadPlatformDescription $ORIGIN/efr32mg21.repl
+mach create $machine_name
+machine LoadPlatformDescription $platform
 
 sysbus Unregister sysbus.emu
 machine LoadPlatformDescriptionFromString """
