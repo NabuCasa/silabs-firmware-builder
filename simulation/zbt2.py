@@ -1,4 +1,4 @@
-"""A simulated ZBT-2 running a Zigbee NCP firmware in Renode."""
+"""A simulated ZBT-2 running any of its firmwares in Renode."""
 
 from __future__ import annotations
 
@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from pathlib import Path
 import struct
 
+import aiospinel.protocol
+from aiospinel import CommandID, PackedUInt21, PropertyID, SpinelProtocol
 import zigpy.config
 
 import bellows.ezsp
@@ -16,22 +18,30 @@ import bellows.uart
 
 from simulation.renode import Monitor, free_tcp_port, run_renode
 
-RESC = Path(__file__).parent / "renode" / "zbt2_ncp.resc"
+RESC = Path(__file__).parent / "renode" / "zbt2.resc"
 
-# The emulator runs at roughly 0.15x real time and a reboot takes ~1 s of virtual time, so bellows' 2.5 s wait for
-# RSTACK is far too short
+# The emulator runs at roughly 0.2x real time and a reboot takes ~1 s of virtual time, so the host libraries' reset
+# timeouts (2.5 s for bellows, 2 s for aiospinel) are far too short
 RESET_TIMEOUT = 30
+SPINEL_COMMAND_TIMEOUT = 10
 
 XNCP_SET_LED_STATE = 0x0F00
 XNCP_GET_ACCELEROMETER = 0x0F01
 XNCP_RESPONSE_BIT = 0x8000
-XNCP_UNKNOWN = 0xFFFF
 
 STANDARD_GRAVITY = 9.80665
+
+# aiospinel 1.2.0 defines MAC_SCAN_STATE as 38, which makes it an alias of PHY_RSSI. Spinel puts it at MAC__BEGIN + 0.
+SPINEL_PROP_MAC_SCAN_STATE = 48
+SPINEL_SCAN_STATE_ENERGY = 2
 
 
 class XncpError(RuntimeError):
     """The NCP rejected an XNCP command."""
+
+
+class SpinelError(RuntimeError):
+    """The RCP answered a property command with something other than the property."""
 
 
 @dataclass(frozen=True)
@@ -57,6 +67,27 @@ async def xncp(ezsp: bellows.ezsp.EZSP, command_id: int, payload: bytes = b"") -
     return data[3:]
 
 
+async def _property_command(
+    spinel: SpinelProtocol, command_id: CommandID, property_id: PropertyID | int, value: bytes
+) -> bytes:
+    rsp = await spinel.send_command(
+        command_id, PackedUInt21(property_id).serialize() + value, timeout=SPINEL_COMMAND_TIMEOUT
+    )
+    rsp_property_id, rsp_value = PackedUInt21.deserialize(rsp.data)
+
+    if rsp_property_id != property_id:
+        raise SpinelError(f"{command_id.name} {property_id!r}: got property {rsp_property_id} {rsp_value.hex()}")
+    return rsp_value
+
+
+async def get_property(spinel: SpinelProtocol, property_id: PropertyID | int) -> bytes:
+    return await _property_command(spinel, CommandID.PROP_VALUE_GET, property_id, b"")
+
+
+async def set_property(spinel: SpinelProtocol, property_id: PropertyID | int, value: bytes) -> bytes:
+    return await _property_command(spinel, CommandID.PROP_VALUE_SET, property_id, value)
+
+
 class Zbt2:
     def __init__(self, monitor: Monitor, uart_port: int) -> None:
         self.monitor = monitor
@@ -64,7 +95,7 @@ class Zbt2:
 
     @contextlib.asynccontextmanager
     async def ezsp(self) -> AsyncIterator[bellows.ezsp.EZSP]:
-        """Connect bellows to the NCP UART. Connecting resets the NCP."""
+        """Connect bellows to a Zigbee NCP. Connecting resets the NCP."""
         ezsp = bellows.ezsp.EZSP(
             zigpy.config.SCHEMA_DEVICE(
                 {zigpy.config.CONF_DEVICE_PATH: f"socket://127.0.0.1:{self.uart_port}"}
@@ -81,6 +112,23 @@ class Zbt2:
                 await ezsp.disconnect()
         finally:
             bellows.uart.RESET_TIMEOUT = reset_timeout
+
+    @contextlib.asynccontextmanager
+    async def spinel(self) -> AsyncIterator[SpinelProtocol]:
+        """Connect aiospinel to an OpenThread RCP. Connecting does not reset the RCP."""
+        reset_timeout = aiospinel.protocol.RESET_TIMEOUT
+        aiospinel.protocol.RESET_TIMEOUT = RESET_TIMEOUT
+        try:
+            _, protocol = await asyncio.get_running_loop().create_connection(
+                SpinelProtocol, "127.0.0.1", self.uart_port
+            )
+            await protocol.wait_until_connected()
+            try:
+                yield protocol
+            finally:
+                await protocol.disconnect()
+        finally:
+            aiospinel.protocol.RESET_TIMEOUT = reset_timeout
 
     async def led_colors(self) -> list[Rgb]:
         """Colors last latched by the WS2812 chain, in chain order."""
@@ -100,7 +148,7 @@ class Zbt2:
 
 @contextlib.asynccontextmanager
 async def simulate_zbt2(firmware: Path, workdir: Path) -> AsyncIterator[Zbt2]:
-    """Boot `firmware` (an NCP `.out`) on a simulated ZBT-2. Renode's log goes to `workdir`."""
+    """Boot a ZBT-2 firmware `.out` on a simulated ZBT-2. Renode's log goes to `workdir`."""
     # Renode's `@path` syntax does not cope with every path, e.g. ones with parentheses
     elf = workdir / "firmware.out"
     elf.symlink_to(firmware.resolve())

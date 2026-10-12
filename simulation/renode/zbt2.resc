@@ -1,5 +1,5 @@
-:name: ZBT-2 Zigbee NCP
-:description: Boots a ZBT-2 Zigbee NCP ELF ($bin) on the EFR32MG24 model, with the NCP UART on TCP $uart_port.
+:name: ZBT-2
+:description: Boots a ZBT-2 firmware ELF ($bin) on the EFR32MG24 model, with the host UART on TCP $uart_port.
 
 $uart_port?=3456
 
@@ -71,16 +71,15 @@ macro reset
 """
 runMacro $reset
 
-# RAM is wiped on machine reset, but the stack expects .noinit (halCrashInfo + halExtendedResetCause, 0xA0 bytes) and
-# the bootloader reset word at 0x20000000 to survive a soft reset. Stash them when the firmware resets the system and
-# put them back before the startup code runs.
-cpu AddHook `sysbus GetSymbolAddress "CORE_ResetSystem"` "from System import AppDomain; d = AppDomain.CurrentDomain; b = cpu.Bus; d.SetData('zbt2.noinit', b.ReadBytes(b.GetSymbolAddress('halCrashInfo'), 0xA0)); d.SetData('zbt2.btlreset', b.ReadBytes(0x20000000, 4))"
-cpu AddHook `sysbus GetSymbolAddress "Reset_Handler"` "from System import AppDomain; d = AppDomain.CurrentDomain; b = cpu.Bus; n = d.GetData('zbt2.noinit'); r = d.GetData('zbt2.btlreset'); n is not None and b.WriteBytes(n, b.GetSymbolAddress('halCrashInfo')); r is not None and b.WriteBytes(r, 0x20000000); d.SetData('zbt2.noinit', None); d.SetData('zbt2.btlreset', None)"
+# Renode wipes RAM on machine reset, but SRAM survives a soft reset on silicon and the firmware relies on it: .noinit
+# carries the reset cause and crash info, and 0x20000000 the bootloader reset word. Stash all of SRAM when the firmware
+# resets the system and put it back before the startup code runs.
+cpu AddHook `sysbus GetSymbolAddress "CORE_ResetSystem"` "from System import AppDomain; AppDomain.CurrentDomain.SetData('zbt2.sram', cpu.Bus.ReadBytes(0x20000000, 0x40000))"
+cpu AddHook `sysbus GetSymbolAddress "Reset_Handler"` "from System import AppDomain; d = AppDomain.CurrentDomain; s = d.GetData('zbt2.sram'); s is not None and cpu.Bus.WriteBytes(s, 0x20000000); d.SetData('zbt2.sram', None)"
 
 # Crash diagnostics
-cpu AddHook `sysbus GetSymbolAddress "halInternalAssertFailed"` "self.Log(LogLevel.Error, 'ASSERT file=0x%x line=%d lr=0x%x' % (self.GetRegister(0).RawValue, self.GetRegister(1).RawValue, self.GetRegister(14).RawValue))"
 cpu AddHook `sysbus GetSymbolAddress "RAILCb_AssertFailed"` "self.Log(LogLevel.Error, 'RAIL ASSERT code=%d lr=0x%x' % (self.GetRegister(1).RawValue, self.GetRegister(14).RawValue))"
 cpu AddHook `sysbus GetSymbolAddress "HardFault_Handler"` "self.Log(LogLevel.Error, 'HARDFAULT lr=0x%x sp=0x%x' % (self.GetRegister(14).RawValue, self.GetRegister(13).RawValue))"
 
-emulation CreateServerSocketTerminal $uart_port "ncp_uart" false
-connector Connect sysbus.eusart0 ncp_uart
+emulation CreateServerSocketTerminal $uart_port "host_uart" false
+connector Connect sysbus.eusart0 host_uart

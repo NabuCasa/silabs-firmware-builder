@@ -124,6 +124,18 @@ wheels = [
 ]
 
 [[package]]
+name = "aiospinel"
+version = "1.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c7/96/3ee10d7cc34f6b764b617714f9777a16a0b13ce4b63d832f06c93534432c/aiospinel-1.2.0.tar.gz", hash = "sha256:b71a771583a767cb57ff4f6cfa560f1ec22eef1496c790436daf80e808442075", size = 59890, upload-time = "2026-07-09T20:45:25.501Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b8/9e/239584868623787832574d4530ee3a8e7af4b61ef42370934e6e034aeae2/aiospinel-1.2.0-py3-none-any.whl", hash = "sha256:84824074101bff1ea7186fc541fdd6d39c1a8cda354252f0b80289944f5ef5ca", size = 14424, upload-time = "2026-07-09T20:45:24.155Z" },
+]
+
+[[package]]
 name = "aiosqlite"
 version = "0.21.0"
 source = { registry = "https://pypi.org/simple" }
@@ -812,6 +824,7 @@ dependencies = [
 
 [package.dev-dependencies]
 simulation = [
+    { name = "aiospinel" },
     { name = "bellows" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -826,6 +839,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 simulation = [
+    { name = "aiospinel" },
     { name = "bellows" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
