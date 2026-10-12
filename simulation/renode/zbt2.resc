@@ -71,6 +71,10 @@ macro reset
 """
 runMacro $reset
 
+# EmberZNet busy-polls instead of sleeping, so a higher modeled instruction rate (Renode's default is 100 MIPS) mostly
+# burns host time in the idle loop. A grid search of ZBT-2 network formation time bottomed out at 8-15 MIPS.
+cpu PerformanceInMips 15
+
 # Renode wipes RAM on machine reset, but SRAM survives a soft reset on silicon and the firmware relies on it: .noinit
 # carries the reset cause and crash info, and 0x20000000 the bootloader reset word. Stash all of SRAM when the firmware
 # resets the system and put it back before the startup code runs.

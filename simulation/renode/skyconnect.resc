@@ -36,6 +36,10 @@ macro reset
 """
 runMacro $reset
 
+# EmberZNet busy-polls instead of sleeping, so a higher modeled instruction rate (Renode's default is 100 MIPS) mostly
+# burns host time in the idle loop. A grid search of ZBT-2 network formation time bottomed out at 8-15 MIPS.
+cpu PerformanceInMips 15
+
 cpu AddHook `sysbus GetSymbolAddress "CORE_ResetSystem"` "from System import AppDomain; AppDomain.CurrentDomain.SetData('sim.sram', cpu.Bus.ReadBytes(0x20000000, int(cpu.GetMachine()['sysbus.sram'].Size)))"
 cpu AddHook `sysbus GetSymbolAddress "Reset_Handler"` "from System import AppDomain; d = AppDomain.CurrentDomain; s = d.GetData('sim.sram'); s is not None and cpu.Bus.WriteBytes(s, 0x20000000); d.SetData('sim.sram', None)"
 
