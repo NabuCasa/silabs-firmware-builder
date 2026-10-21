@@ -1,4 +1,4 @@
-# 1.4.0
+# 1.3.2
 Updated to Simplicity SDK 2026.6.2 (Z-Wave SDK 8.1.2), fixing a transmission stall on congested networks and the Max LR Tx Power setting.
 
 * Updated to Simplicity SDK 2026.6.2 (Z-Wave SDK 8.1.2), up from Simplicity SDK 2026.6.1 (Z-Wave SDK 8.1.1).
