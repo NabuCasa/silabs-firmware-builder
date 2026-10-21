@@ -1,10 +1,8 @@
 # 1.3.2
-Updated to Simplicity SDK 2026.6.2 (Z-Wave SDK 8.1.2), fixing a transmission stall on congested networks and the Max LR Tx Power setting.
-
 * Updated to Simplicity SDK 2026.6.2 (Z-Wave SDK 8.1.2), up from Simplicity SDK 2026.6.1 (Z-Wave SDK 8.1.1).
 * Fixed an issue where the controller could stop sending frames after several transmission failures on a congested network.
 * Fixed the Serial API Setup command Set Max LR Tx Power, which did not apply the requested Long Range transmit power on 20 dBm devices like the ZWA-2.
-* Fixed NVM backup and restore reading or writing outside the NVM region. Offsets at or past the end now return EOF with data length 0.
+* Fixed an issue where NVM backup and restore could read or write outside the NVM region.
 * Prevented an external SUC Node ID advertisement from removing the SUC role from the controller.
 * Added validation of NODES_EXIST topology updates.
 
