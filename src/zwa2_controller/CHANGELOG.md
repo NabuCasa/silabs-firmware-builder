@@ -1,3 +1,11 @@
+# 1.4.0
+* Updated to Simplicity SDK 2026.6.2 (Z-Wave SDK 8.1.2), up from Simplicity SDK 2026.6.1 (Z-Wave SDK 8.1.1).
+* Fixed an issue where the controller could stop sending frames after several transmission failures on a congested network.
+* Fixed the Serial API Setup command Set Max LR Tx Power, which did not apply the requested Long Range transmit power on 20 dBm devices like the ZWA-2.
+* Fixed an issue where NVM backup and restore could read or write outside the NVM region.
+* Prevented an external SUC Node ID advertisement from removing the SUC role from the controller.
+* Added validation of NODES_EXIST topology updates.
+
 # 1.3.1
 * Added a proprietary Serial API command to query the bootloader version and capabilities without rebooting into the bootloader.
 * Fixed an issue where the radio could turn off after one received frame. This affected some controllers migrated from the 500 series, where the listening flag in the controller's own node info was left unset.
