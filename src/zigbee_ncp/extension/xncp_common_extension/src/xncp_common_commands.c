@@ -52,6 +52,7 @@ static ManualSourceRoute manual_source_routes[XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZ
 extern sli_zigbee_route_table_entry_t sli_zigbee_route_table[];
 extern uint8_t sli_zigbee_route_table_size;
 extern uint8_t sli_zigbee_address_table_size;
+extern uint8_t addressCacheSize;  // Trust center address cache, at the end of the address table
 
 //------------------------------------------------------------------------------
 // Forward declarations
@@ -398,6 +399,44 @@ static bool handle_get_tx_power_info(xncp_context_t *ctx)
 // Combined send (XNCP_FEATURE_COMBINED_SEND)
 //------------------------------------------------------------------------------
 
+// Creates an address table entry for the device, reusing its existing slot if the
+// stack has since marked the node ID unknown, else the first unused application slot,
+// else replacing one round-robin. The trust center address cache occupies the last
+// `addressCacheSize` entries and is managed by the stack, so it is never touched.
+static void add_address_table_entry(uint8_t *eui64, uint16_t node_id)
+{
+    static uint8_t cursor = 0;
+    uint8_t app_entries = sli_zigbee_address_table_size - addressCacheSize;
+    uint8_t unused_index = 0xFF;
+
+    if (app_entries == 0) {
+        return;
+    }
+
+    for (uint8_t index = 0; index < app_entries; index++) {
+        sl_802154_short_addr_t existing_node_id;
+        sl_802154_long_addr_t existing_eui64;
+        sl_zigbee_get_address_table_info(index, &existing_node_id, existing_eui64);
+
+        if (memcmp(existing_eui64, eui64, EUI64_SIZE) == 0) {
+            sl_zigbee_set_address_table_info(index, eui64, node_id);
+            return;
+        }
+
+        if ((unused_index == 0xFF) && (existing_node_id == SL_ZIGBEE_TABLE_ENTRY_UNUSED_NODE_ID)) {
+            unused_index = index;
+        }
+    }
+
+    if (unused_index != 0xFF) {
+        sl_zigbee_set_address_table_info(unused_index, eui64, node_id);
+        return;
+    }
+
+    sl_zigbee_set_address_table_info(cursor, eui64, node_id);
+    cursor = (cursor + 1) % app_entries;
+}
+
 // Mirrors the host `set_extended_timeout` logic locally: skip if already set,
 // otherwise set it, creating an address table entry first if none exists.
 static void apply_extended_timeout(uint8_t *eui64, uint16_t node_id, bool extended_timeout)
@@ -414,9 +453,8 @@ static void apply_extended_timeout(uint8_t *eui64, uint16_t node_id, bool extend
         return;
     }
 
-    // No address table entry exists; replace a random one so the timeout sticks
-    uint8_t index = xncp_get_pseudo_random_number() % sli_zigbee_address_table_size;
-    sl_zigbee_set_address_table_info(index, eui64, node_id);
+    // No address table entry exists; create one so the timeout sticks
+    add_address_table_entry(eui64, node_id);
     sl_zigbee_set_extended_timeout(eui64, extended_timeout);
 }
 
