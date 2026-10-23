@@ -1,4 +1,4 @@
-# 1.3.2
+# 1.4.0
 * Updated to Simplicity SDK 2026.6.2 (Z-Wave SDK 8.1.2), up from Simplicity SDK 2026.6.1 (Z-Wave SDK 8.1.1).
 * Fixed an issue where the controller could stop sending frames after several transmission failures on a congested network.
 * Fixed the Serial API Setup command Set Max LR Tx Power, which did not apply the requested Long Range transmit power on 20 dBm devices like the ZWA-2.
