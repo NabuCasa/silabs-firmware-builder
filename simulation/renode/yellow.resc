@@ -1,0 +1,6 @@
+:name: Yellow
+:description: Boots a Home Assistant Yellow (MGM210P, EFR32MG21) firmware ELF ($bin), with the host UART on TCP $uart_port.
+
+$platform=$ORIGIN/yellow.repl
+$machine_name="yellow"
+include $ORIGIN/skyconnect.resc
