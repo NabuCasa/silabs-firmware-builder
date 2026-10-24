@@ -195,3 +195,8 @@ ui_hints:
   highlight:
   - path: README.md
     focus: true
+
+sdk_extension:
+  - id: rust
+    vendor: ohf
+    version: 1.0.0

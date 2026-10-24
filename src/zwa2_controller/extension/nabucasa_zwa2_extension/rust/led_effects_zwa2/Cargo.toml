@@ -1,0 +1,11 @@
+[package]
+name = "led_effects_zwa2"
+edition.workspace = true
+version.workspace = true
+
+# Components this crate uses come from the slcc's `requires`
+[dependencies]
+critical-section = "1"
+
+[build-dependencies]
+ohf-bindgen = { path = "../ohf-bindgen" }

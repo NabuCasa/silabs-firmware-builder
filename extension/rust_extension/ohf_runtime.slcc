@@ -1,0 +1,16 @@
+id: ohf_runtime
+label: OHF Rust Runtime
+package: custom
+description: The Rust components' runtime. tools/build_project.py links the enabled components' crates.
+category: Platform|Rust
+quality: production
+provides:
+  - name: ohf_runtime
+template_contribution:
+  - name: component_catalog
+    value: ohf_runtime
+
+metadata:
+  rust:
+    crate:
+      path: rust/ohf_runtime

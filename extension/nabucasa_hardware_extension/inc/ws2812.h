@@ -12,7 +12,6 @@
 
 #include "sl_led.h"
 #include "sl_simple_rgb_pwm_led.h"
-#include "ws2812_config.h"
 
 void ws2812_led_driver_init(void);
 

@@ -3,7 +3,7 @@ device: EFR32MG21A020F512IM32
 base_project: src/zigbee_ncp
 filename: "{manifest_name}_{ezsp_version}"
 sdk: "simplicity_sdk:2026.6.1"
-toolchain: "14.2.1.20241119"
+toolchain: "llvm:21.1.1"
 
 gbl:
   fw_type: zigbee_ncp
@@ -11,27 +11,30 @@ gbl:
   baudrate: 115200
 
 sdk_extension:
-  - id: xncp
+  - id: nabucasa_hardware
     vendor: nabucasa
     version: 1.0.0
+  - id: xncp
+    vendor: ohf
+    version: 1.0.0
   - id: xncp_common
-    vendor: nabucasa
+    vendor: ohf
     version: 1.0.0
 
 add_components:
 - id: xncp_core
-  vendor: nabucasa
+  vendor: ohf
   package: xncp
 - id: xncp_common_commands
-  vendor: nabucasa
+  vendor: ohf
   package: xncp_common
 
 c_defines:
   XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE: 1
 
-  XNCP_MFG_MANUF_NAME: '"Nabu Casa"'
-  XNCP_MFG_BOARD_NAME: '"Home Assistant Connect ZBT-1"'
-  XNCP_BUILD_STRING: template:"{now:%Y%m%d%H%M%S}"
+  XNCP_MFG_MANUF_NAME: Nabu Casa
+  XNCP_MFG_BOARD_NAME: Home Assistant Connect ZBT-1
+  XNCP_BUILD_STRING: template:{now:%Y%m%d%H%M%S}
   XNCP_MANUAL_SOURCE_ROUTE_TABLE_SIZE: 200
 
   SL_ZIGBEE_APS_UNICAST_MESSAGE_COUNT: 64

@@ -1,0 +1,7 @@
+[package]
+name = "cmds_proprietary_zwa2"
+edition.workspace = true
+version.workspace = true
+
+[build-dependencies]
+ohf-bindgen = { path = "../ohf-bindgen" }

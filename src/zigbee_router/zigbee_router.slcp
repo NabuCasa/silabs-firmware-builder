@@ -7,17 +7,20 @@ description: Zigbee NCP firmware. Derived from the `zigbee_z3_light` example Gec
 author: Nabu Casa
 
 sdk_extension:
+  - id: rust
+    vendor: ohf
+    version: 1.0.0
   - id: router_nvram_reset
-    vendor: nabucasa
+    vendor: ohf
     version: 1.0.0
   - id: router_eui64_unique
-    vendor: nabucasa
+    vendor: ohf
     version: 1.0.0
   - id: router_beacon_filter
-    vendor: nabucasa
+    vendor: ohf
     version: 1.0.0
   - id: router_bootloader_cli
-    vendor: nabucasa
+    vendor: ohf
     version: 1.0.0
 
 component:
@@ -71,16 +74,16 @@ component:
       - toolchain_llvm
   # Custom router components
   - id: router_nvram_reset
-    vendor: nabucasa
+    vendor: ohf
     package: router_nvram_reset
   - id: router_eui64_unique
-    vendor: nabucasa
+    vendor: ohf
     package: router_eui64_unique
   - id: router_beacon_filter
-    vendor: nabucasa
+    vendor: ohf
     package: router_beacon_filter
   - id: router_bootloader_cli
-    vendor: nabucasa
+    vendor: ohf
     package: router_bootloader_cli
 
 configuration:
@@ -214,3 +217,9 @@ filter:
   - name: Project Difficulty
     value: [Beginner]
 
+define:
+  # Nothing formats floats, and float support pulls in soft-float double math
+  - name: PRINTF_DISABLE_SUPPORT_FLOAT
+    value: 1
+  - name: PRINTF_DISABLE_SUPPORT_EXPONENTIAL
+    value: 1

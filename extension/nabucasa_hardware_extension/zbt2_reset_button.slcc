@@ -4,18 +4,30 @@ package: custom
 description: Pin-hole reset button handler for factory reset with LED feedback
 category: Platform|Driver|Button
 quality: production
-source:
-  - path: src/zbt2_reset_button.c
-include:
-  - path: inc
-    file_list:
-    - path: zbt2_reset_button.h
-config_file:
-  - path: config/zbt2_reset_button_config.h
-    file_id: zbt2_reset_button_config
 provides:
   - name: zbt2_reset_button
 requires:
+  - name: ohf_sys_factory_erase
+  - name: ohf_runtime
   - name: led_manager
   - name: simple_button
   - name: sleeptimer
+template_contribution:
+  - name: component_catalog
+    value: zbt2_reset_button
+
+metadata:
+  rust:
+    crate:
+      path: rust/zbt2_reset_button
+    config:
+      # Blink cycles the button must be held for to reset
+      ZBT2_RESET_BUTTON_CYCLES: { type: u32, default: 4 }
+      ZBT2_RESET_BUTTON_CYCLE_DELAY_MS: { type: u32, default: 500 }
+      ZBT2_RESET_BUTTON_BLINK_ON_MS: { type: u32, default: 150 }
+      ZBT2_RESET_BUTTON_BLINK_OFF_MS: { type: u32, default: 50 }
+      # Before the blinks start, after each cycle
+      ZBT2_RESET_BUTTON_BLINK_START_DELAY_MS: { type: u32, default: 200 }
+  link:
+    weak_overrides:
+      - sl_button_on_change

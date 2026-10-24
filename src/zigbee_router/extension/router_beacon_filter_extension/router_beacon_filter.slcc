@@ -4,13 +4,14 @@ package: custom
 description: Filters out beacons from problematic networks during network scanning
 category: Zigbee|Router
 quality: production
-source:
-  - path: src/router_beacon_filter.c
 provides:
   - name: router_beacon_filter
 requires:
+  - name: ohf_runtime
   - name: zigbee_pro_stack
-  - name: zigbee_debug_print
+template_contribution:
+  - name: component_catalog
+    value: router_beacon_filter
 toolchain_settings:
   - option: gcc_linker_option
     value: "-Wl,--wrap=sli_zigbee_stack_get_stored_beacon"
@@ -18,6 +19,9 @@ toolchain_settings:
     value: "-Wl,--wrap=sli_zigbee_stack_get_stored_beacon"
 
 metadata:
-  nabucasa:
+  rust:
+    crate:
+      path: rust
+  link:
     wrap_definitions:
       sli_zigbee_stack_get_stored_beacon: "libzigbee-pro-stack.a:beacon-handling.c.obj"

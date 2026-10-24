@@ -4,8 +4,6 @@ package: custom
 description: CLI commands for viewing bootloader info and triggering a reboot into the bootloader
 category: Zigbee|Router
 quality: production
-source:
-  - path: src/router_bootloader_cli.c
 include:
   - path: inc
     file_list:
@@ -16,6 +14,8 @@ requires:
   - name: bootloader_interface
   - name: cli
 template_contribution:
+  - name: component_catalog
+    value: router_bootloader_cli
   - name: cli_command
     value:
       name: version
@@ -42,3 +42,8 @@ template_contribution:
       name: reboot
       handler: router_bootloader_cli_reboot
       help: Reboots into the bootloader.
+
+metadata:
+  rust:
+    crate:
+      path: rust

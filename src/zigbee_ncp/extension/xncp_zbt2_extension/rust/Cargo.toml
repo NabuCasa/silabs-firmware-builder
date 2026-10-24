@@ -1,0 +1,8 @@
+[package]
+name = "xncp_zbt2_commands"
+edition.workspace = true
+version.workspace = true
+
+# Components this crate uses come from the slcc's `requires`
+[dependencies]
+linkme = "0.3"
