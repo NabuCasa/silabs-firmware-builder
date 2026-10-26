@@ -1,0 +1,12 @@
+[package]
+name = "ws2812_driver"
+edition.workspace = true
+version.workspace = true
+
+# Components this crate uses come from the slcc's `requires`
+[dependencies]
+critical-section = "1"
+
+[build-dependencies]
+ohf-bindgen = { path = "../ohf-bindgen" }
+ohf-config = { path = "../ohf-config" }

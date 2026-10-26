@@ -1,0 +1,4 @@
+[package]
+name = "led_effects_zigbee"
+edition.workspace = true
+version.workspace = true

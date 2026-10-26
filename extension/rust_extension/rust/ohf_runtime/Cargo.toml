@@ -1,0 +1,11 @@
+[package]
+name = "ohf_runtime"
+edition.workspace = true
+version.workspace = true
+
+# Components this crate uses come from the slcc's `requires`
+[dependencies]
+critical-section = { version = "1", features = ["restore-state-u32"] }
+
+[build-dependencies]
+ohf-bindgen = { path = "../ohf-bindgen" }

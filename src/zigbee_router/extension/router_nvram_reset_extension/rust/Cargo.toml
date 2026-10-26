@@ -1,0 +1,7 @@
+[package]
+name = "router_nvram_reset"
+edition.workspace = true
+version.workspace = true
+
+[build-dependencies]
+ohf-bindgen = { path = "../ohf-bindgen" }

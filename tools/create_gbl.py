@@ -56,6 +56,7 @@ def create_gbl(
     project_name: str,
     sdk_version: str,
     gbl_metadata: dict[str, Any],
+    rust_config: dict[str, dict[str, str]],
 ) -> dict[str, Any]:
     """Build the GBL image for a linked project, returning its metadata."""
     elf = build_dir / f"{project_name}.out"
@@ -80,12 +81,16 @@ def create_gbl(
         )
         special_version = zigbee_config_h["SL_ZIGBEE_SPECIAL_VERSION"]
 
-        # `ezsp_version.c` in the NCP applies the same override at compile time
-        xncp_config_path = project_root / "config/xncp_config.h"
-        if xncp_config_path.exists():
-            xncp_config_h = parse_c_header_defines(xncp_config_path.read_text())
-            if xncp_config_h["XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE"] != 0xFF:
-                special_version = xncp_config_h["XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE"]
+        # `ohf-xncp-common` applies the same override to `sl_zigbee_version`
+        if "xncp_common_commands" in rust_config:
+            override = int(
+                rust_config["xncp_common_commands"][
+                    "XNCP_EZSP_VERSION_PATCH_NUM_OVERRIDE"
+                ]["value"],
+                0,
+            )
+            if override != 0xFF:
+                special_version = override
 
         metadata["ezsp_version"] = ".".join(
             [
