@@ -21,7 +21,7 @@ git clone https://github.com/NabuCasa/silabs-firmware-builder
 cd silabs-firmware-builder
 
 docker run --rm -v $(pwd):/repo ghcr.io/nabucasa/silabs-firmware-builder \
-    --manifest manifests/nabucasa/skypconnect/skyconnect_zigbee_ncp.yaml  \
+    --manifest manifests/nabucasa/skyconnect/skyconnect_zigbee_ncp.yaml  \
     --output gbl \
     --output-dir artifacts
 ```
