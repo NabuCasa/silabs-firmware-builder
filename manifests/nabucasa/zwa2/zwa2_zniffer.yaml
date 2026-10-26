@@ -1,0 +1,51 @@
+name: Home Assistant Connect ZWA-2 Z-Wave Zniffer
+device: EFR32ZG23A020F512GM40
+base_project: src/zwa2_zniffer
+filename: "{manifest_name}_{zwave_version}"
+sdk: "simplicity_sdk:2026.6.2"
+toolchain: "gcc:14.2.1.20241119"
+
+gbl:
+  fw_type: zwave_zniffer
+  zwave_version: dynamic
+  baudrate: 115200
+  encrypt_key: config/keys/vendor_encrypt.key
+  sign_key: config/keys/vendor_sign.key
+  compression: lzma
+
+copy_sdk_files:
+  # Z-Wave Zniffer source files (unmodified from SDK sample app)
+  - source: zwave_sample_app/zwave_ncp_zniffer/Zniffer.c
+    path: Zniffer.c
+  - source: zwave_sample_app/zwave_ncp_zniffer/comm_interface.c
+    path: comm_interface.c
+  - source: zwave_sample_app/zwave_ncp_zniffer/zniffer_handler.c
+    path: zniffer_handler.c
+  - source: zwave_sample_app/zwave_ncp_zniffer/comm_interface.h
+    path: comm_interface.h
+  - source: zwave_sample_app/zwave_ncp_zniffer/zniffer_handler.h
+    path: zniffer_handler.h
+  - source: zwave_sample_app/zwave_ncp_zniffer/commands.h
+    path: commands.h
+
+  # Z-Wave Application Framework config (not provided by any included component)
+  - source: zwave_sample_app/config/zw_zaf/s2/zaf_config.h
+    path: config/zaf_config.h
+
+c_defines:
+  # Firmware version, reported by the Zniffer GetVersion command
+  USE_USER_APP_VERSION: 1
+  USER_APP_VERSION: 1
+  USER_APP_REVISION: 2
+  USER_APP_PATCH: 0
+
+  # The ZWA-2 hardware runs the DC-DC converter in bypass mode. Since Z-Wave
+  # SDK 8.1.0, this setting is applied at startup and would otherwise switch
+  # the converter dynamically.
+  ZW_DCDC_CONFIG: EDCDCMODE_BYPASS
+
+  # USART0 Zniffer pins
+  ZNIFFER_TX_PORT: gpioPortA
+  ZNIFFER_TX_PIN: 8
+  ZNIFFER_RX_PORT: gpioPortA
+  ZNIFFER_RX_PIN: 7
