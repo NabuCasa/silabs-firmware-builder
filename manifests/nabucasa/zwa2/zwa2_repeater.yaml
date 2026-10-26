@@ -1,0 +1,80 @@
+name: Home Assistant Connect ZWA-2 Z-Wave Repeater
+device: EFR32ZG23A020F512GM40
+base_project: src/zwa2_repeater
+filename: "{manifest_name}_{zwave_version}"
+sdk: "simplicity_sdk:2026.6.1"
+toolchain: "gcc:14.2.1.20241119"
+gbl:
+  fw_type: zwave_repeater
+  zwave_version: dynamic
+  encrypt_key: config/keys/vendor_encrypt.key
+  sign_key: config/keys/vendor_sign.key
+  compression: lzma
+
+sdk_patches:
+  # Restore the persisted LED color from NVM at startup
+  - cc-color-switch-restore-from-nvm.patch
+
+sdk_extension:
+  - id: nabucasa_hardware
+    vendor: nabucasa
+    version: 1.0.0
+
+add_components:
+  - id: spidrv_eusart
+    instance: [ws2812]
+  - id: ws2812_driver
+    vendor: nabucasa
+    package: nabucasa_hardware
+
+# SLC reads `configuration` during validation, before c_defines are patched
+configuration:
+  SL_SPIDRV_EUSART_WS2812_CS_CONTROL: spidrvCsControlApplication
+
+c_defines:
+  # Z-Wave device identity
+  ZAF_CONFIG_MANUFACTURER_ID: '0x0466'
+  ZAF_CONFIG_PRODUCT_TYPE_ID: '0x0001'
+  ZAF_CONFIG_PRODUCT_ID: '0x0001'
+
+  # Firmware version
+  USER_APP_VERSION: 1
+  USER_APP_REVISION: 3
+  USER_APP_PATCH: 0
+
+  # Default RF region and TX power
+  ZW_REGION: REGION_EU
+  APP_MAX_TX_POWER: 130
+
+  # The ZWA-2 hardware runs the DC-DC converter in bypass mode. Since Z-Wave
+  # SDK 8.1.0, this setting is applied at startup and would otherwise switch
+  # the converter dynamically.
+  ZW_DCDC_CONFIG: EDCDCMODE_BYPASS
+
+  # Button
+  SL_SIMPLE_BUTTON_INSTANCE0_PORT: SL_GPIO_PORT_C
+  SL_SIMPLE_BUTTON_INSTANCE0_PIN: 5
+
+  # USART0 CLI pins
+  SL_IOSTREAM_USART_INST_PERIPHERAL: USART0
+  SL_IOSTREAM_USART_INST_PERIPHERAL_NO: 0
+  SL_IOSTREAM_USART_INST_TX_PORT: SL_GPIO_PORT_A
+  SL_IOSTREAM_USART_INST_TX_PIN: 8
+  SL_IOSTREAM_USART_INST_RX_PORT: SL_GPIO_PORT_A
+  SL_IOSTREAM_USART_INST_RX_PIN: 7
+
+  # WS2812 LED driver
+  SL_SPIDRV_EUSART_WS2812_PERIPHERAL: EUSART1
+  SL_SPIDRV_EUSART_WS2812_PERIPHERAL_NO: 1
+  SL_SPIDRV_EUSART_WS2812_TX_PORT: SL_GPIO_PORT_C
+  SL_SPIDRV_EUSART_WS2812_TX_PIN: 2
+  SL_SPIDRV_EUSART_WS2812_RX_PORT: SL_GPIO_PORT_C
+  SL_SPIDRV_EUSART_WS2812_RX_PIN: 1
+  SL_SPIDRV_EUSART_WS2812_SCLK_PORT: SL_GPIO_PORT_D
+  SL_SPIDRV_EUSART_WS2812_SCLK_PIN: 2
+  SL_SPIDRV_EUSART_WS2812_CS_CONTROL: spidrvCsControlApplication
+  SL_SPIDRV_EUSART_WS2812_BITRATE: 3200000
+  SL_SPIDRV_EUSART_WS2812_BIT_ORDER: spidrvBitOrderMsbFirst
+  WS2812_EN_PORT: gpioPortC
+  WS2812_EN_PIN: 3
+  WS2812_NUM_LEDS: 4
