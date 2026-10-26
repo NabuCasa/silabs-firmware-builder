@@ -15,5 +15,7 @@ sample application. The ZWA-2 specific changes are:
 ## Versioning
 
 The firmware version is defined in the `zwa2_zniffer.yaml` manifest through
-`USER_APP_VERSION`, `USER_APP_REVISION` and `USER_APP_PATCH`. The Zniffer's
-GetVersion command reports the major and minor version.
+`USER_APP_VERSION`, `USER_APP_REVISION` and `USER_APP_PATCH`. It only ends up
+in the GBL metadata. The Zniffer GetVersion command reports the ZAF version
+(11.1 for Z-Wave SDK 8.1.2), because Z-Wave JS enables Long Range support only
+for Zniffer versions 10.22 and newer.

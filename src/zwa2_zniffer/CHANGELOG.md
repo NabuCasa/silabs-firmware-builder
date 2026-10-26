@@ -1,6 +1,5 @@
 # 1.2.0
 * Updated to Simplicity SDK 2026.6.2 (Z-Wave SDK 8.1.2), up from Simplicity SDK 2024.12.2 (Z-Wave SDK 7.23.2)
-* The Zniffer GetVersion command now reports the firmware version instead of the Z-Wave SDK version
 
 # 1.1.0
 * Updated to Simplicity SDK 2024.12.2

@@ -33,8 +33,8 @@ copy_sdk_files:
     path: config/zaf_config.h
 
 c_defines:
-  # Firmware version, reported by the Zniffer GetVersion command
-  USE_USER_APP_VERSION: 1
+  # Firmware version of the GBL. The Zniffer GetVersion command must keep
+  # reporting the ZAF version because Z-Wave JS gates features on it.
   USER_APP_VERSION: 1
   USER_APP_REVISION: 2
   USER_APP_PATCH: 0
