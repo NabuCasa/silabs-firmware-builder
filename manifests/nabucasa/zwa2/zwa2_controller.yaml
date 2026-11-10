@@ -2,7 +2,7 @@ name: Home Assistant Connect ZWA-2 Z-Wave Controller
 device: EFR32ZG23A020F512GM40
 base_project: src/zwa2_controller
 filename: "{manifest_name}_{zwave_version}"
-sdk: "simplicity_sdk:2026.6.1"
+sdk: "simplicity_sdk:2026.6.2"
 toolchain: "gcc:14.2.1.20241119"
 
 gbl:
@@ -128,8 +128,8 @@ c_defines:
   # Firmware version (reported in SERIALAPI_CAPABILITIES)
   # See src/zwa2_controller/README.md for versioning scheme details.
   USER_APP_VERSION: 1
-  USER_APP_REVISION: 3
-  USER_APP_PATCH: 1
+  USER_APP_REVISION: 4
+  USER_APP_PATCH: 0
 
   # USART0 serial API pins
   SERIAL_API_TX_PORT: gpioPortA

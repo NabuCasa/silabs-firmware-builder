@@ -58,24 +58,27 @@ RUN set -eux \
 # package id and package revision are all discoverable over its REST API. Those revisions
 # are content hashes, so the URL is already pinned to exactly these bytes.
 FROM trixie-stable AS silabs-sdk
-ARG SDK_VERSION=2026.6.1
+ARG SDK_VERSIONS="2026.6.1 2026.6.2"
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 RUN set -eux \
     && apt-get install -y --no-install-recommends \
         aria2 ca-certificates jq libarchive-tools \
     && cd /tmp \
-    && SDK="https://conan.silabs.net/v2/conans/simplicity-sdk/$SDK_VERSION/silabs/_" \
-    && aria2c -q -o rrev.json "$SDK/latest" \
-    && RREV=$(jq -r .revision rrev.json) \
-    && aria2c -q -o pkgs.json "$SDK/revisions/$RREV/search" \
-    && PKG=$(jq -r 'keys[0]' pkgs.json) \
-    && aria2c -q -o prev.json "$SDK/revisions/$RREV/packages/$PKG/latest" \
-    && PREV=$(jq -r .revision prev.json) \
-    && aria2c -q -x4 -o sdk.tgz "$SDK/revisions/$RREV/packages/$PKG/revisions/$PREV/files/conan_package.tgz" \
-    && mkdir -p "/opt/silabs/sdks/simplicity_sdk_$SDK_VERSION" \
-    && bsdtar -xf sdk.tgz -C "/opt/silabs/sdks/simplicity_sdk_$SDK_VERSION" \
-    && rm -f rrev.json pkgs.json prev.json sdk.tgz
+    && for SDK_VERSION in $SDK_VERSIONS; do \
+        SDK="https://conan.silabs.net/v2/conans/simplicity-sdk/$SDK_VERSION/silabs/_" \
+        && aria2c -q -o rrev.json "$SDK/latest" \
+        && RREV=$(jq -r .revision rrev.json) \
+        && aria2c -q -o pkgs.json "$SDK/revisions/$RREV/search" \
+        && PKG=$(jq -r 'keys[0]' pkgs.json) \
+        && aria2c -q -o prev.json "$SDK/revisions/$RREV/packages/$PKG/latest" \
+        && PREV=$(jq -r .revision prev.json) \
+        && aria2c -q -x4 -o sdk.tgz "$SDK/revisions/$RREV/packages/$PKG/revisions/$PREV/files/conan_package.tgz" \
+        && mkdir -p "/opt/silabs/sdks/simplicity_sdk_$SDK_VERSION" \
+        && bsdtar -xf sdk.tgz -C "/opt/silabs/sdks/simplicity_sdk_$SDK_VERSION" \
+        && rm -f rrev.json pkgs.json prev.json sdk.tgz \
+        || exit 1; \
+    done
 
 # Arm publishes both toolchains that Silicon Labs repackages: arm-none-eabi (GCC) and
 # Arm Toolchain for Embedded (LLVM).
