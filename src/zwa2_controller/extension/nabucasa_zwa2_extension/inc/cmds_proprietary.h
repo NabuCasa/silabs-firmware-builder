@@ -62,4 +62,7 @@ typedef struct __attribute__((packed)) NabuCasaConfigStorage
 bool nc_config_get(eNabuCasaConfigKey key);
 void nc_config_set(eNabuCasaConfigKey key, bool value);
 
+/* Restore the manual LED layer and its reported on/off state from NVM */
+void nc_led_restore(void);
+
 #endif /* APPS_SERIALAPI_CMD_PROPRIETARY_H_ */

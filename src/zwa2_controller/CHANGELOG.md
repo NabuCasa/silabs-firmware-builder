@@ -1,3 +1,7 @@
+# 1.4.1
+* Fixed the top LED not responding to LED commands, and staying stuck at a dim brightness, since 1.3.0. The Z-Wave UART driver reset the DMA controller at startup, which stopped the LED driver's transfers from completing on Simplicity SDK 2026.6.
+* Fixed the LED state being reported as off after a reboot, even when it was restored as on.
+
 # 1.4.0
 * Updated to Simplicity SDK 2026.6.2 (Z-Wave SDK 8.1.2), up from Simplicity SDK 2026.6.1 (Z-Wave SDK 8.1.1).
 * Fixed an issue where the controller could stop sending frames after several transmission failures on a congested network.

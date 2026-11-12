@@ -48,6 +48,48 @@ void nc_config_set(eNabuCasaConfigKey key, bool value)
   ZAF_nvm_app_write(FILE_ID_NABUCASA_CONFIG, &cfg, sizeof(cfg));
 }
 
+static void nc_led_apply(bool state)
+{
+  led_manager_set_color(LED_PRIORITY_MANUAL, state ? LED_COLOR_COLD_WHITE : LED_COLOR_BLACK);
+  manual_led_on = state;
+}
+
+static void nc_led_set(bool state)
+{
+  nc_led_apply(state);
+
+  // Store the current color in NVM, so it can be restored after a reboot
+  // FIXME: Only override if something changed
+  rgb_t color = state ? LED_COLOR_COLD_WHITE : LED_COLOR_BLACK;
+  NabuCasaLedStorage_t ledStorage = (NabuCasaLedStorage_t) {
+    .valid = true,
+    .r = (uint8_t)(color.r >> 8),
+    .g = (uint8_t)(color.g >> 8),
+    .b = (uint8_t)(color.b >> 8)
+  };
+  ZAF_nvm_app_write(FILE_ID_NABUCASA_LED, &ledStorage, sizeof(ledStorage));
+}
+
+void nc_led_restore(void)
+{
+  NabuCasaLedStorage_t ledStorage = {0};
+
+  if (ZPAL_STATUS_OK != ZAF_nvm_app_read(FILE_ID_NABUCASA_LED, &ledStorage, sizeof(ledStorage))
+      || !ledStorage.valid) {
+    return;
+  }
+
+  // "Off" is stored as LED_COLOR_BLACK, which is not all zeroes. Anything else that
+  // is not black (including RGB colors stored by 1.0.0) means the LED is on.
+  const rgb_t black = LED_COLOR_BLACK;
+  bool is_black = (ledStorage.r == 0 && ledStorage.g == 0 && ledStorage.b == 0)
+                  || (ledStorage.r == (uint8_t)(black.r >> 8)
+                      && ledStorage.g == (uint8_t)(black.g >> 8)
+                      && ledStorage.b == (uint8_t)(black.b >> 8));
+
+  nc_led_apply(!is_black);
+}
+
 ZW_ADD_CMD(FUNC_ID_NABU_CASA)
 {
   uint8_t inputLength = frame->len;
@@ -123,20 +165,7 @@ ZW_ADD_CMD(FUNC_ID_NABU_CASA)
       uint8_t b = pInputBuffer[pos++];
 
       // Ignore actual color values, use cold white or off
-      bool state = (r > 0 || g > 0 || b > 0);
-      rgb_t color = state ? LED_COLOR_COLD_WHITE : LED_COLOR_BLACK;
-      led_manager_set_color(LED_PRIORITY_MANUAL, color);
-      manual_led_on = state;
-
-      // Store the current color in NVM, so it can be restored after a reboot
-      // FIXME: Only override if something changed
-      NabuCasaLedStorage_t ledStorage = (NabuCasaLedStorage_t) {
-        .valid = true,
-        .r = (uint8_t)(color.r >> 8),
-        .g = (uint8_t)(color.g >> 8),
-        .b = (uint8_t)(color.b >> 8)
-      };
-      ZAF_nvm_app_write(FILE_ID_NABUCASA_LED, &ledStorage, sizeof(ledStorage));
+      nc_led_set(r > 0 || g > 0 || b > 0);
 
       cmdRes = true;
     }
@@ -165,20 +194,7 @@ ZW_ADD_CMD(FUNC_ID_NABU_CASA)
     if (inputLength >= 2)
     {
       // Set solid color as the LED effect
-      bool state = pInputBuffer[1] != 0;
-      rgb_t color = state ? LED_COLOR_COLD_WHITE : LED_COLOR_BLACK;
-      led_manager_set_color(LED_PRIORITY_MANUAL, color);
-      manual_led_on = state;
-
-      // Store the current color in NVM, so it can be restored after a reboot
-      // FIXME: Only override if something changed
-      NabuCasaLedStorage_t ledStorage = (NabuCasaLedStorage_t) {
-        .valid = true,
-        .r = (uint8_t)(color.r >> 8),
-        .g = (uint8_t)(color.g >> 8),
-        .b = (uint8_t)(color.b >> 8)
-      };
-      ZAF_nvm_app_write(FILE_ID_NABUCASA_LED, &ledStorage, sizeof(ledStorage));
+      nc_led_set(pInputBuffer[1] != 0);
 
       cmdRes = true;
     }
