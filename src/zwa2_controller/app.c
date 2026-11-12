@@ -955,16 +955,7 @@ ApplicationInit(
   led_effects_init();
 
   /* Restore LED state from NVM */
-  {
-    NabuCasaLedStorage_t ledStorage = {0};
-    if (ZPAL_STATUS_OK == ZAF_nvm_app_read(FILE_ID_NABUCASA_LED, &ledStorage, sizeof(ledStorage))
-        && ledStorage.valid) {
-      bool state = (ledStorage.r > 0 || ledStorage.g > 0 || ledStorage.b > 0);
-      if (state) {
-        led_manager_set_color(LED_PRIORITY_MANUAL, RGB8(ledStorage.r, ledStorage.g, ledStorage.b));
-      }
-    }
-  }
+  nc_led_restore();
 
   /* Restore tilt detection config from NVM */
   led_effects_set_tilt_enabled(nc_config_get(NC_CFG_ENABLE_TILT_INDICATOR));

@@ -11,6 +11,7 @@
 
 #include <stddef.h>
 
+#include "em_cmu.h"
 #include "em_ldma.h"
 #include "zpal_uart.h"
 #include "dmadrv.h"
@@ -33,6 +34,27 @@ extern void dmadrv_LDMA_IRQHandler(void);
 void __wrap_LDMA_IRQHandler(void)
 {
     dmadrv_LDMA_IRQHandler();
+}
+
+
+// The ZPAL UART driver calls `LDMA_Init` when it starts up, long after the DMA Manager
+// has initialized the LDMA and other drivers have set up their channels. `LDMA_Init`
+// resets the peripheral: it disables every channel and masks every channel interrupt.
+// DMADRV used to re-enable a channel's interrupt on every transfer, which hid this, but
+// as of Simplicity SDK 2026.6 SPIDRV uses the DMA channel driver, which only enables it
+// once. SPIDRV then never sees its transfer complete and the WS2812 LED stops updating.
+// The LDMA is already initialized by the time ZPAL runs, so skip the reset and only
+// apply the interrupt priority it asks for, as `LDMA_Init` would have.
+extern void __real_LDMA_Init(const LDMA_Init_t *init);
+void __wrap_LDMA_Init(const LDMA_Init_t *init)
+{
+    if (!(CMU->CLKEN0 & CMU_CLKEN0_LDMA) || !(LDMA->EN & LDMA_EN_EN)) {
+        __real_LDMA_Init(init);
+        return;
+    }
+
+    NVIC_SetPriority(LDMA_IRQn, init->ldmaInitIrqPriority);
+    NVIC_EnableIRQ(LDMA_IRQn);
 }
 
 

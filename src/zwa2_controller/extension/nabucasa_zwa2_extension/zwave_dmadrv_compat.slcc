@@ -6,6 +6,8 @@ description: >
   The Z-Wave ZPAL library provides its own LDMA_IRQHandler that only handles
   channel 2 (UART TX DMA). This component wraps it so that DMADRV's handler
   also runs, allowing I2C and SPI drivers that depend on DMADRV to function.
+  It also wraps LDMA_Init, which ZPAL calls at UART startup, so that it no longer
+  resets the already initialized LDMA and disables other drivers' channels.
 category: Z-Wave|Platform
 quality: production
 source:
@@ -33,7 +35,17 @@ toolchain_settings:
     value: "-Wl,--wrap=LDMA_IRQHandler"
   - option: gcc_linker_option
     value: "-Wl,--wrap=zpal_uart_utils_tx_transfer_start"
+  - option: gcc_linker_option
+    value: "-Wl,--wrap=LDMA_Init"
   - option: llvm_linker_option
     value: "-Wl,--wrap=LDMA_IRQHandler"
   - option: llvm_linker_option
     value: "-Wl,--wrap=zpal_uart_utils_tx_transfer_start"
+  - option: llvm_linker_option
+    value: "-Wl,--wrap=LDMA_Init"
+
+metadata:
+  nabucasa:
+    wrap_definitions:
+      # ZPAL's call to `LDMA_Init` is inlined by LTO unless emlib's definition is kept out of it
+      LDMA_Init: "em_ldma.c"
