@@ -10,12 +10,16 @@ from typing import Any
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from pygbl import (
+    GBL3Bootloader,
     GBL3Compression,
     GBL3EraseProg,
+    GBL3Header,
     GBL3Image,
     GBL3Prog,
+    GBL3Type,
     build_application_gbl3,
     build_bootloader_gbl3,
+    parse_firmware_image,
     read_application_properties,
     read_encryption_key,
 )
@@ -118,6 +122,35 @@ def check_gbl_size(name: str, data: bytes, limit: int | None) -> None:
     print(f"{name} is {len(data)} bytes, {limit - len(data)} below {limit}", flush=True)
 
 
+def load_bootloader_tag(
+    path: pathlib.Path, encryption_key_path: pathlib.Path | None
+) -> GBL3Bootloader:
+    """Read the bootloader tag from a bootloader ELF or a bootloader-only GBL."""
+    if path.suffix == ".out":
+        with path.open("rb") as f:
+            image = build_bootloader_gbl3(f)
+    elif path.suffix == ".gbl":
+        image = parse_firmware_image(path.read_bytes())
+
+        if not isinstance(image, GBL3Image):
+            raise TypeError(f"{path} is not a GBL3 image")
+
+        if GBL3Type.ENCRYPTION_AESCCM in image.get_first_tag(GBL3Header).type:
+            if encryption_key_path is None:
+                raise ValueError(f"{path} is encrypted and the manifest has no key")
+
+            image = image.decrypt(read_encryption_key(encryption_key_path.read_text()))
+    else:
+        raise ValueError(f"Bootloader must be an `.out` or `.gbl` file: {path}")
+
+    if image.get_tags(GBL3Prog, allow_missing=True) or image.get_tags(
+        GBL3EraseProg, allow_missing=True
+    ):
+        raise ValueError(f"{path} contains application data")
+
+    return image.get_first_tag(GBL3Bootloader)
+
+
 def finalize_gbl(
     image: GBL3Image,
     gbl_metadata: dict[str, Any],
@@ -153,8 +186,13 @@ def create_gbl(
     project_name: str,
     sdk_version: str,
     gbl_metadata: dict[str, Any],
+    bootloader: GBL3Bootloader | None = None,
 ) -> dict[str, Any]:
-    """Build the GBL image for a linked project, returning its metadata."""
+    """Build the GBL image for a linked project, returning its metadata.
+
+    With `bootloader`, also write `<project_name>.combined.gbl`, which holds that
+    bootloader and the application.
+    """
     elf = build_dir / f"{project_name}.out"
 
     # Prepare the GBL metadata
@@ -309,8 +347,10 @@ def create_gbl(
 
     metadata_json = json.dumps(metadata, sort_keys=True).encode("utf-8")
 
+    is_bootloader = gbl_metadata.get("fw_type", None) == "gecko-bootloader"
+
     with elf.open("rb") as f:
-        if gbl_metadata.get("fw_type", None) != "gecko-bootloader":
+        if not is_bootloader:
             image = build_application_gbl3(
                 f, metadata=metadata_json if gbl_metadata else None
             )
@@ -324,8 +364,21 @@ def create_gbl(
                 f, metadata=metadata_json if gbl_metadata else None
             )
 
+    max_size = gbl_metadata.get("max_size")
     gbl = finalize_gbl(image, gbl_metadata, project_root, gsdk_path)
-    check_gbl_size(elf.with_suffix(".gbl").name, gbl, gbl_metadata.get("max_size"))
+    check_gbl_size(elf.with_suffix(".gbl").name, gbl, max_size)
     elf.with_suffix(".gbl").write_bytes(gbl)
+
+    if bootloader is not None:
+        if is_bootloader:
+            raise ValueError("A bootloader build cannot be combined with a bootloader")
+
+        combined = image.combine_bootloader_app(
+            GBL3Image(tags=[image.get_first_tag(GBL3Header), bootloader])
+        )
+        combined_gbl = finalize_gbl(combined, gbl_metadata, project_root, gsdk_path)
+        combined_path = elf.with_suffix(".combined.gbl")
+        check_gbl_size(combined_path.name, combined_gbl, max_size)
+        combined_path.write_bytes(combined_gbl)
 
     return metadata

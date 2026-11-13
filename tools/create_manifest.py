@@ -111,6 +111,26 @@ def metadata_mismatches(
     return mismatches
 
 
+def matches_stem(
+    manifest: Manifest, metadata: dict[str, typing.Any], stem: str
+) -> bool:
+    """Whether a filename stem is the manifest's GBL or its combined bootloader GBL."""
+    output_stem = manifest.output_stem(metadata)
+
+    if stem == output_stem:
+        return True
+
+    return "combined_bootloader" in manifest.gbl and is_combined_stem(output_stem, stem)
+
+
+def is_combined_stem(output_stem: str, stem: str) -> bool:
+    """Whether a filename stem is the `combined-gbl` output for an output stem."""
+    return (
+        re.fullmatch(re.escape(output_stem) + r"_with_bootloader_[0-9.]+", stem)
+        is not None
+    )
+
+
 def find_manifest(
     manifests: list[Manifest], firmware: FirmwareImage, stem: str
 ) -> tuple[Manifest, dict[str, typing.Any]] | None:
@@ -132,9 +152,8 @@ def find_manifest(
 
         # `fw_type` is checked first: the output filename of an unrelated firmware is
         # templated on metadata this image does not carry
-        if (
-            manifest.gbl.get("fw_type") == metadata["fw_type"]
-            and manifest.output_stem(metadata) == stem
+        if manifest.gbl.get("fw_type") == metadata["fw_type"] and matches_stem(
+            manifest, metadata, stem
         ):
             matches.append((manifest, metadata))
 
@@ -210,6 +229,13 @@ def main():
             continue
 
         matched[source_manifest.path] = source_manifest
+
+        # Clients pick firmwares by their metadata, which a combined image shares with
+        # the app-only image. Combined images are only published as release assets.
+        if is_combined_stem(source_manifest.output_stem(metadata), firmware_file.stem):
+            _LOGGER.info("Leaving combined bootloader GBL %s out", firmware_file)
+            continue
+
         version_key = source_manifest.version_key
         version = metadata[version_key] if version_key else None
 

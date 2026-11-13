@@ -16,6 +16,8 @@ gbl:
   # must fit in the 192 KB slot
   max_app_end: 0x08044000
   max_size: 0x30000
+  # Bootloader for the `combined-gbl` output
+  combined_bootloader: zwa2_bootloader.yaml
 
 copy_sdk_files:
   # Z-Wave Serial API source files (unmodified from SDK sample app)

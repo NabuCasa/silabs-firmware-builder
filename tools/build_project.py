@@ -23,7 +23,7 @@ from datetime import UTC, datetime
 from elftools.elf.elffile import ELFFile
 from ruamel.yaml import YAML
 
-from .create_gbl import create_gbl
+from .create_gbl import create_gbl, load_bootloader_tag, resolve_key_path
 
 LOGGER = logging.getLogger(__name__)
 
@@ -93,7 +93,7 @@ def parse_prefixed_output(output: str) -> tuple[str, pathlib.Path | None]:
         prefix = output
         path = None
 
-    if prefix not in ("gbl", "hex", "out"):
+    if prefix not in ("gbl", "hex", "out", "combined-gbl"):
         raise argparse.ArgumentTypeError(
             "Output format is of the form `gbl:overridden_filename.gbl` or just `gbl`"
         )
@@ -518,6 +518,17 @@ def build_argument_parser() -> argparse.ArgumentParser:
         type=parse_prefixed_output,
         required=True,
         help="Output file prefixed with its file type",
+    )
+    parser.add_argument(
+        "--combined-bootloader",
+        dest="combined_bootloader",
+        type=pathlib.Path,
+        default=None,
+        help=(
+            "Bootloader for the `combined-gbl` output: a bootloader manifest to build,"
+            " a bootloader `.out` or a bootloader-only `.gbl`."
+            " Overrides the manifest's `gbl.combined_bootloader`"
+        ),
     )
     parser.add_argument(
         "--output-dir",
@@ -1150,6 +1161,56 @@ def cmake_configure_and_build(
     )
 
 
+def resolve_combined_bootloader(
+    args: argparse.Namespace, build: ResolvedBuild
+) -> pathlib.Path | None:
+    """The bootloader source for the `combined-gbl` output, if one was requested."""
+    if not any(extension == "combined-gbl" for extension, _ in args.outputs):
+        return None
+
+    if args.combined_bootloader is not None:
+        return args.combined_bootloader
+
+    if "combined_bootloader" not in build.manifest.gbl:
+        raise ValueError(
+            "The `combined-gbl` output needs `gbl.combined_bootloader` in the manifest"
+            " or `--combined-bootloader`"
+        )
+
+    return build.manifest_dir / build.manifest.gbl["combined_bootloader"]
+
+
+def build_combined_bootloader(
+    args: argparse.Namespace, build: ResolvedBuild, manifest: pathlib.Path
+) -> pathlib.Path:
+    """Build a bootloader manifest in a child build and return its ELF."""
+    output_dir = (build.build_dir / "combined_bootloader").resolve()
+    output_name = "bootloader.out"
+
+    # The child uses the same build timestamp so its bootloader matches a standalone
+    # build of that manifest from the same commit
+    # fmt: off
+    command = [
+        sys.executable, "-m", "tools.build_project",
+        "--manifest", str(manifest.resolve()),
+        "--build-dir", str(output_dir / "build"),
+        "--output-dir", str(output_dir),
+        "--output", f"out:{output_name}",
+        "--build-timestamp", build.build_timestamp.strftime("%Y%m%d%H%M%S"),
+    ]
+    # fmt: on
+    command += [f"--sdk={path}" for path in args.sdks]
+    command += [f"--toolchain={path}" for path in args.toolchains]
+    command += [f"--tool-path={path}" for path in args.tool_paths]
+
+    if args.slc_daemon:
+        command += ["--slc-daemon", "--keep-slc-daemon"]
+
+    subprocess_run_verbose(command, "combined bootloader", cwd=PROJECTS_ROOT)
+
+    return output_dir / output_name
+
+
 def verify_build_reproducibility(
     build: ResolvedBuild, output_artifact: pathlib.Path
 ) -> None:
@@ -1205,6 +1266,7 @@ def main() -> None:
 
     build = resolve_build(args)
     LOGGER.info("Building in %s", build.build_dir.resolve())
+    combined_bootloader = resolve_combined_bootloader(args, build)
 
     if args.clean_build_dir:
         with contextlib.suppress(OSError):
@@ -1266,6 +1328,22 @@ def main() -> None:
         targets=wrapped,
     )
 
+    bootloader = None
+
+    if combined_bootloader is not None:
+        if combined_bootloader.suffix in (".yaml", ".yml"):
+            combined_bootloader = build_combined_bootloader(
+                args, build, combined_bootloader
+            )
+
+        encrypt_key = build.manifest.gbl.get("encrypt_key")
+        bootloader = load_bootloader_tag(
+            combined_bootloader,
+            resolve_key_path(encrypt_key, build.build_dir, build.sdk)
+            if encrypt_key is not None
+            else None,
+        )
+
     # Extract the metadata from the source and build trees, patch the ELF, and build the
     # GBL. This runs before the debug paths below are rewritten, as the GBL contains only
     # loadable segments and is unaffected by them.
@@ -1276,6 +1354,7 @@ def main() -> None:
         project_name=build.base_project_name,
         sdk_version=build.sdk_version,
         gbl_metadata=build.manifest.gbl,
+        bootloader=bootloader,
     )
 
     output_artifact = (build.cmake_dir / build.base_project_name).with_suffix(".gbl")
@@ -1289,13 +1368,15 @@ def main() -> None:
 
     # Copy the output artifacts
     for extension, output_path in args.outputs:
-        if output_path is None:
-            output_path = f"{base_filename}.{extension}"
+        if extension == "combined-gbl":
+            assert bootloader is not None
+            src = output_artifact.with_suffix(".combined.gbl")
+            default_path = f"{base_filename}_with_bootloader_{bootloader.version}.gbl"
+        else:
+            src = output_artifact.with_suffix(f".{extension}")
+            default_path = f"{base_filename}.{extension}"
 
-        shutil.copy(
-            src=output_artifact.with_suffix(f".{extension}"),
-            dst=args.output_dir / output_path,
-        )
+        shutil.copy(src=src, dst=args.output_dir / (output_path or default_path))
 
     if args.clean_build_dir:
         with contextlib.suppress(OSError):

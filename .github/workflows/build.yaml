@@ -240,14 +240,20 @@ jobs:
 
       - name: Build firmware
         id: build-firmware
+        shell: bash
         run: |
+          outputs=(--output gbl --output hex --output out)
+
+          # Manifests that name a bootloader also get a combined bootloader + app GBL
+          if /opt/venv/bin/python3 -c 'import pathlib, sys; from tools.build_project import Manifest; sys.exit("combined_bootloader" not in Manifest.load(pathlib.Path(sys.argv[1])).gbl)' "${MATRIX_MANIFEST}"; then
+            outputs+=(--output combined-gbl)
+          fi
+
           /opt/venv/bin/python3 -m tools.build_project \
             --manifest "${MATRIX_MANIFEST}" \
             --build-dir build \
             --output-dir outputs \
-            --output gbl \
-            --output hex \
-            --output out
+            "${outputs[@]}"
 
           # Get the basename of the GBL in `outputs`
           output_basename=$(basename -- $(basename -- $(ls -1 outputs/*.gbl | head -n 1)) .gbl)

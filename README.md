@@ -28,12 +28,45 @@ docker run --rm -v $(pwd):/repo ghcr.io/nabucasa/silabs-firmware-builder \
 
 Once the build is complete, the firmware will be in the `artifacts` directory.
 
+## Combined bootloader and application GBLs
+`--output combined-gbl` writes a second GBL that holds a bootloader and the
+application, for example `zwa2_controller_1.4.1_with_bootloader_3.2.2.gbl`. It is
+compressed, encrypted and signed like the regular GBL.
+
+The bootloader comes from `gbl.combined_bootloader` in the manifest, a path relative to
+the manifest. A `.yaml` path is a bootloader manifest, which is built first with the
+same build timestamp. A `.out` path is a bootloader ELF, and a `.gbl` path is a
+bootloader-only GBL, decrypted with the manifest's `encrypt_key`. `--combined-bootloader`
+overrides the manifest:
+
+```bash
+docker run --rm -v $(pwd):/repo -v /path/to/bootloaders:/bootloaders \
+    ghcr.io/nabucasa/silabs-firmware-builder \
+    --manifest manifests/nabucasa/zwa2/zwa2_controller.yaml \
+    --combined-bootloader /bootloaders/zwa2_bootloader_3.2.2.gbl \
+    --output combined-gbl \
+    --output-dir artifacts
+```
+
+CI builds the combined GBL for every manifest with `gbl.combined_bootloader` and
+uploads it as a release asset. `manifest.json` leaves it out, because it shares its
+metadata with the regular GBL.
+
 ## Size limits
 Two optional `gbl` keys fail the build when an image does not fit:
 
 - **`max_app_end`:** the application, including its ECDSA or CRC32 signature, must end
   at or below this address.
-- **`max_size`:** the largest allowed GBL file size in bytes.
+- **`max_size`:** the largest allowed GBL file size in bytes. It applies to the
+  regular and the combined GBL.
+
+## Inspecting GBLs
+`tools.gbl_info` decrypts GBLs and prints their bootloader and application parts:
+
+```bash
+python -m tools.gbl_info --key manifests/nabucasa/zwa2/config/keys/vendor_encrypt.key \
+    artifacts/*.gbl
+```
 
 # Development
 ## Setting up Simplicity Studio (for development)
