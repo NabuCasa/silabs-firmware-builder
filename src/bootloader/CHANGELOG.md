@@ -1,5 +1,5 @@
 # 3.2.2
-Uploads are staged in internal flash and only installed once they have arrived completely and verified.
+ZWA-2 only: uploads are staged in internal flash and only installed once they have arrived completely and verified.
 
 - XMODEM uploads are written to a storage slot at 0x08044000–0x08074000. The running application stays intact until "run" is selected, and an interrupted install is retried on the next boot.
 - Bootloader-only files are unpacked into the last 24 KB of the slot, so the application survives a bootloader update. Files with both a bootloader and an application replace the application.
