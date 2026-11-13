@@ -12,8 +12,9 @@
  * image from the slot.
  *
  * A bootloader-only file is unpacked into the slot's last BTL_MAIN_STAGE_MAX_SIZE
- * bytes, so the running application stays intact. Files that also hold an
- * application use the SDK default upgrade location inside the application area.
+ * bytes, so the application stays intact. A file that also holds an application
+ * unpacks its bootloader at the SDK default upgrade location in the application
+ * area. This happens only during the install, which replaces the old application.
  */
 
 #include <stdbool.h>
