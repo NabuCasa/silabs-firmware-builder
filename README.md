@@ -28,6 +28,13 @@ docker run --rm -v $(pwd):/repo ghcr.io/nabucasa/silabs-firmware-builder \
 
 Once the build is complete, the firmware will be in the `artifacts` directory.
 
+## Size limits
+Two optional `gbl` keys fail the build when an image does not fit:
+
+- **`max_app_end`:** the application, including its ECDSA or CRC32 signature, must end
+  at or below this address.
+- **`max_size`:** the largest allowed GBL file size in bytes.
+
 # Development
 ## Setting up Simplicity Studio (for development)
 If you are going to be developing using Simplicity Studio, note that each project can

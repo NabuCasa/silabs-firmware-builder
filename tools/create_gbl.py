@@ -11,10 +11,23 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from pygbl import (
     GBL3Compression,
+    GBL3EraseProg,
+    GBL3Image,
+    GBL3Prog,
     build_application_gbl3,
     build_bootloader_gbl3,
+    read_application_properties,
     read_encryption_key,
 )
+
+# `application_properties_t` in the SDK's `application_properties.h`
+APP_SIGNATURE_TYPE_OFFSET = 20
+APP_SIGNATURE_LOCATION_OFFSET = 24
+APP_SIGNATURE_SIZES = {
+    0: 0,  # APPLICATION_SIGNATURE_NONE
+    1 << 0: 64,  # APPLICATION_SIGNATURE_ECDSA_P256
+    1 << 1: 4,  # APPLICATION_SIGNATURE_CRC32
+}
 
 
 def parse_c_header_defines(file_content: str) -> dict[str, str]:
@@ -47,6 +60,90 @@ def resolve_key_path(
 ) -> pathlib.Path:
     """Resolve a manifest key path against the generated project, absolutes pass through."""
     return project_root / pathlib.Path(key.format(SDK_DIR=gsdk_path))
+
+
+def application_end(image: GBL3Image, app_properties: bytes) -> int:
+    """The address just past the last byte an application image writes to flash."""
+    end = max(
+        tag.address + len(tag.data)
+        for tag in image.tags
+        if isinstance(tag, (GBL3Prog, GBL3EraseProg))
+    )
+
+    signature_type = int.from_bytes(
+        app_properties[APP_SIGNATURE_TYPE_OFFSET : APP_SIGNATURE_TYPE_OFFSET + 4],
+        "little",
+    )
+    signature_location = int.from_bytes(
+        app_properties[
+            APP_SIGNATURE_LOCATION_OFFSET : APP_SIGNATURE_LOCATION_OFFSET + 4
+        ],
+        "little",
+    )
+
+    if signature_type not in APP_SIGNATURE_SIZES:
+        raise ValueError(f"Unknown application signature type {signature_type:#x}")
+
+    if signature_type != 0:
+        end = max(end, signature_location + APP_SIGNATURE_SIZES[signature_type])
+
+    return end
+
+
+def check_application_end(end: int, limit: int) -> None:
+    """Fail when an application writes past the `max_app_end` address."""
+    if end > limit:
+        raise ValueError(
+            f"Application ends at {end:#010x}, {end - limit} bytes past the"
+            f" `max_app_end` limit of {limit:#010x}"
+        )
+
+    print(
+        f"Application ends at {end:#010x}, {limit - end} bytes below {limit:#010x}",
+        flush=True,
+    )
+
+
+def check_gbl_size(name: str, data: bytes, limit: int | None) -> None:
+    """Fail when a serialized GBL is larger than `limit` bytes."""
+    if limit is None:
+        return
+
+    if len(data) > limit:
+        raise ValueError(
+            f"{name} is {len(data)} bytes, {len(data) - limit} bytes over the"
+            f" `max_size` limit of {limit} bytes"
+        )
+
+    print(f"{name} is {len(data)} bytes, {limit - len(data)} below {limit}", flush=True)
+
+
+def finalize_gbl(
+    image: GBL3Image,
+    gbl_metadata: dict[str, Any],
+    project_root: pathlib.Path,
+    gsdk_path: pathlib.Path,
+) -> bytes:
+    """Compress, encrypt and sign an image as the manifest says, then serialize it."""
+    # The order matters: compression only touches program data, encryption then wraps
+    # every tag but the header, and the signature covers the resulting ciphertext
+    if gbl_metadata.get("compression", None) is not None:
+        image = image.compress(GBL3Compression(gbl_metadata["compression"]))
+
+    if gbl_metadata.get("encrypt_key", None) is not None:
+        key_path = resolve_key_path(
+            gbl_metadata["encrypt_key"], project_root, gsdk_path
+        )
+        image = image.encrypt(read_encryption_key(key_path.read_text()))
+
+    if gbl_metadata.get("sign_key", None) is not None:
+        key_path = resolve_key_path(gbl_metadata["sign_key"], project_root, gsdk_path)
+        private_key = load_pem_private_key(key_path.read_bytes(), password=None)
+        assert isinstance(private_key, ec.EllipticCurvePrivateKey)
+        image = image.sign(private_key)
+
+    # `commander` pads its output to a 4 byte boundary
+    return image.serialize(block_size=4)
 
 
 def create_gbl(
@@ -217,29 +314,18 @@ def create_gbl(
             image = build_application_gbl3(
                 f, metadata=metadata_json if gbl_metadata else None
             )
+
+            if "max_app_end" in gbl_metadata:
+                f.seek(0)
+                end = application_end(image, read_application_properties(f))
+                check_application_end(end, gbl_metadata["max_app_end"])
         else:
             image = build_bootloader_gbl3(
                 f, metadata=metadata_json if gbl_metadata else None
             )
 
-    # The order matters: compression only touches program data, encryption then wraps
-    # every tag but the header, and the signature covers the resulting ciphertext
-    if gbl_metadata.get("compression", None) is not None:
-        image = image.compress(GBL3Compression(gbl_metadata["compression"]))
-
-    if gbl_metadata.get("encrypt_key", None) is not None:
-        key_path = resolve_key_path(
-            gbl_metadata["encrypt_key"], project_root, gsdk_path
-        )
-        image = image.encrypt(read_encryption_key(key_path.read_text()))
-
-    if gbl_metadata.get("sign_key", None) is not None:
-        key_path = resolve_key_path(gbl_metadata["sign_key"], project_root, gsdk_path)
-        private_key = load_pem_private_key(key_path.read_bytes(), password=None)
-        assert isinstance(private_key, ec.EllipticCurvePrivateKey)
-        image = image.sign(private_key)
-
-    # `commander` pads its output to a 4 byte boundary
-    elf.with_suffix(".gbl").write_bytes(image.serialize(block_size=4))
+    gbl = finalize_gbl(image, gbl_metadata, project_root, gsdk_path)
+    check_gbl_size(elf.with_suffix(".gbl").name, gbl, gbl_metadata.get("max_size"))
+    elf.with_suffix(".gbl").write_bytes(gbl)
 
     return metadata

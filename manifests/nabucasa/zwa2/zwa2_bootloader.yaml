@@ -12,6 +12,9 @@ gbl:
   encrypt_key: config/keys/vendor_encrypt.key
   sign_key: config/keys/vendor_sign.key
   compression: lzma
+  # A bootloader-only GBL is unpacked into the last 24 KB of the 192 KB storage slot,
+  # so it must fit in the 168 KB before that
+  max_size: 0x2A000
 
 # Signing/encryption keys, shared with the ZWA-2 application firmwares
 config_file:

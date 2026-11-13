@@ -12,6 +12,10 @@ gbl:
   encrypt_key: config/keys/vendor_encrypt.key
   sign_key: config/keys/vendor_sign.key
   compression: lzma
+  # The app must end below the bootloader's storage slot at 0x08044000, and every GBL
+  # must fit in the 192 KB slot
+  max_app_end: 0x08044000
+  max_size: 0x30000
 
 copy_sdk_files:
   # Z-Wave Serial API source files (unmodified from SDK sample app)
