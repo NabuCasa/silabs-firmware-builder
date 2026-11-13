@@ -59,7 +59,8 @@ typedef enum {
   SLOT_INSTALL_FROM_TAIL,
 } SlotAction_t;
 
-// `staging` is true while the XMODEM menu is running. Uploads go into the slot then.
+// `staging` is set when "1. upload gbl" starts an upload.
+// From then on, packets go into the slot and the GBL parser only checks the file.
 static bool staging = false;
 static uint32_t staged_bytes = 0;
 // `stage_in_tail` is true while a bootloader-only file is installed from the slot
@@ -68,7 +69,8 @@ static bool stage_in_tail = false;
 // Reset into the bootloader, which then installs the file from the slot
 static void enter_bootloader(void)
 {
-  // The bootloader ignores the reset reason while the reset counter is enabled
+  // The SDK enabled the reset counter because __wrap_storage_main returned an error before the menu started.
+  // While the counter is enabled, the next boot ignores the reset reason.
   reset_disableResetCounter();
   reset_resetWithReason(BOOTLOADER_RESET_REASON_BOOTLOAD);
 }
@@ -123,7 +125,7 @@ void __wrap_xmodem_reset(void)
   staging = true;
   staged_bytes = 0;
 
-  // Invalidate the previous upload. The menu could still run it if this upload never starts.
+  // "2. run" must only install a file from this upload, so erase any file from an earlier one
   erase_slot_header();
 
   __real_xmodem_reset();
@@ -191,7 +193,8 @@ void __wrap_bootload_bootloaderCallback(uint32_t offset, uint8_t data[], size_t 
 extern bool __real_bootload_commitBootloaderUpgrade(uint32_t upgradeAddress, uint32_t size);
 bool __wrap_bootload_commitBootloaderUpgrade(uint32_t upgradeAddress, uint32_t size)
 {
-  // The XMODEM menu commits before anything is unpacked. The install from the slot does the unpacking.
+  // "2. run" commits a newer bootloader directly. It expects the bootloader at BTL_UPGRADE_LOCATION already.
+  // After an upload, the new file is only in the slot. Reboot into the bootloader instead, so __wrap_storage_main unpacks and commits it.
   if (staging) {
     enter_bootloader();
     return false;
@@ -206,7 +209,7 @@ bool __wrap_bootload_commitBootloaderUpgrade(uint32_t upgradeAddress, uint32_t s
 }
 
 // Never commit an SE upgrade. check_slot() refuses files with SE content before they are installed.
-// During an upload, reboot into the bootloader like __wrap_bootload_commitBootloaderUpgrade does.
+// Like __wrap_bootload_commitBootloaderUpgrade, reboot into the bootloader after an upload. check_slot() then refuses the file.
 bool __wrap_bootload_commitSeUpgrade(uint32_t upgradeAddress)
 {
   (void) upgradeAddress;
@@ -218,11 +221,11 @@ bool __wrap_bootload_commitSeUpgrade(uint32_t upgradeAddress)
   return false;
 }
 
-// Reset the device. During an upload, "run the application" reboots into the bootloader instead.
+// "2. run" in the XMODEM menu resets with reason GO, which boots the application.
+// After an upload, the new file is only in the slot. Reboot into the bootloader instead, so __wrap_storage_main installs it.
 extern void __real_reset_resetWithReason(uint16_t resetReason);
 void __wrap_reset_resetWithReason(uint16_t resetReason)
 {
-  // The XMODEM menu only asks to run the application after an upload has verified
   if (staging && resetReason == BOOTLOADER_RESET_REASON_GO) {
     enter_bootloader();
   }
@@ -269,7 +272,8 @@ __attribute__((noinline)) static SlotAction_t check_slot(void)
   }
 
   // Refuse a bootloader that doesn't fit the tail.
-  // `slotOffset` is where the file ends. Unpacking into the tail must not overwrite the file.
+  // The parser reads the file while it writes the tail, so the file must end before the tail starts.
+  // `slotOffset` is where the file ends.
   if (image->bootloaderUpgradeSize > SLOT_TAIL_SIZE
       || context.slotOffset > SLOT_TAIL_ADDRESS - SLOT0_START) {
     return SLOT_REFUSED;
