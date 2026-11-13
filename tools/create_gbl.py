@@ -190,7 +190,7 @@ def create_gbl(
 ) -> dict[str, Any]:
     """Build the GBL image for a linked project, returning its metadata.
 
-    With `bootloader`, also write `<project_name>.combined.gbl`, which holds that
+    With `bootloader`, also write `<project_name>.bundled.gbl`, which holds that
     bootloader and the application.
     """
     elf = build_dir / f"{project_name}.out"
@@ -371,14 +371,14 @@ def create_gbl(
 
     if bootloader is not None:
         if is_bootloader:
-            raise ValueError("A bootloader build cannot be combined with a bootloader")
+            raise ValueError("A bootloader build cannot bundle a bootloader")
 
-        combined = image.combine_bootloader_app(
+        bundled = image.combine_bootloader_app(
             GBL3Image(tags=[image.get_first_tag(GBL3Header), bootloader])
         )
-        combined_gbl = finalize_gbl(combined, gbl_metadata, project_root, gsdk_path)
-        combined_path = elf.with_suffix(".combined.gbl")
-        check_gbl_size(combined_path.name, combined_gbl, max_size)
-        combined_path.write_bytes(combined_gbl)
+        bundled_gbl = finalize_gbl(bundled, gbl_metadata, project_root, gsdk_path)
+        bundled_path = elf.with_suffix(".bundled.gbl")
+        check_gbl_size(bundled_path.name, bundled_gbl, max_size)
+        bundled_path.write_bytes(bundled_gbl)
 
     return metadata

@@ -93,7 +93,7 @@ def parse_prefixed_output(output: str) -> tuple[str, pathlib.Path | None]:
         prefix = output
         path = None
 
-    if prefix not in ("gbl", "hex", "out", "combined-gbl"):
+    if prefix not in ("gbl", "hex", "out", "bundled-gbl"):
         raise argparse.ArgumentTypeError(
             "Output format is of the form `gbl:overridden_filename.gbl` or just `gbl`"
         )
@@ -520,14 +520,14 @@ def build_argument_parser() -> argparse.ArgumentParser:
         help="Output file prefixed with its file type",
     )
     parser.add_argument(
-        "--combined-bootloader",
-        dest="combined_bootloader",
+        "--bundled-bootloader",
+        dest="bundled_bootloader",
         type=pathlib.Path,
         default=None,
         help=(
-            "Bootloader for the `combined-gbl` output: a bootloader manifest to build,"
+            "Bootloader for the `bundled-gbl` output: a bootloader manifest to build,"
             " a bootloader `.out` or a bootloader-only `.gbl`."
-            " Overrides the manifest's `gbl.combined_bootloader`"
+            " Overrides the manifest's `gbl.bundled_bootloader`"
         ),
     )
     parser.add_argument(
@@ -1161,30 +1161,30 @@ def cmake_configure_and_build(
     )
 
 
-def resolve_combined_bootloader(
+def resolve_bundled_bootloader(
     args: argparse.Namespace, build: ResolvedBuild
 ) -> pathlib.Path | None:
-    """The bootloader source for the `combined-gbl` output, if one was requested."""
-    if not any(extension == "combined-gbl" for extension, _ in args.outputs):
+    """The bootloader source for the `bundled-gbl` output, if one was requested."""
+    if not any(extension == "bundled-gbl" for extension, _ in args.outputs):
         return None
 
-    if args.combined_bootloader is not None:
-        return args.combined_bootloader
+    if args.bundled_bootloader is not None:
+        return args.bundled_bootloader
 
-    if "combined_bootloader" not in build.manifest.gbl:
+    if "bundled_bootloader" not in build.manifest.gbl:
         raise ValueError(
-            "The `combined-gbl` output needs `gbl.combined_bootloader` in the manifest"
-            " or `--combined-bootloader`"
+            "The `bundled-gbl` output needs `gbl.bundled_bootloader` in the manifest"
+            " or `--bundled-bootloader`"
         )
 
-    return build.manifest_dir / build.manifest.gbl["combined_bootloader"]
+    return build.manifest_dir / build.manifest.gbl["bundled_bootloader"]
 
 
-def build_combined_bootloader(
+def build_bundled_bootloader(
     args: argparse.Namespace, build: ResolvedBuild, manifest: pathlib.Path
 ) -> pathlib.Path:
     """Build a bootloader manifest in a child build and return its ELF."""
-    output_dir = (build.build_dir / "combined_bootloader").resolve()
+    output_dir = (build.build_dir / "bundled_bootloader").resolve()
     output_name = "bootloader.out"
 
     # The child uses the same build timestamp so its bootloader matches a standalone
@@ -1206,7 +1206,7 @@ def build_combined_bootloader(
     if args.slc_daemon:
         command += ["--slc-daemon", "--keep-slc-daemon"]
 
-    subprocess_run_verbose(command, "combined bootloader", cwd=PROJECTS_ROOT)
+    subprocess_run_verbose(command, "bundled bootloader", cwd=PROJECTS_ROOT)
 
     return output_dir / output_name
 
@@ -1266,7 +1266,7 @@ def main() -> None:
 
     build = resolve_build(args)
     LOGGER.info("Building in %s", build.build_dir.resolve())
-    combined_bootloader = resolve_combined_bootloader(args, build)
+    bundled_bootloader = resolve_bundled_bootloader(args, build)
 
     if args.clean_build_dir:
         with contextlib.suppress(OSError):
@@ -1330,15 +1330,15 @@ def main() -> None:
 
     bootloader = None
 
-    if combined_bootloader is not None:
-        if combined_bootloader.suffix in (".yaml", ".yml"):
-            combined_bootloader = build_combined_bootloader(
-                args, build, combined_bootloader
+    if bundled_bootloader is not None:
+        if bundled_bootloader.suffix in (".yaml", ".yml"):
+            bundled_bootloader = build_bundled_bootloader(
+                args, build, bundled_bootloader
             )
 
         encrypt_key = build.manifest.gbl.get("encrypt_key")
         bootloader = load_bootloader_tag(
-            combined_bootloader,
+            bundled_bootloader,
             resolve_key_path(encrypt_key, build.build_dir, build.sdk)
             if encrypt_key is not None
             else None,
@@ -1368,9 +1368,9 @@ def main() -> None:
 
     # Copy the output artifacts
     for extension, output_path in args.outputs:
-        if extension == "combined-gbl":
+        if extension == "bundled-gbl":
             assert bootloader is not None
-            src = output_artifact.with_suffix(".combined.gbl")
+            src = output_artifact.with_suffix(".bundled.gbl")
             default_path = f"{base_filename}_with_bootloader_{bootloader.version}.gbl"
         else:
             src = output_artifact.with_suffix(f".{extension}")
