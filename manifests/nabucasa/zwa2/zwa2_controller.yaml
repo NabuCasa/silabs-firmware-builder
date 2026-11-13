@@ -12,6 +12,10 @@ gbl:
   encrypt_key: config/keys/vendor_encrypt.key
   sign_key: config/keys/vendor_sign.key
   compression: lzma
+  # The app must end below the bootloader's storage slot at 0x08044000, and every GBL
+  # must fit in the 192 KB slot
+  max_app_end: 0x08044000
+  max_size: 0x30000
 
 copy_sdk_files:
   # Z-Wave Serial API source files (unmodified from SDK sample app)
@@ -108,6 +112,9 @@ add_components:
   - id: zwave_dmadrv_compat
     vendor: nabucasa
     package: nabucasa_zwa2
+  - id: zwave_nvm_restore_fix
+    vendor: nabucasa
+    package: nabucasa_zwa2
   - id: led_effects_zwa2
     vendor: nabucasa
     package: nabucasa_zwa2
@@ -132,7 +139,7 @@ c_defines:
   # See src/zwa2_controller/README.md for versioning scheme details.
   USER_APP_VERSION: 1
   USER_APP_REVISION: 4
-  USER_APP_PATCH: 2
+  USER_APP_PATCH: 3
 
   # USART0 serial API pins
   SERIAL_API_TX_PORT: gpioPortA
