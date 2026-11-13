@@ -1,3 +1,7 @@
+# 1.4.2
+* Prevent a full NVM restore from erasing the flash page after the NVM which contains the bootloader keys.
+* If this update is aborted right at the start (the Z-Wave JS log shows `file error 0x44`), the bootloader keys were erased already. Restore them with the [ZWA-2 toolbox](https://home-assistant.github.io/zwa2-toolbox/), then update again.
+
 # 1.4.1
 * Fixed the top LED not responding to LED commands, and staying stuck at a dim brightness, since 1.3.0. The Z-Wave UART driver reset the DMA controller at startup, which stopped the LED driver's transfers from completing on Simplicity SDK 2026.6.
 * Fixed the LED state being reported as off after a reboot, even when it was restored as on.
