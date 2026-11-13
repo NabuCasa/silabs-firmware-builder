@@ -27,10 +27,11 @@ zpal_status_t __wrap_zpal_nvm_backup_write(uint32_t offset, const void *data, si
     const bool ends_at_nvm_end = data != NULL
                                  && offset < nvm_size
                                  && data_length == nvm_size - offset;
-    // ZPAL erases the page after a write only when the write starts inside a page
-    const bool erases_page_after_nvm = ends_at_nvm_end && offset % FLASH_PAGE_SIZE != 0;
 
-    if (!erases_page_after_nvm) {
+    // ZPAL is safe to call for a write that ends before the end of the NVM. It is also
+    // safe for a write that starts on a page boundary, because ZPAL then erases only
+    // that page.
+    if (!ends_at_nvm_end || offset % FLASH_PAGE_SIZE == 0) {
         return __real_zpal_nvm_backup_write(offset, data, data_length);
     }
 
