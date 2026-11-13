@@ -1,0 +1,12 @@
+id: cmd_firmware_update_zwa2
+label: Firmware Update Serial API Command (ZWA-2)
+package: custom
+description: Z-Wave Host API Firmware Update Command (0x3E), which stages a GBL file in the bootloader storage slot and installs it
+category: Z-Wave|Serial API
+quality: production
+source:
+  - path: src/cmd_firmware_update.c
+provides:
+  - name: cmd_firmware_update_zwa2
+requires:
+  - name: bootloader_interface

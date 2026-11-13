@@ -1,3 +1,8 @@
+# 1.4.3
+* Added the Z-Wave Host API Firmware Update Command (0x3E). The host writes a firmware or bootloader update into the bootloader's storage slot while the controller keeps running.
+* The controller then verifies the file and reboots into the bootloader to install it.
+* This needs bootloader 3.2.2 or newer. Older bootloaders have no storage slot, and Prepare reports that firmware updates are not supported.
+
 # 1.4.2
 * Prevent a full NVM restore from erasing the flash page after the NVM which contains the bootloader keys.
 * If this update is aborted right at the start (the Z-Wave JS log shows `file error 0x44`), the bootloader keys were erased already. Restore them with the [ZWA-2 toolbox](https://home-assistant.github.io/zwa2-toolbox/), then update again.
