@@ -24,8 +24,19 @@ sdk_patches:
   # Adds a "4. erase nvm" command to the bootloader menu
   - xmodem-erase-nvm.patch
 
+sdk_extension:
+  - id: nabucasa_bootloader
+    vendor: nabucasa
+    version: 1.0.0
+
 add_components:
   - id: bootloader_compression_lzma
+  - id: bootloader_internal_storage
+  - id: bootloader_storage_slots
+  - id: bootloader_common_storage
+  - id: bootloader_xmodem_staging
+    vendor: nabucasa
+    package: nabucasa_bootloader
 
 configuration:
   BOOTLOADER_ENFORCE_SIGNED_UPGRADE: 1
@@ -33,10 +44,14 @@ configuration:
   # Reset to 1 when bumping the SDK version. Bump when modifying the bootloader
   # without bumping the SDK version.
   # We use 1 to signify that this is not the stock Gecko Bootloader.
-  BOOTLOADER_VERSION_MAIN_CUSTOMER: 1
+  BOOTLOADER_VERSION_MAIN_CUSTOMER: 2
   APPLICATION_VERIFICATION_SKIP_EM4_RST: 1
   BOOTLOADER_FALLBACK_LEGACY_KEY: 1
-  BTL_STORAGE_BASE_ADDRESS: 134496256
+  # Every application must end below the slot, and every NVM3 region must start above it
+  BTL_STORAGE_BASE_ADDRESS: 0x8044000
+  SLOT0_ENABLE: 1
+  SLOT0_START: 0x8044000
+  SLOT0_SIZE: 0x30000
 
 c_defines:
   SL_SERIAL_UART_FLOW_CONTROL: 0
