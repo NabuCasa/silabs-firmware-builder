@@ -1,0 +1,11 @@
+using "efr32mg21.repl"
+
+// MGM210PA32JIA module: an EFR32MG21 with 1 MB of flash and 96 KB of SRAM
+sram:
+    size: 0x18000
+
+flash:
+    size: 0x100000
+
+msc:
+    flashSize: 0x100000

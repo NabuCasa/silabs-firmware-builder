@@ -211,6 +211,7 @@ jobs:
       contents: read
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+      simulation_matrix: ${{ steps.set-matrix.outputs.simulation_matrix }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -218,6 +219,7 @@ jobs:
       - id: set-matrix
         run: |
           echo "matrix=$(find manifests -type f \( -name "*.yaml" -o -name "*.yml" \) -print | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+          echo "simulation_matrix=$(grep -rlE '^simulation:' manifests | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   build-firmwares:
     name: Firmware builder
@@ -252,6 +254,11 @@ jobs:
           # Get the basename of the GBL in `outputs`
           output_basename=$(basename -- $(basename -- $(ls -1 outputs/*.gbl | head -n 1)) .gbl)
           echo "output_basename=$output_basename" >> $GITHUB_OUTPUT
+          echo "manifest_name=$(basename -- "${MATRIX_MANIFEST}" .yaml)" >> $GITHUB_OUTPUT
+
+          if grep -qE '^simulation:' "${MATRIX_MANIFEST}"; then
+            echo "simulate=true" >> $GITHUB_OUTPUT
+          fi
         env:
           MATRIX_MANIFEST: ${{ matrix.manifest }}
 
@@ -262,6 +269,76 @@ jobs:
           path: outputs/*
           compression-level: 9
           if-no-files-found: error
+
+      # The firmware artifact name depends on the build, so the simulation job finds the ELF by manifest name
+      - name: Upload simulation artifact
+        if: steps.build-firmware.outputs.simulate == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: simulation-${{ steps.build-firmware.outputs.manifest_name }}
+          path: outputs/*.out
+          compression-level: 9
+          if-no-files-found: error
+
+  simulate-firmwares:
+    name: Simulate firmware
+    needs: [list-manifests, build-firmwares]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        manifest: ${{ fromJson(needs.list-manifests.outputs.simulation_matrix) }}
+    env:
+      RENODE_VERSION: 1.17.0
+      RENODE_SHA256: 4ba7c68b59e2447f188ef4b4b112fcccd2802582c460beedceb63b84e5605a5f
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+
+      # The C# models in `simulation/renode/models` compile against Renode's internals, so pin the exact release
+      - name: Install Renode
+        run: |
+          curl -sSfL -o renode.tar.gz "https://github.com/renode/renode/releases/download/v${RENODE_VERSION}/renode-${RENODE_VERSION}.linux-portable.tar.gz"
+          echo "${RENODE_SHA256}  renode.tar.gz" | sha256sum -c
+          mkdir -p "${RUNNER_TEMP}/renode"
+          tar -xzf renode.tar.gz -C "${RUNNER_TEMP}/renode" --strip-components=1
+          rm renode.tar.gz
+          echo "${RUNNER_TEMP}/renode" >> $GITHUB_PATH
+
+      - name: Get manifest name
+        id: manifest-name
+        run: echo "manifest_name=$(basename -- "${MATRIX_MANIFEST}" .yaml)" >> $GITHUB_OUTPUT
+        env:
+          MATRIX_MANIFEST: ${{ matrix.manifest }}
+
+      - name: Download firmware
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: simulation-${{ steps.manifest-name.outputs.manifest_name }}
+          path: firmware
+
+      - name: Run smoke test
+        run: |
+          uv run --group simulation pytest simulation -m smoke -v \
+            --manifest "${MATRIX_MANIFEST}" \
+            --firmware firmware/*.out \
+            --basetemp simulation-tmp
+        env:
+          MATRIX_MANIFEST: ${{ matrix.manifest }}
+
+      - name: Upload Renode logs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: simulation-logs-${{ steps.manifest-name.outputs.manifest_name }}
+          path: simulation-tmp
+          if-no-files-found: ignore
 
   generate-manifest:
     name: Generate manifest

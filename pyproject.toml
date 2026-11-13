@@ -8,5 +8,22 @@ dependencies = [
     "pygbl[all]>=1.2.0",
 ]
 
+[dependency-groups]
+simulation = [
+    "aiospinel",
+    "bellows",
+    "pytest",
+    "pytest-asyncio",
+]
+
 [tool.uv]
 package = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]
+markers = [
+    "smoke: the one test CI runs per firmware",
+    "fw_type(*types): only run on firmwares of these `gbl.fw_type`s",
+    "board(*boards): only run on these simulated boards",
+]
