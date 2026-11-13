@@ -1,0 +1,55 @@
+id: bootloader_xmodem_staging
+label: XMODEM Upload Staging
+package: custom
+description: >
+  Stages GBL files uploaded over UART XMODEM in internal storage slot 0, leaving the
+  running application untouched until the whole file has arrived and verified. The
+  image is then installed from the slot by the bootloader's storage path, which also
+  retries the install after an interrupted one. A bootloader-only file is unpacked
+  into the last 24 KB of the slot so the application survives the upgrade. Files with
+  SE upgrade content are refused. The slot is erased once nothing is left to install,
+  so a stale image does not keep the bootloader from reaching the XMODEM menu.
+category: Platform|Bootloader|Communication
+quality: production
+source:
+  - path: src/btl_xmodem_staging.c
+provides:
+  - name: bootloader_xmodem_staging
+requires:
+  - name: bootloader_uart_xmodem
+  - name: bootloader_internal_storage
+  - name: bootloader_storage_slots
+  - name: bootloader_common_storage
+toolchain_settings:
+  - option: gcc_linker_option
+    value: "-Wl,--wrap=xmodem_reset"
+  - option: gcc_linker_option
+    value: "-Wl,--wrap=xmodem_parsePacket"
+  - option: gcc_linker_option
+    value: "-Wl,--wrap=bootload_applicationCallback"
+  - option: gcc_linker_option
+    value: "-Wl,--wrap=bootload_bootloaderCallback"
+  - option: gcc_linker_option
+    value: "-Wl,--wrap=bootload_commitBootloaderUpgrade"
+  - option: gcc_linker_option
+    value: "-Wl,--wrap=bootload_commitSeUpgrade"
+  - option: gcc_linker_option
+    value: "-Wl,--wrap=reset_resetWithReason"
+  - option: gcc_linker_option
+    value: "-Wl,--wrap=storage_main"
+  - option: llvm_linker_option
+    value: "-Wl,--wrap=xmodem_reset"
+  - option: llvm_linker_option
+    value: "-Wl,--wrap=xmodem_parsePacket"
+  - option: llvm_linker_option
+    value: "-Wl,--wrap=bootload_applicationCallback"
+  - option: llvm_linker_option
+    value: "-Wl,--wrap=bootload_bootloaderCallback"
+  - option: llvm_linker_option
+    value: "-Wl,--wrap=bootload_commitBootloaderUpgrade"
+  - option: llvm_linker_option
+    value: "-Wl,--wrap=bootload_commitSeUpgrade"
+  - option: llvm_linker_option
+    value: "-Wl,--wrap=reset_resetWithReason"
+  - option: llvm_linker_option
+    value: "-Wl,--wrap=storage_main"
