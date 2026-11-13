@@ -282,7 +282,9 @@ __attribute__((noinline)) static SlotAction_t check_slot(void)
   return SLOT_INSTALL_FROM_TAIL;
 }
 
-// Install the file in the slot. The bootloader calls this on every entry, before the XMODEM menu.
+// Install the file in the slot. A normal boot goes straight to the application and skips this.
+// The bootloader calls this before the XMODEM menu, after a reset into the bootloader,
+// with the button held, or when the application is invalid.
 // BOOTLOADER_OK boots the application. An error shows the XMODEM menu.
 extern int32_t __real_storage_main(void);
 int32_t __wrap_storage_main(void)
