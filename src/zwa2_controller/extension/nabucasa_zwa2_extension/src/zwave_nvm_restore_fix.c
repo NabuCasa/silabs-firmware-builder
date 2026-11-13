@@ -21,27 +21,17 @@
 #define WORD_SIZE sizeof(uint32_t)
 
 extern zpal_status_t __real_zpal_nvm_backup_write(uint32_t offset, const void *data, size_t data_length);
-zpal_status_t __wrap_zpal_nvm_backup_write(uint32_t offset, const void *data, size_t data_length)
+
+static zpal_status_t write_to_nvm_end(uint32_t offset, const void *data, size_t data_length, size_t nvm_size)
 {
-    const size_t nvm_size = zpal_nvm_backup_get_size();
-    const bool ends_at_nvm_end = data != NULL
-                                 && offset < nvm_size
-                                 && data_length == nvm_size - offset;
-
-    // ZPAL is safe to call for a write that ends before the end of the NVM. It is also
-    // safe for a write that starts on a page boundary, because ZPAL then erases only
-    // that page.
-    if (!ends_at_nvm_end || offset % FLASH_PAGE_SIZE == 0) {
-        return __real_zpal_nvm_backup_write(offset, data, data_length);
-    }
-
-    // Reject an unaligned write here because ZPAL erases the page after the NVM before
-    // the flash refuses the write
+    // ZPAL erases the page after the NVM before the flash refuses an unaligned write.
+    // Reject an unaligned write without calling ZPAL.
     if (offset % WORD_SIZE != 0) {
         return ZPAL_STATUS_FAIL;
     }
 
-    // Leave out the last word so ZPAL's write ends inside the last NVM page
+    // A write that ends inside the last NVM page erases nothing after it. Pass
+    // everything but the last word to ZPAL.
     const size_t head_length = data_length - WORD_SIZE;
 
     if (head_length > 0) {
@@ -55,8 +45,8 @@ zpal_status_t __wrap_zpal_nvm_backup_write(uint32_t offset, const void *data, si
     uint32_t last_word;
     memcpy(&last_word, (const uint8_t *)data + head_length, WORD_SIZE);
 
-    // Write the last word without erasing because the write that started the last NVM
-    // page already erased it
+    // The write that started the last NVM page already erased it. Write the last word
+    // without erasing anything.
     const nvm3_HalPtr_t address = (uint8_t *)nvm3_defaultInit->nvmAdr + nvm_size - WORD_SIZE;
 
     if (nvm3_defaultInit->halHandle->writeWords(address, &last_word, 1) != SL_STATUS_OK) {
@@ -64,4 +54,21 @@ zpal_status_t __wrap_zpal_nvm_backup_write(uint32_t offset, const void *data, si
     }
 
     return ZPAL_STATUS_OK;
+}
+
+zpal_status_t __wrap_zpal_nvm_backup_write(uint32_t offset, const void *data, size_t data_length)
+{
+    const size_t nvm_size = zpal_nvm_backup_get_size();
+    const bool ends_at_nvm_end = data != NULL
+                                 && offset < nvm_size
+                                 && data_length == nvm_size - offset;
+
+    // ZPAL erases the page after a write if the write starts in the middle of a page and
+    // ends at a page boundary. Do not pass such a write to ZPAL unchanged when it ends
+    // at the end of the NVM.
+    if (ends_at_nvm_end && offset % FLASH_PAGE_SIZE != 0) {
+        return write_to_nvm_end(offset, data, data_length, nvm_size);
+    }
+
+    return __real_zpal_nvm_backup_write(offset, data, data_length);
 }
