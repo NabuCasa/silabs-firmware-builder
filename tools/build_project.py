@@ -788,7 +788,9 @@ def exclude_archive_member_from_lto(
     workdir.mkdir(parents=True, exist_ok=True)
 
     gcc = build.toolchain_path / "bin/arm-none-eabi-gcc"
-    ar = build.toolchain_path / "bin/arm-none-eabi-ar"
+    # Plain `ar` rewrites the symbol index without the LTO plugin, which drops every
+    # symbol of the archive's remaining bitcode members
+    ar = build.toolchain_path / "bin/arm-none-eabi-gcc-ar"
     real_member = f"no_lto_{member}"
 
     subprocess.run([ar, "x", archive, member], cwd=workdir, check=True)
@@ -798,6 +800,11 @@ def exclude_archive_member_from_lto(
         [
             gcc,
             *arch_flags,
+            # Codegen writes the debug info here, so the final link's remaps never see it
+            *(
+                f"-ffile-prefix-map={src}={dst}"
+                for src, dst in sdk_path_remaps(build).items()
+            ),
             "-r",
             "-nostdlib",
             "-flinker-output=nolto-rel",
