@@ -282,12 +282,14 @@ __attribute__((noinline)) static SlotAction_t check_slot(void)
   return SLOT_INSTALL_FROM_TAIL;
 }
 
-// Install the file in the slot if there is one. The bootloader calls this on every entry, before the XMODEM menu.
+// Install the file in the slot. The bootloader calls this on every entry, before the XMODEM menu.
+// BOOTLOADER_OK boots the application. An error shows the XMODEM menu.
 extern int32_t __real_storage_main(void);
 int32_t __wrap_storage_main(void)
 {
   switch (check_slot()) {
-    // Erase a file that can never install, so later entries skip verifying it
+    // Erase a file that can never install, so later entries skip verifying it.
+    // An empty slot also ends up here and is left as it is.
     case SLOT_INVALID:
       if (*(const volatile uint32_t *)SLOT0_START != 0xFFFFFFFFUL) {
         erase_slot_header();
