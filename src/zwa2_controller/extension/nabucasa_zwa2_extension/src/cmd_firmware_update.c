@@ -9,13 +9,14 @@
  * HOST->ZW: 0x3E | 0x00 (Prepare) | sessionId
  * HOST->ZW: 0x3E | 0x01 (Write) | offset[4, MSB first] | length[2, MSB first] | data[length] | sessionId
  * HOST->ZW: 0x3E | 0x02 (Perform) | target | sessionId
- * ZW->HOST (RES): 0x3E | subCommand | status
+ * ZW->HOST (RES): 0x3E | subCommand | accepted
  * ZW->HOST (REQ): 0x3E | sessionId | status
  *
- * The response carries the result of the operation as a value from the
- * firmware update status table. 0x00 means the operation succeeded. A callback
- * with status 0x00 follows only a 0x00 response with a session ID other than 0.
- * Error responses get no callback.
+ * The response is the generic Response Status field: 0x01 accepts the request
+ * and 0x00 rejects it. Only frames that can't be parsed and requests that
+ * arrive while the reboot is pending are rejected. An accepted request reports
+ * its result in the callback, as a value from the firmware update status table.
+ * Rejected requests and session ID 0 get no callback.
  */
 
 #include <stdbool.h>
@@ -113,7 +114,7 @@ typedef enum
   FW_UPDATE_STATE_WRITING,
   // Perform wrote the last partial word. A failed Perform erases the file and returns to IDLE.
   FW_UPDATE_STATE_FINALIZED,
-  // The reboot into the bootloader is pending. Every sub-command is refused.
+  // The reboot into the bootloader is pending. Every request is rejected.
   FW_UPDATE_STATE_REBOOTING,
 } fw_update_state_t;
 
@@ -131,12 +132,21 @@ static SSwTimer reboot_timer;
 static bool reboot_timer_registered = false;
 static uint32_t reboot_wait_ms;
 
-static void send_result(uint8_t sub_command, uint8_t session_id, fw_update_status_t status)
+#define FW_UPDATE_RESPONSE_REJECTED 0x00
+#define FW_UPDATE_RESPONSE_ACCEPTED 0x01
+
+static void reject(uint8_t sub_command)
 {
-  const uint8_t response[] = { sub_command, (uint8_t)status };
+  const uint8_t response[] = { sub_command, FW_UPDATE_RESPONSE_REJECTED };
+  Respond(FUNC_ID_FIRMWARE_UPDATE, response, sizeof(response));
+}
+
+static void accept(uint8_t sub_command, uint8_t session_id, fw_update_status_t status)
+{
+  const uint8_t response[] = { sub_command, FW_UPDATE_RESPONSE_ACCEPTED };
   Respond(FUNC_ID_FIRMWARE_UPDATE, response, sizeof(response));
 
-  if ((status == FW_UPDATE_STATUS_OK) && (session_id != 0)) {
+  if (session_id != 0) {
     const uint8_t callback[] = { session_id, (uint8_t)status };
     Request(FUNC_ID_FIRMWARE_UPDATE, (uint8_t *)callback, sizeof(callback));
   }
@@ -396,24 +406,24 @@ ZW_ADD_CMD(FUNC_ID_FIRMWARE_UPDATE)
   const uint8_t *payload = frame->payload;
 
   if (length < 1) {
-    send_result(FW_UPDATE_STATUS_NOT_SUPPORTED, 0, FW_UPDATE_STATUS_NOT_SUPPORTED);
+    reject(FW_UPDATE_STATUS_NOT_SUPPORTED);
     return;
   }
 
   const uint8_t sub_command = payload[0];
 
   if (update_state == FW_UPDATE_STATE_REBOOTING) {
-    send_result(sub_command, 0, FW_UPDATE_STATUS_NOT_SUPPORTED);
+    reject(sub_command);
     return;
   }
 
   switch (sub_command) {
     case FW_UPDATE_CMD_PREPARE:
     {
-      if (length < 2) {
+      if (length != 2) {
         break;
       }
-      send_result(sub_command, payload[1], prepare());
+      accept(sub_command, payload[1], prepare());
       return;
     }
 
@@ -429,17 +439,17 @@ ZW_ADD_CMD(FUNC_ID_FIRMWARE_UPDATE)
         break;
       }
       const uint8_t session_id = payload[FW_UPDATE_WRITE_HEADER_LEN + data_length];
-      send_result(sub_command, session_id, write_chunk(offset, &payload[FW_UPDATE_WRITE_HEADER_LEN], data_length));
+      accept(sub_command, session_id, write_chunk(offset, &payload[FW_UPDATE_WRITE_HEADER_LEN], data_length));
       return;
     }
 
     case FW_UPDATE_CMD_PERFORM:
     {
-      if (length < 3) {
+      if (length != 3) {
         break;
       }
       const fw_update_status_t status = perform(payload[1]);
-      send_result(sub_command, payload[2], status);
+      accept(sub_command, payload[2], status);
       if (status == FW_UPDATE_STATUS_OK) {
         schedule_reboot();
       }
@@ -447,8 +457,13 @@ ZW_ADD_CMD(FUNC_ID_FIRMWARE_UPDATE)
     }
 
     default:
+      // Every defined sub-command ends with the session ID, so unknown ones are assumed to as well
+      if (length >= 2) {
+        accept(sub_command, payload[length - 1], FW_UPDATE_STATUS_NOT_SUPPORTED);
+        return;
+      }
       break;
   }
 
-  send_result(sub_command, 0, FW_UPDATE_STATUS_NOT_SUPPORTED);
+  reject(sub_command);
 }
