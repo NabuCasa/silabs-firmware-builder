@@ -31,6 +31,13 @@ zpal_status_t __wrap_zpal_nvm_backup_write(uint32_t offset, const void *data, si
         return ZPAL_STATUS_FAIL;
     }
 
+    // An empty write at the end of the NVM starts on a page boundary, so ZPAL erases
+    // the page after the NVM before it looks at the length. Skip it, since it writes
+    // nothing.
+    if (offset == nvm_size && data_length == 0 && data != NULL) {
+        return ZPAL_STATUS_OK;
+    }
+
     // ZPAL erases the page after a write if the write starts in the middle of a page
     // and ends at a page boundary. Only at the end of the NVM is that page outside the
     // NVM, so call ZPAL directly for every other write.
