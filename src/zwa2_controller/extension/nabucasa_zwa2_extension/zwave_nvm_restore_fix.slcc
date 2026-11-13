@@ -1,0 +1,28 @@
+id: zwave_nvm_restore_fix
+label: Z-Wave NVM Restore Fix
+package: custom
+description: >
+  Wraps ZPAL's zpal_nvm_backup_write, which erases the flash page after the NVM when a
+  write ends exactly at the end of the NVM. Every full NVM restore over the Serial API
+  ends with such a write, so it erases the manufacturing tokens and bootloader keys.
+  This component writes the last word of that write itself, so the write ZPAL sees ends
+  inside the last NVM page.
+category: Z-Wave|Platform
+quality: production
+source:
+  - path: src/zwave_nvm_restore_fix.c
+provides:
+  - name: zwave_nvm_restore_fix
+requires:
+  - name: nvm3_default
+toolchain_settings:
+  - option: gcc_linker_option
+    value: "-Wl,--wrap=zpal_nvm_backup_write"
+  - option: llvm_linker_option
+    value: "-Wl,--wrap=zpal_nvm_backup_write"
+
+metadata:
+  nabucasa:
+    wrap_definitions:
+      # The stack's call to `zpal_nvm_backup_write` is inlined by LTO unless ZPAL's definition is kept out of it
+      zpal_nvm_backup_write: "libzpal_EFR32ZG23-gcc.a:zpal_nvm.c.obj"

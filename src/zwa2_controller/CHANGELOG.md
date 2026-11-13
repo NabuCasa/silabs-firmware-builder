@@ -1,3 +1,6 @@
+# 1.4.2
+* Fixed a full NVM restore erasing the flash page after the NVM, which holds the bootloader keys and the controller's Z-Wave keys. The bootloader then rejected firmware updates, and the controller's DSK changed after the next reboot.
+
 # 1.4.1
 * Fixed the top LED not responding to LED commands, and staying stuck at a dim brightness, since 1.3.0. The Z-Wave UART driver reset the DMA controller at startup, which stopped the LED driver's transfers from completing on Simplicity SDK 2026.6.
 * Fixed the LED state being reported as off after a reboot, even when it was restored as on.
