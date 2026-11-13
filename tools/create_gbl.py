@@ -16,6 +16,8 @@ from pygbl import (
     GBL3Header,
     GBL3Image,
     GBL3Prog,
+    GBL3ProgLZ4,
+    GBL3ProgLZMA,
     GBL3Type,
     build_application_gbl3,
     build_bootloader_gbl3,
@@ -143,9 +145,8 @@ def load_bootloader_tag(
     else:
         raise ValueError(f"Bootloader must be an `.out` or `.gbl` file: {path}")
 
-    if image.get_tags(GBL3Prog, allow_missing=True) or image.get_tags(
-        GBL3EraseProg, allow_missing=True
-    ):
+    app_tags = (GBL3Prog, GBL3EraseProg, GBL3ProgLZ4, GBL3ProgLZMA)
+    if any(isinstance(tag, app_tags) for tag in image.tags):
         raise ValueError(f"{path} contains application data")
 
     return image.get_first_tag(GBL3Bootloader)

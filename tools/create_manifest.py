@@ -120,9 +120,9 @@ def is_manifest_output(
     if stem == output_stem:
         return True
 
-    return "bundled_bootloader" in manifest.gbl and is_bundled_gbl_name(
-        output_stem, stem
-    )
+    # Match without `gbl.bundled_bootloader`, because `--bundled-bootloader` can also
+    # pick the bootloader
+    return is_bundled_gbl_name(output_stem, stem)
 
 
 def is_bundled_gbl_name(output_stem: str, stem: str) -> bool:
