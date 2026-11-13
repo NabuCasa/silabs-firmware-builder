@@ -49,3 +49,5 @@ metadata:
     wrap_definitions:
       # ZPAL's call to `LDMA_Init` is inlined by LTO unless emlib's definition is kept out of it
       LDMA_Init: "em_ldma.c"
+      # ZPAL's UART driver calls `zpal_uart_utils_tx_transfer_start` directly unless its definition is kept out of LTO
+      zpal_uart_utils_tx_transfer_start: "libzpal_EFR32ZG23-gcc.a:zpal_uart_utils.c.obj"
