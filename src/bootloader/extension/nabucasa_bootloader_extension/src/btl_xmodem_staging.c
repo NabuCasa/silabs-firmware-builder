@@ -11,6 +11,10 @@
  * verified, "run" enters the bootloader again, and the storage path installs the
  * image from the slot.
  *
+ * The slot holds the GBL file as uploaded, with its application still LZMA
+ * compressed. The GBL files must use LZMA because the uncompressed application
+ * is larger than the slot.
+ *
  * A bootloader-only file is unpacked into the slot's last BTL_MAIN_STAGE_MAX_SIZE
  * bytes, so the application stays intact. A file that also holds an application
  * unpacks its bootloader at the SDK default upgrade location in the application
@@ -39,13 +43,14 @@
 
 #define STAGING_SLOT 0UL
 
-// The slot tail holds a bootloader-only upgrade while the SE copies it into place
+// Store a bootloader-only upgrade at the tail of the slot. The SE copies it into place while leaving the application image alone.
 #define SLOT_TAIL_SIZE    BTL_MAIN_STAGE_MAX_SIZE
 #define SLOT_TAIL_ADDRESS (SLOT0_START + SLOT0_SIZE - SLOT_TAIL_SIZE)
 
 _Static_assert(SLOT_TAIL_ADDRESS % FLASH_PAGE_SIZE == 0, "Slot tail must start on a page boundary");
 _Static_assert(SLOT_TAIL_ADDRESS > BTL_UPGRADE_LOCATION, "Slot tail must lie above the default upgrade location");
 
+// What __wrap_storage_main does with the file in the slot
 typedef enum {
   SLOT_INVALID,
   SLOT_REFUSED,
@@ -54,24 +59,30 @@ typedef enum {
   SLOT_INSTALL_FROM_TAIL,
 } SlotAction_t;
 
+// `staging` is true while the XMODEM menu is running. Uploads go into the slot then.
 static bool staging = false;
 static uint32_t staged_bytes = 0;
+// `stage_in_tail` is true while a bootloader-only file is installed from the slot
 static bool stage_in_tail = false;
 
+// Reset into the bootloader, which then installs the file from the slot
 static void enter_bootloader(void)
 {
-  // Clear the reset counter because the next boot only honors the reset reason without it
+  // The bootloader ignores the reset reason while the reset counter is enabled
   reset_disableResetCounter();
   reset_resetWithReason(BOOTLOADER_RESET_REASON_BOOTLOAD);
 }
 
+// Erase the slot's first page. The staged file no longer verifies without it.
 static void erase_slot_header(void)
 {
   storage_eraseRaw(SLOT0_START, FLASH_PAGE_SIZE);
 }
 
+// Append the data of one XMODEM packet to the file in the slot
 static int32_t stage_packet(const XmodemPacket_t *packet)
 {
+  // Refuse data past the end of the slot
   BootloaderStorageSlot_t slot;
   int32_t ret = storage_getSlotInfo(STAGING_SLOT, &slot);
   if (ret != BOOTLOADER_OK) {
@@ -82,6 +93,7 @@ static int32_t stage_packet(const XmodemPacket_t *packet)
     return BOOTLOADER_ERROR_STORAGE_INVALID_ADDRESS;
   }
 
+  // Erase each page before the first write into it
   uint32_t address = slot.address + staged_bytes;
   if (address % FLASH_PAGE_SIZE == 0) {
     ret = storage_eraseRaw(address, FLASH_PAGE_SIZE);
@@ -90,10 +102,11 @@ static int32_t stage_packet(const XmodemPacket_t *packet)
     }
   }
 
-  // Flash writes need a word-aligned source, but the payload sits at offset 3 of the packet
+  // Copy the payload into a word-aligned buffer. Flash writes need one, but the payload sits at offset 3 of the packet.
   uint32_t data[XMODEM_DATA_SIZE / sizeof(uint32_t)];
   memcpy(data, packet->data, XMODEM_DATA_SIZE);
 
+  // Write the payload
   ret = storage_writeRaw(address, (const uint8_t *)data, XMODEM_DATA_SIZE);
   if (ret != BOOTLOADER_OK) {
     return ret;
@@ -103,28 +116,32 @@ static int32_t stage_packet(const XmodemPacket_t *packet)
   return BOOTLOADER_OK;
 }
 
+// Start a new upload. The XMODEM menu calls this when "1. upload gbl" is selected.
 extern void __real_xmodem_reset(void);
 void __wrap_xmodem_reset(void)
 {
   staging = true;
   staged_bytes = 0;
 
-  // Invalidate the previous upload, because the menu could still run it if this one never starts
+  // Invalidate the previous upload. The menu could still run it if this upload never starts.
   erase_slot_header();
 
   __real_xmodem_reset();
 }
 
+// Parse an XMODEM packet as usual, then copy its data into the slot
 extern int32_t __real_xmodem_parsePacket(const XmodemPacket_t *packet, uint8_t *response);
 int32_t __wrap_xmodem_parsePacket(const XmodemPacket_t *packet, uint8_t *response)
 {
   int32_t ret = __real_xmodem_parsePacket(packet, response);
 
-  // Duplicates and bad packets return an error here and are not passed to the parser either
+  // __real_xmodem_parsePacket returns an error for duplicates and bad packets.
+  // These don't reach the GBL parser either. Only data packets (SOH) are staged.
   if (ret != BOOTLOADER_OK || packet->header != XMODEM_CMD_SOH) {
     return ret;
   }
 
+  // Cancel the transfer if the packet can't be staged
   ret = stage_packet(packet);
   if (ret != BOOTLOADER_OK) {
     *response = XMODEM_CMD_CAN;
@@ -133,6 +150,7 @@ int32_t __wrap_xmodem_parsePacket(const XmodemPacket_t *packet, uint8_t *respons
   return ret;
 }
 
+// Write application data from the GBL parser. Drop it during an upload, because the install from the slot writes it later.
 extern void __real_bootload_applicationCallback(uint32_t address, uint8_t data[], size_t length, void *context);
 void __wrap_bootload_applicationCallback(uint32_t address, uint8_t data[], size_t length, void *context)
 {
@@ -143,6 +161,8 @@ void __wrap_bootload_applicationCallback(uint32_t address, uint8_t data[], size_
   __real_bootload_applicationCallback(address, data, length, context);
 }
 
+// Write bootloader data from the GBL parser. Drop it during an upload.
+// For a bootloader-only file, move the write into the slot tail.
 extern void __real_bootload_bootloaderCallback(uint32_t offset, uint8_t data[], size_t length, void *context);
 void __wrap_bootload_bootloaderCallback(uint32_t offset, uint8_t data[], size_t length, void *context)
 {
@@ -151,27 +171,30 @@ void __wrap_bootload_bootloaderCallback(uint32_t offset, uint8_t data[], size_t 
   }
 
   if (stage_in_tail) {
-    // Keep writes inside the tail because the real callback only stops them at the end of flash
+    // Prevent overflowing into the NVM
     if (offset > SLOT_TAIL_SIZE || length > SLOT_TAIL_SIZE - offset) {
       return;
     }
 
-    // The shifted offset is never 0, so the real callback also keeps the application's first page
+    // __real_bootload_bootloaderCallback erases the application's first page when offset is 0.
+    // This is never the case here.
     offset += SLOT_TAIL_ADDRESS - BTL_UPGRADE_LOCATION;
   }
 
   __real_bootload_bootloaderCallback(offset, data, length, context);
 }
 
+// Ask the SE to copy a new bootloader into place. During an upload, reboot into the bootloader instead.
 extern bool __real_bootload_commitBootloaderUpgrade(uint32_t upgradeAddress, uint32_t size);
 bool __wrap_bootload_commitBootloaderUpgrade(uint32_t upgradeAddress, uint32_t size)
 {
-  // Reboot into the storage install because the XMODEM menu commits before anything is unpacked
+  // The XMODEM menu commits before anything is unpacked. The install from the slot does the unpacking.
   if (staging) {
     enter_bootloader();
     return false;
   }
 
+  // Commit from the slot tail, where a bootloader-only file was unpacked
   if (stage_in_tail) {
     upgradeAddress = SLOT_TAIL_ADDRESS;
   }
@@ -179,7 +202,8 @@ bool __wrap_bootload_commitBootloaderUpgrade(uint32_t upgradeAddress, uint32_t s
   return __real_bootload_commitBootloaderUpgrade(upgradeAddress, size);
 }
 
-// SE upgrades are never committed. The storage path refuses them in check_slot().
+// Never commit an SE upgrade. check_slot() refuses files with SE content before they are installed.
+// During an upload, reboot into the bootloader like __wrap_bootload_commitBootloaderUpgrade does.
 bool __wrap_bootload_commitSeUpgrade(uint32_t upgradeAddress)
 {
   (void) upgradeAddress;
@@ -191,6 +215,7 @@ bool __wrap_bootload_commitSeUpgrade(uint32_t upgradeAddress)
   return false;
 }
 
+// Reset the device. During an upload, "run the application" reboots into the bootloader instead.
 extern void __real_reset_resetWithReason(uint16_t resetReason);
 void __wrap_reset_resetWithReason(uint16_t resetReason)
 {
@@ -202,9 +227,11 @@ void __wrap_reset_resetWithReason(uint16_t resetReason)
   __real_reset_resetWithReason(resetReason);
 }
 
-// Kept out of line so its parser context is off the stack before the real install allocates its own
+// Verify the file in the slot and decide what to do with it.
+// check_slot must not be inlined. Its parser context has to be off the stack before __real_storage_main allocates its own.
 __attribute__((noinline)) static SlotAction_t check_slot(void)
 {
+  // Verify the whole file
   BootloaderParserContext_t context;
   int32_t ret = storage_initParseSlot(STAGING_SLOT, &context, sizeof(context));
   if (ret != BOOTLOADER_OK) {
@@ -219,12 +246,13 @@ __attribute__((noinline)) static SlotAction_t check_slot(void)
     return SLOT_INVALID;
   }
 
+  // Decide from the file's contents
   const ImageProperties_t *image = &context.imageProperties;
   bool has_application = image->contents & BTL_IMAGE_CONTENT_APPLICATION;
   bool has_new_bootloader = (image->contents & BTL_IMAGE_CONTENT_BOOTLOADER)
                             && image->bootloaderVersion > bootload_getBootloaderVersion();
 
-  // Refuse SE upgrades because they are unpacked at BTL_UPGRADE_LOCATION, inside the application
+  // Refuse SE upgrades. The SDK unpacks them at BTL_UPGRADE_LOCATION, which is inside the application.
   if (image->contents & BTL_IMAGE_CONTENT_SE) {
     return SLOT_REFUSED;
   }
@@ -237,7 +265,8 @@ __attribute__((noinline)) static SlotAction_t check_slot(void)
     return SLOT_DONE;
   }
 
-  // `slotOffset` is the end of what the parser reads. Unpacking into the tail must not overwrite it.
+  // Refuse a bootloader that doesn't fit the tail.
+  // `slotOffset` is where the file ends. Unpacking into the tail must not overwrite the file.
   if (image->bootloaderUpgradeSize > SLOT_TAIL_SIZE
       || context.slotOffset > SLOT_TAIL_ADDRESS - SLOT0_START) {
     return SLOT_REFUSED;
@@ -246,6 +275,7 @@ __attribute__((noinline)) static SlotAction_t check_slot(void)
   return SLOT_INSTALL_FROM_TAIL;
 }
 
+// Install the file in the slot if there is one. The bootloader calls this on every entry, before the XMODEM menu.
 extern int32_t __real_storage_main(void);
 int32_t __wrap_storage_main(void)
 {
@@ -274,10 +304,11 @@ int32_t __wrap_storage_main(void)
       break;
   }
 
+  // Install the file
   int32_t ret = __real_storage_main();
   stage_in_tail = false;
 
-  // The bootloader installs any valid image in the slot whenever it is entered
+  // Erase the file after a successful install. The bootloader installs any valid file in the slot whenever it is entered.
   if (ret == BOOTLOADER_OK) {
     erase_slot_header();
   }
