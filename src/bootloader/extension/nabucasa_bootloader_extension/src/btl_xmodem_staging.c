@@ -150,7 +150,9 @@ int32_t __wrap_xmodem_parsePacket(const XmodemPacket_t *packet, uint8_t *respons
   return ret;
 }
 
-// Write application data from the GBL parser. Drop it during an upload, because the install from the slot writes it later.
+// The GBL parser calls this to write each chunk of application data to flash.
+// During an XMODEM upload, the parser only checks the file, so drop the chunk.
+// The install from the slot parses the file again and writes the application then.
 extern void __real_bootload_applicationCallback(uint32_t address, uint8_t data[], size_t length, void *context);
 void __wrap_bootload_applicationCallback(uint32_t address, uint8_t data[], size_t length, void *context)
 {
@@ -161,8 +163,9 @@ void __wrap_bootload_applicationCallback(uint32_t address, uint8_t data[], size_
   __real_bootload_applicationCallback(address, data, length, context);
 }
 
-// Write bootloader data from the GBL parser. Drop it during an upload.
-// For a bootloader-only file, move the write into the slot tail.
+// The GBL parser calls this to write each chunk of a new bootloader to flash.
+// During an XMODEM upload, drop the chunk like __wrap_bootload_applicationCallback does.
+// When a bootloader-only file is installed, move the chunk into the slot tail.
 extern void __real_bootload_bootloaderCallback(uint32_t offset, uint8_t data[], size_t length, void *context);
 void __wrap_bootload_bootloaderCallback(uint32_t offset, uint8_t data[], size_t length, void *context)
 {
