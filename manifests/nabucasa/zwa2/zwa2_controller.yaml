@@ -114,6 +114,9 @@ add_components:
   - id: cmds_proprietary_zwa2
     vendor: nabucasa
     package: nabucasa_zwa2
+  - id: cmd_firmware_update_zwa2
+    vendor: nabucasa
+    package: nabucasa_zwa2
 
 # SLC reads `configuration` during validation, before c_defines are patched
 configuration:
@@ -129,7 +132,7 @@ c_defines:
   # See src/zwa2_controller/README.md for versioning scheme details.
   USER_APP_VERSION: 1
   USER_APP_REVISION: 4
-  USER_APP_PATCH: 1
+  USER_APP_PATCH: 2
 
   # USART0 serial API pins
   SERIAL_API_TX_PORT: gpioPortA

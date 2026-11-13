@@ -1,3 +1,6 @@
+# 1.4.2
+* Added the Z-Wave Host API Firmware Update Command (0x3E). The host writes a firmware or bootloader update into the bootloader's storage slot while the controller keeps running. The controller then verifies the file and reboots into the bootloader to install it. This needs bootloader 3.2.2 or newer. Older bootloaders have no storage slot, and Prepare reports that firmware updates are not supported.
+
 # 1.4.1
 * Fixed the top LED not responding to LED commands, and staying stuck at a dim brightness, since 1.3.0. The Z-Wave UART driver reset the DMA controller at startup, which stopped the LED driver's transfers from completing on Simplicity SDK 2026.6.
 * Fixed the LED state being reported as off after a reboot, even when it was restored as on.
