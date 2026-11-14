@@ -979,7 +979,8 @@ def patch_config_headers(
                             c["name"] == define for c in base_project.get("define", [])
                         )
                         new_config_h_lines[index - 1] = "#if 1"
-                    elif "#warning" in prev_line:
+                    # Some SDK configs ship the warning already commented out
+                    elif prev_line.startswith("#warning"):
                         assert re.match(r'#warning ".*? not configured"', prev_line)
                         new_config_h_lines[index - 1] = f"//{prev_line}"
 

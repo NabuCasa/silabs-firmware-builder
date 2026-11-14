@@ -100,8 +100,7 @@ sdk_extension:
 add_components:
   - id: spidrv_eusart
     instance: [ws2812]
-  - id: emlib_i2c
-  - id: i2cspm
+  - id: i2c
     instance: [inst]
   - id: qma6100p_driver
     vendor: nabucasa
@@ -161,8 +160,9 @@ c_defines:
   WS2812_NUM_LEDS: 4
 
   # I2C
-  SL_I2CSPM_INST_PERIPHERAL: I2C0
-  SL_I2CSPM_INST_SCL_PORT: gpioPortC
-  SL_I2CSPM_INST_SCL_PIN: 6
-  SL_I2CSPM_INST_SDA_PORT: gpioPortC
-  SL_I2CSPM_INST_SDA_PIN: 7
+  SL_I2C_INST_PERIPHERAL: I2C0
+  SL_I2C_INST_PERIPHERAL_NO: 0
+  SL_I2C_INST_SCL_PORT: SL_GPIO_PORT_C
+  SL_I2C_INST_SCL_PIN: 6
+  SL_I2C_INST_SDA_PORT: SL_GPIO_PORT_C
+  SL_I2C_INST_SDA_PIN: 7
