@@ -16,4 +16,10 @@
  */
 void zbt2_reset_button_handle_state(bool pressed);
 
+/**
+ * @brief Main loop process action handler
+ * Runs the blink sequence and the factory reset outside of interrupt context.
+ */
+void zbt2_reset_button_process_action(void);
+
 #endif // ZBT2_RESET_BUTTON_H

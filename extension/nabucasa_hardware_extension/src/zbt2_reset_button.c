@@ -32,8 +32,12 @@ static uint8_t reset_cycle = 0;
 static uint8_t blink_count = 0;
 static bool led_on = false;
 
-// Task to handle the LED blinking pattern
-static void blink_task(sl_sleeptimer_timer_handle_t *handle, void *data);
+// Set by the button and timer callbacks, which run in interrupt context. The main loop
+// does the work, since a factory reset erases flash.
+static volatile bool button_changed = false;
+static volatile bool button_pressed = false;
+static volatile bool reset_timer_expired = false;
+static volatile bool blink_timer_expired = false;
 
 // Resets network settings and reboots the adapter
 static void reset_adapter(void)
@@ -58,22 +62,30 @@ static void reset_adapter(void)
     NVIC_SystemReset();
 }
 
-// Called when the reset timer expires.
 static void reset_timer_callback(sl_sleeptimer_timer_handle_t *handle, void *data)
 {
     (void)handle;
     (void)data;
-
-    reset_cycle++;
-    sl_sleeptimer_start_timer_ms(&blink_timer, ZBT2_RESET_BUTTON_BLINK_START_DELAY_MS, blink_task, NULL, 0, 0);
+    reset_timer_expired = true;
 }
 
-// Task to handle the LED blinking pattern.
-static void blink_task(sl_sleeptimer_timer_handle_t *handle, void *data)
+static void blink_timer_callback(sl_sleeptimer_timer_handle_t *handle, void *data)
 {
     (void)handle;
     (void)data;
+    blink_timer_expired = true;
+}
 
+// The reset timer expired: blink out the next reset cycle.
+static void reset_timer_task(void)
+{
+    reset_cycle++;
+    sl_sleeptimer_start_timer_ms(&blink_timer, ZBT2_RESET_BUTTON_BLINK_START_DELAY_MS, blink_timer_callback, NULL, 0, 0);
+}
+
+// Task to handle the LED blinking pattern.
+static void blink_task(void)
+{
     // If the LED is on, turn it off (clear the layer to reveal previous state)
     if (led_on) {
         led_manager_clear_pattern(LED_PRIORITY_CRITICAL);
@@ -88,21 +100,23 @@ static void blink_task(sl_sleeptimer_timer_handle_t *handle, void *data)
                 sl_sleeptimer_start_timer_ms(&reset_timer, ZBT2_RESET_BUTTON_CYCLE_DELAY_MS, reset_timer_callback, NULL, 0, 0);
             }
         } else {
-            sl_sleeptimer_start_timer_ms(&blink_timer, ZBT2_RESET_BUTTON_BLINK_OFF_MS, blink_task, NULL, 0, 0);
+            sl_sleeptimer_start_timer_ms(&blink_timer, ZBT2_RESET_BUTTON_BLINK_OFF_MS, blink_timer_callback, NULL, 0, 0);
         }
     } else {
         led_manager_set_color(LED_PRIORITY_CRITICAL, LED_COLOR_RESET_ORANGE);
         led_on = true;
         blink_count++;
-        sl_sleeptimer_start_timer_ms(&blink_timer, ZBT2_RESET_BUTTON_BLINK_ON_MS, blink_task, NULL, 0, 0);
+        sl_sleeptimer_start_timer_ms(&blink_timer, ZBT2_RESET_BUTTON_BLINK_ON_MS, blink_timer_callback, NULL, 0, 0);
     }
 }
 
 void zbt2_reset_button_handle_state(bool pressed)
 {
-    // Stop any running timers first
+    // Stop any running timers first, and drop expiries that have not been handled yet
     sl_sleeptimer_stop_timer(&reset_timer);
     sl_sleeptimer_stop_timer(&blink_timer);
+    reset_timer_expired = false;
+    blink_timer_expired = false;
 
     if (pressed) {
         // Reset state and start the cycle, this is hit only when the button is initially pressed
@@ -118,10 +132,28 @@ void zbt2_reset_button_handle_state(bool pressed)
     }
 }
 
+void zbt2_reset_button_process_action(void)
+{
+    if (button_changed) {
+        button_changed = false;
+        zbt2_reset_button_handle_state(button_pressed);
+    }
+
+    if (reset_timer_expired) {
+        reset_timer_expired = false;
+        reset_timer_task();
+    }
+
+    if (blink_timer_expired) {
+        blink_timer_expired = false;
+        blink_task();
+    }
+}
+
 void sl_button_on_change(const sl_button_t *handle)
 {
     if (handle == &sl_button_pin_hole_button) {
-        bool pressed = (sl_button_get_state(handle) == SL_SIMPLE_BUTTON_PRESSED);
-        zbt2_reset_button_handle_state(pressed);
+        button_pressed = (sl_button_get_state(handle) == SL_SIMPLE_BUTTON_PRESSED);
+        button_changed = true;
     }
 }
