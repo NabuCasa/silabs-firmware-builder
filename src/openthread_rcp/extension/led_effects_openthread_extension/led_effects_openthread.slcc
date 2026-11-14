@@ -17,3 +17,8 @@ requires:
 template_contribution:
   - name: ot_init
     value: led_effects_system_init
+  - name: event_handler
+    value:
+      event: service_process_action
+      include: led_effects_openthread.h
+      handler: led_effects_openthread_process_action

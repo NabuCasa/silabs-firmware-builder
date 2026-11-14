@@ -98,12 +98,13 @@ static void update_led_hardware(void) {
     }
 }
 
+// Runs in interrupt context: only advance the tick. The frame is computed and sent from
+// the main loop, so the SPI/DMA transfer never starts inside an interrupt.
 static void led_timer_callback(sl_sleeptimer_timer_handle_t *handle, void *data) {
     (void)handle;
     (void)data;
     global_tick_counter++;
     update_needed = true;
-    ws2812_led_driver_refresh();
 }
 
 void led_manager_init(void) {
@@ -124,6 +125,7 @@ void led_manager_process_action(void) {
     if (update_needed) {
         update_needed = false;
         update_led_hardware();
+        ws2812_led_driver_refresh();
     }
 }
 
