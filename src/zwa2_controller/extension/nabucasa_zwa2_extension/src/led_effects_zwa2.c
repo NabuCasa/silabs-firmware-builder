@@ -18,6 +18,7 @@
 #include "sl_i2cspm_instances.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "ZW_UserTask.h"
 #include <math.h>
 
 #ifndef M_PI
@@ -26,10 +27,15 @@
 
 // The LED task drives the animation and the tilt check. Sending a frame starts an SPI/DMA
 // transfer and the tilt check reads I2C, so neither runs in an interrupt.
-#define LED_TASK_STACK_SIZE  (1024 / sizeof(StackType_t))
+#define LED_TASK_STACK_BYTES  1024
 
 static StaticTask_t led_task_buffer;
-static StackType_t led_task_stack[LED_TASK_STACK_SIZE];
+static StackType_t led_task_stack[LED_TASK_STACK_BYTES / sizeof(StackType_t)];
+static ZW_UserTask_Buffer_t led_task_buffers = {
+  .taskBuffer = &led_task_buffer,
+  .stackBuffer = (uint8_t *)led_task_stack,
+  .stackBufferLength = LED_TASK_STACK_BYTES,
+};
 
 // Internal state
 static bool is_running = false;
@@ -136,8 +142,14 @@ void led_effects_init(void)
   led_manager_init();
   // ZWA-2: Tilt monitoring is always active (independent of network state)
   was_tilted = false;
-  xTaskCreateStatic(led_task, "LED", LED_TASK_STACK_SIZE, NULL, TASK_PRIORITY_BACKGROUND,
-                    led_task_stack, &led_task_buffer);
+  ZW_UserTask_t task = {
+    .pTaskFunc = led_task,
+    .pTaskName = "LED",
+    .pUserTaskParam = NULL,
+    .priority = USERTASK_PRIORITY_BACKGROUND,
+    .taskBuffer = &led_task_buffers,
+  };
+  ZW_UserTask_CreateTask(&task, NULL);
   is_running = true;
 }
 
