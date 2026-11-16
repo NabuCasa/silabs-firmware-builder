@@ -46,10 +46,6 @@
 // The write buffer holds up to 3 bytes from the previous chunk plus one full chunk
 #define FW_UPDATE_WRITE_BUFFER_SIZE (3 + RECEIVE_BUFFER_SIZE)
 
-// The bootloader unpacks bootloader-only files into this many bytes at the slot end.
-// The value must match BTL_MAIN_STAGE_MAX_SIZE of the bootloader.
-#define FW_UPDATE_SLOT_TAIL_SIZE 0x6000UL
-
 // Values from the series 2 GBL parser, which doesn't export them to applications
 #define BTL_IMAGE_CONTENT_APPLICATION 0x01U
 #define BTL_IMAGE_CONTENT_BOOTLOADER  0x02U
@@ -307,7 +303,7 @@ static fw_update_status_t check_contents(uint8_t target)
     return FW_UPDATE_STATUS_INVALID_HEADER;
   }
 
-  // The bootloader refuses SE upgrades and stops in its menu
+  // The bootloader unpacks SE upgrades inside the application area
   if (image->contents & BTL_IMAGE_CONTENT_SE) {
     return FW_UPDATE_STATUS_UNSUPPORTED_TARGET;
   }
@@ -319,32 +315,12 @@ static fw_update_status_t check_contents(uint8_t target)
       if (!has_bootloader) {
         return FW_UPDATE_STATUS_UNSUPPORTED_TARGET;
       }
-      break;
+      // The bootloader unpacks a new bootloader inside the application area.
+      // Only a file with an application installs the application again afterwards.
+      return has_app ? FW_UPDATE_STATUS_OK : FW_UPDATE_STATUS_BOOTLOADER_UPDATE_NOT_SUPPORTED;
     default:
       return FW_UPDATE_STATUS_UNSUPPORTED_TARGET;
   }
-
-  // A file with an application installs it even when its bootloader isn't newer
-  if (has_app) {
-    return FW_UPDATE_STATUS_OK;
-  }
-
-  // The bootloader skips a bootloader-only file unless it is newer
-  BootloaderInformation_t info = { 0 };
-  bootloader_getInfo(&info);
-  if (image->bootloaderVersion <= info.version) {
-    return FW_UPDATE_STATUS_DOWNGRADE_NOT_SUPPORTED;
-  }
-
-  // The bootloader unpacks a bootloader-only file into the slot tail. It refuses the file when the
-  // bootloader is larger than the tail or when the parser read past the tail start. The parser reads
-  // in 128-byte blocks, and the tail start is a multiple of 128, so the file length gives the same result.
-  if (image->bootloaderUpgradeSize > FW_UPDATE_SLOT_TAIL_SIZE
-      || received_length > slot_length - FW_UPDATE_SLOT_TAIL_SIZE) {
-    return FW_UPDATE_STATUS_TOO_BIG;
-  }
-
-  return FW_UPDATE_STATUS_OK;
 }
 
 static fw_update_status_t perform(uint8_t target)
