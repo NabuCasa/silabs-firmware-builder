@@ -25,6 +25,13 @@ toolchain_settings:
     value: "-Wl,--wrap=sli_zigbee_am_multicast_member"
   - option: llvm_linker_option
     value: "-Wl,--wrap=sli_zigbee_am_multicast_member"
+
+metadata:
+  nabucasa:
+    wrap_definitions:
+      # The stack's calls to `sli_zigbee_am_multicast_member` bypass the wrap under LTO unless its definition is kept out of it
+      sli_zigbee_am_multicast_member: "libzigbee-pro-stack.a:stack-address-table.c.obj"
+
 template_contribution:
   - name: xncp_command_table
     value:

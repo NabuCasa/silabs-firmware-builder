@@ -20,3 +20,9 @@ toolchain_settings:
     value: "-Wl,--wrap=halStackIndicateActivity"
   - option: llvm_linker_option
     value: "-Wl,--wrap=halStackIndicateActivity"
+
+metadata:
+  nabucasa:
+    wrap_definitions:
+      # The stack's calls to `halStackIndicateActivity` bypass the wrap under LTO unless the legacy HAL's definition is kept out of it
+      halStackIndicateActivity: "base-replacement.c"

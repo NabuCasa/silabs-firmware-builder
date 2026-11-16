@@ -49,3 +49,7 @@ metadata:
     wrap_definitions:
       # ZPAL's call to `LDMA_Init` is inlined by LTO unless emlib's definition is kept out of it
       LDMA_Init: "em_ldma.c"
+      # ZPAL defines both in one member: the vector table and `zpal_uart_transmit`
+      # reference them directly under LTO unless the member is kept out of it
+      LDMA_IRQHandler: "libzpal_EFR32ZG23-gcc.a:zpal_uart_utils.c.obj"
+      zpal_uart_utils_tx_transfer_start: "libzpal_EFR32ZG23-gcc.a:zpal_uart_utils.c.obj"
