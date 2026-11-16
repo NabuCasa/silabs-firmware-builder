@@ -8,7 +8,11 @@
 #include "qma6100p.h"
 #include "sl_udelay.h"
 #include "sl_i2c_instances.h"
+#include "sl_sleeptimer.h"
 #include <stdbool.h>
+
+// A 6-byte read takes under 1 ms at 100 kHz
+#define QMA6100P_READ_TIMEOUT_MS 10
 
 // sl_i2c's blocking transfers mask interrupts for the whole transfer (~1 ms at 100 kHz).
 // That stalls the radio interrupts and can leave a scheduled transmit with no
@@ -89,14 +93,17 @@ uint8_t qma6100p_init(sl_i2c_handle_t *i2c)
 
 void qma6100p_read_raw_xyz(sl_i2c_handle_t *i2c, int16_t data[3])
 {
-  uint8_t reg = QMA6100P_XOUTL;
-  uint8_t buf[6];
+  // Static: DMA from a timed-out transfer may still access them after we return
+  static const uint8_t reg = QMA6100P_XOUTL;
+  static uint8_t buf[6] = {0x00};
   int16_t raw[3];
 
-  // Waits with interrupts enabled: the I2C interrupt drives the transfer
+  // Waits with interrupts enabled: the I2C interrupt drives the transfer. A bus fault
+  // never calls back, so give up after a timeout and reuse the previous sample.
   read_done = false;
   sl_i2c_leader_transfer_non_blocking(i2c, QMA6100P_I2C_ADDR, &reg, 1, buf, sizeof(buf), NULL);
-  while (!read_done) {
+  uint32_t start = sl_sleeptimer_get_tick_count();
+  while (!read_done && sl_sleeptimer_get_tick_count() - start < sl_sleeptimer_ms_to_tick(QMA6100P_READ_TIMEOUT_MS)) {
   }
 
   raw[0] = (int16_t)((buf[1] << 8) | buf[0]);
