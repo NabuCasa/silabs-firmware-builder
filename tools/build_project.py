@@ -1253,11 +1253,14 @@ def main() -> None:
     # another function entirely, which the reference check below would flag
     wrapped = set(declared_wraps) & linker_wrap_targets(build)
 
-    definitions = [
-        declared_wraps[target]
-        for target in sorted(wrapped)
-        if declared_wraps[target] is not None
-    ]
+    # Several wrapped symbols can share one definition, which must be excluded only once
+    definitions = sorted(
+        {
+            declared_wraps[target]
+            for target in wrapped
+            if declared_wraps[target] is not None
+        }
+    )
     exclude_definitions_from_lto(build, definitions)
     cmake_configure_and_build(build, assemble_build_flags(build, c_flag_defines))
 
