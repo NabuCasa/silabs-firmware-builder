@@ -1,3 +1,6 @@
+# 1.4.3
+* Fixed the dim green glow flickering about twice per second while the top LED is turned off.
+
 # 1.4.2
 * Prevent a full NVM restore from erasing the flash page after the NVM which contains the bootloader keys.
 * If this update is aborted right at the start (the Z-Wave JS log shows `file error 0x44`), the bootloader keys were erased already. Restore them with the [ZWA-2 toolbox](https://home-assistant.github.io/zwa2-toolbox/), then update again.

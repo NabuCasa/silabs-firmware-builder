@@ -9,7 +9,8 @@ typedef struct {
     uint16_t b;
 } rgb_t;
 
-#define RGB8(r8, g8, b8) ((rgb_t){.r = (r8) * 257, .g = (g8) * 257, .b = (b8) * 257})
+// Keep the low byte zero so the WS2812 driver sends static colors without dithering
+#define RGB8(r8, g8, b8) ((rgb_t){.r = (r8) << 8, .g = (g8) << 8, .b = (b8) << 8})
 
 // Colors matching old ws2812.h
 static const rgb_t LED_COLOR_COLD_WHITE  = RGB8(0xFF, 0xFF, 0xFF);
