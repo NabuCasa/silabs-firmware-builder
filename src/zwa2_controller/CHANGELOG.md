@@ -2,9 +2,7 @@
 * Prevent a full NVM restore from erasing the flash page after the NVM which contains the bootloader keys.
 * If this update is aborted right at the start (the Z-Wave JS log shows `file error 0x44`), the bootloader keys were erased already. Restore them with the [ZWA-2 toolbox](https://home-assistant.github.io/zwa2-toolbox/), then update again.
 * Fixed the dim green glow flickering about twice per second while the top LED is turned off.
-* Added the Z-Wave Host API Firmware Update Command (0x3E). The host writes a firmware update, with or without a bundled bootloader, into the bootloader's storage slot while the controller keeps running.
-* The controller then verifies the file and reboots into the bootloader to install it. Files that only update the bootloader are refused.
-* This needs bootloader 3.2.2 or newer. Older bootloaders have no storage slot, and Prepare reports that firmware updates are not supported.
+* Added the Firmware Update Serial API command (0x3E), which uploads firmware updates while the controller keeps running. It needs bootloader 3.2.2 or newer.
 
 # 1.4.1
 * Fixed the top LED not responding to LED commands, and staying stuck at a dim brightness, since 1.3.0. The Z-Wave UART driver reset the DMA controller at startup, which stopped the LED driver's transfers from completing on Simplicity SDK 2026.6.
