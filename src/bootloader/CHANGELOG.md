@@ -3,7 +3,7 @@ ZWA-2 only: added a storage slot at 0x08044000–0x08074000, so the controller f
 
 - The bootloader installs a valid file from the slot when it is entered. An interrupted install runs again on the next entry.
 - The file is erased once it is installed.
-- Leaving the XMODEM menu with "run" no longer counts towards the SDK's reset-loop stop. Without a valid application, the bootloader would otherwise stop responding on the third entry until it is power cycled.
+- Leaving the XMODEM menu no longer counts towards the SDK's reset-loop stop. Without a valid application, the bootloader would otherwise stop responding on the third entry in a row that shows the XMODEM menu, until it is power cycled.
 - Applications must end below 0x08044000.
 
 # 3.2.1
