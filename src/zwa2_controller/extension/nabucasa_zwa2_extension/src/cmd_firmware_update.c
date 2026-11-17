@@ -39,12 +39,16 @@
 #define FUNC_ID_FIRMWARE_UPDATE 0x3E
 #endif
 
+// The update needs a bootloader with at least one storage slot, and it uses slot 0
 #define FW_UPDATE_SLOT_ID 0
 
 #define FW_UPDATE_WRITE_HEADER_LEN 7 // subCommand + offset + length
 
 // The write buffer holds up to 3 bytes from the previous chunk plus one full chunk
 #define FW_UPDATE_WRITE_BUFFER_SIZE (3 + RECEIVE_BUFFER_SIZE)
+
+// zpal_bootloader_write_data() splits longer writes into 255-byte parts, which aren't a multiple of 4
+_Static_assert(FW_UPDATE_WRITE_BUFFER_SIZE <= 255, "a write from the buffer must fit one zpal_bootloader_write_data() part");
 
 // Values from the series 2 GBL parser, which doesn't export them to applications
 #define BTL_IMAGE_CONTENT_APPLICATION 0x01U
@@ -69,8 +73,10 @@ _Static_assert(offsetof(staged_image_properties_t, application) == 8, "ImageProp
 _Static_assert(offsetof(staged_image_properties_t, bootloaderUpgradeSize) == 36, "ImageProperties_t layout");
 _Static_assert(sizeof(staged_image_properties_t) <= BOOTLOADER_STORAGE_VERIFICATION_CONTEXT_SIZE, "context size");
 
+// The reboot timer checks this often whether the Perform callback has left the queue
 #define FW_UPDATE_REBOOT_POLL_MS 10
-// The callback and its MAX_SERIAL_RETRY retransmissions take up to 6 s at the 1.5 s ACK timeout
+// The reboot happens after this long even if the callback is still queued.
+// The callback and its MAX_SERIAL_RETRY retransmissions take up to 6 s at the 1.5 s ACK timeout.
 #define FW_UPDATE_REBOOT_MAX_WAIT_MS 10000
 
 typedef enum
@@ -108,9 +114,10 @@ typedef enum
   FW_UPDATE_STATE_IDLE,
   // Prepare erased the slot. Write accepts chunks.
   FW_UPDATE_STATE_WRITING,
-  // Perform wrote the last partial word. A failed Perform erases the file and returns to IDLE.
+  // Perform wrote the last partial word. A failed Perform invalidates the file and returns to IDLE.
   FW_UPDATE_STATE_FINALIZED,
-  // The reboot into the bootloader is pending. Every request is rejected.
+  // A successful Perform waits for the host to receive its callback, then reboots into the bootloader.
+  // Every request is rejected meanwhile.
   FW_UPDATE_STATE_REBOOTING,
 } fw_update_state_t;
 
@@ -121,24 +128,28 @@ static uint32_t slot_length;
 static uint32_t received_length;
 // Bytes after the last full flash word. They are written once 4 bytes are complete.
 static uint8_t pending_length;
+// `write_buffer` collects chunk bytes into whole flash words. Flash writes need a word-aligned source.
 static uint8_t write_buffer[FW_UPDATE_WRITE_BUFFER_SIZE] __attribute__((aligned(4)));
+// `verify_context` holds the bootloader's parser state while it verifies the file. check_contents() reads it afterwards.
 static uint8_t verify_context[BOOTLOADER_STORAGE_VERIFICATION_CONTEXT_SIZE] __attribute__((aligned(4)));
 
+// The reboot timer delays the reboot after a successful Perform until the host has its callback
 static SSwTimer reboot_timer;
 static bool reboot_timer_registered = false;
-
-static void reboot_timer_callback(SSwTimer *timer);
 static uint32_t reboot_wait_ms;
+static void reboot_timer_callback(SSwTimer *timer);
 
 #define FW_UPDATE_RESPONSE_REJECTED 0x00
 #define FW_UPDATE_RESPONSE_ACCEPTED 0x01
 
+// Respond that the request was rejected, without a callback
 static void reject(uint8_t sub_command)
 {
   const uint8_t response[] = { sub_command, FW_UPDATE_RESPONSE_REJECTED };
   Respond(FUNC_ID_FIRMWARE_UPDATE, response, sizeof(response));
 }
 
+// Respond that the request was accepted, then report its result in the callback
 static void accept(uint8_t sub_command, uint8_t session_id, fw_update_status_t status)
 {
   const uint8_t response[] = { sub_command, FW_UPDATE_RESPONSE_ACCEPTED };
@@ -150,11 +161,13 @@ static void accept(uint8_t sub_command, uint8_t session_id, fw_update_status_t s
   }
 }
 
+// Get the storage slot ready to receive a new file
 static fw_update_status_t prepare(void)
 {
   update_state = FW_UPDATE_STATE_IDLE;
 
-  // Bootloader 3.2.1 and older have no storage, and their table has no storage functions
+  // Figure out if the bootloader has a storage slot.
+  // The storage functions must not be called before the capability check, because older bootloaders lack them.
   BootloaderInformation_t info = { 0 };
   bootloader_getInfo(&info);
   if ((info.capabilities & BOOTLOADER_CAPABILITY_STORAGE) == 0) {
@@ -170,7 +183,8 @@ static fw_update_status_t prepare(void)
     return FW_UPDATE_STATUS_FIRMWARE_UPDATE_NOT_SUPPORTED;
   }
 
-  // Register the reboot timer now. Perform's callback is only queued, so rebooting without the timer would drop it.
+  // Register the timer that reboots into the bootloader after a successful Perform.
+  // This happens here because Perform must not fail after it has accepted the file.
   if (!reboot_timer_registered) {
     reboot_timer_registered = AppTimerRegister(&reboot_timer, false, reboot_timer_callback);
   }
@@ -178,10 +192,12 @@ static fw_update_status_t prepare(void)
     return FW_UPDATE_STATUS_FAILED_TO_PREPARE;
   }
 
+  // Erase the slot
   if (zpal_bootloader_erase_storage_slot() != ZPAL_STATUS_OK) {
     return FW_UPDATE_STATUS_FAILED_TO_PREPARE;
   }
 
+  // Start a new file
   slot_address = slot.address;
   slot_length = slot.length;
   received_length = 0;
@@ -190,14 +206,18 @@ static fw_update_status_t prepare(void)
   return FW_UPDATE_STATUS_OK;
 }
 
-// Write `length` bytes from `write_buffer` at slot offset `offset`
+// Write `length` bytes from `write_buffer` at slot offset `offset`.
+// The internal flash storage driver rejects writes whose address or length isn't a multiple of 4.
 static bool write_words(uint32_t offset, uint16_t length)
 {
-  // The internal flash storage driver rejects writes whose address or length is not a multiple of 4.
-  // zpal_bootloader_write_data() splits writes into 255-byte parts, so `length` must also stay below 256.
+  if ((offset % 4 != 0) || (length % 4 != 0)) {
+    return false;
+  }
+
   return zpal_bootloader_write_data(offset, write_buffer, length) == ZPAL_STATUS_OK;
 }
 
+// Append one chunk of the file to the slot
 static fw_update_status_t write_chunk(uint32_t offset, const uint8_t *data, uint16_t length)
 {
   if (update_state != FW_UPDATE_STATE_WRITING) {
@@ -208,7 +228,7 @@ static fw_update_status_t write_chunk(uint32_t offset, const uint8_t *data, uint
     return FW_UPDATE_STATUS_TOO_BIG;
   }
 
-  // Flash can't be rewritten without an erase, so chunks must arrive in order
+  // Accept only chunks that start at or before the end of the data received so far. Gaps aren't tracked.
   if (offset > received_length) {
     return FW_UPDATE_STATUS_TOO_BIG;
   }
@@ -221,11 +241,13 @@ static fw_update_status_t write_chunk(uint32_t offset, const uint8_t *data, uint
   data += skip;
   length -= skip;
 
+  // Append the chunk to the bytes left over from the previous one
   memcpy(&write_buffer[pending_length], data, length);
   uint16_t buffered = pending_length + length;
   uint16_t aligned = buffered & ~3U;
   uint32_t flash_offset = received_length - pending_length;
 
+  // Write the whole words and keep the remaining 0 to 3 bytes for the next chunk
   if (aligned > 0) {
     if (!write_words(flash_offset, aligned)) {
       update_state = FW_UPDATE_STATE_IDLE;
@@ -239,6 +261,7 @@ static fw_update_status_t write_chunk(uint32_t offset, const uint8_t *data, uint
   return FW_UPDATE_STATUS_OK;
 }
 
+// Write the bytes still left in `write_buffer`, so the whole file is in the slot
 static fw_update_status_t finalize_write(void)
 {
   if (update_state == FW_UPDATE_STATE_FINALIZED) {
@@ -248,8 +271,9 @@ static fw_update_status_t finalize_write(void)
     return FW_UPDATE_STATUS_FAILED_TO_PREPARE;
   }
 
+  // Write the last 1 to 3 bytes as one full word. Fill the rest with 0xFF, the value of erased flash.
+  // The GBL parser stops at the end tag, so it never reads the padding.
   if (pending_length > 0) {
-    // Pad with the erased flash value, which the GBL parser never reads past the end tag
     memset(&write_buffer[pending_length], 0xFF, 4 - pending_length);
     if (!write_words(received_length - pending_length, 4)) {
       update_state = FW_UPDATE_STATE_IDLE;
@@ -262,6 +286,7 @@ static fw_update_status_t finalize_write(void)
   return FW_UPDATE_STATUS_OK;
 }
 
+// Translate a bootloader verification error into a firmware update status
 static fw_update_status_t map_verify_error(int32_t error)
 {
   switch (error) {
@@ -276,14 +301,16 @@ static fw_update_status_t map_verify_error(int32_t error)
   }
 }
 
-// Call the bootloader API directly because zpal_bootloader_verify_image() returns only OK or FAIL
+// Verify the file in the slot, including its signature
 static fw_update_status_t verify_image(void)
 {
+  // Call the bootloader API directly because zpal_bootloader_verify_image() returns only OK or FAIL
   int32_t result = bootloader_initVerifyImage(FW_UPDATE_SLOT_ID, verify_context, sizeof(verify_context));
   if (result != BOOTLOADER_OK) {
     return FW_UPDATE_STATUS_INVALID_HEADER;
   }
 
+  // Feed the watchdog between parser steps because verifying a 150 KB file takes about 3.3 s
   do {
     zpal_feed_watchdog();
     result = bootloader_continueVerifyImage(verify_context, NULL);
@@ -295,11 +322,14 @@ static fw_update_status_t verify_image(void)
   return FW_UPDATE_STATUS_OK;
 }
 
+// Check that the verified file is something the bootloader can install for `target`.
+// Call only after verify_image() succeeded.
 static fw_update_status_t check_contents(uint8_t target)
 {
   const staged_image_properties_t *image = (const staged_image_properties_t *)verify_context;
 
-  // Compare with the public API to make sure the parser context still has this layout
+  // Make sure the parser context still has the layout of `staged_image_properties_t`.
+  // Its values must match what the public bootloader API reports for the same file.
   ApplicationData_t app_info;
   uint32_t bootloader_version = 0;
   if (bootloader_getImageInfo(FW_UPDATE_SLOT_ID, &app_info, &bootloader_version) != BOOTLOADER_OK) {
@@ -307,17 +337,19 @@ static fw_update_status_t check_contents(uint8_t target)
   }
   bool has_app = image->contents & BTL_IMAGE_CONTENT_APPLICATION;
   bool has_bootloader = image->contents & BTL_IMAGE_CONTENT_BOOTLOADER;
-  if (!image->imageCompleted || !image->imageVerified
-      || (has_bootloader ? image->bootloaderVersion : 0) != bootloader_version
-      || (has_app && memcmp(&image->application, &app_info, sizeof(app_info)) != 0)) {
+  bool parser_finished = image->imageCompleted && image->imageVerified;
+  bool same_bootloader_version = (has_bootloader ? image->bootloaderVersion : 0) == bootloader_version;
+  bool same_app_info = !has_app || memcmp(&image->application, &app_info, sizeof(app_info)) == 0;
+  if (!parser_finished || !same_bootloader_version || !same_app_info) {
     return FW_UPDATE_STATUS_INVALID_HEADER;
   }
 
-  // The bootloader unpacks SE upgrades inside the application area
+  // Refuse SE upgrades. The bootloader unpacks them inside the application area.
   if (image->contents & BTL_IMAGE_CONTENT_SE) {
     return FW_UPDATE_STATUS_UNSUPPORTED_TARGET;
   }
 
+  // Match the file's contents against the target
   switch (target) {
     case FW_UPDATE_TARGET_FIRMWARE:
       return (has_app && !has_bootloader) ? FW_UPDATE_STATUS_OK : FW_UPDATE_STATUS_UNSUPPORTED_TARGET;
@@ -333,19 +365,21 @@ static fw_update_status_t check_contents(uint8_t target)
   }
 }
 
-// Make the file in the slot fail verification
+// Make the file in the slot fail verification, so the bootloader doesn't install it
 static void invalidate_file(void)
 {
+  // Erase the page that holds the start of the file
   if (bootloader_eraseRawStorage(slot_address, FLASH_PAGE_SIZE) == BOOTLOADER_OK) {
     return;
   }
 
   // Clear the first word instead, which holds the GBL header tag. Writing zeros needs no erase.
-  // If this fails too, the flash is broken, and the next Prepare tries again to erase the slot.
+  // If this fails too, the next Prepare erases the slot again.
   static uint8_t zeros[4] __attribute__((aligned(4))) = { 0 };
   bootloader_writeRawStorage(slot_address, zeros, sizeof(zeros));
 }
 
+// Check the uploaded file, so the caller can reboot into the bootloader to install it
 static fw_update_status_t perform(uint8_t target)
 {
   fw_update_status_t status = finalize_write();
@@ -353,6 +387,7 @@ static fw_update_status_t perform(uint8_t target)
     return status;
   }
 
+  // Verify the file and check its contents
   status = verify_image();
   if (status == FW_UPDATE_STATUS_OK) {
     status = check_contents(target);
@@ -367,9 +402,11 @@ static fw_update_status_t perform(uint8_t target)
   return status;
 }
 
+// Reboot into the bootloader once the Perform callback has left the queue, or after FW_UPDATE_REBOOT_MAX_WAIT_MS
 static void reboot_timer_callback(__attribute__((unused)) SSwTimer *timer)
 {
-  // The callback leaves the queue once the host ACKed it or all retransmissions failed
+  // Check again later while the callback is still queued.
+  // It leaves the queue once the host ACKed it or all retransmissions failed.
   if ((GetCallbackCnt() > 0) && (reboot_wait_ms < FW_UPDATE_REBOOT_MAX_WAIT_MS)) {
     reboot_wait_ms += FW_UPDATE_REBOOT_POLL_MS;
     TimerStart(&reboot_timer, FW_UPDATE_REBOOT_POLL_MS);
@@ -380,6 +417,7 @@ static void reboot_timer_callback(__attribute__((unused)) SSwTimer *timer)
   zpal_bootloader_reboot_and_install();
 }
 
+// Start waiting for the reboot into the bootloader. Prepare already registered the timer.
 static void schedule_reboot(void)
 {
   update_state = FW_UPDATE_STATE_REBOOTING;
@@ -401,11 +439,13 @@ ZW_ADD_CMD(FUNC_ID_FIRMWARE_UPDATE)
 
   const uint8_t sub_command = payload[0];
 
+  // Reject every request while the reboot is pending
   if (update_state == FW_UPDATE_STATE_REBOOTING) {
     reject(sub_command);
     return;
   }
 
+  // Parse the frame for each sub-command and handle it. Frames with the wrong length are rejected below.
   switch (sub_command) {
     case FW_UPDATE_CMD_PREPARE:
     {
