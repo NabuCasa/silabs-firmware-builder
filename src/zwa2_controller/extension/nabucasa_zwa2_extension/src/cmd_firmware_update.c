@@ -126,6 +126,8 @@ static uint8_t verify_context[BOOTLOADER_STORAGE_VERIFICATION_CONTEXT_SIZE] __at
 
 static SSwTimer reboot_timer;
 static bool reboot_timer_registered = false;
+
+static void reboot_timer_callback(SSwTimer *timer);
 static uint32_t reboot_wait_ms;
 
 #define FW_UPDATE_RESPONSE_REJECTED 0x00
@@ -166,6 +168,14 @@ static fw_update_status_t prepare(void)
   BootloaderStorageSlot_t slot = { 0 };
   if (bootloader_getStorageSlotInfo(FW_UPDATE_SLOT_ID, &slot) != BOOTLOADER_OK || slot.length == 0) {
     return FW_UPDATE_STATUS_FIRMWARE_UPDATE_NOT_SUPPORTED;
+  }
+
+  // Register the reboot timer now. Perform's callback is only queued, so rebooting without the timer would drop it.
+  if (!reboot_timer_registered) {
+    reboot_timer_registered = AppTimerRegister(&reboot_timer, false, reboot_timer_callback);
+  }
+  if (!reboot_timer_registered) {
+    return FW_UPDATE_STATUS_FAILED_TO_PREPARE;
   }
 
   if (zpal_bootloader_erase_storage_slot() != ZPAL_STATUS_OK) {
@@ -323,6 +333,19 @@ static fw_update_status_t check_contents(uint8_t target)
   }
 }
 
+// Make the file in the slot fail verification
+static void invalidate_file(void)
+{
+  if (bootloader_eraseRawStorage(slot_address, FLASH_PAGE_SIZE) == BOOTLOADER_OK) {
+    return;
+  }
+
+  // Clear the first word instead, which holds the GBL header tag. Writing zeros needs no erase.
+  // If this fails too, the flash is broken, and the next Prepare tries again to erase the slot.
+  static uint8_t zeros[4] __attribute__((aligned(4))) = { 0 };
+  bootloader_writeRawStorage(slot_address, zeros, sizeof(zeros));
+}
+
 static fw_update_status_t perform(uint8_t target)
 {
   fw_update_status_t status = finalize_write();
@@ -335,9 +358,9 @@ static fw_update_status_t perform(uint8_t target)
     status = check_contents(target);
   }
 
-  // Erase the start of a refused file because the bootloader installs any valid file on its next entry
+  // Invalidate a refused file because the bootloader installs any valid file on its next entry
   if (status != FW_UPDATE_STATUS_OK) {
-    bootloader_eraseRawStorage(slot_address, FLASH_PAGE_SIZE);
+    invalidate_file();
     update_state = FW_UPDATE_STATE_IDLE;
   }
 
@@ -360,16 +383,6 @@ static void reboot_timer_callback(__attribute__((unused)) SSwTimer *timer)
 static void schedule_reboot(void)
 {
   update_state = FW_UPDATE_STATE_REBOOTING;
-
-  if (!reboot_timer_registered) {
-    reboot_timer_registered = AppTimerRegister(&reboot_timer, false, reboot_timer_callback);
-  }
-
-  if (!reboot_timer_registered) {
-    comm_interface_wait_transmit_done();
-    zpal_bootloader_reboot_and_install();
-    return;
-  }
 
   // Reboot no earlier than one poll interval later, so the host can ACK the response
   reboot_wait_ms = 0;
