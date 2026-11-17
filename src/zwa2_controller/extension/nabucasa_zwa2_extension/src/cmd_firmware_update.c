@@ -305,16 +305,19 @@ static fw_update_status_t map_verify_error(int32_t error)
   }
 }
 
-// Verify the file in the slot, including its signature
+// Verify the file in the slot, including its signature.
+// This calls the bootloader API directly because zpal_bootloader_verify_image() returns only OK or FAIL.
 static fw_update_status_t verify_image(void)
 {
-  // Call the bootloader API directly because zpal_bootloader_verify_image() returns only OK or FAIL
+  // Set up the parser for the slot. This step doesn't read the file.
+  // Its errors mean the bootloader can't verify files at all.
   int32_t result = bootloader_initVerifyImage(FW_UPDATE_SLOT_ID, verify_context, sizeof(verify_context));
   if (result != BOOTLOADER_OK) {
-    return FW_UPDATE_STATUS_INVALID_HEADER;
+    return FW_UPDATE_STATUS_FIRMWARE_UPDATE_NOT_SUPPORTED;
   }
 
-  // Feed the watchdog between parser steps because verifying a 150 KB file takes about 3.3 s
+  // Parse the file one block per call, which also checks its signature.
+  // Feed the watchdog between calls because a 150 KB file takes about 3.3 s.
   do {
     zpal_feed_watchdog();
     result = bootloader_continueVerifyImage(verify_context, NULL);
