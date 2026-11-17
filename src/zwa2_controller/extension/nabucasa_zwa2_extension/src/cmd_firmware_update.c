@@ -13,10 +13,10 @@
  * ZW->HOST (REQ): 0x3E | sessionId | status
  *
  * The response is the generic Response Status field: 0x01 accepts the request
- * and 0x00 rejects it. Only frames that can't be parsed and requests that
- * arrive while the reboot is pending are rejected. An accepted request reports
- * its result in the callback, as a value from the firmware update status table.
- * Rejected requests and session ID 0 get no callback.
+ * and 0x00 rejects it. Frames that can't be parsed, Write and Perform without a
+ * successful Prepare, and requests while the reboot is pending are rejected.
+ * An accepted request reports its result in the callback, as a value from the
+ * firmware update status table. Rejected requests and session ID 0 get no callback.
  */
 
 #include <stdbool.h>
@@ -444,7 +444,7 @@ ZW_ADD_CMD(FUNC_ID_FIRMWARE_UPDATE)
     return;
   }
 
-  // Parse the frame for each sub-command. Frames with the wrong length are rejected below.
+  // Parse the frame for each sub-command. Frames with the wrong length or state are rejected below.
   // A valid frame gets its response right away and the result in the callback once it is handled.
   switch (sub_command) {
     case FW_UPDATE_CMD_PREPARE:
@@ -469,15 +469,13 @@ ZW_ADD_CMD(FUNC_ID_FIRMWARE_UPDATE)
       if (length != FW_UPDATE_WRITE_HEADER_LEN + data_length + 1) {
         break;
       }
-      const uint8_t session_id = payload[FW_UPDATE_WRITE_HEADER_LEN + data_length];
-      accept(sub_command);
-
       // Write needs a successful Prepare first
       if (update_state != FW_UPDATE_STATE_WRITING) {
-        report(session_id, FW_UPDATE_STATUS_FAILED_TO_PREPARE);
-        return;
+        break;
       }
 
+      const uint8_t session_id = payload[FW_UPDATE_WRITE_HEADER_LEN + data_length];
+      accept(sub_command);
       const fw_update_status_t status = write_chunk(offset, &payload[FW_UPDATE_WRITE_HEADER_LEN], data_length);
       report(session_id, status);
       return;
@@ -488,14 +486,13 @@ ZW_ADD_CMD(FUNC_ID_FIRMWARE_UPDATE)
       if (length != 3) {
         break;
       }
-      accept(sub_command);
 
       // Perform needs a successful Prepare first
       if (update_state != FW_UPDATE_STATE_WRITING) {
-        report(payload[2], FW_UPDATE_STATUS_FAILED_TO_PREPARE);
-        return;
+        break;
       }
 
+      accept(sub_command);
       const fw_update_status_t status = perform(payload[1]);
       report(payload[2], status);
       if (status == FW_UPDATE_STATUS_OK) {
