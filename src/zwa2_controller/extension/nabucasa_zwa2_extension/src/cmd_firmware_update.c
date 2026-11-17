@@ -187,6 +187,11 @@ static fw_update_status_t prepare(void)
     return FW_UPDATE_STATUS_FIRMWARE_UPDATE_NOT_SUPPORTED;
   }
 
+  // The slot length must be a multiple of 4, so finalize_write() can pad the last word without passing the slot end
+  if (slot.length % 4 != 0) {
+    return FW_UPDATE_STATUS_FIRMWARE_UPDATE_NOT_SUPPORTED;
+  }
+
   // Register the timer that reboots into the bootloader after a successful Perform.
   // This happens here because Perform must not fail after it has accepted the file.
   if (!reboot_timer_registered) {
