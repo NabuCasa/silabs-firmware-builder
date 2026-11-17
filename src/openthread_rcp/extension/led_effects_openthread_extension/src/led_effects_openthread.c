@@ -19,11 +19,22 @@ extern otInstance *otGetInstance(void);
 
 static bool network_has_settings = false;
 static sl_sleeptimer_timer_handle_t pan_id_poll_timer;
+static volatile bool poll_due = false;
 
+// Runs in interrupt context: OpenThread is only called from the main loop
 static void network_state_poll_callback(sl_sleeptimer_timer_handle_t *handle, void *data)
 {
   (void)handle;
   (void)data;
+  poll_due = true;
+}
+
+void led_effects_openthread_process_action(void)
+{
+  if (!poll_due) {
+    return;
+  }
+  poll_due = false;
 
   otInstance *instance = otGetInstance();
   otPanId pan_id = otLinkGetPanId(instance);

@@ -19,3 +19,9 @@ requires:
   - name: led_manager
   - name: simple_button
   - name: sleeptimer
+template_contribution:
+  - name: event_handler
+    value:
+      event: service_process_action
+      include: zbt2_reset_button.h
+      handler: zbt2_reset_button_process_action
