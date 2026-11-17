@@ -5,6 +5,9 @@ filename: "{manifest_name}_{ot_rcp_version.split('/')[-1]}_gsdk_{sdk_version}"
 sdk: "simplicity_sdk:2026.6.1"
 toolchain: "14.2.1.20241119"
 
+simulation:
+  board: yellow
+
 gbl:
   fw_type: openthread_rcp
   ot_rcp_version: dynamic

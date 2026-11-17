@@ -1,0 +1,298 @@
+// EFR32MG21 (Series 2, xG21). Renode ships no xG21 platform; this is assembled from the MG24 and xG22 platforms with
+// the MG21 memory map and IRQ numbers (EFR32MG21 device headers). The radio reuses the xG24 model. xG21 RAIL drives
+// the same FRC/AGC/MODEM/SYNTH/PROTIMER/RAC addresses, only BUFC moved, but many FRC/AGC/MODEM/BUFC/RAC registers sit
+// at other offsets. Those blocks are registered at unused shadow addresses (0xC...) and EFR32xG21_RadioRegisterRemap
+// peripherals at the real addresses translate xG21 offsets to the model's. The maps come from
+// claude/mg21seq/remap_tables.py. The RAC is EFR32xG21_RadioController, which also runs the xG21 sequencer microcode.
+// PRORTC is not modeled.
+
+usart0: UART.EFR32xG2_USART_0 @ {
+        sysbus <0x40058000, +0x4000>; // USART0_S
+        sysbus <0x50058000, +0x4000>  // USART0_NS
+    }
+    clockFrequency: 38400000
+    ReceiveIRQ -> nvic@11
+    TransmitIRQ -> nvic@12
+    RxDataAvailableRequest -> ldma@0x0040
+    RxDataAvailableSingleRequest -> ldma@0x1040
+    RxDataAvailableGpioSignal -> gpioPort@0x1201
+    TxBufferLowRequest -> ldma@0x0042
+    TxBufferLowSingleRequest -> ldma@0x1042
+    TxEmptyRequest -> ldma@0x0044
+
+radio: Wireless.EFR32xG24_Radio @ {
+        sysbus new Bus.BusMultiRegistration { address: 0x40098000; size: 0x4000; region: "hostmailbox" };
+        sysbus new Bus.BusMultiRegistration { address: 0x50098000; size: 0x4000; region: "hostmailbox_ns" };
+        sysbus new Bus.BusMultiRegistration { address: 0xC8004000; size: 0x4000; region: "frc" };
+        sysbus new Bus.BusMultiRegistration { address: 0xC800C000; size: 0x4000; region: "agc" };
+        sysbus new Bus.BusMultiRegistration { address: 0xA8010000; size: 0x4000; region: "crc" };
+        sysbus new Bus.BusMultiRegistration { address: 0xC8014000; size: 0x4000; region: "modem" };
+        sysbus new Bus.BusMultiRegistration { address: 0xA8018000; size: 0x4000; region: "synth" };
+        sysbus new Bus.BusMultiRegistration { address: 0xA801C000; size: 0x4000; region: "protimer" };
+        sysbus new Bus.BusMultiRegistration { address: 0xA802C000; size: 0x4000; region: "rfmailbox" };
+        sysbus new Bus.BusMultiRegistration { address: 0xC4004000; size: 0x4000; region: "bufc" };
+        sysbus new Bus.BusMultiRegistration { address: 0xB8010000; size: 0x4000; region: "crc_ns" };
+        sysbus new Bus.BusMultiRegistration { address: 0xB8018000; size: 0x4000; region: "synth_ns" };
+        sysbus new Bus.BusMultiRegistration { address: 0xB801C000; size: 0x4000; region: "protimer_ns" };
+        sysbus new Bus.BusMultiRegistration { address: 0xB802C000; size: 0x4000; region: "rfmailbox_ns" }
+    }
+    ram: sram
+    // The model only touches the sequencer CPU on the xG24 CPUWAITDIS bit, which xG21 does not have. A second CPU on
+    // the bus makes Renode track written addresses for code coherency, which cost about a third of host throughput.
+    sequencer: cpu
+    pa0DbmSupport: true
+    pa10DbmSupport: true
+    pa20DbmSupport: true
+    // Main CPU interrupts. xG21 has no host mailbox interrupt; the sequencer signals the host through RAC_SEQ.
+    AutomaticGainControlIRQ -> nvic@31
+    BufferControllerIRQ -> nvic@32
+    FrameControllerPrioritizedIRQ -> nvic@33
+    FrameControllerIRQ -> nvic@34
+    ModulatorAndDemodulatorIRQ -> nvic@35
+    ProtocolTimerIRQ -> nvic@36
+    RadioControllerRadioStateMachineIRQ -> nvic@37
+    RadioControllerSequencerIRQ -> nvic@38
+    SynthesizerIRQ -> nvic@40
+    // Per-state sequencer interrupts run the xG21 microcode vectors in rac
+    SeqOffIRQ -> rac@0
+    SeqRxWarmIRQ -> rac@1
+    SeqRxSearchIRQ -> rac@2
+    SeqRxFrameIRQ -> rac@3
+    SeqRxPoweringDownIRQ -> rac@4
+    SeqRx2RxIRQ -> rac@5
+    SeqRxOverflowIRQ -> rac@6
+    SeqRx2TxIRQ -> rac@7
+    SeqTxWarmIRQ -> rac@8
+    SeqTxIRQ -> rac@9
+    SeqTxPoweringDownIRQ -> rac@10
+    SeqTx2RxIRQ -> rac@11
+    SeqTx2TxIRQ -> rac@12
+    SeqShutdownIRQ -> rac@13
+
+rac: Wireless.EFR32xG21_RadioController @ {
+        sysbus <0xA8020000, +0x4000>; // RAC_S
+        sysbus <0xB8020000, +0x4000>  // RAC_NS
+    }
+    radio: radio
+    map: "0x28=-,0x2c=-,0x30=-,0x34=-,0x38=-,0x3c=-,0x40=-,0x44=-,0x48=-,0x4c=-,0x50=-,0x54=-,0x58=-,0x5c=-,0x60=-,0x64=-,0x68=-,0x6c=-,0x70=-,0x74=-,0x78=-,0x7c=-,0x80=-,0x84=0x98,0x88=0x9c,0x8c=0xa0,0x90=0xa4,0x94=-,0x98=0xac,0x9c=0xb0,0xa0=0xb4,0xa4=0xb8,0xa8=0xbc,0xac=0xc4,0xb0=0xc8,0xb4=0xcc,0xb8=0xd0,0xbc=0xd4,0xc0=0xd8,0xc4=0xdc,0xc8=0xe0,0xcc=0xe4,0xd0=0xe8,0xd4=-,0xd8=0xf4,0xdc=0xf8,0xe0=0xfc,0xe4=0x100,0xe8=0x104,0xec=0x108,0xf0=0x114,0xf4=0x118,0xf8=0x11c,0xfc=0x120,0x100=0x124,0x104=0x128,0x108=0x1c8,0x10c=-,0x110=0x148,0x114=0x14c,0x118=0x150,0x11c=0x154,0x120=0x158,0x124=0x15c,0x128=0x164,0x12c=-,0x130=0x168,0x134=0x16c,0x138=0x170,0x13c=0x174,0x140=0x178,0x144=0x17c,0x148=0x180,0x14c=0x184,0x158=0x188,0x15c=0x190,0x160=0x194,0x164=0x198,0x168=0x19c,0x16c=-,0x170=0x1c4,0x174=0xc0,0x3e0=-,0x3e4=-,0x3e8=-,0x3ec=-,0x3f0=-,0x3f4=-,0x3f8=-,0x3fc=-"
+
+frcremap: Wireless.EFR32xG21_RadioRegisterRemap @ {
+        sysbus <0xA8004000, +0x4000>; // FRC_S
+        sysbus <0xB8004000, +0x4000>  // FRC_NS
+    }
+    target: 0xC8004000
+    map: "0x70=-,0xb0=-,0xb4=0x108,0xb8=0x10c,0xbc=0x110,0xc0=0x114,0x100=0x140,0x104=0x144,0x108=0x148,0x10c=0x14c,0x110=0x150,0x114=0x154,0x118=0x158,0x11c=0x15c,0x120=0x160,0x124=0x164,0x128=0x168,0x12c=0x16c,0x130=0x170,0x134=0x174,0x138=0x178,0x13c=0x17c"
+
+agcremap: Wireless.EFR32xG21_RadioRegisterRemap @ {
+        sysbus <0xA800C000, +0x4000>; // AGC_S
+        sysbus <0xB800C000, +0x4000>  // AGC_NS
+    }
+    target: 0xC800C000
+    map: "0x10=0x18,0x14=0x1c,0x1c=0x20,0x20=0x24,0x24=0x28,0x28=0x2c,0x2c=0x40,0x30=0x44,0x38=0x48,0x44=0x4c,0x48=0x50,0x50=0x54,0x54=-,0x58=-,0x5c=0x68,0x64=-,0x68=0x74,0x6c=0x78,0x70=0x7c,0x74=0xa8,0x78=0xac,0x7c=0xb0,0x80=0xb4,0x88=0xb8,0x8c=0xbc"
+
+modemremap: Wireless.EFR32xG21_RadioRegisterRemap @ {
+        sysbus <0xA8014000, +0x4000>; // MODEM_S
+        sysbus <0xB8014000, +0x4000>  // MODEM_NS
+    }
+    target: 0xC8014000
+    map: "0x8=0x18,0xc=0x34,0x10=0x3c,0x14=0x40,0x18=0x44,0x1c=0x48,0x20=0x4c,0x24=0x50,0x28=0x54,0x2c=0x58,0x30=0x5c,0x34=0x60,0x38=0x64,0x58=0x68,0x5c=0x6c,0x60=0x70,0x64=0x74,0x68=0x78,0x6c=0x7c,0xc0=0xd8,0xc4=0xdc,0xe0=0x110,0xe4=0x114,0xe8=0x118,0xec=0x11c,0xf0=0x120,0xf4=0x124,0xf8=0x128,0xfc=0x138,0x100=0x140,0x104=0x144,0x10c=0x13c,0x110=0x148,0x114=0x14c,0x118=0x154,0x124=0x158,0x128=0x15c,0x12c=0x160,0x130=0x12c,0x134=0x164,0x138=0x168,0x13c=0x16c,0x140=0x170,0x144=0x174,0x148=0x178,0x14c=0x17c,0x150=0x180,0x154=0x184,0x158=0x188,0x15c=0x18c,0x160=0x190,0x164=0x194,0x168=0x130,0x16c=0x134,0x170=0x150,0x208=0x8,0x20c=0xc,0x218=0x198,0x21c=0x38,0x220=0x1c,0x224=0x20,0x228=0x270,0x22c=0x274,0x230=-,0x234=-,0x238=0x1a4,0x23c=0x1a8,0x240=0x1ac,0x244=0x1b0,0x250=0x278,0x254=0x27c"
+
+bufcremap: Wireless.EFR32xG21_RadioRegisterRemap @ {
+        sysbus <0x44004000, +0x4000>; // BUFC_S
+        sysbus <0x54004000, +0x4000>  // BUFC_NS
+    }
+    target: 0xC4004000
+    map: "0x8=0xc,0xc=0x10,0x10=0x14,0x14=0x18,0x18=0x1c,0x1c=0x20,0x20=0x24,0x24=0x28,0x28=0x2c,0x2c=0x30,0x30=0x34,0x34=0x38,0x38=0x4c,0x3c=0x50,0x40=0x54,0x44=0x58,0x48=0x5c,0x4c=0x60,0x50=0x64,0x54=0x68,0x58=0x6c,0x5c=0x70,0x60=0x74,0x64=0x78,0x68=0x8c,0x6c=0x90,0x70=0x94,0x74=0x98,0x78=0x9c,0x7c=0xa0,0x80=0xa4,0x84=0xa8,0x88=0xac,0x8c=0xb0,0x90=0xb4,0x94=0xb8,0x98=0xcc,0x9c=0xd0,0xa0=0xd4,0xa4=0xd8,0xa8=0xdc,0xac=0xe0,0xb0=0xe4,0xb4=0xe8,0xb8=0xec,0xbc=0xf0,0xc0=0xf4,0xc4=0xf8,0xe0=0x114,0xec=0x118,0xf0=-"
+    composeBufferAddresses: true
+
+msc: Miscellaneous.SiLabs.EFR32xG2_MSC_3_Mg21 @ {
+        sysbus <0x40030000, +0x4000>; // MSC_S
+        sysbus <0x50030000, +0x4000>  // MSC_NS
+    }
+    cpu: cpu
+    IRQ -> nvic@51
+    flashSize: 0x80000
+    flashPageSize: 0x2000
+
+gpioPort: GPIOPort.EFR32xG2_GPIO_1 @ {
+        sysbus <0x4003C000, +0x4000>; // GPIO_S
+        sysbus <0x5003C000, +0x4000>  // GPIO_NS
+    }
+    OddIRQ -> nvic@25
+    EvenIRQ -> nvic@26
+
+bitclear: Miscellaneous.BitAccess
+    address: 0x2000
+    mode: BitAccessMode.Clear
+
+bitset: Miscellaneous.BitAccess
+    address: 0x1000
+    mode: BitAccessMode.Set
+
+sram: Memory.MappedMemory @ sysbus 0x20000000
+    size: 0x10000
+
+seqram: Memory.MappedMemory @ {
+        sysbus 0xA0000000;
+        sysbus 0xB0000000
+    }
+    size: 0x4000
+
+frcram: Memory.MappedMemory @ {
+        sysbus 0xA0004000;
+        sysbus 0xB0004000
+    }
+    size: 0x1000
+
+nvic: IRQControllers.NVIC @ sysbus new Bus.BusPointRegistration {
+        address: 0xE000E000;
+        cpu: cpu
+    }
+    -> cpu@0
+    systickFrequency: 38400000
+
+
+cpu: CPU.CortexM @ sysbus
+    nvic: nvic
+    cpuType: "cortex-m33"
+    cpuId: 0
+
+
+timer0: Timers.EFR32xG2_TIMER_1 @ {
+        sysbus <0x40048000, +0x4000>; // TIMER0_S
+        sysbus <0x50048000, +0x4000>  // TIMER0_NS
+    }
+    frequency: 20000000
+    width: 32
+    -> nvic@6
+
+timer1: Timers.EFR32xG2_TIMER_1 @ {
+        sysbus <0x4004C000, +0x4000>; // TIMER1_S
+        sysbus <0x5004C000, +0x4000>  // TIMER1_NS
+    }
+    frequency: 20000000
+    width: 16
+    -> nvic@7
+
+ldma: DMA.EFR32xG22_LDMA @ {
+        sysbus new Bus.BusMultiRegistration { address: 0x40040000; size: 0x4000; region: "ldma" };     // LDMA_S
+        sysbus new Bus.BusMultiRegistration { address: 0x50040000; size: 0x4000; region: "ldma" };     // LDMA_NS
+        sysbus new Bus.BusMultiRegistration { address: 0x40044000; size: 0x4000; region: "ldmaxbar" }; // LDMAXBAR_S
+        sysbus new Bus.BusMultiRegistration { address: 0x50044000; size: 0x4000; region: "ldmaxbar" }  // LDMAXBAR_NS
+    }
+    -> nvic@21
+
+wtimer0: Timers.EFR32_Timer @ {
+        sysbus <0x4A018000, +0x4000>; // WDOG0_S
+        sysbus <0x5A018000, +0x4000>  // WDOG0_NS
+    }
+    frequency: 0x1000000 //bogus
+    width: TimerWidth.Bit32
+    -> nvic@43
+
+wtimer1: Timers.EFR32_Timer @ {
+        sysbus <0x4A01C000, +0x4000>; // WDOG1_S
+        sysbus <0x5A01C000, +0x4000>  // WDOG1_NS
+    }
+    frequency: 0x1000000 //bogus
+    width: TimerWidth.Bit32
+    -> nvic@44
+
+rtcc: Timers.EFR32xG2_RTCC_Aliased @ {
+        sysbus <0x48000000, +0x4000>; // RTCC_S
+        sysbus <0x58000000, +0x4000>  // RTCC_NS
+    }
+    frequency: 32768
+    -> nvic@10
+
+deviceInformation: Miscellaneous.SiLabs.EFR32xG2_DeviceInformation @ sysbus 0x0FE08000
+    // Renode's DeviceFamily enum has no MG21
+    deviceFamily: DeviceFamily.EFR32MG24
+    deviceNumber: 20
+    flashDevice: flash
+    sramDevice: sram
+
+DCDC_IF: Python.PythonPeripheral @ sysbus 0x50094028
+    size: 0x4
+    initable: true
+    script: "request.Value = 0xffffffff"
+
+// Also at the xG24 flash base, where the MSC model erases and writes
+flash: Memory.MappedMemory @ {
+        sysbus 0x00000000;
+        sysbus 0x08000000
+    }
+    size: 0x80000
+
+cmu: Miscellaneous.SiLabs.EFR32xG2_CMU_3 @ {
+        sysbus <0x40008000, +0x4000>; // CMU_S
+        sysbus <0x50008000, +0x4000>  // CMU_NS
+    }
+    hfxo: hfxo
+    dpll: dpll
+
+lfxo: Miscellaneous.SiLabs.EFR32xG2_LFXO_1 @ {
+        sysbus <0x40020000, +0x4000>; // LFXO_S
+        sysbus <0x50020000, +0x4000>  // LFXO_NS
+    }
+
+hfrco0: Miscellaneous.SiLabs.EFR32xG2_HFRCO_2 @ {
+        sysbus <0x40010000, +0x4000>; // HFRCO0_S
+        sysbus <0x50010000, +0x4000>  // HFRCO0_NS
+    }
+
+dpll: Miscellaneous.SiLabs.EFR32xG2_DPLL_1 @ {
+        sysbus <0x4001C000, +0x4000>; // DPLL0_S
+        sysbus <0x5001C000, +0x4000>  // DPLL0_NS
+    }
+
+lfrco: Miscellaneous.SiLabs.EFR32xG2_LFRCO_2 @ {
+        sysbus <0x40024000, +0x4000>; // LFRCO_S
+        sysbus <0x50024000, +0x4000>  // LFRCO_NS
+    }
+
+hfxo: Miscellaneous.SiLabs.EFR32xG2_HFXO_2_Mg21 @ {
+        sysbus <0x4000C000, +0x4000>; // HFXO0_S
+        sysbus <0x5000C000, +0x4000>  // HFXO0_NS
+    }
+    startupDelayTicks: 3
+    IRQ -> nvic@45
+
+hfrco1: Miscellaneous.SiLabs.EFR32xG2_HFRCO_2 @ {
+        sysbus <0x4A014000, +0x4000>; // HFRCOEM23_S
+        sysbus <0x5A014000, +0x4000>  // HFRCOEM23_NS
+    }
+
+emu: Miscellaneous.SiLabs.EFR32xG2_EMU_3 @ {
+        sysbus <0x40004000, +0x4000>; // EMU_S
+        sysbus <0x50004000, +0x4000>  // EMU_NS
+    }
+
+smu: Miscellaneous.SiLabs.EFR32xG2_SMU_1 @ {
+        sysbus new Bus.BusMultiRegistration { address: 0x44008000; size: 0x4000; region: "smu_s" }; // SMU_S
+        sysbus new Bus.BusMultiRegistration { address: 0x54008000; size: 0x4000; region: "smu_ns" } // SMU_NS
+    }
+    SecureIRQ -> nvic@3
+    SecurePriviledgedIRQ -> nvic@4
+
+syscfg: Miscellaneous.SiLabs.EFR32xG2_SYSCFG_3 @ {
+        sysbus <0x4007C000, +0x4000>; // SYSCFG_S
+        sysbus <0x5007C000, +0x4000>  // SYSCFG_NS
+    }
+
+semailbox: Miscellaneous.SiLabs.EFR32xG2_SEMAILBOX_1 @ {
+        sysbus <0x4C000000, +0x4000>; // SEMAILBOX_S
+        sysbus <0x5C000000, +0x4000>  // SEMAILBOX_NS
+    }
+    RxIRQ -> nvic@1
+    TxIRQ -> nvic@2
+
+radioaes: Miscellaneous.SiLabs.EFR32xG2_AES_1 @ {
+        sysbus <0x44000000, +0x4000>; // RADIOAES_S
+        sysbus <0x54000000, +0x4000>  // RADIOAES_NS
+    }
+    IRQ -> nvic@49
+
+flashuserdata: Miscellaneous.SiLabs.EFR32xG24_FlashUserData @ sysbus <0x0FE00000, +0x7F>
+
+itm : Miscellaneous.SiLabs.EFR32xG2_SLAB_ITM @ sysbus 0xE0000000

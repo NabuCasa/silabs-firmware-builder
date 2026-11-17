@@ -1,0 +1,89 @@
+:name: ZBT-2
+:description: Boots a ZBT-2 firmware ELF ($bin) on the EFR32MG24 model, with the host UART on TCP $uart_port.
+
+$uart_port?=3456
+
+using sysbus
+# The radio model synchronizes the host CPU with the sequencer CPU; without serial execution virtual time freezes
+emulation SetGlobalSerialExecution true
+emulation SetGlobalQuantum "0.0005"
+
+include $ORIGIN/models/QMA6100P.cs
+include $ORIGIN/models/WS2812.cs
+include $ORIGIN/models/EFR32xG2_I2CControllerAliased.cs
+include $ORIGIN/models/EFR32xG2_EUSART_2_KeepSpi.cs
+include $ORIGIN/models/EFR32xG2_EMU_3_ResetCause.cs
+include $ORIGIN/models/EFR32xG2_UserDataErased.cs
+
+mach create "zbt2"
+machine LoadPlatformDescription $ORIGIN/zbt2.repl
+
+# The base platform models I2C0 with the Series 1 controller. Swap in the Series 2 model (with alias writes and EN
+# handled) and put the ZBT-2 accelerometer on it.
+sysbus Unregister sysbus.i2c0
+machine LoadPlatformDescriptionFromString """
+i2c0: I2C.EFR32xG2_I2CControllerAliased @ {
+        sysbus <0x4B000000, +0x4000>;
+        sysbus <0x5B000000, +0x4000>
+    }
+    -> nvic@27
+
+// The driver's 0x24 is the 8-bit address
+qma: Sensors.QMA6100P @ i2c0 0x12
+"""
+
+# The ZBT-2 status LEDs are a WS2812 chain fed over EUSART1 in SPI mode. The stock EUSART forgets its SPI device on
+# reset.
+sysbus Unregister sysbus.eusart1
+machine LoadPlatformDescriptionFromString """
+eusart1: UART.EFR32xG2_EUSART_2_KeepSpi @ {
+        sysbus <0x400A0000, +0x4000>;
+        sysbus <0x500A0000, +0x4000>
+    }
+    clockFrequency: 39000000
+    ReceiveIRQ -> nvic@13
+    TransmitIRQ -> nvic@14
+    RxFifoLevel -> ldma@0x0100
+    RxFifoLevelGpioSignal -> gpioPort@0x1203
+    TxFifoLevel -> ldma@0x0101
+
+ws2812: Miscellaneous.WS2812 @ eusart1
+"""
+
+# The stock EMU reads RSTCAUSE as 0; EmberZNet then treats every boot as an unknown reset and ASH sends ERROR
+sysbus Unregister sysbus.emu
+machine LoadPlatformDescriptionFromString """
+emu: Miscellaneous.SiLabs.EFR32xG2_EMU_3_ResetCause @ {
+        sysbus <0x40004000, +0x4000>;
+        sysbus <0x50004000, +0x4000>
+    }
+"""
+
+sysbus Unregister sysbus.flashuserdata
+machine LoadPlatformDescriptionFromString "userdata: Miscellaneous.SiLabs.EFR32xG2_UserDataErased @ sysbus 0x0FE00000"
+
+# LoadELF also points seqcpu at the host entry point; the radio model starts the sequencer itself
+macro reset
+"""
+    sysbus LoadELF $bin
+    seqcpu IsHalted true
+    cpu VectorTableOffset `sysbus GetSymbolAddress "__Vectors"`
+"""
+runMacro $reset
+
+# EmberZNet busy-polls instead of sleeping, so a higher modeled instruction rate (Renode's default is 100 MIPS) mostly
+# burns host time in the idle loop. A grid search of ZBT-2 network formation time bottomed out at 8-15 MIPS.
+cpu PerformanceInMips 15
+
+# Renode wipes RAM on machine reset, but SRAM survives a soft reset on silicon and the firmware relies on it: .noinit
+# carries the reset cause and crash info, and 0x20000000 the bootloader reset word. Stash all of SRAM when the firmware
+# resets the system and put it back before the startup code runs.
+cpu AddHook `sysbus GetSymbolAddress "CORE_ResetSystem"` "from System import AppDomain; AppDomain.CurrentDomain.SetData('zbt2.sram', cpu.Bus.ReadBytes(0x20000000, 0x40000))"
+cpu AddHook `sysbus GetSymbolAddress "Reset_Handler"` "from System import AppDomain; d = AppDomain.CurrentDomain; s = d.GetData('zbt2.sram'); s is not None and cpu.Bus.WriteBytes(s, 0x20000000); d.SetData('zbt2.sram', None)"
+
+# Crash diagnostics
+cpu AddHook `sysbus GetSymbolAddress "RAILCb_AssertFailed"` "self.Log(LogLevel.Error, 'RAIL ASSERT code=%d lr=0x%x' % (self.GetRegister(1).RawValue, self.GetRegister(14).RawValue))"
+cpu AddHook `sysbus GetSymbolAddress "HardFault_Handler"` "self.Log(LogLevel.Error, 'HARDFAULT lr=0x%x sp=0x%x' % (self.GetRegister(14).RawValue, self.GetRegister(13).RawValue))"
+
+emulation CreateServerSocketTerminal $uart_port "host_uart" false
+connector Connect sysbus.eusart0 host_uart
