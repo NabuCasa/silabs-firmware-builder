@@ -213,9 +213,10 @@ def validate_wrap_declarations(
 
         # `metadata` is the SDK's free-form slcc key; a bare top-level key is a
         # "junk key" warning and spec 8 refuses to generate with any warning
-        metadata = component.get("metadata", {}).get("nabucasa", {})
-        definitions = metadata.get("wrap_definitions", {})
-        required_here = set(metadata.get("required_wraps", []))
+        # An empty YAML key loads as `None`, which counts as empty here
+        metadata = (component.get("metadata") or {}).get("nabucasa") or {}
+        definitions = metadata.get("wrap_definitions") or {}
+        required_here = set(metadata.get("required_wraps") or [])
 
         for setting in component.get("toolchain_settings", []):
             targets = set(re.findall(r"--wrap=(\w+)", str(setting["value"])))
