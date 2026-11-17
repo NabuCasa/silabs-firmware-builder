@@ -19,14 +19,14 @@
 #error "Slot install supports a single storage slot only"
 #endif
 
-// Install the file in the slot, then erase its first page.
-// The file no longer verifies without it, so later bootloader entries skip it.
-// The bootloader calls this before the XMODEM menu, after a reset into the bootloader,
-// with the button held, or when the application is invalid.
+// Install the file in the slot. The bootloader calls this before the XMODEM menu,
+// after a reset into the bootloader, with the button held, or when the application is invalid.
 extern int32_t __real_storage_main(void);
 int32_t __wrap_storage_main(void)
 {
   int32_t ret = __real_storage_main();
+
+  // Erase the installed file's first page, so later bootloader entries don't install it again
   if (ret == BOOTLOADER_OK) {
     storage_eraseRaw(SLOT0_START, FLASH_PAGE_SIZE);
   }
@@ -34,22 +34,16 @@ int32_t __wrap_storage_main(void)
   return ret;
 }
 
-// Clear the SDK's reset counter before leaving the XMODEM menu.
-// The SDK counts every entry where __wrap_storage_main returns an error, which includes an empty slot.
-// After three in a row it stops in a busy loop, so leaving the menu must not count towards it.
-// FATAL resets keep counting.
-static void clear_reset_counter_unless_fatal(uint16_t resetReason)
-{
-  if (resetReason != BOOTLOADER_RESET_REASON_FATAL) {
-    reset_disableResetCounter();
-  }
-}
-
-// "run" resets with GO after an upload with nothing to commit, and with BADIMAGE without an upload
+// "run" in the XMODEM menu resets with GO after an upload with nothing to commit, and with BADIMAGE without one
 extern void __real_reset_resetWithReason(uint16_t resetReason);
 void __wrap_reset_resetWithReason(uint16_t resetReason)
 {
-  clear_reset_counter_unless_fatal(resetReason);
+  // The SDK counts every entry where __wrap_storage_main returns an error, which includes an empty slot.
+  // It stops in a busy loop on the third, so leaving the menu must not count. FATAL resets still count.
+  if (resetReason != BOOTLOADER_RESET_REASON_FATAL) {
+    reset_disableResetCounter();
+  }
+
   __real_reset_resetWithReason(resetReason);
 }
 
@@ -57,6 +51,7 @@ void __wrap_reset_resetWithReason(uint16_t resetReason)
 extern bool __real_bootload_commitBootloaderUpgrade(uint32_t upgradeAddress, uint32_t size);
 bool __wrap_bootload_commitBootloaderUpgrade(uint32_t upgradeAddress, uint32_t size)
 {
+  // Clear the reset counter like __wrap_reset_resetWithReason does
   reset_disableResetCounter();
   return __real_bootload_commitBootloaderUpgrade(upgradeAddress, size);
 }
@@ -65,6 +60,7 @@ bool __wrap_bootload_commitBootloaderUpgrade(uint32_t upgradeAddress, uint32_t s
 extern bool __real_bootload_commitSeUpgrade(uint32_t upgradeAddress);
 bool __wrap_bootload_commitSeUpgrade(uint32_t upgradeAddress)
 {
+  // Clear the reset counter like __wrap_reset_resetWithReason does
   reset_disableResetCounter();
   return __real_bootload_commitSeUpgrade(upgradeAddress);
 }
