@@ -33,9 +33,14 @@ Once the build is complete, the firmware will be in the `artifacts` directory.
 application, for example `zwa2_controller_1.4.1_with_bootloader_3.2.2.gbl`. It is
 compressed, encrypted and signed like the regular GBL.
 
+On the ZWA-2, a bundled GBL can only be installed through the Firmware Update Serial
+API command (0x3E), on bootloader 3.2.2 or newer. XMODEM writes the file while it
+arrives, so the application's data overwrites the bundled bootloader and corrupts a
+word of the application.
+
 The bootloader comes from `gbl.bundled_bootloader` in the manifest, a path relative to
-the manifest. A `.yaml` path is a bootloader manifest, which is built first with the
-same build timestamp. A `.out` path is a bootloader ELF, and a `.gbl` path is a
+the manifest. A `.yaml` path is a bootloader manifest, which is built after the
+application with the same build timestamp. A `.out` path is a bootloader ELF, and a `.gbl` path is a
 bootloader-only GBL, decrypted with the manifest's `encrypt_key`. `--bundled-bootloader`
 overrides the manifest:
 

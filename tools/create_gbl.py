@@ -10,6 +10,7 @@ from typing import Any
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from pygbl import (
+    GBL3ApplicationType,
     GBL3Bootloader,
     GBL3Compression,
     GBL3EraseProg,
@@ -22,9 +23,13 @@ from pygbl import (
     build_application_gbl3,
     build_bootloader_gbl3,
     parse_firmware_image,
+    read_application_info,
     read_application_properties,
     read_encryption_key,
 )
+
+# Series 2 devices run the bootloader from the start of flash
+BOOTLOADER_ADDRESS = 0x08000000
 
 # `application_properties_t` in the SDK's `application_properties.h`
 APP_SIGNATURE_TYPE_OFFSET = 20
@@ -130,6 +135,10 @@ def load_bootloader_tag(
     """Read the bootloader tag from a bootloader ELF or a bootloader-only GBL."""
     if path.suffix == ".out":
         with path.open("rb") as f:
+            if GBL3ApplicationType.BOOTLOADER not in read_application_info(f).type:
+                raise ValueError(f"{path} is not a bootloader ELF")
+
+            f.seek(0)
             image = build_bootloader_gbl3(f)
     elif path.suffix == ".gbl":
         image = parse_firmware_image(path.read_bytes())
@@ -149,7 +158,14 @@ def load_bootloader_tag(
     if any(isinstance(tag, app_tags) for tag in image.tags):
         raise ValueError(f"{path} contains application data")
 
-    return image.get_first_tag(GBL3Bootloader)
+    bootloader = image.get_first_tag(GBL3Bootloader)
+    if bootloader.address != BOOTLOADER_ADDRESS:
+        raise ValueError(
+            f"{path} has its bootloader at {bootloader.address:#010x},"
+            f" expected {BOOTLOADER_ADDRESS:#010x}"
+        )
+
+    return bootloader
 
 
 def finalize_gbl(
