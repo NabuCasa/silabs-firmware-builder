@@ -4,9 +4,9 @@ package: custom
 description: >
   Adapts the stock bootloader to a storage slot. It erases the file in storage slot 0
   once it is installed, because the stock bootloader installs any valid file in the
-  slot whenever it is entered. It also clears the SDK's reset counter when the XMODEM
-  menu is left with "run", because every entry with an empty slot counts towards the
-  SDK's reset-loop stop.
+  slot whenever it is entered. It also clears the SDK's reset counter whenever the
+  XMODEM menu resets or commits an upgrade, because every entry with an empty slot
+  counts towards the SDK's reset-loop stop.
 category: Platform|Bootloader|Storage
 quality: production
 source:
@@ -22,7 +22,15 @@ toolchain_settings:
     value: "-Wl,--wrap=storage_main"
   - option: gcc_linker_option
     value: "-Wl,--wrap=reset_resetWithReason"
+  - option: gcc_linker_option
+    value: "-Wl,--wrap=bootload_commitBootloaderUpgrade"
+  - option: gcc_linker_option
+    value: "-Wl,--wrap=bootload_commitSeUpgrade"
   - option: llvm_linker_option
     value: "-Wl,--wrap=storage_main"
   - option: llvm_linker_option
     value: "-Wl,--wrap=reset_resetWithReason"
+  - option: llvm_linker_option
+    value: "-Wl,--wrap=bootload_commitBootloaderUpgrade"
+  - option: llvm_linker_option
+    value: "-Wl,--wrap=bootload_commitSeUpgrade"
