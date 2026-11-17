@@ -194,9 +194,16 @@ def subprocess_run_verbose(command: list[str], prefix: str, **kwargs) -> None:
         sys.exit(1)
 
 
-def validate_wrap_declarations(project_path: pathlib.Path) -> dict[str, str | None]:
-    """Map each wrapped symbol to where its definition lives, or `None` if unspecified."""
+def validate_wrap_declarations(
+    project_path: pathlib.Path,
+) -> tuple[dict[str, str | None], set[str]]:
+    """Read the components' wraps.
+
+    Returns a map of each wrapped symbol to where its definition lives, or `None` if
+    unspecified, and the wrapped symbols whose wrapper must end up in the image.
+    """
     declarations: dict[str, str | None] = {}
+    required: set[str] = set()
 
     # Shared extensions are symlinked in from the repo root, and `rglob` does not
     # descend into symlinked directories on its own
@@ -229,11 +236,9 @@ def validate_wrap_declarations(project_path: pathlib.Path) -> dict[str, str | No
 
         # `metadata` is the SDK's free-form slcc key; a bare top-level key is a
         # "junk key" warning and spec 8 refuses to generate with any warning
-        definitions = (
-            component.get("metadata", {})
-            .get("nabucasa", {})
-            .get("wrap_definitions", {})
-        )
+        metadata = component.get("metadata", {}).get("nabucasa", {})
+        definitions = metadata.get("wrap_definitions", {})
+        required_here = set(metadata.get("required_wraps", []))
 
         if set(definitions) - gcc:
             LOGGER.error(
@@ -243,10 +248,20 @@ def validate_wrap_declarations(project_path: pathlib.Path) -> dict[str, str | No
             )
             sys.exit(1)
 
+        if required_here - gcc:
+            LOGGER.error(
+                "%s requires wrappers for symbols it does not wrap: %s",
+                slcc.relative_to(project_path),
+                sorted(required_here - gcc),
+            )
+            sys.exit(1)
+
         for target in gcc:
             declarations[target] = definitions.get(target)
 
-    return declarations
+        required |= required_here
+
+    return declarations, required
 
 
 def linker_wrap_targets(build: ResolvedBuild) -> set[str]:
@@ -254,8 +269,13 @@ def linker_wrap_targets(build: ResolvedBuild) -> set[str]:
     return set(re.findall(r"-Wl,--wrap=(\w+)", build.project_cmake.read_text()))
 
 
-def validate_linker_wraps(elf_path: pathlib.Path, targets: set[str]) -> None:
-    """Check that every reference to a wrapped symbol goes via its wrapper."""
+def validate_linker_wraps(
+    elf_path: pathlib.Path, targets: set[str], required: set[str]
+) -> None:
+    """Check that every reference to a wrapped symbol goes via its wrapper.
+
+    The wrappers of `required` symbols must also be in the image and be called.
+    """
 
     # `--emit-relocs` retains relocations naming the symbol each call site and function
     # pointer resolved to, so vector table entries are covered as directly as branches
@@ -297,6 +317,13 @@ def validate_linker_wraps(elf_path: pathlib.Path, targets: set[str]) -> None:
     for target in sorted(targets):
         refs = references.get(target, [])
         wrapper = functions.get(f"__wrap_{target}")
+
+        # The linker drops a wrapper once nothing calls its target. Nothing bypasses
+        # the wrapper then, so only this check notices.
+        if target in required and not references.get(f"__wrap_{target}"):
+            problems.append(
+                f"--wrap={target}: __wrap_{target} is required, but nothing calls it"
+            )
 
         if wrapper is None:
             # With no references left the linker drops the wrapper too, which is fine
@@ -1216,7 +1243,7 @@ def main() -> None:
     run_slc_generate(build, slc=slc, tool_paths=args.tool_paths)
     apply_sdk_patches(build)
     validate_sdk_extensions(build, base_project)
-    declared_wraps = validate_wrap_declarations(build.base_project_path)
+    declared_wraps, required_wraps = validate_wrap_declarations(build.base_project_path)
 
     # Template variables for C defines and the output filename
     template_env = {
@@ -1267,6 +1294,7 @@ def main() -> None:
     validate_linker_wraps(
         elf_path=(build.cmake_dir / build.base_project_name).with_suffix(".out"),
         targets=wrapped,
+        required=required_wraps & wrapped,
     )
 
     # Extract the metadata from the source and build trees, patch the ELF, and build the
