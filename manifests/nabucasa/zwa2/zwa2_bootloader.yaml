@@ -49,11 +49,11 @@ configuration:
   BOOTLOADER_VERSION_MAIN_CUSTOMER: 2
   APPLICATION_VERIFICATION_SKIP_EM4_RST: 1
   BOOTLOADER_FALLBACK_LEGACY_KEY: 1
+  BTL_STORAGE_BASE_ADDRESS: 134496256
+  SLOT0_ENABLE: 1
   # Every application must end below the slot, which ends where the NVM starts. Its
   # last 24 KB overlap ZPAL's legacy app NVM3 region. No ZWA-2 release keeps data there,
   # but the controller may initialize it again, which only invalidates a file in the slot
-  BTL_STORAGE_BASE_ADDRESS: 0x8044000
-  SLOT0_ENABLE: 1
   SLOT0_START: 0x8044000
   SLOT0_SIZE: 0x30000
 
