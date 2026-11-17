@@ -34,3 +34,12 @@ toolchain_settings:
     value: "-Wl,--wrap=bootload_commitBootloaderUpgrade"
   - option: llvm_linker_option
     value: "-Wl,--wrap=bootload_commitSeUpgrade"
+
+metadata:
+  nabucasa:
+    # The build fails if one of these wrappers is dropped or never called
+    required_wraps:
+      - storage_main
+      - reset_resetWithReason
+      - bootload_commitBootloaderUpgrade
+      - bootload_commitSeUpgrade
