@@ -1243,9 +1243,7 @@ def main() -> None:
     run_slc_generate(build, slc=slc, tool_paths=args.tool_paths)
     apply_sdk_patches(build)
     validate_sdk_extensions(build, base_project)
-    declared_wraps, required_wraps = validate_wrap_declarations(
-        build.base_project_path
-    )
+    declared_wraps, required_wraps = validate_wrap_declarations(build.base_project_path)
 
     # Template variables for C defines and the output filename
     template_env = {
