@@ -149,12 +149,16 @@ static void reject(uint8_t sub_command)
   Respond(FUNC_ID_FIRMWARE_UPDATE, response, sizeof(response));
 }
 
-// Respond that the request was accepted, then report its result in the callback
-static void accept(uint8_t sub_command, uint8_t session_id, fw_update_status_t status)
+// Respond that the request was accepted. Call before handling the request.
+static void accept(uint8_t sub_command)
 {
   const uint8_t response[] = { sub_command, FW_UPDATE_RESPONSE_ACCEPTED };
   Respond(FUNC_ID_FIRMWARE_UPDATE, response, sizeof(response));
+}
 
+// Report the result of an accepted request. Session ID 0 gets no callback.
+static void report(uint8_t session_id, fw_update_status_t status)
+{
   if (session_id != 0) {
     const uint8_t callback[] = { session_id, (uint8_t)status };
     Request(FUNC_ID_FIRMWARE_UPDATE, (uint8_t *)callback, sizeof(callback));
@@ -422,7 +426,7 @@ static void schedule_reboot(void)
 {
   update_state = FW_UPDATE_STATE_REBOOTING;
 
-  // Reboot no earlier than one poll interval later, so the host can ACK the response
+  // Check the callback queue one poll interval from now
   reboot_wait_ms = 0;
   TimerStart(&reboot_timer, FW_UPDATE_REBOOT_POLL_MS);
 }
@@ -445,14 +449,16 @@ ZW_ADD_CMD(FUNC_ID_FIRMWARE_UPDATE)
     return;
   }
 
-  // Parse the frame for each sub-command and handle it. Frames with the wrong length are rejected below.
+  // Parse the frame for each sub-command. Frames with the wrong length are rejected below.
+  // A valid frame gets its response right away and the result in the callback once it is handled.
   switch (sub_command) {
     case FW_UPDATE_CMD_PREPARE:
     {
       if (length != 2) {
         break;
       }
-      accept(sub_command, payload[1], prepare());
+      accept(sub_command);
+      report(payload[1], prepare());
       return;
     }
 
@@ -468,7 +474,8 @@ ZW_ADD_CMD(FUNC_ID_FIRMWARE_UPDATE)
         break;
       }
       const uint8_t session_id = payload[FW_UPDATE_WRITE_HEADER_LEN + data_length];
-      accept(sub_command, session_id, write_chunk(offset, &payload[FW_UPDATE_WRITE_HEADER_LEN], data_length));
+      accept(sub_command);
+      report(session_id, write_chunk(offset, &payload[FW_UPDATE_WRITE_HEADER_LEN], data_length));
       return;
     }
 
@@ -477,8 +484,9 @@ ZW_ADD_CMD(FUNC_ID_FIRMWARE_UPDATE)
       if (length != 3) {
         break;
       }
+      accept(sub_command);
       const fw_update_status_t status = perform(payload[1]);
-      accept(sub_command, payload[2], status);
+      report(payload[2], status);
       if (status == FW_UPDATE_STATUS_OK) {
         schedule_reboot();
       }
@@ -488,7 +496,8 @@ ZW_ADD_CMD(FUNC_ID_FIRMWARE_UPDATE)
     default:
       // Every defined sub-command ends with the session ID, so unknown ones are assumed to as well
       if (length >= 2) {
-        accept(sub_command, payload[length - 1], FW_UPDATE_STATUS_NOT_SUPPORTED);
+        accept(sub_command);
+        report(payload[length - 1], FW_UPDATE_STATUS_NOT_SUPPORTED);
         return;
       }
       break;
