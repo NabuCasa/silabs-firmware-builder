@@ -1203,9 +1203,10 @@ def build_bundled_bootloader(
         "--build-timestamp", build.build_timestamp.strftime("%Y%m%d%H%M%S"),
     ]
     # fmt: on
-    command += [f"--sdk={path}" for path in args.sdks]
-    command += [f"--toolchain={path}" for path in args.toolchains]
-    command += [f"--tool-path={path}" for path in args.tool_paths]
+    # The child runs in PROJECTS_ROOT, so relative paths must be resolved here
+    command += [f"--sdk={path.resolve()}" for path in args.sdks]
+    command += [f"--toolchain={path.resolve()}" for path in args.toolchains]
+    command += [f"--tool-path={path.resolve()}" for path in args.tool_paths]
 
     if args.slc_daemon:
         command += ["--slc-daemon", "--keep-slc-daemon"]
