@@ -9,10 +9,10 @@
 #define QMA6100P_H_
 
 #include <stdint.h>
-#include "sl_i2cspm.h"
+#include "sl_i2c.h"
 
 #define QMA6100P_M_G                   9.80665f
-#define QMA6100P_I2C_ADDR              0x24
+#define QMA6100P_I2C_ADDR              0x12  // 7-bit
 
 #define QMA6100P_CHIP_ID               0x00
 #define QMA6100P_DEVICE_ID             0x90
@@ -62,22 +62,22 @@ typedef enum {
 
 /**
  * @brief Initialize QMA6100P accelerometer
- * @param i2cspm Pointer to I2CSPM instance to use
+ * @param i2c sl_i2c handle to use
  */
 void qma6100p_system_init(void);
 
 /**
  * @brief Read raw 3-axis acceleration data
- * @param i2cspm Pointer to I2CSPM instance to use
+ * @param i2c sl_i2c handle to use
  * @param data Array to store 3-axis raw data
  */
-void qma6100p_read_raw_xyz(sl_i2cspm_t *i2cspm, int16_t data[3]);
+void qma6100p_read_raw_xyz(sl_i2c_handle_t *i2c, int16_t data[3]);
 
 /**
  * @brief Read calibrated 3-axis acceleration data in m/s^2
- * @param i2cspm Pointer to I2CSPM instance to use
+ * @param i2c sl_i2c handle to use
  * @param accdata Array to store 3-axis acceleration in m/s^2
  */
-void qma6100p_read_acc_xyz(sl_i2cspm_t *i2cspm, float accdata[3]);
+void qma6100p_read_acc_xyz(sl_i2c_handle_t *i2c, float accdata[3]);
 
 #endif /* QMA6100P_H_ */

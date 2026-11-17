@@ -10,7 +10,7 @@
 #include "qma6100p.h"
 #include "led_effects.h"
 #include "led_manager.h"
-#include "sl_i2cspm_instances.h"
+#include "sl_i2c_instances.h"
 #include "sl_simple_rgb_pwm_led.h"
 #include <string.h>
 
@@ -61,7 +61,7 @@ static bool handle_set_led_state(xncp_context_t *ctx)
 static bool handle_get_accelerometer(xncp_context_t *ctx)
 {
     float xyz[3];
-    qma6100p_read_acc_xyz(sl_i2cspm_inst, xyz);
+    qma6100p_read_acc_xyz(sl_i2c_inst_handle, xyz);
 
     // X
     memcpy(ctx->reply + *ctx->reply_length, (uint8_t*)&xyz[0], sizeof(float));
