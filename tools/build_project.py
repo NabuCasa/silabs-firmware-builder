@@ -211,13 +211,20 @@ def validate_wrap_declarations(
         component = yaml.load(slcc.read_text())
         declared: dict[str, set[str]] = {}
 
+        # `metadata` is the SDK's free-form slcc key; a bare top-level key is a
+        # "junk key" warning and spec 8 refuses to generate with any warning
+        metadata = component.get("metadata", {}).get("nabucasa", {})
+        definitions = metadata.get("wrap_definitions", {})
+        required_here = set(metadata.get("required_wraps", []))
+
         for setting in component.get("toolchain_settings", []):
             targets = set(re.findall(r"--wrap=(\w+)", str(setting["value"])))
 
             if targets:
                 declared.setdefault(setting["option"], set()).update(targets)
 
-        if not declared:
+        # Wrap metadata without any wraps must still reach the checks below
+        if not declared and not definitions and not required_here:
             continue
 
         gcc = declared.get("gcc_linker_option", set())
@@ -233,12 +240,6 @@ def validate_wrap_declarations(
                 sorted(llvm - gcc),
             )
             sys.exit(1)
-
-        # `metadata` is the SDK's free-form slcc key; a bare top-level key is a
-        # "junk key" warning and spec 8 refuses to generate with any warning
-        metadata = component.get("metadata", {}).get("nabucasa", {})
-        definitions = metadata.get("wrap_definitions", {})
-        required_here = set(metadata.get("required_wraps", []))
 
         if set(definitions) - gcc:
             LOGGER.error(
