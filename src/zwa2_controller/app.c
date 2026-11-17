@@ -739,6 +739,13 @@ zaf_event_distributor_app_serial_timeout(void)
   SerialAPIStateHandler();
 }
 
+// app.h declares this, but the SDK app doesn't define it
+uint8_t
+GetCallbackCnt(void)
+{
+  return callbackQueue.requestCnt;
+}
+
 void
 PopCallBackQueue(void)
 {
