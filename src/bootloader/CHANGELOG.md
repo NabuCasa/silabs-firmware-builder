@@ -1,8 +1,8 @@
 # 3.2.2
-ZWA-2 only: added a storage slot at 0x08044000–0x08074000, so the controller firmware can receive updates while it keeps running.
+Added a storage slot to the ZWA-2 bootloader, so the ZWA-2 controller firmware can receive updates while it keeps running.
 
-- The bootloader installs a valid file from the slot when it is entered. An interrupted install runs again on the next entry.
-- Applications must end below 0x08044000.
+- ZWA-2: the slot spans 0x08044000–0x08074000. The bootloader installs a valid file from it when it is entered, and an interrupted install runs again on the next entry.
+- ZWA-2: applications must end below 0x08044000.
 
 # 3.2.1
 Updated to Simplicity SDK 2026.6.1, migrating the ZWA-2 bootloader from the standalone nc-zwave-bootloader repository.
