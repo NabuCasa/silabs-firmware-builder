@@ -112,10 +112,8 @@ typedef enum
 typedef enum
 {
   FW_UPDATE_STATE_IDLE,
-  // Prepare erased the slot. Write accepts chunks.
+  // Prepare erased the slot. Write and Perform are allowed. A failed Perform invalidates the file and returns to IDLE.
   FW_UPDATE_STATE_WRITING,
-  // Perform wrote the last partial word. A failed Perform invalidates the file and returns to IDLE.
-  FW_UPDATE_STATE_FINALIZED,
   // A successful Perform waits for the host to receive its callback, then reboots into the bootloader.
   // Every request is rejected meanwhile.
   FW_UPDATE_STATE_REBOOTING,
@@ -226,13 +224,9 @@ static bool write_words(uint32_t offset, uint16_t length)
   return zpal_bootloader_write_data(offset, write_buffer, length) == ZPAL_STATUS_OK;
 }
 
-// Append one chunk of the file to the slot
+// Append one chunk of the file to the slot. Call only in FW_UPDATE_STATE_WRITING.
 static fw_update_status_t write_chunk(uint32_t offset, const uint8_t *data, uint16_t length)
 {
-  if (update_state != FW_UPDATE_STATE_WRITING) {
-    return FW_UPDATE_STATUS_FAILED_TO_PREPARE;
-  }
-
   if ((offset > slot_length) || (length > slot_length - offset)) {
     return FW_UPDATE_STATUS_TOO_BIG;
   }
@@ -273,13 +267,6 @@ static fw_update_status_t write_chunk(uint32_t offset, const uint8_t *data, uint
 // Write the bytes still left in `write_buffer`, so the whole file is in the slot
 static fw_update_status_t finalize_write(void)
 {
-  if (update_state == FW_UPDATE_STATE_FINALIZED) {
-    return FW_UPDATE_STATUS_OK;
-  }
-  if (update_state != FW_UPDATE_STATE_WRITING) {
-    return FW_UPDATE_STATUS_FAILED_TO_PREPARE;
-  }
-
   // Write the last 1 to 3 bytes as one full word. Fill the rest with 0xFF, the value of erased flash.
   // The GBL parser stops at the end tag, so it never reads the padding.
   if (pending_length > 0) {
@@ -291,7 +278,6 @@ static fw_update_status_t finalize_write(void)
     pending_length = 0;
   }
 
-  update_state = FW_UPDATE_STATE_FINALIZED;
   return FW_UPDATE_STATUS_OK;
 }
 
@@ -391,7 +377,8 @@ static void invalidate_file(void)
   bootloader_writeRawStorage(slot_address, zeros, sizeof(zeros));
 }
 
-// Check the uploaded file, so the caller can reboot into the bootloader to install it
+// Check the uploaded file, so the caller can reboot into the bootloader to install it.
+// Call only in FW_UPDATE_STATE_WRITING.
 static fw_update_status_t perform(uint8_t target)
 {
   fw_update_status_t status = finalize_write();
@@ -466,7 +453,8 @@ ZW_ADD_CMD(FUNC_ID_FIRMWARE_UPDATE)
         break;
       }
       accept(sub_command);
-      report(payload[1], prepare());
+      const fw_update_status_t status = prepare();
+      report(payload[1], status);
       return;
     }
 
@@ -483,7 +471,15 @@ ZW_ADD_CMD(FUNC_ID_FIRMWARE_UPDATE)
       }
       const uint8_t session_id = payload[FW_UPDATE_WRITE_HEADER_LEN + data_length];
       accept(sub_command);
-      report(session_id, write_chunk(offset, &payload[FW_UPDATE_WRITE_HEADER_LEN], data_length));
+
+      // Write needs a successful Prepare first
+      if (update_state != FW_UPDATE_STATE_WRITING) {
+        report(session_id, FW_UPDATE_STATUS_FAILED_TO_PREPARE);
+        return;
+      }
+
+      const fw_update_status_t status = write_chunk(offset, &payload[FW_UPDATE_WRITE_HEADER_LEN], data_length);
+      report(session_id, status);
       return;
     }
 
@@ -493,6 +489,13 @@ ZW_ADD_CMD(FUNC_ID_FIRMWARE_UPDATE)
         break;
       }
       accept(sub_command);
+
+      // Perform needs a successful Prepare first
+      if (update_state != FW_UPDATE_STATE_WRITING) {
+        report(payload[2], FW_UPDATE_STATUS_FAILED_TO_PREPARE);
+        return;
+      }
+
       const fw_update_status_t status = perform(payload[1]);
       report(payload[2], status);
       if (status == FW_UPDATE_STATUS_OK) {
