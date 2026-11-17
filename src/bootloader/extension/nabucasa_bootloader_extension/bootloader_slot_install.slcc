@@ -5,8 +5,8 @@ description: >
   Adapts the stock bootloader to a storage slot. It erases the file in storage slot 0
   once it is installed, because the stock bootloader installs any valid file in the
   slot whenever it is entered. It also clears the SDK's reset counter whenever the
-  XMODEM menu resets or commits an upgrade, because every entry with an empty slot
-  counts towards the SDK's reset-loop stop.
+  XMODEM menu resets, and whenever the menu or the slot install commits an upgrade,
+  because every entry with an empty slot counts towards the SDK's reset-loop stop.
 category: Platform|Bootloader|Storage
 quality: production
 source:

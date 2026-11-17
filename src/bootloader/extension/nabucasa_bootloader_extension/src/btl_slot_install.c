@@ -26,8 +26,9 @@ int32_t __wrap_storage_main(void)
 {
   int32_t ret = __real_storage_main();
 
-  // Erase the installed file's first page, so later bootloader entries don't install it again
-  if (ret == BOOTLOADER_OK) {
+  // Erase the installed file's first page, so later bootloader entries don't install it again.
+  // Try a second time if the erase fails.
+  if (ret == BOOTLOADER_OK && storage_eraseRaw(SLOT0_START, FLASH_PAGE_SIZE) != BOOTLOADER_OK) {
     storage_eraseRaw(SLOT0_START, FLASH_PAGE_SIZE);
   }
 
@@ -47,7 +48,8 @@ void __wrap_reset_resetWithReason(uint16_t resetReason)
   __real_reset_resetWithReason(resetReason);
 }
 
-// "run" commits a newer bootloader, which sets reason BOOTLOAD without reset_resetWithReason
+// "run" commits a newer bootloader, which sets reason BOOTLOAD without reset_resetWithReason.
+// Installing a file with a newer bootloader from the slot calls this too.
 extern bool __real_bootload_commitBootloaderUpgrade(uint32_t upgradeAddress, uint32_t size);
 bool __wrap_bootload_commitBootloaderUpgrade(uint32_t upgradeAddress, uint32_t size)
 {
