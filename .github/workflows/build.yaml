@@ -244,8 +244,10 @@ jobs:
         run: |
           outputs=(--output gbl --output hex --output out)
 
-          # Manifests that name a bootloader also get a GBL with a bundled bootloader
-          if /opt/venv/bin/python3 -c 'import pathlib, sys; from tools.build_project import Manifest; sys.exit("bundled_bootloader" not in Manifest.load(pathlib.Path(sys.argv[1])).gbl)' "${MATRIX_MANIFEST}"; then
+          # Manifests that name a bootloader also get a GBL with a bundled bootloader.
+          # A manifest that fails to load fails the step here.
+          bundled=$(/opt/venv/bin/python3 -c 'import pathlib, sys; from tools.build_project import Manifest; print("bundled_bootloader" in Manifest.load(pathlib.Path(sys.argv[1])).gbl)' "${MATRIX_MANIFEST}")
+          if [[ "${bundled}" == "True" ]]; then
             outputs+=(--output bundled-gbl)
           fi
 
@@ -256,7 +258,7 @@ jobs:
             "${outputs[@]}"
 
           # Get the basename of the GBL in `outputs`
-          output_basename=$(basename -- $(basename -- $(ls -1 outputs/*.gbl | head -n 1)) .gbl)
+          output_basename=$(basename -- $(basename -- $(ls -1 outputs/*.gbl | grep -v _with_bootloader_ | head -n 1)) .gbl)
           echo "output_basename=$output_basename" >> $GITHUB_OUTPUT
         env:
           MATRIX_MANIFEST: ${{ matrix.manifest }}

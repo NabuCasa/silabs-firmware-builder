@@ -31,7 +31,8 @@ Once the build is complete, the firmware will be in the `artifacts` directory.
 ## GBLs with a bundled bootloader
 `--output bundled-gbl` writes a second GBL that holds a bootloader and the
 application, for example `zwa2_controller_1.4.1_with_bootloader_3.2.2.gbl`. It is
-compressed, encrypted and signed like the regular GBL.
+compressed, encrypted and signed like the regular GBL. It always gets this name,
+because `create_manifest` recognizes bundled GBLs by it.
 
 On the ZWA-2, a bundled GBL can only be installed through the Firmware Update Serial
 API command (0x3E), on bootloader 3.2.2 or newer. XMODEM writes the file while it

@@ -98,6 +98,10 @@ def parse_prefixed_output(output: str) -> tuple[str, pathlib.Path | None]:
             "Output format is of the form `gbl:overridden_filename.gbl` or just `gbl`"
         )
 
+    # `create_manifest` tells a bundled GBL from the regular one by its default name
+    if prefix == "bundled-gbl" and path is not None:
+        raise argparse.ArgumentTypeError("`bundled-gbl` takes no filename")
+
     return prefix, path
 
 
@@ -1240,7 +1244,13 @@ def verify_build_reproducibility(
 
 
 def main() -> None:
-    args = build_argument_parser().parse_args()
+    parser = build_argument_parser()
+    args = parser.parse_args()
+
+    if args.bundled_bootloader is not None and not any(
+        extension == "bundled-gbl" for extension, _ in args.outputs
+    ):
+        parser.error("--bundled-bootloader requires --output bundled-gbl")
 
     if args.build_timestamp is not None:
         args.build_timestamp = datetime.strptime(
