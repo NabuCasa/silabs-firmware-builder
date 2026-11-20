@@ -159,6 +159,14 @@ void nc_zigbee_override_append_source_route(uint16_t destination,
         return;
     }
 
+    // The stack also calls this with a NULL header, only to size a frame (e.g. when
+    // it answers a Mgmt_Lqi_req or Mgmt_Rtg_req itself). There is nothing to append
+    // to, and the route must stay available for the real send.
+    if (msg_header == NULL) {
+        *consumed = false;
+        return;
+    }
+
     *consumed = true;
 
     // Empty source routes are invalid according to the spec
