@@ -42,6 +42,19 @@ sl_status_t sl_zigbee_zdo_dlk_select_negotiation_parameters_callback(
     return SL_STATUS_NOT_FOUND;
   }
 
+  // On a non-DLK join, the stack (`sli_zigbee_duplicate_wildcard_transient_key`)
+  // clones the wildcard `ZigBeeAlliance09` transient key under the joiner's
+  // EUI64. If a second `Update Device` arrives afterwards (a parent router sends
+  // one APS-encrypted and one NWK-only), that clone looks like a provisioned
+  // install code. Reject it so we don't start DLK for a joiner that has already
+  // received the network key.
+  static const sl_zigbee_sec_man_key_t well_known_key = {
+    .key = { 'Z', 'i', 'g', 'B', 'e', 'e', 'A', 'l', 'l', 'i', 'a', 'n', 'c', 'e', '0', '9' },
+  };
+  if (sl_zigbee_sec_man_compare_key_to_value(&context, &well_known_key)) {
+    return SL_STATUS_NOT_FOUND;
+  }
+
   *selected_secret = DLK_SECRET_ENUM_PRECONFIG_INSTALL_CODE;
   return SL_STATUS_OK;
 }
