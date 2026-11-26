@@ -1,3 +1,8 @@
+# 9.1.1.2
+Fix a rare issue where sending to a battery-powered device could interfere with a device joining the network.
+
+- Fixed sending a message to a battery-powered device occasionally overwriting internal state the coordinator needs while another device is joining. Messages to battery-powered devices are now also retried more reliably.
+
 # 9.1.1.1
 Fix Zigbee 4.0 routers failing to join directly through the coordinator.
 
