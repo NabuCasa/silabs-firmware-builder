@@ -15,7 +15,7 @@
 #include "led_effects_config_zwa2.h"
 #include "led_manager_zwa2.h"
 #include "qma6100p.h"
-#include "sl_i2cspm_instances.h"
+#include "sl_i2c_instances.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "ZW_UserTask.h"
@@ -53,7 +53,7 @@ static void tilt_sample(void)
 {
   // Read raw accelerometer data
   int16_t reading[3];
-  qma6100p_read_raw_xyz(sl_i2cspm_inst, reading);
+  qma6100p_read_raw_xyz(sl_i2c_inst_handle, reading);
 
   // Debounce: check if reading is stable compared to last
   int16_t dx = reading[0] - last_reading[0];
