@@ -1,0 +1,45 @@
+id: bootloader_slot_install
+label: Storage Slot Install
+package: custom
+description: >
+  Adapts the stock bootloader to a storage slot. It erases the file in storage slot 0
+  once it is installed, because the stock bootloader installs any valid file in the
+  slot whenever it is entered. It also clears the SDK's reset counter whenever the
+  XMODEM menu resets, and whenever the menu or the slot install commits an upgrade,
+  because every entry with an empty slot counts towards the SDK's reset-loop stop.
+category: Platform|Bootloader|Storage
+quality: production
+source:
+  - path: src/btl_slot_install.c
+provides:
+  - name: bootloader_slot_install
+requires:
+  - name: bootloader_internal_storage
+  - name: bootloader_storage_slots
+  - name: bootloader_common_storage
+toolchain_settings:
+  - option: gcc_linker_option
+    value: "-Wl,--wrap=storage_main"
+  - option: gcc_linker_option
+    value: "-Wl,--wrap=reset_resetWithReason"
+  - option: gcc_linker_option
+    value: "-Wl,--wrap=bootload_commitBootloaderUpgrade"
+  - option: gcc_linker_option
+    value: "-Wl,--wrap=bootload_commitSeUpgrade"
+  - option: llvm_linker_option
+    value: "-Wl,--wrap=storage_main"
+  - option: llvm_linker_option
+    value: "-Wl,--wrap=reset_resetWithReason"
+  - option: llvm_linker_option
+    value: "-Wl,--wrap=bootload_commitBootloaderUpgrade"
+  - option: llvm_linker_option
+    value: "-Wl,--wrap=bootload_commitSeUpgrade"
+
+metadata:
+  nabucasa:
+    # The build fails if one of these wrappers is dropped or never called
+    required_wraps:
+      - storage_main
+      - reset_resetWithReason
+      - bootload_commitBootloaderUpgrade
+      - bootload_commitSeUpgrade

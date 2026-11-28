@@ -12,9 +12,8 @@ gbl:
   encrypt_key: config/keys/vendor_encrypt.key
   sign_key: config/keys/vendor_sign.key
   compression: lzma
-  # A bootloader-only GBL is unpacked into the last 24 KB of the 192 KB storage slot,
-  # so it must fit in the 168 KB before that
-  max_size: 0x2A000
+  # A GBL must fit the 192 KB storage slot
+  max_size: 0x30000
 
 # Signing/encryption keys, shared with the ZWA-2 application firmwares
 config_file:
@@ -27,8 +26,19 @@ sdk_patches:
   # Adds a "4. erase nvm" command to the bootloader menu
   - xmodem-erase-nvm.patch
 
+sdk_extension:
+  - id: nabucasa_bootloader
+    vendor: nabucasa
+    version: 1.0.0
+
 add_components:
   - id: bootloader_compression_lzma
+  - id: bootloader_internal_storage
+  - id: bootloader_storage_slots
+  - id: bootloader_common_storage
+  - id: bootloader_slot_install
+    vendor: nabucasa
+    package: nabucasa_bootloader
 
 configuration:
   BOOTLOADER_ENFORCE_SIGNED_UPGRADE: 1
@@ -36,10 +46,16 @@ configuration:
   # Reset to 1 when bumping the SDK version. Bump when modifying the bootloader
   # without bumping the SDK version.
   # We use 1 to signify that this is not the stock Gecko Bootloader.
-  BOOTLOADER_VERSION_MAIN_CUSTOMER: 1
+  BOOTLOADER_VERSION_MAIN_CUSTOMER: 2
   APPLICATION_VERIFICATION_SKIP_EM4_RST: 1
   BOOTLOADER_FALLBACK_LEGACY_KEY: 1
   BTL_STORAGE_BASE_ADDRESS: 134496256
+  SLOT0_ENABLE: 1
+  # The slot lies between the application and the NVM. Every application must end below it.
+  # The slot's last 24 KB are also ZPAL's legacy NVM3 region. No ZWA-2 release stores data there.
+  # If the controller initializes that region, a file in the slot no longer verifies.
+  SLOT0_START: 0x8044000
+  SLOT0_SIZE: 0x30000
 
 c_defines:
   SL_SERIAL_UART_FLOW_CONTROL: 0
