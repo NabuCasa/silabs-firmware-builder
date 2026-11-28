@@ -24,6 +24,12 @@ void led_effects_init(void);
 void led_effects_set_network_state(bool network_formed);
 
 /**
+ * @brief Main loop process action handler
+ * Reads the accelerometer for the tilt check outside of interrupt context.
+ */
+void led_effects_process_action(void);
+
+/**
  * @brief Check if device has valid stored network configuration
  * Implemented by the application (Router/NCP/OT)
  * @return true if network settings are stored, false otherwise

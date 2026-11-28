@@ -16,4 +16,10 @@
  */
 bool device_has_stored_network_settings(void);
 
+/**
+ * @brief Main loop process action handler
+ * Polls the OpenThread network state outside of interrupt context.
+ */
+void led_effects_openthread_process_action(void);
+
 #endif /* LED_EFFECTS_OPENTHREAD_H_ */

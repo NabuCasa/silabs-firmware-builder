@@ -37,10 +37,10 @@ typedef struct {
 void led_manager_init(void);
 
 /**
- * @brief Main loop process action handler
- * Handles LED updates safely outside of interrupt context.
+ * @brief Advance the animation by one LED_EFFECTS_UPDATE_INTERVAL_MS step and send the frame
+ * Called from the LED task, never from an interrupt: sending starts an SPI/DMA transfer.
  */
-void led_manager_process_action(void);
+void led_manager_tick(void);
 
 /**
  * @brief Set a pattern for a specific priority layer

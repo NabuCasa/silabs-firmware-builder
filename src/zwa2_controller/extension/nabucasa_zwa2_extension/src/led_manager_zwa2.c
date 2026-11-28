@@ -1,7 +1,6 @@
 #include "led_manager_zwa2.h"
 #include "led_effects_config_zwa2.h"
 #include "ws2812.h"
-#include "sl_sleeptimer.h"
 #include "sl_led.h"
 #include "em_core.h"
 #include <string.h>
@@ -15,9 +14,7 @@ typedef struct {
 } led_layer_state_t;
 
 static led_layer_state_t layers[LED_PRIORITY_COUNT];
-static sl_sleeptimer_timer_handle_t led_timer;
 static volatile uint32_t global_tick_counter = 0;
-static volatile bool update_needed = false;
 static bool manager_initialized = false;
 
 static void update_led_hardware(void) {
@@ -98,33 +95,17 @@ static void update_led_hardware(void) {
     }
 }
 
-static void led_timer_callback(sl_sleeptimer_timer_handle_t *handle, void *data) {
-    (void)handle;
-    (void)data;
-    global_tick_counter++;
-    update_led_hardware();
-    ws2812_led_driver_refresh();
-}
-
 void led_manager_init(void) {
     if (manager_initialized) return;
 
     memset(layers, 0, sizeof(layers));
-    
-    sl_sleeptimer_start_periodic_timer_ms(&led_timer,
-                                          LED_EFFECTS_UPDATE_INTERVAL_MS,
-                                          led_timer_callback,
-                                          NULL,
-                                          0,
-                                          0);
     manager_initialized = true;
 }
 
-void led_manager_process_action(void) {
-    if (update_needed) {
-        update_needed = false;
-        update_led_hardware();
-    }
+void led_manager_tick(void) {
+    global_tick_counter++;
+    update_led_hardware();
+    ws2812_led_driver_refresh();
 }
 
 void led_manager_set_pattern(led_priority_t priority, const led_pattern_t *pattern) {

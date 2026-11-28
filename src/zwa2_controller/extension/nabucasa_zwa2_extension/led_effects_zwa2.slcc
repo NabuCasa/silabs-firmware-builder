@@ -22,10 +22,3 @@ provides:
 requires:
   - name: ws2812_driver
   - name: qma6100p_driver
-  - name: sleeptimer
-template_contribution:
-  - name: event_handler
-    value:
-      event: service_process_action
-      include: led_manager_zwa2.h
-      handler: led_manager_process_action

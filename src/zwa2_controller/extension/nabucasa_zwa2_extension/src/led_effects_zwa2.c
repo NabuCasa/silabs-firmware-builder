@@ -15,18 +15,30 @@
 #include "led_effects_config_zwa2.h"
 #include "led_manager_zwa2.h"
 #include "qma6100p.h"
-#include "sl_sleeptimer.h"
 #include "sl_i2cspm_instances.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "ZW_UserTask.h"
 #include <math.h>
 
 #ifndef M_PI
 #define M_PI  3.14159265358979323846f
 #endif
 
+// The LED task drives the animation and the tilt check. Sending a frame starts an SPI/DMA
+// transfer and the tilt check reads I2C, so neither runs in an interrupt.
+#define LED_TASK_STACK_BYTES  1024
+
+static StaticTask_t led_task_buffer;
+static StackType_t led_task_stack[LED_TASK_STACK_BYTES / sizeof(StackType_t)];
+static ZW_UserTask_Buffer_t led_task_buffers = {
+  .taskBuffer = &led_task_buffer,
+  .stackBuffer = (uint8_t *)led_task_stack,
+  .stackBufferLength = LED_TASK_STACK_BYTES,
+};
+
 // Internal state
-static sl_sleeptimer_timer_handle_t tilt_monitor_timer;
-static uint32_t monitor_ticks = 0;
-static bool is_monitoring = false;
+static bool is_running = false;
 static bool was_tilted = false;
 static bool tilt_enabled = true;
 
@@ -37,24 +49,8 @@ static int stable_count = 0;
 // Tilt sample interval in timer ticks
 #define TILT_SAMPLE_TICKS  (LED_EFFECTS_TILT_SAMPLE_MS / LED_EFFECTS_UPDATE_INTERVAL_MS)
 
-static void tilt_monitor_callback(sl_sleeptimer_timer_handle_t *handle, void *data)
+static void tilt_sample(void)
 {
-  (void)handle;
-  (void)data;
-  monitor_ticks++;
-
-  if (!tilt_enabled) {
-    if (was_tilted) {
-      led_manager_clear_pattern(LED_PRIORITY_TILT);
-      was_tilted = false;
-    }
-    return;
-  }
-
-  if (monitor_ticks % TILT_SAMPLE_TICKS != 0) {
-    return;
-  }
-
   // Read raw accelerometer data
   int16_t reading[3];
   qma6100p_read_raw_xyz(sl_i2cspm_inst, reading);
@@ -118,26 +114,43 @@ static void tilt_monitor_callback(sl_sleeptimer_timer_handle_t *handle, void *da
   was_tilted = is_tilted;
 }
 
-static void start_tilt_monitor(void)
+static void led_task(void *arg)
 {
-  if (is_monitoring) return;
+  (void)arg;
+  uint32_t ticks = 0;
 
-  monitor_ticks = 0;
-  was_tilted = false;
-  sl_sleeptimer_start_periodic_timer_ms(&tilt_monitor_timer,
-                                        LED_EFFECTS_UPDATE_INTERVAL_MS,
-                                        tilt_monitor_callback,
-                                        NULL,
-                                        0,
-                                        0);
-  is_monitoring = true;
+  for (;;) {
+    vTaskDelay(pdMS_TO_TICKS(LED_EFFECTS_UPDATE_INTERVAL_MS));
+    led_manager_tick();
+    ticks++;
+
+    if (!tilt_enabled) {
+      if (was_tilted) {
+        led_manager_clear_pattern(LED_PRIORITY_TILT);
+        was_tilted = false;
+      }
+    } else if (ticks % TILT_SAMPLE_TICKS == 0) {
+      tilt_sample();
+    }
+  }
 }
 
 void led_effects_init(void)
 {
+  if (is_running) return;
+
   led_manager_init();
   // ZWA-2: Tilt monitoring is always active (independent of network state)
-  start_tilt_monitor();
+  was_tilted = false;
+  ZW_UserTask_t task = {
+    .pTaskFunc = led_task,
+    .pTaskName = "LED",
+    .pUserTaskParam = NULL,
+    .priority = USERTASK_PRIORITY_BACKGROUND,
+    .taskBuffer = &led_task_buffers,
+  };
+  ZW_UserTask_CreateTask(&task, NULL);
+  is_running = true;
 }
 
 void led_effects_set_searching(void)

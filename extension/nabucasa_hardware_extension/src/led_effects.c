@@ -18,9 +18,11 @@
 #define M_PI  3.14159265358979323846f
 #endif
 
+#define TILT_CHECK_INTERVAL_MS 100
+
 // Internal state
 static sl_sleeptimer_timer_handle_t tilt_monitor_timer;
-static uint32_t monitor_ticks = 0;
+static volatile bool tilt_check_due = false;
 static bool is_monitoring = false;
 static bool was_tilted = false;
 
@@ -46,14 +48,18 @@ static float calculate_tilt_angle(void)
   return tilt_deg;
 }
 
+// Runs in interrupt context: the I2C read and the math happen in the main loop
 static void tilt_monitor_callback(sl_sleeptimer_timer_handle_t *handle, void *data)
 {
   (void)handle;
   (void)data;
-  monitor_ticks++;
+  tilt_check_due = true;
+}
 
-  // Check tilt every ~100ms (25 * 4ms)
-  if (monitor_ticks % 25 == 0) {
+void led_effects_process_action(void)
+{
+  if (tilt_check_due) {
+    tilt_check_due = false;
     float tilt_angle = calculate_tilt_angle();
     bool is_tilted;
     
@@ -95,6 +101,7 @@ void led_effects_set_network_state(bool network_formed)
         if (is_monitoring) {
              sl_sleeptimer_stop_timer(&tilt_monitor_timer);
              is_monitoring = false;
+             tilt_check_due = false;
              
              // Ensure any active tilt blink is cleared
              led_manager_clear_pattern(LED_PRIORITY_CRITICAL);
@@ -113,10 +120,9 @@ void led_effects_set_network_state(bool network_formed)
 
         // Start tilt monitoring if not already running
         if (!is_monitoring) {
-            monitor_ticks = 0;
             was_tilted = false;
             sl_sleeptimer_start_periodic_timer_ms(&tilt_monitor_timer,
-                                        LED_EFFECTS_UPDATE_INTERVAL_MS,
+                                        TILT_CHECK_INTERVAL_MS,
                                         tilt_monitor_callback,
                                         NULL,
                                         0,
