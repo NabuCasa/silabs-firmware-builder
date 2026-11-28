@@ -121,6 +121,9 @@ add_components:
   - id: cmds_proprietary_zwa2
     vendor: nabucasa
     package: nabucasa_zwa2
+  - id: cmd_firmware_update_zwa2
+    vendor: nabucasa
+    package: nabucasa_zwa2
 
 # SLC reads `configuration` during validation, before c_defines are patched
 configuration:
